@@ -1,58 +1,87 @@
-# Sports Competition Organization Application — NCSMS v1.0
+# Sports Competition Organisation Application — NCSMS v1.0
+
+**Form Reference:** Form 7 — Regulation 16(1)
+**Submitted To:** General Secretary, National Council of Sports
 
 ## Purpose
 
-This application defines the requirements for organizing a formal sports competition or tournament.
+This application is submitted to obtain clearance to organise a sports competition in Uganda.
 
-## Key Sections
+---
 
-### Organizer Information
+## Form Fields
 
-- Organizer name and entity type
-- Contact person and event coordinator details
-- Event location and venue details
-- Sponsorship and funding information
+### Section 1 — Applicant Details
 
-### Competition Details
+| Field Name | Type | Label | Notes |
+|---|---|---|---|
+| `applicant_name` | text | Name of Applicant | Full name of the organising entity or individual |
+| `physical_address` | textarea | Physical Address | |
+| `postal_address` | text | Postal Address | |
+| `telephone_fixed_line` | text | Telephone (Fixed Line) | |
+| `mobile_phone` | text | Mobile Phone | |
+| `email_address` | email | E-mail Address | |
+| `website` | url | Website | Optional |
 
-- Competition name
-- Sports categories and participant age groups
-- Start and end dates
-- Expected number of teams or athletes
-- Registration and eligibility rules
+---
 
-### Event Management
+### Section 2 — Competition Details
 
-- Venue booking and logistics plan
-- Health, safety, and medical support arrangements
-- Results management and officiating plan
-- Awards, medals, and sanctioning details
+| Field Name | Type | Label | Notes |
+|---|---|---|---|
+| `sport_nature_and_categories` | textarea | Nature of Sport and Categories for Competition | Describe the sport(s) and the competition categories |
+| `competition_start_date` | date | Competition Start Date | |
+| `competition_end_date` | date | Competition End Date | |
+| `budget_and_funding` | textarea | Confirmation of Budget, Availability of Funds, and Sources of Funding | State budget total, funding sources, and confirmation of available funds |
+| `hosting_venue` | textarea | Hosting Facility / Venue | Full name and address of the competition venue |
+| `accommodation_address` | textarea | Accommodation Sites Address | If applicable — address(es) of accommodation for participants |
+| `organizing_committee` | textarea | Organising Committee Details | State and confirm availability of the organising committee (if applicable) |
 
-### Compliance and Fees
+---
 
-- Approval from relevant federation or association
-- Insurance and liability documentation
-- Risk assessment and security plan
-- Payment receipt and `payment_reference`
+### Declaration and Signature
 
-## Tracking and References
+| Field Name | Type | Label | Notes |
+|---|---|---|---|
+| `authorised_signatory_name` | text | Authorised Signatory Name | |
+| `signature_upload` | file | Signature / Seal | Upload scanned signature and official seal |
+| `date_signed` | date | Date Signed | |
 
-- `application_reference`
-- `competition_reference`
-- `payment_reference`
-- `review_status`
-- `submitted_at`, `updated_at`
+---
+
+## Required Attachments
+
+| # | Field Name | Label | Required |
+|---|---|---|---|
+| 1 | `executive_committee_minutes` | Minutes of Executive Committee / Board Meeting Approving the Competition | Mandatory |
+| 2 | `approved_action_plan` | Copy of Approved Action Plan for the Financial Year | Mandatory |
+| 3 | `competition_fixture` | Copy of Competition Fixture | Mandatory |
+| 4 | `sponsors_list` | List of Sponsors | Mandatory |
+
+---
+
+## Tracking Metadata
+
+- `application_reference` — unique submission identifier assigned on submission
+- `competition_reference` — reference number specific to this competition clearance
+- `payment_reference` — application fee payment tracking number
+- `status` — `DRAFT` \| `SUBMITTED` \| `UNDER_REVIEW` \| `APPROVED` \| `REJECTED` \| `NEEDS_INFORMATION`
+- `submitted_at`, `last_updated`, `next_action`
+
+---
 
 ## Workflow
 
-- Draft the event application and invite collaborators
-- Submit for review by `GENERAL_SECRETARY`
-- Validate sanctioning, venue compliance, and participant eligibility
-- Approve, request clarifications, or reject submission
+1. Applicant fills in all competition details and uploads 4 required attachments
+2. Submits to `GENERAL_SECRETARY` for clearance review
+3. Reviewer validates sanctioning, venue fitness, budget confirmation, and organising committee readiness
+4. Approve, request clarifications, or reject the application
+
+---
 
 ## API Endpoints
 
-- `POST /api/v1/applications/competition-organization`
+- `POST /api/v1/applications/competition-organisation`
 - `GET /api/v1/applications/{id}`
 - `PATCH /api/v1/applications/{id}`
 - `GET /api/v1/transactions/{reference}`

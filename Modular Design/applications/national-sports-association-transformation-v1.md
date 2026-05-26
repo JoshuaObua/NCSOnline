@@ -1,54 +1,148 @@
-# National Sports Association Transformation Form — NCSMS v1.0
+# National Sports Association Transformation Application — NCSMS v1.0
+
+**Form Reference:** Form 5 — Regulation 11(1)
+**Submitted To:** The General Secretary, National Council of Sports
 
 ## Purpose
 
-This form supports transformation requests from national sports associations seeking governance, structural, or scope changes.
+This form is used by a registered national sports association (NSA) to apply for transformation into a national sports federation (NSF). The NSA is the applicant and submits this form to initiate the change of status.
 
-## Key Sections
+> **Note:** This form is the same as `national-sports-federation-transformation-v1.md` — both document FORM 5. This file describes the process from the NSA applicant's perspective.
+
+---
+
+## Form Fields
+
+### Introduction
+
+| Field Name | Type | Label | Notes |
+|---|---|---|---|
+| `association_name_to_transform` | text | Name of National Sports Association | Insert the exact registered name of the NSA applying for transformation |
+
+---
+
+### Applicant Contact Details
+
+| Field Name | Type | Label | Notes |
+|---|---|---|---|
+| `applicant_name` | text | Name | Name of authorised representative submitting the application |
+| `physical_address` | textarea | Physical Address | |
+| `postal_address` | text | Postal Address | |
+| `telephone_fixed_line` | text | Telephone (Fixed Line) | |
+| `mobile_phone` | text | Mobile Phone | |
+| `email_address` | email | E-mail Address | |
+| `website` | url | Website | Optional |
+
+---
 
 ### Association Details
 
-- Association name and registration number
-- Current governance structure
-- Member organizations and executive leadership
+| Field Name | Type | Label | Notes |
+|---|---|---|---|
+| `sport_promoted` | text | Sport Promoted by the Association | Indicate the sport |
+| `coverage_districts` | textarea | District Coverage | Specify which districts and percentage |
+| `coverage_other` | textarea | Other Coverage (Specify) | |
+| `previous_registration_as` | text | Previously Registered in Uganda As | Form of previous registration |
+| `previous_registration_date` | date | Date of Previous Registration | |
+| `transformation_reason` | textarea | Reason for Transformation into a National Sports Federation | Detailed justification |
 
-### Transformation Plan
+---
 
-- Description of the proposed transformation
-- New governance model or organizational structure
-- Strategic rationale and business case
-- Timeline for implementation and stakeholder engagement
+### Leadership and Governance Structure
 
-### Compliance Documentation
+**Leadership Table** (fixed roles):
 
-- Proposed constitution or bylaws amendments
-- Board resolutions or membership approvals
-- Legal opinions, regulatory clearances, or ministry correspondence
-- Supporting documentation for change of scope
+| Field Name | Type | Label | Notes |
+|---|---|---|---|
+| `leader_role` | select | Role | Options: President/Chairperson or equivalent \| General Secretary/CEO or equivalent \| Treasurer or equivalent |
+| `leader_name` | text | Name | |
+| `leader_address_and_phone` | text | Physical Address and Telephone Number | |
+| `leader_nationality` | text | Nationality | |
+| `leader_country_of_residence` | text | Country of Usual Residence | |
 
-### Supporting Evidence
+**Accounting Officer** (separate table):
 
-- Historical association performance and compliance record
-- Stakeholder consultation records
-- Payment receipt and application fee reference
+| Field Name | Type | Label |
+|---|---|---|
+| `accounting_officer_name` | text | Name |
+| `accounting_officer_address` | text | Physical Address |
+| `accounting_officer_phone` | text | Telephone Number |
 
-## Tracking and References
+---
 
-- `application_reference`
-- `transformation_reference`
-- `payment_reference`
-- `status`, `submitted_at`, `updated_at`
+### International Affiliations
+
+Repeatable table — add rows as needed:
+
+| Field Name | Type | Label |
+|---|---|---|
+| `intl_body_name` | text | International Sports Body |
+| `intl_affiliation_date` | date | Date of Affiliation |
+
+---
+
+### Sources of Funding
+
+Repeatable table — add rows as needed:
+
+| Field Name | Type | Label |
+|---|---|---|
+| `funding_source` | text | Source |
+| `funding_amount_ugx` | number | Amount (UGX) |
+
+---
+
+### Declaration and Signature
+
+| Field Name | Type | Label | Notes |
+|---|---|---|---|
+| `authorised_signatory_name` | text | Authorised Signatory Name | |
+| `signature_upload` | file | Signature / Seal | Upload scanned signature and official seal |
+| `date_signed` | date | Date Signed | |
+
+---
+
+## Required Attachments
+
+| # | Field Name | Label | Required |
+|---|---|---|---|
+| 1 | `proof_of_fee_payment` | Proof of Payment of Prescribed Fees | Mandatory |
+| 2 | `organogram_document` | Organogram of National Sports Organisation | Mandatory |
+| 3 | `national_sport_certificate` | Certificate of Recognition as National Sport | Mandatory |
+| 4 | `symbols_slogans_colours_document` | Symbols, Slogans, and Colours of the Applicant NSA or Federation | Mandatory |
+| 5 | `constitution_document` | Copy of Constitution Approved by Members of the General Assembly | Mandatory |
+| 6 | `general_assembly_minutes_constitution` | Original Copy of Minutes of the General Assembly Approving the Constitution | Mandatory |
+| 7 | `members_list` | Certified and Updated List of Members | Mandatory |
+| 8 | `sports_activities_report` | Report of Sports Activities Conducted Within One Year Prior to Application | Mandatory |
+| 9 | `districts_presence_list` | List of Districts Where the NSA or NSF Has Presence and is Active | Mandatory |
+| 10 | `election_minutes` | Minutes of General Assembly that Elected the Executive Committee | Mandatory |
+| 11 | `audited_accounts` | Audited Books of Accounts | Optional (where applicable) |
+| 12 | `id_documents` | Passport Photos and Certified Copies of ID Documents (National ID or Passport) of Executive Committee or Board | Mandatory |
+
+---
+
+## Tracking Metadata
+
+- `application_reference` — unique submission identifier
+- `transformation_reference` — specific reference for transformation tracking
+- `payment_reference` — fee payment tracking number
+- `status` — `DRAFT` \| `SUBMITTED` \| `UNDER_REVIEW` \| `APPROVED` \| `REJECTED` \| `NEEDS_INFORMATION`
+- `submitted_at`, `last_updated`, `next_action`
+
+---
 
 ## Workflow
 
-- Save a draft transformation request
-- Submit under `GENERAL_SECRETARY` review
-- Validate governance changes, membership approvals, and legal compliance
-- Approve, request additional evidence, or reject
+1. NSA completes all form sections and uploads all 12 required attachments
+2. Submits to `GENERAL_SECRETARY` for validation
+3. Reviewer confirms transformation rationale, governance compliance, membership approvals, and legal basis
+4. Approve, request additional evidence, or reject with written notes
+
+---
 
 ## API Endpoints
 
-- `POST /api/v1/applications/transformation/association`
+- `POST /api/v1/applications/transformation/nsa-to-nsf`
 - `GET /api/v1/applications/{id}`
 - `PATCH /api/v1/applications/{id}`
 - `GET /api/v1/transactions/{reference}`
