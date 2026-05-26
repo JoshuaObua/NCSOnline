@@ -60,6 +60,25 @@ This application is submitted to obtain clearance to organise a sports competiti
 
 ---
 
+## Wizard Steps
+
+This form follows the shared **6-stage application workflow** defined in [application-workflow-v1.md](application-workflow-v1.md). The form content maps to the following wizard steps:
+
+| Step | Label | Fields Covered |
+|---|---|---|
+| 1 | Applicant Details | Name, physical address, postal address, phone, email, website |
+| 2 | Competition Details | Sport nature and categories, competition start date, competition end date |
+| 3 | Logistics & Organisation | Budget and funding confirmation, hosting venue, accommodation address, organising committee details |
+| 4 | Review & Confirm | Read-only summary; edit links per section |
+
+After Step 4 the applicant proceeds through **Stage 3 (Download, Sign & Upload)** → **Stage 4 (Payment)** → **Stage 5 (Submit)** → **Stage 6 (Track)**.
+
+### Payment Options
+- **Digital payment** — online card or mobile money
+- **Upload proof of payment** — scanned bank slip or mobile money receipt
+
+---
+
 ## Tracking Metadata
 
 - `application_reference` — unique submission identifier assigned on submission

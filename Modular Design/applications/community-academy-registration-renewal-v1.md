@@ -64,6 +64,29 @@ This form supports both new registration and renewal for community sports clubs 
 
 ---
 
+## Wizard Steps
+
+This form follows the shared **6-stage application workflow** defined in [application-workflow-v1.md](application-workflow-v1.md). The form content maps to the following wizard steps:
+
+| Step | Label | Fields Covered |
+|---|---|---|
+| 1 | Application Type & Club Details | Registration or Renewal selector; club name, physical address, postal address, telephone, mobile, email, website |
+| 2 | Sports Disciplines & Membership | Categories of sports promoted, date formed, list of membership (including certified technical persons) |
+| 3 | Ownership, Affiliations & Recommendations | Ownership and location details, NSA/NSF recommendation status, other national/international affiliations |
+| 4 | Review & Confirm | Read-only summary; edit links per section |
+
+After Step 4 the applicant proceeds through **Stage 3 (Download, Sign & Upload)** → **Stage 4 (Payment)** → **Stage 5 (Submit)** → **Stage 6 (Track)**.
+
+> Renewal submissions pre-populate previously approved data. The applicant confirms, updates where needed, and resubmits.
+
+### Payment Options
+- **Digital payment** — online card or mobile money
+- **Upload proof of payment** — scanned bank slip or mobile money receipt
+
+Both methods accepted for both Registration and Renewal.
+
+---
+
 ## Tracking Metadata
 
 - `application_reference` — unique submission identifier assigned on submission

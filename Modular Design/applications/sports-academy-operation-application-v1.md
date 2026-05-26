@@ -64,6 +64,28 @@ This application collects the information required to approve and licence a spor
 
 ---
 
+## Wizard Steps
+
+This form follows the shared **6-stage application workflow** defined in [application-workflow-v1.md](application-workflow-v1.md). The form content maps to the following wizard steps:
+
+| Step | Label | Fields Covered |
+|---|---|---|
+| 1 | Applicant Details | Name, physical address, postal address, telephone, mobile, email, website |
+| 2 | Academy Details | Sports disciplines promoted, date formed, list of membership including certified technical persons |
+| 3 | Ownership & Incorporation | Ownership and location details, how the academy is incorporated in Uganda |
+| 4 | Compliance, Affiliations & Proposals | NSA/federation recommendation (conditional), other affiliations, technical and financial proposal (conditional); Children's Act compliance acknowledgement |
+| 5 | Review & Confirm | Read-only summary; edit links per section |
+
+After Step 5 the applicant proceeds through **Stage 3 (Download, Sign & Upload)** → **Stage 4 (Payment)** → **Stage 5 (Submit)** → **Stage 6 (Track)**.
+
+> Step 4 contains **conditional fields**: the federation recommendation certificate upload appears only if `federation_recommended = Yes`; the technical proposal upload appears only if `has_technical_financial_proposal = Yes`.
+
+### Payment Options
+- **Digital payment** — online card or mobile money
+- **Upload proof of payment** — scanned bank slip or mobile money receipt
+
+---
+
 ## Tracking Metadata
 
 - `application_reference` — unique submission identifier assigned on submission

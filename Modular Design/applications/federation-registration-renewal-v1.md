@@ -132,6 +132,31 @@ Repeatable table — add rows as needed:
 
 ---
 
+## Wizard Steps
+
+This form follows the shared **6-stage application workflow** defined in [application-workflow-v1.md](application-workflow-v1.md). The form content maps to the following wizard steps:
+
+| Step | Label | Parts / Fields Covered |
+|---|---|---|
+| 1 | Application Type | Select Registration or Renewal; select NSA or NSF |
+| 2 | Applicant Particulars | Part I — Organisation name, address, contacts, website |
+| 3 | Nature of Sport & Legal Status | Part II — Sport promoted, district coverage; Part III — Previous registration (where applicable) |
+| 4 | Leadership & Governance | Part IV — Leadership table (President, Gen. Secretary, Treasurer), Accounting Officer, governance structure description |
+| 5 | International Affiliations & Funding | Part IV Affiliations — international bodies table; Part V — funding sources table |
+| 6 | Review & Confirm | Read-only summary of all sections; edit links per section |
+
+After Step 6 the applicant proceeds through **Stage 3 (Download, Sign & Upload)** → **Stage 4 (Payment)** → **Stage 5 (Submit)** → **Stage 6 (Track)**.
+
+> Renewal applications follow the same wizard. Previously submitted data is pre-populated where available; the applicant confirms or updates each section.
+
+### Payment Options
+- **Digital payment** — online card or mobile money
+- **Upload proof of payment** — scanned bank slip or mobile money receipt
+
+Both methods accepted for both Registration and Renewal submissions.
+
+---
+
 ## Tracking Metadata
 
 - `application_reference` — unique submission identifier assigned on submission

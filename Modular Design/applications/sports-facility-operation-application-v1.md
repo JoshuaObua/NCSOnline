@@ -64,6 +64,27 @@ This application is submitted by an individual or entity seeking approval to ope
 
 ---
 
+## Wizard Steps
+
+This form follows the shared **6-stage application workflow** defined in [application-workflow-v1.md](application-workflow-v1.md). The form content maps to the following wizard steps:
+
+| Step | Label | Fields Covered |
+|---|---|---|
+| 1 | Facility Identification | `facility_name` — name of the sports facility; `sports_activity_nature` — type of sports activity to be hosted |
+| 2 | Applicant Details | Name, physical address, postal address, telephone, mobile, email, website |
+| 3 | Facility Details & Funding | Location and size, types of sport activities, sources of funding |
+| 4 | Review & Confirm | Read-only summary; edit links per section |
+
+After Step 4 the applicant proceeds through **Stage 3 (Download, Sign & Upload)** → **Stage 4 (Payment)** → **Stage 5 (Submit)** → **Stage 6 (Track)**.
+
+### Payment Options
+- **Digital payment** — online card or mobile money
+- **Upload proof of payment** — scanned bank slip or mobile money receipt
+
+Both methods accepted for both new facility licences and renewals.
+
+---
+
 ## Tracking Metadata
 
 - `application_reference` — unique submission identifier assigned on submission

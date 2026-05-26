@@ -114,6 +114,29 @@ Repeatable table — add rows as needed:
 
 ---
 
+## Wizard Steps
+
+This form follows the shared **6-stage application workflow** defined in [application-workflow-v1.md](application-workflow-v1.md). The form content maps to the following wizard steps:
+
+| Step | Label | Parts Covered |
+|---|---|---|
+| 1 | Applicant Particulars | Part I — Name, applicant type (Citizen/Resident), address, contacts |
+| 2 | Nature & Popularity of the Sport | Part II — Sport name and description; Part III — District/region engagement |
+| 3 | Social Economic Impact | Part IV — Socioeconomic impact narrative |
+| 4 | International Recognition & Facilities | Part V — International affiliations table; Part VI — Facility locations by district |
+| 5 | Leadership, Governance & Funding | Part VII — Leadership table (President, Gen. Secretary, Treasurer); Part VIII — Funding sources table |
+| 6 | Review & Confirm | Read-only summary; edit links per section |
+
+After Step 6 the applicant proceeds through **Stage 3 (Download, Sign & Upload)** → **Stage 4 (Payment)** → **Stage 5 (Submit)** → **Stage 6 (Track)**.
+
+### Payment Options
+- **Digital payment** — online card or mobile money
+- **Upload proof of payment** — scanned bank slip or mobile money receipt
+
+Both methods accepted for new applications and renewals alike.
+
+---
+
 ## Tracking Metadata
 
 - `application_reference` — unique submission identifier assigned on submission

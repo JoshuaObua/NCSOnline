@@ -121,6 +121,27 @@ Repeatable table — add rows as needed:
 
 ---
 
+## Wizard Steps
+
+This form follows the shared **6-stage application workflow** defined in [application-workflow-v1.md](application-workflow-v1.md). The form content maps to the following wizard steps:
+
+| Step | Label | Fields Covered |
+|---|---|---|
+| 1 | Association Identity | `association_name_to_transform` — exact registered name of the NSA |
+| 2 | Applicant Contact Details | Name of authorised representative, physical address, postal address, phone, email, website |
+| 3 | Association Details & Legal History | Sport promoted, district coverage, previous registration form and date |
+| 4 | Transformation Rationale | `transformation_reason` — detailed justification for the NSA's request to become an NSF |
+| 5 | Leadership, Governance, Affiliations & Funding | Leadership table, accounting officer, international affiliations table, funding sources table |
+| 6 | Review & Confirm | Read-only summary; edit links per section |
+
+After Step 6 the applicant proceeds through **Stage 3 (Download, Sign & Upload)** → **Stage 4 (Payment)** → **Stage 5 (Submit)** → **Stage 6 (Track)**.
+
+### Payment Options
+- **Digital payment** — online card or mobile money
+- **Upload proof of payment** — scanned bank slip or mobile money receipt
+
+---
+
 ## Tracking Metadata
 
 - `application_reference` — unique submission identifier
