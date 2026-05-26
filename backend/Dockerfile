@@ -5,17 +5,21 @@ RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /app
 
-# Copy module definition first for layer caching
-COPY go.mod ./
-# go.sum is generated automatically if absent (-mod=mod)
-COPY go.sum* ./
+COPY go.mod .
 
-RUN go mod download
+# Skip module proxy and checksum DB — fetch directly from VCS.
+# This avoids proxy.golang.org TLS issues on some networks.
+ENV GOPROXY="direct"
+ENV GONOSUMDB="*"
+ENV GOFLAGS="-mod=mod"
+
+# Download all deps (including transitives) before copying source.
+RUN go mod download all
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -mod=mod -ldflags="-w -s" -o ncsms-backend ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOGC=50 \
+    go build -p 2 -ldflags="-w -s" -o ncsms-backend ./cmd/server
 
 # ── Stage 2: Run ──────────────────────────────────────────────────
 FROM scratch

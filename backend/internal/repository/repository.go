@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
+	"strings"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/jackc/pgx/v5"
@@ -142,7 +142,7 @@ func (r *UserRepo) SoftDelete(ctx context.Context, userID string) error {
 }
 
 func (r *UserRepo) UpdateLastLogin(ctx context.Context, userID string) error {
-	const q = `UPDATE users SET last_login_at=NOW() WHERE id=$1`
+	const q = `UPDATE users SET last_login_at=NOW(), updated_at=NOW() WHERE id=$1`
 	_, err := r.db.Exec(ctx, q, userID)
 	return err
 }
@@ -602,7 +602,3 @@ func isDuplicate(err error) bool {
 		strings.Contains(err.Error(), "unique constraint"))
 }
 
-func init() {
-	// suppress unused import warning — time is used in token expiry
-	_ = time.Now
-}

@@ -7,7 +7,7 @@ DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM users WHERE id = 'usr_super_admin_001') THEN
         INSERT INTO users (
-            id, email, password, first_name, last_name,
+            id, email, password_hash, first_name, last_name,
             is_active, created_at, updated_at
         ) VALUES (
             'usr_super_admin_001',
