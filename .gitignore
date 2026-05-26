@@ -1,2 +1,50 @@
-.deploy_key_ncs_online 
-.deploy_key_ncs_online.pub 
+.deploy_key_ncs_online
+.deploy_key_ncs_online.pub
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Go
+backend/vendor/
+backend/*.exe
+backend/*.dll
+backend/*.so
+backend/*.dylib
+backend/ncsms-backend
+backend/*.test
+backend/*.out
+backend/coverage.html
+backend/coverage.out
+__debug_bin
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+nginx/logs/
+
+# Docker overrides
+docker-compose.override.yml
+
+# Certificates
+nginx/certs/*.pem
+nginx/certs/*.key
+nginx/certs/*.crt
+
+# Local uploads
+backend/uploads/
+
+# Node (future frontend)
+node_modules/
+.next/
+dist/

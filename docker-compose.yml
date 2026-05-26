@@ -1,0 +1,68 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ncsms_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ncsms}
+      POSTGRES_USER: ${POSTGRES_USER:-ncsms_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ncsms_user} -d ${POSTGRES_DB:-ncsms}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ncsms_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ncsms_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-ncsms_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ncsms}?sslmode=disable
+      PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - ncsms_net
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: ncsms_nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - nginx_logs:/var/log/nginx
+      # Uncomment when SSL certs are available:
+      # - ./nginx/certs:/etc/nginx/certs:ro
+    networks:
+      - ncsms_net
+
+volumes:
+  postgres_data:
+  nginx_logs:
+
+networks:
+  ncsms_net:
+    driver: bridge

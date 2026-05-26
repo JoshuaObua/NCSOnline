@@ -1,0 +1,703 @@
+{
+  "info": {
+    "_postman_id": "ncsms-api-v1",
+    "name": "NCSMS API v1",
+    "description": "National Council of Sports Management System — Backend API\n\n**Setup:**\n1. Set `baseUrl` variable to your server (default: `http://localhost:8080`)\n2. Run **Login** request — access and refresh tokens are saved automatically\n3. All authenticated requests use the saved `accessToken` via Bearer auth\n\n**Auth:** JWT Bearer tokens. Access token TTL: 15 min. Refresh via `POST /auth/refresh`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",      "value": "http://localhost:8080", "type": "string" },
+    { "key": "accessToken",  "value": "",                      "type": "string" },
+    { "key": "refreshToken", "value": "",                      "type": "string" },
+    { "key": "userId",       "value": "",                      "type": "string" },
+    { "key": "roleId",       "value": "",                      "type": "string" },
+    { "key": "appId",        "value": "",                      "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+
+    {
+      "name": "Auth",
+      "description": "Authentication flow — login, token refresh, logout, password management",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/login", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ncs.go.ug\",\n  \"password\": \"changeme123\"\n}"
+            },
+            "description": "Authenticate with email and password. Saves accessToken and refreshToken as collection variables."
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  const body = pm.response.json();",
+                "  pm.collectionVariables.set('accessToken', body.data.access_token);",
+                "  pm.collectionVariables.set('refreshToken', body.data.refresh_token);",
+                "  pm.test('Login successful', () => pm.expect(body.success).to.be.true);",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","refresh"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
+            },
+            "description": "Exchange a refresh token for a new access + refresh token pair (token rotation)."
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200) {",
+                "  const body = pm.response.json();",
+                "  pm.collectionVariables.set('accessToken', body.data.access_token);",
+                "  pm.collectionVariables.set('refreshToken', body.data.refresh_token);",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/me", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","me"] },
+            "description": "Returns the authenticated user's profile from the JWT claims."
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/change-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","change-password"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"changeme123\",\n  \"new_password\": \"newSecure456!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","forgot-password"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","reset-password"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<reset-token-from-email>\",\n  \"new_password\": \"newSecure456!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/auth/logout", "host": ["{{baseUrl}}"], "path": ["api","v1","auth","logout"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin / Dashboard",
+      "description": "Admin-only aggregate statistics (requires admin or super_admin role)",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/dashboard", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","dashboard"] },
+            "description": "Returns: total_users, total_applications, applications_by_status, pending_review, needs_attention"
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin / Users",
+      "description": "User management — create, list, get, update, delete, activate/deactivate, assign roles (admin+)",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/users?page=1&per_page=20&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","admin","users"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "per_page", "value": "20" },
+                { "key": "search",   "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/users", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"secure1234\",\n  \"first_name\": \"Jane\",\n  \"last_name\": \"Doe\",\n  \"phone\": \"+256700000000\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  pm.collectionVariables.set('userId', pm.response.json().data.id);",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}"] }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Jane\",\n  \"last_name\": \"Smith\",\n  \"phone\": \"+256711000000\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}"] }
+          }
+        },
+        {
+          "name": "Activate User",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/activate", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}","activate"] }
+          }
+        },
+        {
+          "name": "Deactivate User",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/deactivate", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}","deactivate"] }
+          }
+        },
+        {
+          "name": "Assign Role to User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}","roles"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role_id\": \"{{roleId}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Role from User",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/users/{{userId}}/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","users","{{userId}}","roles","{{roleId}}"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin / Roles & Permissions",
+      "description": "Role and permission management (super_admin only)",
+      "item": [
+        {
+          "name": "List Roles",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","roles"] }
+          }
+        },
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/roles", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","roles"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"data_analyst\",\n  \"description\": \"Read-only access to reports and audit logs\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "  pm.collectionVariables.set('roleId', pm.response.json().data.id);",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Role",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","roles","{{roleId}}"] }
+          }
+        },
+        {
+          "name": "Update Role",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","roles","{{roleId}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"data_analyst\",\n  \"description\": \"Updated description\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Role",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","roles","{{roleId}}"] }
+          }
+        },
+        {
+          "name": "List All Permissions",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/permissions", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","permissions"] }
+          }
+        },
+        {
+          "name": "Assign Permission to Role",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/roles/{{roleId}}/permissions", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","roles","{{roleId}}","permissions"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permission_id\": \"<permission-id>\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remove Permission from Role",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/roles/{{roleId}}/permissions/<permID>", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","roles","{{roleId}}","permissions","<permID>"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Applications / Draft",
+      "description": "Step 1 — Save and resume draft form data before any submission",
+      "item": [
+        {
+          "name": "Save Draft",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/draft", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","draft"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"form_type\": \"form_3\",\n  \"form_data\": {\n    \"applicant_name\": \"Uganda Athletics Federation\",\n    \"application_type\": \"registration\",\n    \"organisation_type\": \"NSA\",\n    \"sport_discipline\": \"Athletics\",\n    \"physical_address\": \"Plot 15, Kampala Road\"\n  }\n}"
+            },
+            "description": "Upserts a draft. If a draft for this form_type already exists, it is overwritten. Returns the application with status=DRAFT."
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 200 || pm.response.code === 201) {",
+                "  pm.collectionVariables.set('appId', pm.response.json().data.id);",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Get Draft",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/draft/form_3", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","draft","form_3"] },
+            "description": "Retrieve an existing draft by form_type. Returns 404 if no draft exists."
+          }
+        },
+        {
+          "name": "Delete Draft",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/draft/form_3", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","draft","form_3"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Applications / Wizard",
+      "description": "Steps 2-5 of the application wizard: signed PDF upload → payment → submit → respond to requests",
+      "item": [
+        {
+          "name": "List Own Applications",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/applications", "host": ["{{baseUrl}}"], "path": ["api","v1","applications"] }
+          }
+        },
+        {
+          "name": "Get Application",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/{{appId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","{{appId}}"] }
+          }
+        },
+        {
+          "name": "Upload Signed Form (Step 3)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/{{appId}}/signed-form", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","{{appId}}","signed-form"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"signed_form_url\": \"https://cdn.example.com/signed/form_3_signed.pdf\"\n}"
+            },
+            "description": "Upload the URL of the signed PDF. Advances status to PENDING_PAYMENT."
+          }
+        },
+        {
+          "name": "Get Signed Form",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/{{appId}}/signed-form", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","{{appId}}","signed-form"] }
+          }
+        },
+        {
+          "name": "Upload Payment Proof (Step 4 — Proof Method)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/{{appId}}/payment", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","{{appId}}","payment"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_method\": \"PROOF_UPLOAD\",\n  \"proof_document_url\": \"https://cdn.example.com/payments/receipt_12345.pdf\",\n  \"payment_reference_number\": \"URA-PAY-20260115-8834\",\n  \"amount\": 150000\n}"
+            },
+            "description": "For scanned proof of payment. Sets payment_method=PROOF_UPLOAD, status=PROOF_UPLOADED."
+          }
+        },
+        {
+          "name": "Get Payment Info",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/{{appId}}/payment", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","{{appId}}","payment"] }
+          }
+        },
+        {
+          "name": "Generate PDF (Step 2)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/{{appId}}/pdf", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","{{appId}}","pdf"] },
+            "description": "Returns a pre-filled PDF for download and signing. [NOT_IMPLEMENTED — requires PDF generation service]"
+          }
+        },
+        {
+          "name": "Submit Application (Step 5)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/{{appId}}/submit", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","{{appId}}","submit"] },
+            "description": "Validates signed_form_url and payment proof are present, then sets status=SUBMITTED and generates reference_number."
+          }
+        },
+        {
+          "name": "Respond to Information Request",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/{{appId}}/respond", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","{{appId}}","respond"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response_text\": \"We have uploaded the revised certificate of registration as requested.\",\n  \"form_data\": {\n    \"updated_field\": \"updated_value\"\n  }\n}"
+            },
+            "description": "Applicant responds to NEEDS_INFORMATION. Advances status to RESUBMITTED."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Applications / Attachments",
+      "description": "Upload and manage supporting documents attached to an application",
+      "item": [
+        {
+          "name": "Upload Attachment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/{{appId}}/attachments", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","{{appId}}","attachments"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"field_key\": \"certificate_of_registration\",\n  \"file_name\": \"cert_registration_2026.pdf\",\n  \"file_url\": \"https://cdn.example.com/attachments/cert_reg.pdf\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Attachments",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/{{appId}}/attachments", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","{{appId}}","attachments"] }
+          }
+        },
+        {
+          "name": "Delete Attachment",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/api/v1/applications/{{appId}}/attachments/<attachmentID>", "host": ["{{baseUrl}}"], "path": ["api","v1","applications","{{appId}}","attachments","<attachmentID>"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin / Applications",
+      "description": "Admin application review queue — list, view, approve, reject, request info, verify payment (admin + general_secretary)",
+      "item": [
+        {
+          "name": "List All Applications (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/applications?page=1&per_page=20&status=SUBMITTED",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","admin","applications"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "per_page", "value": "20" },
+                { "key": "status",   "value": "SUBMITTED", "description": "Filter by status. Leave empty for all." }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Application (Admin)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/applications/{{appId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","applications","{{appId}}"] }
+          }
+        },
+        {
+          "name": "Approve Application",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/applications/{{appId}}/approve", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","applications","{{appId}}","approve"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"All documents verified. Registration approved.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reject Application",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/applications/{{appId}}/reject", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","applications","{{appId}}","reject"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Incomplete documentation. Missing audited financial statements.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Request More Information",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/applications/{{appId}}/request-info", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","applications","{{appId}}","request-info"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Please provide an updated work plan for the 2026/2027 season.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/applications/{{appId}}/verify-payment", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","applications","{{appId}}","verify-payment"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Payment confirmed with treasury ref TRZ-2026-00441.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reject Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/applications/{{appId}}/reject-payment", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","applications","{{appId}}","reject-payment"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"notes\": \"Payment receipt does not match the required amount. Please resubmit.\"\n}"
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Transactions",
+      "description": "Payment transaction listing and detail (applicant's own; admin list under Admin/Applications)",
+      "item": [
+        {
+          "name": "List My Transactions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/transactions?page=1&per_page=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","transactions"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Transaction",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/transactions/<transactionId>", "host": ["{{baseUrl}}"], "path": ["api","v1","transactions","<transactionId>"] },
+            "description": "[NOT_IMPLEMENTED — placeholder for future payment gateway integration]"
+          }
+        },
+        {
+          "name": "List Transactions (Admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/transactions?page=1&per_page=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","admin","transactions"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "per_page", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Admin / Audit Logs",
+      "description": "Immutable audit trail — read-only (admin+)",
+      "item": [
+        {
+          "name": "List Audit Logs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/audit-logs?page=1&per_page=50&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","admin","audit-logs"],
+              "query": [
+                { "key": "page",     "value": "1" },
+                { "key": "per_page", "value": "50" },
+                { "key": "search",   "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Audit Log Entry",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/audit-logs/<logId>", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","audit-logs","<logId>"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Health Check",
+      "description": "Public endpoint — verify the server is running",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Server is healthy', () => pm.response.to.have.status(200));"
+              ]
+            }
+          }]
+        }
+      ]
+    }
+
+  ]
+}
