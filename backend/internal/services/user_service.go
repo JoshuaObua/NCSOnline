@@ -10,6 +10,9 @@ import (
 	"github.com/google/uuid"
 )
 
+// ErrProtectedAccount is returned when an operation targets the protected super admin.
+var ErrProtectedAccount = errors.New("this account is protected and cannot be modified or deleted")
+
 type UserService struct {
 	users *repository.UserRepo
 	roles *repository.RoleRepo
@@ -103,10 +106,18 @@ func (s *UserService) Update(ctx context.Context, id string, in UpdateUserInput)
 }
 
 func (s *UserService) Delete(ctx context.Context, id string) error {
+	if err := s.guardSuperAdmin(ctx, id); err != nil {
+		return err
+	}
 	return s.users.SoftDelete(ctx, id)
 }
 
 func (s *UserService) SetActive(ctx context.Context, id string, active bool) error {
+	if !active {
+		if err := s.guardSuperAdmin(ctx, id); err != nil {
+			return err
+		}
+	}
 	return s.users.SetActive(ctx, id, active)
 }
 
@@ -121,5 +132,26 @@ func (s *UserService) AssignRole(ctx context.Context, userID, roleID, assignedBy
 }
 
 func (s *UserService) RemoveRole(ctx context.Context, userID, roleID string) error {
+	role, err := s.roles.GetByID(ctx, roleID)
+	if err != nil {
+		return fmt.Errorf("role not found")
+	}
+	if role.Name == "super_admin" {
+		return ErrProtectedAccount
+	}
 	return s.users.RemoveRole(ctx, userID, roleID)
+}
+
+// guardSuperAdmin rejects any mutating operation targeting a user with the super_admin role.
+func (s *UserService) guardSuperAdmin(ctx context.Context, userID string) error {
+	roles, err := s.users.GetRoles(ctx, userID)
+	if err != nil {
+		return err
+	}
+	for _, r := range roles {
+		if r.Name == "super_admin" {
+			return ErrProtectedAccount
+		}
+	}
+	return nil
 }

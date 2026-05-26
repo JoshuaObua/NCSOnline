@@ -5,13 +5,17 @@ RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+# Copy module definition first for layer caching
+COPY go.mod ./
+# go.sum is generated automatically if absent (-mod=mod)
+COPY go.sum* ./
+
 RUN go mod download
 
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-w -s" -o ncsms-backend ./cmd/server
+    go build -mod=mod -ldflags="-w -s" -o ncsms-backend ./cmd/server
 
 # ── Stage 2: Run ──────────────────────────────────────────────────
 FROM scratch

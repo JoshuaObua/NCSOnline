@@ -1,0 +1,14 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "NCSMS PostgreSQL",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "ncsms",
+      "Username": "ncsms_user",
+      "SSLMode": "prefer",
+      "PassFile": "/pgpass"
+    }
+  }
+}

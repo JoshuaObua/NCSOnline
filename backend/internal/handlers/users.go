@@ -13,6 +13,15 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// protectedGuard maps ErrProtectedAccount to HTTP 403 and returns true if handled.
+func protectedGuard(w http.ResponseWriter, err error) bool {
+	if errors.Is(err, services.ErrProtectedAccount) {
+		response.Err(w, http.StatusForbidden, "PROTECTED_ACCOUNT", "The super admin account cannot be modified or deleted")
+		return true
+	}
+	return false
+}
+
 type UsersHandler struct {
 	svc   *services.UserService
 	audit *repository.AuditRepo
@@ -124,6 +133,9 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 func (h *UsersHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := h.svc.Delete(r.Context(), id); err != nil {
+		if protectedGuard(w, err) {
+			return
+		}
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not delete user")
 		return
 	}
@@ -144,6 +156,9 @@ func (h *UsersHandler) Activate(w http.ResponseWriter, r *http.Request) {
 func (h *UsersHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := h.svc.SetActive(r.Context(), id, false); err != nil {
+		if protectedGuard(w, err) {
+			return
+		}
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not deactivate user")
 		return
 	}
@@ -173,6 +188,9 @@ func (h *UsersHandler) RemoveRole(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "id")
 	roleID := chi.URLParam(r, "roleID")
 	if err := h.svc.RemoveRole(r.Context(), userID, roleID); err != nil {
+		if protectedGuard(w, err) {
+			return
+		}
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not remove role")
 		return
 	}

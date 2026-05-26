@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+  # ── PostgreSQL ─────────────────────────────────────────────────
   postgres:
     image: postgres:16-alpine
     container_name: ncsms_postgres
@@ -22,6 +23,7 @@ services:
     networks:
       - ncsms_net
 
+  # ── Backend API ────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -36,11 +38,12 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-ncsms_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ncsms}?sslmode=disable
       PORT: 8080
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     networks:
       - ncsms_net
 
+  # ── Nginx Reverse Proxy ────────────────────────────────────────
   nginx:
     image: nginx:1.25-alpine
     container_name: ncsms_nginx
@@ -59,9 +62,30 @@ services:
     networks:
       - ncsms_net
 
+  # ── pgAdmin 4 ──────────────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: ncsms_pgadmin
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-pgadmin@ncs.go.ug}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-PgAdmin@NCS2026}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - ncsms_net
+
 volumes:
   postgres_data:
   nginx_logs:
+  pgadmin_data:
 
 networks:
   ncsms_net:

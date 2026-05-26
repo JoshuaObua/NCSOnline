@@ -1,10 +1,11 @@
 .deploy_key_ncs_online
 .deploy_key_ncs_online.pub
 
-# Environment
+# Environment & secrets
 .env
 .env.local
 .env.*.local
+CREDENTIALS.md
 
 # Go
 backend/vendor/
