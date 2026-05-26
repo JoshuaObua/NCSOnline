@@ -7,7 +7,7 @@ This design document defines the National Council of Sports Management System (N
 - Market Context: National Council of Sports (NCS), Uganda
 - Compliance Baselines: National Sports Act 2023, Uganda Data Protection and Privacy Act, Bank of Uganda Payment Regulations
 - Architectural pattern: Modular Monolith in Go with internal packages, database-level multi-tenancy and strict transaction boundaries
-- Domain scope: Super Admin, Admin, Federations modules
+- Domain scope: Super Admin, Admin, General Secretary, Federations, User Profiles, Athletes, Assets, Audit, Roles, Content Manager, Applications modules
 
 ## Core System Architecture
 
@@ -365,6 +365,11 @@ This design document contains the shared architecture, security hardening, infra
 - `super-admin-v1.md` — Super Admin governance, roles, audit, and system-level operational controls.
 - `admin-v1.md` — Admin operations for federation lifecycle management, licensing, grants, and business guardrails.
 - `federations-v1.md` — Federation self-service workflows, document submission, accountability, and federated access controls.
+- `user-profiles-v1.md` — User profile, role category, email verification, and authentication/user lifecycle design.
+- `athletes-v1.md` — Athlete registration, credentialing, federation affiliation, and athlete-specific workflow design.
+- `assets-v1.md` — Asset and inventory tracking, condition management, and reconciliation workflows.
+- `audit-v1.md` — Immutable audit event collection, log query, and compliance access controls.
+- `roles-v1.md` — System role definitions, custom role creation, and access control policies.
 
 Each module file contains:
 - purpose and responsibility definitions
@@ -424,7 +429,16 @@ The domain-specific module designs are maintained separately in their own markdo
 
 - `super-admin-v1.md`
 - `admin-v1.md`
+- `general-secretary-v1.md`
 - `federations-v1.md`
+- `user-profiles-v1.md`
+- `athletes-v1.md`
+- `assets-v1.md`
+- `audit-v1.md`
+- `roles-v1.md`
+- `content-manager-v1.md`
+
+Application-specific form and workflow definitions are documented under `Modular Design/applications/`.
 
 These files contain the detailed per-module capabilities, package layout, endpoint design, models, repository operations, services, and handler routes.
 

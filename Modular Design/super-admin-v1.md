@@ -15,6 +15,16 @@
 - Manage users across the platform, including direct password reset and account recovery actions
 - Execute emergency governance actions
 
+## Custom Role Management
+
+- `SYSTEM_ADMIN` can create, update, disable, and delete custom role definitions.
+- Custom roles are defined per module and per resource action: `VIEW`, `CREATE`, `UPDATE`, `DELETE`, `EXECUTE`.
+- Roles may be scoped to whole modules or narrow resource groups such as `licenses`, `grants`, `athletes`, `assets`, and `audit`.
+- Example custom role: `AUDITOR` with only `VIEW` permissions for audit logs, federation summaries, and user profile metadata.
+- Example custom role: `GRANT_REVIEWER` with `VIEW` and `EXECUTE` on grant disbursement workflows but no `DELETE` privileges.
+- Custom roles are enforced in middleware, service validation, and RLS policies.
+- Role assignments are audited with creator, updater, and assignment history metadata.
+
 ## High-level Code Layout
 
 - `/internal/domain/superadmin/models.go`
