@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS permissions (
     id          TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
     name        TEXT NOT NULL UNIQUE,
     description TEXT NOT NULL DEFAULT '',
+    resource    TEXT NOT NULL DEFAULT '',
+    action      TEXT NOT NULL DEFAULT '',
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

@@ -38,6 +38,8 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-ncsms_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ncsms}?sslmode=disable
       PORT: 8080
+    volumes:
+      - uploads_data:/app/uploads
     expose:
       - "8080"
     networks:
@@ -57,8 +59,26 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - nginx_logs:/var/log/nginx
+      - uploads_data:/app/uploads:ro
       # Uncomment when SSL certs are available:
       # - ./nginx/certs:/etc/nginx/certs:ro
+    networks:
+      - ncsms_net
+
+  # ── Frontend (Vue 3 + Vite) ───────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ncsms_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
     networks:
       - ncsms_net
 
@@ -86,6 +106,7 @@ volumes:
   postgres_data:
   nginx_logs:
   pgadmin_data:
+  uploads_data:
 
 networks:
   ncsms_net:

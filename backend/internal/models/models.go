@@ -11,6 +11,8 @@ type User struct {
 	ID               string     `json:"id"`
 	Email            string     `json:"email"`
 	PasswordHash     string     `json:"-"`
+	PinHash          string     `json:"-"`
+	PinChangeRequired bool      `json:"pin_change_required"`
 	FirstName        string     `json:"first_name"`
 	LastName         string     `json:"last_name"`
 	Phone            string     `json:"phone,omitempty"`
@@ -120,16 +122,184 @@ type Attachment struct {
 // ── Audit Log ─────────────────────────────────────────────────────
 
 type AuditLog struct {
-	ID         string          `json:"id"`
-	UserID     *string         `json:"user_id,omitempty"`
-	Action     string          `json:"action"`
-	Resource   string          `json:"resource"`
-	ResourceID string          `json:"resource_id,omitempty"`
-	OldValues  json.RawMessage `json:"old_values,omitempty"`
-	NewValues  json.RawMessage `json:"new_values,omitempty"`
-	IPAddress  string          `json:"ip_address,omitempty"`
-	UserAgent  string          `json:"user_agent,omitempty"`
-	CreatedAt  time.Time       `json:"created_at"`
+	ID              string          `json:"id"`
+	UserID          *string         `json:"user_id,omitempty"`
+	Action          string          `json:"action"`
+	Resource        string          `json:"resource"`
+	ResourceID      string          `json:"resource_id,omitempty"`
+	OldValues       json.RawMessage `json:"old_values,omitempty"`
+	NewValues       json.RawMessage `json:"new_values,omitempty"`
+	IPAddress       string          `json:"ip_address,omitempty"`
+	UserAgent       string          `json:"user_agent,omitempty"`
+	Method          string          `json:"method,omitempty"`
+	Endpoint        string          `json:"endpoint,omitempty"`
+	ResponseCode    int             `json:"response_code,omitempty"`
+	ResponseTimeMs  int64           `json:"response_time_ms,omitempty"`
+	DeviceInfo      string          `json:"device_info,omitempty"`
+	// Enhanced audit fields
+	EventType       string          `json:"event_type,omitempty"`
+	EventStatus     string          `json:"event_status,omitempty"`
+	SeverityLevel   string          `json:"severity_level,omitempty"`
+	ForwardedIP     string          `json:"forwarded_ip,omitempty"`
+	GeoCountry      string          `json:"geo_country,omitempty"`
+	GeoCity         string          `json:"geo_city,omitempty"`
+	VPNDetected     bool            `json:"vpn_detected"`
+	Browser         string          `json:"browser,omitempty"`
+	OSName          string          `json:"os_name,omitempty"`
+	ClientType      string          `json:"client_type,omitempty"`
+	ThreatScore     int             `json:"threat_score"`
+	AnomalyDetected bool            `json:"anomaly_detected"`
+	SessionID       string          `json:"session_id,omitempty"`
+	Username        string          `json:"username,omitempty"`
+	CreatedAt       time.Time       `json:"created_at"`
+}
+
+// ── CMS ───────────────────────────────────────────────────────────
+
+type CMSPost struct {
+	ID            string     `json:"id"`
+	Title         string     `json:"title"`
+	Slug          string     `json:"slug"`
+	Content       string     `json:"content"`
+	Excerpt       string     `json:"excerpt"`
+	Category      string     `json:"category"`
+	Status        string     `json:"status"`
+	CoverImageURL string     `json:"cover_image_url,omitempty"`
+	AuthorID      *string    `json:"author_id,omitempty"`
+	PublishedAt   *time.Time `json:"published_at,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+}
+
+type CMSEvent struct {
+	ID            string     `json:"id"`
+	Title         string     `json:"title"`
+	Slug          string     `json:"slug"`
+	Description   string     `json:"description"`
+	Location      string     `json:"location,omitempty"`
+	EventDate     *time.Time `json:"event_date,omitempty"`
+	EndDate       *time.Time `json:"end_date,omitempty"`
+	CoverImageURL string     `json:"cover_image_url,omitempty"`
+	Status        string     `json:"status"`
+	AuthorID      *string    `json:"author_id,omitempty"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
+}
+
+type CMSCareer struct {
+	ID          string     `json:"id"`
+	Title       string     `json:"title"`
+	Department  string     `json:"department,omitempty"`
+	Location    string     `json:"location,omitempty"`
+	JobType     string     `json:"job_type"`
+	Category    string     `json:"category"`
+	Description string     `json:"description"`
+	Requirements string    `json:"requirements,omitempty"`
+	SalaryRange string     `json:"salary_range,omitempty"`
+	Status      string     `json:"status"`
+	DeadlineAt  *time.Time `json:"deadline_at,omitempty"`
+	AuthorID    *string    `json:"author_id,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+type CMSSlide struct {
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Subtitle    string    `json:"subtitle,omitempty"`
+	Description string    `json:"description,omitempty"`
+	ImageURL    string    `json:"image_url,omitempty"`
+	ButtonText  string    `json:"button_text,omitempty"`
+	ButtonURL   string    `json:"button_url,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type CMSMenuItem struct {
+	ID       string        `json:"id"`
+	Label    string        `json:"label"`
+	URL      string        `json:"url"`
+	Icon     string        `json:"icon,omitempty"`
+	Children []CMSMenuItem `json:"children"`
+}
+
+type CMSMenu struct {
+	Name      string        `json:"name"`
+	Items     []CMSMenuItem `json:"items"`
+	UpdatedAt time.Time     `json:"updated_at"`
+}
+
+type CMSFunFact struct {
+	ID        string    `json:"id"`
+	Label     string    `json:"label"`
+	Value     string    `json:"value"`
+	Icon      string    `json:"icon,omitempty"`
+	SortOrder int       `json:"sort_order"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type CMSFAQ struct {
+	ID        string    `json:"id"`
+	Question  string    `json:"question"`
+	Answer    string    `json:"answer"`
+	Category  string    `json:"category"`
+	SortOrder int       `json:"sort_order"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type CMSResource struct {
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Category    string    `json:"category"`
+	FileURL     string    `json:"file_url,omitempty"`
+	Description string    `json:"description,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type CMSFacility struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Slug        string    `json:"slug"`
+	Description string    `json:"description,omitempty"`
+	ImageURL    string    `json:"image_url,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type CMSAssociation struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Slug        string    `json:"slug"`
+	Description string    `json:"description,omitempty"`
+	LogoURL     string    `json:"logo_url,omitempty"`
+	WebsiteURL  string    `json:"website_url,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type CMSInvest struct {
+	ID        string    `json:"id"`
+	Title     string    `json:"title"`
+	Subtitle  string    `json:"subtitle,omitempty"`
+	Content   string    `json:"content,omitempty"`
+	ImageURL  string    `json:"image_url,omitempty"`
+	SortOrder int       `json:"sort_order"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // ── Pagination ────────────────────────────────────────────────────
@@ -184,4 +354,5 @@ const (
 	CtxUserID    contextKey = "ctx_user_id"
 	CtxUserEmail contextKey = "ctx_user_email"
 	CtxUserRoles contextKey = "ctx_user_roles"
+	CtxSessionID contextKey = "ctx_session_id"
 )

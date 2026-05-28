@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/config"
@@ -21,7 +22,12 @@ var (
 	ErrInvalidCredentials = errors.New("invalid email or password")
 	ErrAccountDisabled    = errors.New("account is deactivated")
 	ErrTokenInvalid       = errors.New("refresh token is invalid or expired")
+	ErrPINIncorrect       = errors.New("PIN is incorrect")
+	ErrPINNotSet          = errors.New("PIN has not been set")
+	ErrInvalidPIN         = errors.New("PIN must be 4–6 digits")
 )
+
+var pinRegex = regexp.MustCompile(`^\d{4,6}$`)
 
 type AuthService struct {
 	users  *repository.UserRepo
@@ -34,10 +40,11 @@ func NewAuthService(users *repository.UserRepo, tokens *repository.TokenRepo, cf
 }
 
 type LoginResult struct {
-	AccessToken  string      `json:"access_token"`
-	RefreshToken string      `json:"refresh_token"`
-	ExpiresIn    int         `json:"expires_in_seconds"`
-	User         *models.User `json:"user"`
+	AccessToken       string       `json:"access_token"`
+	RefreshToken      string       `json:"refresh_token"`
+	ExpiresIn         int          `json:"expires_in_seconds"`
+	PinChangeRequired bool         `json:"pin_change_required"`
+	User              *models.User `json:"user"`
 }
 
 func (s *AuthService) Login(ctx context.Context, email, password, ip, ua string) (*LoginResult, error) {
@@ -89,11 +96,15 @@ func (s *AuthService) Login(ctx context.Context, email, password, ip, ua string)
 
 	_ = s.users.UpdateLastLogin(ctx, user.ID)
 
+	user.PasswordHash = ""
+	user.PinHash = ""
+
 	return &LoginResult{
-		AccessToken:  accessToken,
-		RefreshToken: rawRefresh,
-		ExpiresIn:    int(s.cfg.AccessTokenTTL.Seconds()),
-		User:         user,
+		AccessToken:       accessToken,
+		RefreshToken:      rawRefresh,
+		ExpiresIn:         int(s.cfg.AccessTokenTTL.Seconds()),
+		PinChangeRequired: user.PinChangeRequired,
+		User:              user,
 	}, nil
 }
 
@@ -111,7 +122,6 @@ func (s *AuthService) RefreshToken(ctx context.Context, rawToken, ip, ua string)
 		return nil, ErrTokenInvalid
 	}
 
-	// Rotate: revoke old token
 	if err := s.tokens.Revoke(ctx, rt.ID); err != nil {
 		return nil, fmt.Errorf("revoke old token: %w", err)
 	}
@@ -149,11 +159,15 @@ func (s *AuthService) RefreshToken(ctx context.Context, rawToken, ip, ua string)
 		return nil, fmt.Errorf("store new refresh token: %w", err)
 	}
 
+	user.PasswordHash = ""
+	user.PinHash = ""
+
 	return &LoginResult{
-		AccessToken:  accessToken,
-		RefreshToken: rawNew,
-		ExpiresIn:    int(s.cfg.AccessTokenTTL.Seconds()),
-		User:         user,
+		AccessToken:       accessToken,
+		RefreshToken:      rawNew,
+		ExpiresIn:         int(s.cfg.AccessTokenTTL.Seconds()),
+		PinChangeRequired: user.PinChangeRequired,
+		User:              user,
 	}, nil
 }
 
@@ -161,7 +175,7 @@ func (s *AuthService) Logout(ctx context.Context, rawToken string) error {
 	hash := hashToken(rawToken)
 	rt, err := s.tokens.GetByHash(ctx, hash)
 	if errors.Is(err, repository.ErrNotFound) {
-		return nil // already gone — treat as success
+		return nil
 	}
 	if err != nil {
 		return err
@@ -184,8 +198,56 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID, currentPw, new
 	if err := s.users.UpdatePassword(ctx, userID, string(hash)); err != nil {
 		return err
 	}
-	// Revoke all refresh tokens after password change
 	return s.tokens.RevokeAllForUser(ctx, userID)
+}
+
+// SetPIN sets a new PIN for the user (used for first-time setup or forced reset).
+func (s *AuthService) SetPIN(ctx context.Context, userID, pin string) error {
+	if !pinRegex.MatchString(pin) {
+		return ErrInvalidPIN
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(pin), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return s.users.SetPinHash(ctx, userID, string(hash))
+}
+
+// ChangePIN verifies the current PIN then sets a new one.
+func (s *AuthService) ChangePIN(ctx context.Context, userID, currentPIN, newPIN string) error {
+	if !pinRegex.MatchString(newPIN) {
+		return ErrInvalidPIN
+	}
+	currentHash, err := s.users.GetPinHash(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if currentHash == "" {
+		return ErrPINNotSet
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(currentHash), []byte(currentPIN)); err != nil {
+		return ErrPINIncorrect
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPIN), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	return s.users.SetPinHash(ctx, userID, string(hash))
+}
+
+// VerifyPIN checks a PIN against the stored hash (used for lock screen unlock).
+func (s *AuthService) VerifyPIN(ctx context.Context, userID, pin string) error {
+	currentHash, err := s.users.GetPinHash(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if currentHash == "" {
+		return ErrPINNotSet
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(currentHash), []byte(pin)); err != nil {
+		return ErrPINIncorrect
+	}
+	return nil
 }
 
 func HashPassword(pw string) (string, error) {

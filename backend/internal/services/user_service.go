@@ -125,8 +125,19 @@ func (s *UserService) AssignRole(ctx context.Context, userID, roleID, assignedBy
 	if _, err := s.users.GetByID(ctx, userID); err != nil {
 		return repository.ErrNotFound
 	}
-	if _, err := s.roles.GetByID(ctx, roleID); err != nil {
+	role, err := s.roles.GetByID(ctx, roleID)
+	if err != nil {
 		return fmt.Errorf("role not found")
+	}
+	// Enforce single super_admin — block a second assignment of the role
+	if role.Name == "super_admin" {
+		count, err := s.users.CountSuperAdmins(ctx)
+		if err != nil {
+			return fmt.Errorf("check super admin count: %w", err)
+		}
+		if count >= 1 {
+			return ErrProtectedAccount
+		}
 	}
 	return s.users.AssignRole(ctx, userID, roleID, assignedBy)
 }

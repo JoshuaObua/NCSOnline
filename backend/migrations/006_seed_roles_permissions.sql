@@ -10,28 +10,28 @@ INSERT INTO roles (id, name, description, is_system) VALUES
     ('role_user',                'user',                 'Applicant — submit and track own applications',   TRUE)
 ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO permissions (id, name, description) VALUES
+INSERT INTO permissions (id, name, description, resource, action) VALUES
     -- User management
-    ('perm_users_read',           'users:read',           'View user list and profiles'),
-    ('perm_users_write',          'users:write',          'Create and update users'),
-    ('perm_users_delete',         'users:delete',         'Delete (soft) users'),
-    ('perm_users_activate',       'users:activate',       'Activate / deactivate users'),
+    ('perm_users_read',           'users:read',           'View user list and profiles',             'users',        'read'),
+    ('perm_users_write',          'users:write',          'Create and update users',                 'users',        'write'),
+    ('perm_users_delete',         'users:delete',         'Delete (soft) users',                     'users',        'delete'),
+    ('perm_users_activate',       'users:activate',       'Activate / deactivate users',             'users',        'activate'),
     -- Role management
-    ('perm_roles_read',           'roles:read',           'View roles and permissions'),
-    ('perm_roles_write',          'roles:write',          'Create and update roles'),
-    ('perm_roles_delete',         'roles:delete',         'Delete roles'),
-    ('perm_roles_assign',         'roles:assign',         'Assign roles to users'),
+    ('perm_roles_read',           'roles:read',           'View roles and permissions',              'roles',        'read'),
+    ('perm_roles_write',          'roles:write',          'Create and update roles',                 'roles',        'write'),
+    ('perm_roles_delete',         'roles:delete',         'Delete roles',                            'roles',        'delete'),
+    ('perm_roles_assign',         'roles:assign',         'Assign roles to users',                   'roles',        'assign'),
     -- Applications — own
-    ('perm_apps_own_write',       'applications:own:write', 'Submit and manage own applications'),
-    ('perm_apps_own_read',        'applications:own:read',  'View own applications'),
+    ('perm_apps_own_write',       'applications:own:write', 'Submit and manage own applications',    'applications', 'own:write'),
+    ('perm_apps_own_read',        'applications:own:read',  'View own applications',                 'applications', 'own:read'),
     -- Applications — admin
-    ('perm_apps_admin_read',      'applications:admin:read',   'View all applications'),
-    ('perm_apps_admin_review',    'applications:admin:review', 'Approve / reject applications'),
-    ('perm_apps_payment_verify',  'applications:payment:verify','Verify payment proofs'),
+    ('perm_apps_admin_read',      'applications:admin:read',   'View all applications',              'applications', 'admin:read'),
+    ('perm_apps_admin_review',    'applications:admin:review', 'Approve / reject applications',      'applications', 'admin:review'),
+    ('perm_apps_payment_verify',  'applications:payment:verify','Verify payment proofs',             'applications', 'payment:verify'),
     -- Dashboard
-    ('perm_dashboard_read',       'dashboard:read',       'View admin dashboard statistics'),
+    ('perm_dashboard_read',       'dashboard:read',       'View admin dashboard statistics',         'dashboard',    'read'),
     -- Audit
-    ('perm_audit_read',           'audit:read',           'View audit logs')
+    ('perm_audit_read',           'audit:read',           'View audit logs',                         'audit',        'read')
 ON CONFLICT (name) DO NOTHING;
 
 -- super_admin gets everything
