@@ -20,6 +20,7 @@ const FacilityDetailView = () => import('@/views/public/FacilityDetailView.vue')
 const AssociationsView = () => import('@/views/public/AssociationsView.vue')
 const InvestView = () => import('@/views/public/InvestView.vue')
 const FAQsView = () => import('@/views/public/FAQsView.vue')
+const ContactUsView = () => import('@/views/public/ContactUsView.vue')
 
 // ── Admin / auth views ────────────────────────────────────────────
 const LoginView = () => import('@/views/LoginView.vue')
@@ -54,6 +55,7 @@ const routes = [
       { path: 'associations', name: 'Associations', component: AssociationsView, meta: { requiresAuth: false } },
       { path: 'invest', name: 'Invest', component: InvestView, meta: { requiresAuth: false } },
       { path: 'faqs', name: 'FAQs', component: FAQsView, meta: { requiresAuth: false } },
+      { path: 'contact-us', name: 'ContactUs', component: ContactUsView, meta: { requiresAuth: false } },
     ]
   },
 
