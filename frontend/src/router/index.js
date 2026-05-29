@@ -14,6 +14,12 @@ const CareerDetailView = () => import('@/views/public/CareerDetailView.vue')
 const ProjectsView = () => import('@/views/public/ProjectsView.vue')
 const CaseStudiesView = () => import('@/views/public/CaseStudiesView.vue')
 const LicensePortalView = () => import('@/views/public/LicensePortalView.vue')
+const ResourceCentreView = () => import('@/views/public/ResourceCentreView.vue')
+const FacilitiesView = () => import('@/views/public/FacilitiesView.vue')
+const FacilityDetailView = () => import('@/views/public/FacilityDetailView.vue')
+const AssociationsView = () => import('@/views/public/AssociationsView.vue')
+const InvestView = () => import('@/views/public/InvestView.vue')
+const FAQsView = () => import('@/views/public/FAQsView.vue')
 
 // ── Admin / auth views ────────────────────────────────────────────
 const LoginView = () => import('@/views/LoginView.vue')
@@ -41,6 +47,13 @@ const routes = [
       { path: 'projects', name: 'Projects', component: ProjectsView, meta: { requiresAuth: false } },
       { path: 'case-studies', name: 'CaseStudies', component: CaseStudiesView, meta: { requiresAuth: false } },
       { path: 'apply', name: 'Apply', component: LicensePortalView, meta: { requiresAuth: false } },
+      { path: 'resource-centre', name: 'ResourceCentre', component: ResourceCentreView, meta: { requiresAuth: false } },
+      { path: 'resources', redirect: '/resource-centre' },
+      { path: 'facilities', name: 'Facilities', component: FacilitiesView, meta: { requiresAuth: false } },
+      { path: 'facilities/:slug', name: 'FacilityDetail', component: FacilityDetailView, meta: { requiresAuth: false } },
+      { path: 'associations', name: 'Associations', component: AssociationsView, meta: { requiresAuth: false } },
+      { path: 'invest', name: 'Invest', component: InvestView, meta: { requiresAuth: false } },
+      { path: 'faqs', name: 'FAQs', component: FAQsView, meta: { requiresAuth: false } },
     ]
   },
 
