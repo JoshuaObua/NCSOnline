@@ -68,14 +68,28 @@
           <div class="flex gap-3 mb-4">
             <button
               @click="pinMode = 'set'"
-              :class="pinMode === 'set' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'"
+              :disabled="hasPin"
+              :title="hasPin ? 'PIN already set — use Change PIN' : 'Create a PIN'"
+              :class="[
+                pinMode === 'set' && !hasPin ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600',
+                hasPin ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary-100'
+              ]"
               class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
             >Set PIN</button>
             <button
               @click="pinMode = 'change'"
-              :class="pinMode === 'change' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'"
+              :disabled="!hasPin"
+              :title="!hasPin ? 'No PIN set yet — use Set PIN first' : 'Change existing PIN'"
+              :class="[
+                pinMode === 'change' && hasPin ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600',
+                !hasPin ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary-100'
+              ]"
               class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
             >Change PIN</button>
+            <span class="ml-auto inline-flex items-center gap-1.5 text-xs text-gray-500">
+              <i :class="hasPin ? 'icofont-check-circled text-green-500' : 'icofont-info-circle text-yellow-500'"></i>
+              {{ hasPin ? 'PIN is set' : 'No PIN yet' }}
+            </span>
           </div>
 
           <form @submit.prevent="handlePin" class="space-y-4">
@@ -200,7 +214,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
 import { useAuthStore } from '@/stores/auth.js'
 import apiClient from '@/api/client.js'
@@ -210,7 +224,9 @@ const authStore = useAuthStore()
 const user = computed(() => authStore.user)
 
 // PIN management
+const hasPin = computed(() => !!user.value?.has_pin)
 const pinMode = ref('set')
+watch(hasPin, (v) => { pinMode.value = v ? 'change' : 'set' }, { immediate: true })
 const pinForm = ref({ current: '', pin: '', confirm: '' })
 const pinLoading = ref(false)
 const pinError = ref('')
@@ -230,6 +246,8 @@ async function handlePin() {
       pinSuccess.value = 'PIN changed successfully.'
     }
     pinForm.value = { current: '', pin: '', confirm: '' }
+    // Refresh user data so has_pin flips and Set/Change tabs update.
+    await authStore.refreshUser()
     setTimeout(() => { pinSuccess.value = '' }, 5000)
   } catch (err) {
     pinError.value = err.response?.data?.error?.message || 'Failed to update PIN.'

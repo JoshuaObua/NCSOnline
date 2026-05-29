@@ -18,6 +18,26 @@ import (
 	"github.com/google/uuid"
 )
 
+// ── Audit Context ─────────────────────────────────────────────────
+// Mutable struct passed by pointer through request context so that
+// downstream middlewares (e.g. Authenticate) can populate user details
+// that AuditLogger reads after the handler chain completes.
+
+type AuditContext struct {
+	UserID    string
+	UserEmail string
+	SessionID string
+}
+
+type auditCtxKey struct{}
+
+func getAuditCtx(r *http.Request) *AuditContext {
+	if ac, ok := r.Context().Value(auditCtxKey{}).(*AuditContext); ok {
+		return ac
+	}
+	return nil
+}
+
 // ── JWT Claims ────────────────────────────────────────────────────
 
 type Claims struct {
@@ -88,6 +108,14 @@ func Authenticate(jwtSecret string) func(http.Handler) http.Handler {
 			ctx = context.WithValue(ctx, models.CtxUserEmail, claims.Email)
 			ctx = context.WithValue(ctx, models.CtxUserRoles, claims.Roles)
 			ctx = context.WithValue(ctx, models.CtxSessionID, claims.ID) // JTI as session ID
+
+			// Propagate to the shared audit context so AuditLogger captures
+			// the authenticated user even though it runs at the outer scope.
+			if ac := getAuditCtx(r); ac != nil {
+				ac.UserID = claims.UserID
+				ac.UserEmail = claims.Email
+				ac.SessionID = claims.ID
+			}
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -346,13 +374,20 @@ func AuditLogger(repo *repository.AuditRepo) func(http.Handler) http.Handler {
 
 			start := time.Now()
 			ww := &responseWriter{ResponseWriter: w, status: http.StatusOK}
+
+			// Install shared audit context so downstream middlewares
+			// (Authenticate) can populate user details on it.
+			ac := &AuditContext{}
+			ctx := context.WithValue(r.Context(), auditCtxKey{}, ac)
+			r = r.WithContext(ctx)
+
 			next.ServeHTTP(ww, r)
 			elapsed := time.Since(start).Milliseconds()
 
-			// Capture all values before r goes out of scope
-			userID, _ := r.Context().Value(models.CtxUserID).(string)
-			userEmail, _ := r.Context().Value(models.CtxUserEmail).(string)
-			sessionID, _ := r.Context().Value(models.CtxSessionID).(string)
+			// Read user details that downstream middlewares populated
+			userID := ac.UserID
+			userEmail := ac.UserEmail
+			sessionID := ac.SessionID
 			method := r.Method
 			endpoint := r.URL.Path
 			ip := realIP(r)

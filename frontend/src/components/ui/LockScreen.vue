@@ -13,35 +13,40 @@
         <h2 class="text-xl font-bold text-gray-900 mb-1">Screen Locked</h2>
         <p class="text-sm text-gray-500 mb-6">Enter your PIN to continue</p>
 
-        <!-- PIN dots -->
-        <div class="flex justify-center gap-3 mb-6">
-          <div
-            v-for="i in 6"
-            :key="i"
-            class="w-3 h-3 rounded-full transition-colors"
-            :class="i <= pin.length ? 'bg-primary-600' : 'bg-gray-200'"
-          ></div>
-        </div>
+        <form @submit.prevent="unlock" class="space-y-4">
+          <div class="relative">
+            <input
+              ref="pinInput"
+              v-model="pin"
+              type="password"
+              inputmode="numeric"
+              maxlength="6"
+              pattern="[0-9]*"
+              autocomplete="current-password"
+              placeholder="Enter PIN"
+              class="w-full text-center text-2xl tracking-[0.4em] font-semibold px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-colors"
+              @input="onPinInput"
+            />
+            <button
+              type="button"
+              @click="showPin = !showPin"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              :title="showPin ? 'Hide PIN' : 'Show PIN'"
+            >
+              <i :class="showPin ? 'icofont-eye-blocked' : 'icofont-eye'"></i>
+            </button>
+          </div>
 
-        <!-- Numpad -->
-        <div class="grid grid-cols-3 gap-3 mb-4">
+          <p v-if="error" class="text-sm text-red-500">{{ error }}</p>
+
           <button
-            v-for="num in ['1','2','3','4','5','6','7','8','9','','0','⌫']"
-            :key="num"
-            @click="handleKey(num)"
-            :disabled="!num"
-            class="h-14 rounded-xl text-lg font-semibold transition-colors"
-            :class="num ? 'bg-gray-100 hover:bg-gray-200 text-gray-900 active:bg-primary-100' : 'opacity-0 pointer-events-none'"
+            type="submit"
+            :disabled="verifying || pin.length < 4"
+            class="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-50"
           >
-            {{ num }}
+            {{ verifying ? 'Verifying...' : 'Unlock' }}
           </button>
-        </div>
-
-        <p v-if="error" class="text-sm text-red-500 mb-3">{{ error }}</p>
-
-        <button @click="unlock" :disabled="verifying || pin.length < 4" class="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-50">
-          {{ verifying ? 'Verifying...' : 'Unlock' }}
-        </button>
+        </form>
 
         <button @click="signOut" class="mt-3 w-full text-sm text-gray-400 hover:text-gray-600 py-2">
           Sign out instead
@@ -52,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { verifyPin } from '@/api/pin.js'
 
@@ -61,6 +66,29 @@ const locked = ref(false)
 const pin = ref('')
 const error = ref('')
 const verifying = ref(false)
+const showPin = ref(false)
+const pinInput = ref(null)
+
+// Toggle input type live when showPin flips (keeps numeric inputmode)
+watch(showPin, async (v) => {
+  await nextTick()
+  if (pinInput.value) pinInput.value.type = v ? 'text' : 'password'
+})
+
+watch(locked, async (v) => {
+  if (v) {
+    await nextTick()
+    pinInput.value?.focus()
+  }
+})
+
+function onPinInput(e) {
+  // Only allow digits
+  const cleaned = (e.target.value || '').replace(/\D/g, '').slice(0, 6)
+  pin.value = cleaned
+  if (e.target.value !== cleaned) e.target.value = cleaned
+  error.value = ''
+}
 
 const INACTIVITY_MS = 10 * 60 * 1000 // 10 minutes
 let timer = null
@@ -76,16 +104,6 @@ function lock() {
   if (!authStore.isAuthenticated) return
   locked.value = true
   pin.value = ''
-  error.value = ''
-}
-
-function handleKey(key) {
-  if (!key) return
-  if (key === '⌫') {
-    pin.value = pin.value.slice(0, -1)
-  } else if (pin.value.length < 6) {
-    pin.value += key
-  }
   error.value = ''
 }
 

@@ -127,21 +127,21 @@
           </div>
 
           <div class="grid grid-cols-2 gap-4 about-stats">
-            <div class="stat-card bg-gray-50 rounded-2xl p-6 text-center">
-              <div class="stat-num text-4xl font-bold text-primary-700 mb-1" data-target="50">0</div>
-              <div class="text-sm text-gray-500 font-medium">Sports Federations</div>
-            </div>
-            <div class="stat-card bg-primary-600 rounded-2xl p-6 text-center text-white">
-              <div class="stat-num text-4xl font-bold mb-1" data-target="500">0</div>
-              <div class="text-sm opacity-80 font-medium">Registered Clubs</div>
-            </div>
-            <div class="stat-card bg-primary-600 rounded-2xl p-6 text-center text-white">
-              <div class="stat-num text-4xl font-bold mb-1" data-target="10000">0</div>
-              <div class="text-sm opacity-80 font-medium">Licensed Athletes</div>
-            </div>
-            <div class="stat-card bg-gray-50 rounded-2xl p-6 text-center">
-              <div class="stat-num text-4xl font-bold text-primary-700 mb-1" data-target="112">0</div>
-              <div class="text-sm text-gray-500 font-medium">Districts Covered</div>
+            <div
+              v-for="(stat, i) in displayedStats"
+              :key="stat.label || i"
+              class="stat-card rounded-2xl p-6 text-center"
+              :class="i % 2 === 0 ? 'bg-gray-50' : 'bg-primary-600 text-white'"
+            >
+              <div
+                class="stat-num text-4xl font-bold mb-1"
+                :class="i % 2 === 0 ? 'text-primary-700' : ''"
+                :data-target="parseStatValue(stat.value)"
+              >{{ stat.value }}</div>
+              <div
+                class="text-sm font-medium"
+                :class="i % 2 === 0 ? 'text-gray-500' : 'opacity-80'"
+              >{{ stat.label }}</div>
             </div>
           </div>
         </div>
@@ -256,7 +256,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { listPosts, listEvents, listSlides } from '@/api/cms.js'
+import { listPosts, listEvents, listSlides, listFunFacts } from '@/api/cms.js'
 import { useAuthStore } from '@/stores/auth.js'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -267,7 +267,25 @@ const isAuthenticated = computed(() => authStore.isAuthenticated)
 const posts = ref([])
 const events = ref([])
 const slides = ref([])
+const funFacts = ref([])
 const postsLoading = ref(true)
+
+const defaultStats = [
+  { label: 'Sports Federations', value: '50' },
+  { label: 'Registered Clubs',   value: '500' },
+  { label: 'Licensed Athletes',  value: '10,000' },
+  { label: 'Districts Covered',  value: '112' },
+]
+const displayedStats = computed(() =>
+  funFacts.value.length > 0
+    ? funFacts.value.slice(0, 4).map(f => ({ label: f.label, value: f.value }))
+    : defaultStats
+)
+function parseStatValue(v) {
+  if (!v) return 0
+  const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10)
+  return isNaN(n) ? 0 : n
+}
 
 // ── Slideshow ─────────────────────────────────────────────────────
 const currentSlide = ref(0)
@@ -389,14 +407,16 @@ function animateCounters() {
 onMounted(async () => {
   // Load data
   try {
-    const [pr, er, sr] = await Promise.all([
+    const [pr, er, sr, fr] = await Promise.all([
       listPosts({ status: 'published', per_page: 3 }),
       listEvents({ status: 'published', per_page: 4 }),
-      listSlides()
+      listSlides(),
+      listFunFacts()
     ])
     posts.value = pr.data.data?.items || []
     events.value = er.data.data?.items || []
     slides.value = sr.data.data || []
+    funFacts.value = fr.data.data || []
   } catch {
     // graceful fallback
   } finally {

@@ -13,9 +13,18 @@
 
     <div v-else class="space-y-6">
       <!-- Welcome Banner -->
-      <div class="bg-gradient-to-r from-primary-700 to-primary-600 rounded-xl p-6 text-white">
-        <h2 class="text-xl font-semibold">Welcome back, {{ welcomeName }}</h2>
-        <p class="text-primary-100 mt-1 text-sm">Here's what's happening with the National Council of Sports today.</p>
+      <div class="bg-gradient-to-r from-primary-700 to-primary-600 rounded-xl p-6 text-white flex flex-col md:flex-row md:items-center gap-4">
+        <div class="flex-1">
+          <h2 class="text-xl font-semibold">Welcome back, {{ welcomeName }}</h2>
+          <p class="text-primary-100 mt-1 text-sm">Here's what's happening with the National Council of Sports today.</p>
+        </div>
+        <router-link
+          to="/apply"
+          class="inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-primary-900 font-semibold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex-shrink-0"
+        >
+          <i class="icofont-paper-plane text-lg"></i>
+          Start Application
+        </router-link>
       </div>
 
       <!-- Error Alert -->

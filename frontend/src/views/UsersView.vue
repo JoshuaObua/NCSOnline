@@ -188,6 +188,14 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
           <input v-model="createForm.password" type="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
         </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+          <select v-model="createForm.role_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+            <option value="">— No role —</option>
+            <option v-for="r in assignableRoles" :key="r.id" :value="r.id">{{ formatRoleName(r.name) }}</option>
+          </select>
+          <p class="text-xs text-gray-400 mt-1">The role will be assigned right after the user is created.</p>
+        </div>
         <div v-if="modalError" class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{{ modalError }}</div>
       </form>
       <template #footer>
@@ -215,6 +223,40 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
           <input v-model="editForm.phone" type="tel" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
         </div>
+
+        <!-- Role management -->
+        <div class="border-t border-gray-100 pt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Roles</label>
+          <div class="flex flex-wrap gap-1.5 mb-3 min-h-[1.5rem]">
+            <span v-for="role in (editTarget?.roles || [])" :key="getRoleName(role)"
+              class="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
+              {{ formatRoleName(getRoleName(role)) }}
+              <button
+                v-if="getRoleName(role) !== 'super_admin'"
+                type="button"
+                @click="revokeRole(role)"
+                class="hover:text-red-600"
+                title="Revoke"
+              >×</button>
+            </span>
+            <span v-if="!editTarget?.roles?.length" class="text-xs text-gray-400">No roles assigned</span>
+          </div>
+          <div class="flex gap-2">
+            <select v-model="newRoleId" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+              <option value="">— Select role to assign —</option>
+              <option v-for="r in assignableRolesForEdit" :key="r.id" :value="r.id">{{ formatRoleName(r.name) }}</option>
+            </select>
+            <button
+              type="button"
+              @click="assignRole"
+              :disabled="!newRoleId || roleActionLoading"
+              class="px-3 py-2 text-sm bg-primary-700 hover:bg-primary-600 text-white rounded-lg font-medium disabled:opacity-50"
+            >
+              {{ roleActionLoading ? '…' : 'Assign' }}
+            </button>
+          </div>
+        </div>
+
         <div v-if="modalError" class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{{ modalError }}</div>
       </form>
       <template #footer>
@@ -241,7 +283,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import Modal from '@/components/ui/Modal.vue'
@@ -264,8 +306,36 @@ const modalError = ref('')
 const editTarget = ref(null)
 const deleteTarget = ref(null)
 
-const createForm = ref({ first_name: '', last_name: '', email: '', phone: '', password: '' })
+const createForm = ref({ first_name: '', last_name: '', email: '', phone: '', password: '', role_id: '' })
 const editForm = ref({ first_name: '', last_name: '', phone: '' })
+const availableRoles = ref([])
+const newRoleId = ref('')
+const roleActionLoading = ref(false)
+
+// Filter out super_admin from assignable list — only existing super_admin
+// can manage that role and there is meant to be only one.
+const assignableRoles = computed(() =>
+  availableRoles.value.filter(r => r.name !== 'super_admin')
+)
+const assignableRolesForEdit = computed(() => {
+  const has = new Set((editTarget.value?.roles || []).map(r => typeof r === 'string' ? r : r.name))
+  return assignableRoles.value.filter(r => !has.has(r.name))
+})
+
+function formatRoleName(name) {
+  if (!name) return ''
+  return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+async function loadRoles() {
+  try {
+    const res = await apiClient.get('/api/v1/admin/roles-list')
+    availableRoles.value = Array.isArray(res.data.data) ? res.data.data : []
+  } catch {
+    // Fallback: hard-coded roles by name (no IDs)
+    availableRoles.value = []
+  }
+}
 
 let searchTimer = null
 
@@ -325,8 +395,9 @@ function showAlert(msg, type = 'success') {
 }
 
 function openCreateModal() {
-  createForm.value = { first_name: '', last_name: '', email: '', phone: '', password: '' }
+  createForm.value = { first_name: '', last_name: '', email: '', phone: '', password: '', role_id: '' }
   modalError.value = ''
+  if (!availableRoles.value.length) loadRoles()
   showCreateModal.value = true
 }
 
@@ -337,7 +408,9 @@ function openEditModal(user) {
     last_name: user.last_name || '',
     phone: user.phone || ''
   }
+  newRoleId.value = ''
   modalError.value = ''
+  if (!availableRoles.value.length) loadRoles()
   showEditModal.value = true
 }
 
@@ -350,7 +423,17 @@ async function submitCreate() {
   submitting.value = true
   modalError.value = ''
   try {
-    await apiClient.post('/api/v1/admin/users', createForm.value)
+    const { role_id, ...userPayload } = createForm.value
+    const res = await apiClient.post('/api/v1/admin/users', userPayload)
+    const newUser = res.data?.data || res.data
+    // Assign role if selected
+    if (role_id && newUser?.id) {
+      try {
+        await apiClient.post(`/api/v1/admin/users/${newUser.id}/roles`, { role_id })
+      } catch (e) {
+        showAlert('User created but role assignment failed: ' + (e.response?.data?.error?.message || e.message), 'error')
+      }
+    }
     showCreateModal.value = false
     showAlert('User created successfully.')
     loadUsers()
@@ -358,6 +441,50 @@ async function submitCreate() {
     modalError.value = err.response?.data?.error?.message || 'Failed to create user.'
   } finally {
     submitting.value = false
+  }
+}
+
+async function assignRole() {
+  if (!newRoleId.value || !editTarget.value?.id) return
+  roleActionLoading.value = true
+  try {
+    await apiClient.post(`/api/v1/admin/users/${editTarget.value.id}/roles`, { role_id: newRoleId.value })
+    // Optimistically update editTarget so UI reflects change without reload
+    const assigned = availableRoles.value.find(r => r.id === newRoleId.value)
+    if (assigned) {
+      const current = editTarget.value.roles || []
+      editTarget.value = { ...editTarget.value, roles: [...current, { id: assigned.id, name: assigned.name }] }
+    }
+    newRoleId.value = ''
+    showAlert('Role assigned.')
+    loadUsers()
+  } catch (err) {
+    modalError.value = err.response?.data?.error?.message || 'Failed to assign role.'
+  } finally {
+    roleActionLoading.value = false
+  }
+}
+
+async function revokeRole(role) {
+  if (!editTarget.value?.id) return
+  const roleId = typeof role === 'string' ? null : role.id
+  if (!roleId) {
+    modalError.value = 'Cannot revoke role without ID. Please refresh user list.'
+    return
+  }
+  roleActionLoading.value = true
+  try {
+    await apiClient.delete(`/api/v1/admin/users/${editTarget.value.id}/roles/${roleId}`)
+    editTarget.value = {
+      ...editTarget.value,
+      roles: (editTarget.value.roles || []).filter(r => (typeof r === 'string' ? r : r.id) !== roleId)
+    }
+    showAlert('Role revoked.')
+    loadUsers()
+  } catch (err) {
+    modalError.value = err.response?.data?.error?.message || 'Failed to revoke role.'
+  } finally {
+    roleActionLoading.value = false
   }
 }
 
@@ -419,5 +546,8 @@ function nextPage() {
   }
 }
 
-onMounted(loadUsers)
+onMounted(() => {
+  loadUsers()
+  loadRoles()
+})
 </script>

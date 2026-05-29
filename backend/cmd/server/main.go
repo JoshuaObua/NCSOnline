@@ -152,6 +152,9 @@ func main() {
 					r.Get("/", h.Audit.List)
 					r.Get("/{id}", h.Audit.Get)
 				})
+
+				// Admin needs read access to roles list (for assignment UI)
+				r.Get("/admin/roles-list", h.Roles.List)
 			})
 
 			// ── Admin: application review ─────────────────────────────

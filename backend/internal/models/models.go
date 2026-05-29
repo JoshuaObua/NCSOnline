@@ -25,6 +25,19 @@ type User struct {
 	Roles            []Role     `json:"roles,omitempty"`
 }
 
+// HasPIN reports whether the user has set a screen-lock PIN.
+func (u *User) HasPIN() bool { return u.PinHash != "" }
+
+// MarshalJSON adds the derived `has_pin` field so the frontend can
+// toggle the Set PIN / Change PIN UI without exposing the hash itself.
+func (u User) MarshalJSON() ([]byte, error) {
+	type alias User
+	return json.Marshal(&struct {
+		alias
+		HasPIN bool `json:"has_pin"`
+	}{alias(u), u.PinHash != ""})
+}
+
 func (u *User) FullName() string { return u.FirstName + " " + u.LastName }
 
 func (u *User) HasRole(name string) bool {

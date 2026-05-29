@@ -24,10 +24,10 @@
           :href="href"
           @click="navigate"
           :class="[
-            isActive
-              ? 'bg-primary-600 text-white'
-              : 'text-primary-100 hover:bg-primary-600/70 hover:text-white',
-            'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150'
+            item.highlight
+              ? (isActive ? 'bg-yellow-400 text-primary-900 shadow' : 'bg-yellow-500/90 hover:bg-yellow-400 text-primary-900 shadow')
+              : (isActive ? 'bg-primary-600 text-white' : 'text-primary-100 hover:bg-primary-600/70 hover:text-white'),
+            'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150'
           ]"
         >
           <i :class="['text-lg leading-none flex-shrink-0', item.icon]"></i>
@@ -70,6 +70,7 @@ const authStore = useAuthStore()
 
 const allNavItems = [
   { to: '/dashboard',   label: 'Dashboard',          icon: 'icofont-dashboard-web',  roles: null },
+  { to: '/apply',       label: 'Start Application',  icon: 'icofont-paper-plane',    roles: null, highlight: true },
   { to: '/users',       label: 'Users',               icon: 'icofont-people',          roles: ['super_admin', 'admin'] },
   { to: '/applications',label: 'Applications',        icon: 'icofont-files-stack',     roles: null },
   { to: '/cms',         label: 'Content',             icon: 'icofont-newspaper',       roles: ['super_admin', 'admin', 'content_manager'] },

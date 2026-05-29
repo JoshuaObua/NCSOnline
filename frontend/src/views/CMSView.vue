@@ -16,8 +16,7 @@
             <button v-for="item in g.items" :key="item.id"
               @click="navigate(item.id)"
               :class="activeSection===item.id ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-600 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'"
-              class="w-full flex items-center gap-2 px-4 py-2 text-sm transition-all text-left">
-              <span class="text-xs leading-none flex-shrink-0 w-4 text-center">{{ item.icon }}</span>
+              class="w-full flex items-center px-4 py-2 text-sm transition-all text-left">
               <span class="truncate">{{ item.label }}</span>
             </button>
           </template>
@@ -506,6 +505,48 @@
           </div>
         </div>
 
+        <!-- ═══ SITEMAP ══════════════════════════════════════════ -->
+        <div v-else-if="activeSection==='sitemap'">
+          <div class="mb-4 flex items-center justify-between">
+            <p class="text-sm text-gray-500">All public pages and dynamic content slugs. Click any URL to open it.</p>
+            <button @click="loadSitemap" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition-colors">Refresh</button>
+          </div>
+          <div v-if="sitemapLoading" class="space-y-2">
+            <div v-for="i in 6" :key="i" class="h-12 bg-gray-100 rounded-lg animate-pulse"/>
+          </div>
+          <div v-else class="space-y-5">
+            <div v-for="group in sitemap" :key="group.id" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
+                <h3 class="font-semibold text-gray-800 text-sm">{{ group.label }}</h3>
+                <p v-if="group.description" class="text-xs text-gray-500 mt-0.5">{{ group.description }}</p>
+              </div>
+              <table class="w-full text-sm">
+                <thead class="bg-gray-50/40 border-b border-gray-100">
+                  <tr>
+                    <th class="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Title</th>
+                    <th class="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Slug</th>
+                    <th class="text-left px-5 py-2.5 text-xs font-medium text-gray-500">URL</th>
+                    <th class="px-5 py-2.5 w-16"></th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <tr v-for="row in group.entries" :key="row.url" class="hover:bg-gray-50">
+                    <td class="px-5 py-2.5 text-gray-800 font-medium">{{ row.title || '—' }}</td>
+                    <td class="px-5 py-2.5 text-gray-500 font-mono text-xs">{{ row.slug || '—' }}</td>
+                    <td class="px-5 py-2.5 text-gray-500 font-mono text-xs truncate max-w-md">{{ row.url }}</td>
+                    <td class="px-5 py-2.5 text-right">
+                      <a :href="row.url" target="_blank" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Open ↗</a>
+                    </td>
+                  </tr>
+                  <tr v-if="!group.entries.length">
+                    <td colspan="4" class="px-5 py-6 text-center text-gray-400 text-sm">No entries</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- ═══ GENERAL SETTINGS ══════════════════════════════════ -->
         <div v-else-if="activeSection==='settings'">
           <div class="flex gap-1 border-b border-gray-200 mb-5 flex-wrap">
@@ -946,6 +987,9 @@ const navGroups = [
   { id:'appearance', label:'Appearance', items:[
     { id:'appearance', label:'Appearance', singular:null, icon:'🎨', description:'Topbar, navbar, footer, colors' },
   ]},
+  { id:'sitemap', label:'Sitemap', items:[
+    { id:'sitemap', label:'Page Sitemap', singular:null, icon:'', description:'All public pages, slugs, and URLs' },
+  ]},
   { id:'settings', label:'Settings', items:[
     { id:'settings', label:'Site Settings', singular:null, icon:'⚙️', description:'Identity, SEO, SMTP, modules' },
   ]},
@@ -991,6 +1035,7 @@ function navigate(id) {
   else if (id==='facilities')   loadFacilities()
   else if (id==='associations') loadAssociations()
   else if (id==='invest')       loadInvest()
+  else if (id==='sitemap')      loadSitemap()
 }
 
 function showToast(msg) {
@@ -1246,6 +1291,107 @@ async function loadInvest() {
   catch { investItems.value = [] } finally { investLoading.value = false }
 }
 function editInvest(i) { editingId.value=i.id; form.value={...i}; formError.value=''; showModal.value=true }
+
+// ── Sitemap ───────────────────────────────────────────────────────
+const sitemap = ref([])
+const sitemapLoading = ref(false)
+async function loadSitemap() {
+  sitemapLoading.value = true
+  const origin = window.location.origin
+  try {
+    const [postsR, eventsR, careersR, slidesR, faqsR, resourcesR, facilitiesR, associationsR, investR] = await Promise.allSettled([
+      cmsApi.adminListPosts({ per_page: 200 }),
+      cmsApi.adminListEvents({ per_page: 200 }),
+      cmsApi.adminListCareers({ per_page: 200 }),
+      cmsApi.adminListSlides(),
+      cmsApi.adminListFAQs(),
+      cmsApi.adminListResources(),
+      cmsApi.adminListFacilities(),
+      cmsApi.adminListAssociations(),
+      cmsApi.adminListInvest(),
+    ])
+    const safe = (res, key) => {
+      if (res.status !== 'fulfilled') return []
+      const d = res.value.data
+      if (key) return d.data?.[key] || d.data || []
+      return d.data || []
+    }
+    const posts = safe(postsR, 'items')
+    const events = safe(eventsR, 'items')
+    const careers = safe(careersR, 'items')
+    const faqs = safe(faqsR)
+    const resources = safe(resourcesR)
+    const facilities = safe(facilitiesR)
+    const associations = safe(associationsR)
+    const investRows = safe(investR)
+
+    sitemap.value = [
+      {
+        id: 'static',
+        label: 'Static Pages',
+        description: 'Always available — built-in routes',
+        entries: [
+          { title: 'Home',          slug: '/',                url: origin + '/' },
+          { title: 'Apply (License Portal)', slug: '/apply',  url: origin + '/apply' },
+          { title: 'News',          slug: '/news',            url: origin + '/news' },
+          { title: 'Events',        slug: '/events',          url: origin + '/events' },
+          { title: 'Careers',       slug: '/careers',         url: origin + '/careers' },
+          { title: 'Projects',      slug: '/projects',        url: origin + '/projects' },
+          { title: 'Case Studies',  slug: '/case-studies',    url: origin + '/case-studies' },
+          { title: 'Facilities',    slug: '/facilities',      url: origin + '/facilities' },
+          { title: 'Associations',  slug: '/associations',    url: origin + '/associations' },
+          { title: 'Resource Centre',slug:'/resource-centre', url: origin + '/resource-centre' },
+          { title: 'FAQs',          slug: '/faqs',            url: origin + '/faqs' },
+          { title: 'Invest with Us',slug: '/invest',          url: origin + '/invest' },
+          { title: 'Sign In',       slug: '/login',           url: origin + '/login' },
+        ]
+      },
+      {
+        id: 'posts',
+        label: `Posts & Articles (${posts.length})`,
+        description: 'Dynamic content from the Posts module',
+        entries: posts.map(p => ({ title: p.title, slug: p.slug, url: `${origin}/news/${p.slug}` }))
+      },
+      {
+        id: 'events',
+        label: `Events (${events.length})`,
+        entries: events.map(e => ({ title: e.title, slug: e.slug, url: `${origin}/events/${e.slug}` }))
+      },
+      {
+        id: 'careers',
+        label: `Careers (${careers.length})`,
+        entries: careers.map(c => ({ title: c.title, slug: c.id, url: `${origin}/careers/${c.id}` }))
+      },
+      {
+        id: 'facilities',
+        label: `Facilities (${facilities.length})`,
+        entries: facilities.map(f => ({ title: f.name, slug: f.slug, url: `${origin}/facilities/${f.slug}` }))
+      },
+      {
+        id: 'associations',
+        label: `Associations (${associations.length})`,
+        entries: associations.map(a => ({ title: a.name, slug: a.slug, url: `${origin}/associations/${a.slug}` }))
+      },
+      {
+        id: 'resources',
+        label: `Resource Centre (${resources.length})`,
+        entries: resources.map(r => ({ title: r.title, slug: r.category, url: `${origin}/resource-centre#${r.category}` }))
+      },
+      {
+        id: 'faqs',
+        label: `FAQs (${faqs.length})`,
+        entries: faqs.map(f => ({ title: f.question, slug: f.category, url: `${origin}/faqs#${(f.category||'general')}` }))
+      },
+      {
+        id: 'invest',
+        label: `Invest with Us (${investRows.length})`,
+        entries: investRows.map(i => ({ title: i.title, slug: '/invest', url: `${origin}/invest#${i.id}` }))
+      },
+    ]
+  } finally {
+    sitemapLoading.value = false
+  }
+}
 
 // ── Appearance settings ───────────────────────────────────────────
 const appearanceTabs = [

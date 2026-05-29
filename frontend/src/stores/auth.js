@@ -34,6 +34,29 @@ export const useAuthStore = defineStore('auth', () => {
     })
   })
 
+  const isApplicant = computed(() => {
+    if (!user.value) return false
+    const roles = user.value.roles || []
+    if (!roles.length) return true // no roles → treat as plain user
+    return roles.some(r => {
+      const name = typeof r === 'string' ? r : r.name
+      return name === 'applicant' || name === 'user'
+    })
+  })
+
+  async function refreshUser() {
+    try {
+      const res = await apiClient.get('/api/v1/auth/me')
+      const fresh = res.data?.data || res.data
+      if (fresh) {
+        user.value = { ...user.value, ...fresh }
+        persistToStorage()
+      }
+    } catch {
+      // ignore — silent refresh
+    }
+  }
+
   function loadFromStorage() {
     const token = localStorage.getItem('ncsms_access_token')
     const refresh = localStorage.getItem('ncsms_refresh_token')
@@ -134,9 +157,11 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     isSuperAdmin,
     isContentManager,
+    isApplicant,
     login,
     logout,
     refreshAccessToken,
+    refreshUser,
     loadFromStorage,
     clearAuth
   }
