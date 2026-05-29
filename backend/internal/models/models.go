@@ -231,11 +231,13 @@ type CMSSlide struct {
 }
 
 type CMSMenuItem struct {
-	ID       string        `json:"id"`
-	Label    string        `json:"label"`
-	URL      string        `json:"url"`
-	Icon     string        `json:"icon,omitempty"`
-	Children []CMSMenuItem `json:"children"`
+	ID        string        `json:"id"`
+	Label     string        `json:"label"`
+	URL       string        `json:"url"`
+	Icon      string        `json:"icon,omitempty"`
+	Children  []CMSMenuItem `json:"children"`
+	Mega      bool          `json:"mega,omitempty"`
+	MegaItems []CMSMenuItem `json:"megaItems,omitempty"`
 }
 
 type CMSMenu struct {

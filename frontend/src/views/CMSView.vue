@@ -121,61 +121,80 @@
 
         <!-- ═══ MENU BUILDER ═══════════════════════════════════════ -->
         <div v-else-if="activeSection==='menus'">
+          <p class="text-sm text-gray-500 mb-4">
+            <i class="icofont-info-circle text-primary-500"></i>
+            Tip: open the <button class="text-primary-600 hover:underline font-medium" @click="navigate('sitemap')">Page Sitemap</button> to copy URLs or add available pages directly into either menu.
+          </p>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div v-for="menuName in ['main','footer']" :key="menuName" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="font-semibold text-gray-900 capitalize">{{ menuName === 'main' ? 'Main Navigation' : 'Footer Links' }}</h3>
+                <div>
+                  <h3 class="font-semibold text-gray-900">
+                    {{ menuName === 'main' ? 'Main Navigation' : 'Footer Menu' }}
+                  </h3>
+                  <p class="text-xs text-gray-500 mt-0.5">
+                    {{ menuName === 'main'
+                      ? 'Top-level links shown in the public header. Add children for a dropdown or tick "Mega" for a panel layout.'
+                      : 'Each top-level row is a footer column. Add children to fill the column with links.' }}
+                  </p>
+                </div>
                 <button @click="saveMenu(menuName)" :disabled="savingMenu===menuName"
-                  class="text-sm bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                  class="flex-shrink-0 text-sm bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
                   {{ savingMenu===menuName ? 'Saving…' : 'Save' }}
                 </button>
               </div>
-              <div class="p-5 space-y-2">
+              <div class="p-5 space-y-3">
                 <div v-for="item in menus[menuName]" :key="item.id"
                   draggable="true"
                   @dragstart="menuDragStart($event,menuName,item)"
                   @dragover.prevent
                   @drop="menuDrop($event,menuName,item)"
                   class="border border-gray-200 rounded-lg overflow-hidden">
-                  <div class="flex items-center gap-2 p-2 bg-gray-50 cursor-grab">
-                    <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5"/></svg>
-                    <input v-model="item.label" placeholder="Label" class="flex-1 min-w-0 text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"/>
-                    <input v-model="item.url" placeholder="URL" class="flex-1 min-w-0 text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"/>
-                    <label class="flex items-center gap-1 text-xs text-gray-500 cursor-pointer flex-shrink-0">
+                  <div class="flex flex-wrap items-center gap-2 p-2 bg-gray-50 cursor-grab">
+                    <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5"/></svg>
+                    <input v-model="item.label" :placeholder="menuName==='footer' ? 'Column heading' : 'Label'" class="flex-1 min-w-[120px] text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"/>
+                    <input v-model="item.url" :placeholder="menuName==='footer' ? '(optional — leave blank for a heading)' : 'URL (e.g. /faqs)'" class="flex-1 min-w-[120px] text-sm border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"/>
+                    <label v-if="menuName==='main'" class="flex items-center gap-1 text-xs text-gray-500 cursor-pointer flex-shrink-0">
                       <input type="checkbox" v-model="item.mega" class="rounded text-primary-600 w-3 h-3"/> Mega
                     </label>
-                    <button @click="addSubItem(menuName,item.id)" class="text-xs text-primary-600 hover:text-primary-800 flex-shrink-0">+Sub</button>
-                    <button @click="removeMenuItem(menuName,item.id)" class="text-gray-400 hover:text-red-500 flex-shrink-0">
+                    <button @click="addSubItem(menuName,item.id)"
+                      class="text-xs bg-primary-50 text-primary-700 hover:bg-primary-100 rounded px-2 py-1 font-medium flex-shrink-0">
+                      {{ menuName==='footer' ? '+ Link' : '+ Sub' }}
+                    </button>
+                    <button @click="removeMenuItem(menuName,item.id)" class="text-gray-400 hover:text-red-500 flex-shrink-0" :title="menuName==='footer' ? 'Remove column' : 'Remove item'">
                       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                   </div>
-                  <!-- Sub items -->
-                  <div v-if="item.children?.length" class="pl-6 pr-2 py-2 space-y-1.5 bg-white border-t border-gray-100">
+                  <!-- Children (sub items / column links) -->
+                  <div v-if="item.children?.length" class="pl-6 pr-2 py-2.5 space-y-1.5 bg-white border-t border-gray-100">
+                    <p class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-1.5">
+                      {{ menuName==='footer' ? 'Links in this column' : 'Dropdown items' }}
+                    </p>
                     <div v-for="child in item.children" :key="child.id" class="flex items-center gap-2">
-                      <span class="text-gray-300 text-xs">↳</span>
-                      <input v-model="child.label" placeholder="Label" class="flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"/>
-                      <input v-model="child.url" placeholder="URL" class="flex-1 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"/>
+                      <span class="text-gray-300 text-xs flex-shrink-0">↳</span>
+                      <input v-model="child.label" placeholder="Label" class="flex-1 min-w-0 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"/>
+                      <input v-model="child.url" placeholder="URL" class="flex-1 min-w-0 text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400"/>
                       <button @click="removeSubItem(menuName,item.id,child.id)" class="text-gray-400 hover:text-red-500 flex-shrink-0">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                       </button>
                     </div>
                   </div>
-                  <!-- Mega menu items -->
-                  <div v-if="item.mega" class="pl-6 pr-2 py-2 bg-blue-50 border-t border-blue-100">
-                    <p class="text-xs text-blue-600 mb-1.5 font-medium">Mega Menu Items</p>
+                  <!-- Mega menu items (main only) -->
+                  <div v-if="menuName==='main' && item.mega" class="pl-6 pr-2 py-2.5 bg-blue-50 border-t border-blue-100">
+                    <p class="text-[10px] uppercase tracking-wider text-blue-700 font-semibold mb-1.5">Mega Menu Items</p>
                     <div v-for="(mg,mi) in (item.megaItems||[])" :key="mi" class="flex items-center gap-2 mb-1.5">
-                      <input v-model="mg.label" placeholder="Label" class="flex-1 text-xs border border-blue-200 rounded px-2 py-1 focus:outline-none"/>
-                      <input v-model="mg.url" placeholder="URL" class="flex-1 text-xs border border-blue-200 rounded px-2 py-1 focus:outline-none"/>
-                      <input v-model="mg.icon" placeholder="Icon emoji" class="w-16 text-xs border border-blue-200 rounded px-2 py-1 focus:outline-none"/>
-                      <button @click="item.megaItems.splice(mi,1)" class="text-blue-400 hover:text-red-500">
+                      <input v-model="mg.label" placeholder="Label" class="flex-1 min-w-0 text-xs border border-blue-200 rounded px-2 py-1 focus:outline-none"/>
+                      <input v-model="mg.url" placeholder="URL" class="flex-1 min-w-0 text-xs border border-blue-200 rounded px-2 py-1 focus:outline-none"/>
+                      <input v-model="mg.icon" placeholder="Icon" class="w-16 text-xs border border-blue-200 rounded px-2 py-1 focus:outline-none"/>
+                      <button @click="item.megaItems.splice(mi,1)" class="text-blue-400 hover:text-red-500 flex-shrink-0">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
                       </button>
                     </div>
-                    <button @click="if(!item.megaItems)item.megaItems=[];item.megaItems.push({label:'',url:'',icon:''})" class="text-xs text-blue-600 hover:text-blue-800">+ Add Mega Item</button>
+                    <button @click="addMegaItem(item)" class="text-xs text-blue-600 hover:text-blue-800 font-medium">+ Add Mega Item</button>
                   </div>
                 </div>
-                <button @click="addMenuItem(menuName)" class="w-full py-2 border-2 border-dashed border-gray-200 hover:border-primary-300 text-sm text-gray-400 hover:text-primary-600 rounded-lg transition-colors">
-                  + Add Item
+                <button @click="addMenuItem(menuName)" class="w-full py-2.5 border-2 border-dashed border-gray-200 hover:border-primary-300 text-sm text-gray-400 hover:text-primary-600 rounded-lg transition-colors">
+                  + {{ menuName === 'footer' ? 'Add Column' : 'Add Item' }}
                 </button>
               </div>
             </div>
@@ -507,39 +526,76 @@
 
         <!-- ═══ SITEMAP ══════════════════════════════════════════ -->
         <div v-else-if="activeSection==='sitemap'">
-          <div class="mb-4 flex items-center justify-between">
-            <p class="text-sm text-gray-500">All public pages and dynamic content slugs. Click any URL to open it.</p>
-            <button @click="loadSitemap" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition-colors">Refresh</button>
+          <div class="mb-4 flex items-center justify-between flex-wrap gap-3">
+            <p class="text-sm text-gray-500">
+              <i class="icofont-info-circle text-primary-500"></i>
+              All public pages + CMS content slugs. Use the buttons on each row to copy the URL or add it directly to the Main or Footer menu.
+            </p>
+            <div class="flex items-center gap-2">
+              <button @click="navigate('menus')" class="text-xs bg-primary-50 hover:bg-primary-100 text-primary-700 px-3 py-1.5 rounded-lg transition-colors font-medium">
+                <i class="icofont-link"></i> Open Menu Builder
+              </button>
+              <button @click="loadSitemap" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition-colors">
+                <i class="icofont-refresh"></i> Refresh
+              </button>
+            </div>
           </div>
           <div v-if="sitemapLoading" class="space-y-2">
             <div v-for="i in 6" :key="i" class="h-12 bg-gray-100 rounded-lg animate-pulse"/>
           </div>
           <div v-else class="space-y-5">
             <div v-for="group in sitemap" :key="group.id" class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div class="px-5 py-3 border-b border-gray-100 bg-gray-50">
-                <h3 class="font-semibold text-gray-800 text-sm">{{ group.label }}</h3>
-                <p v-if="group.description" class="text-xs text-gray-500 mt-0.5">{{ group.description }}</p>
+              <div class="px-5 py-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                <div>
+                  <h3 class="font-semibold text-gray-800 text-sm">{{ group.label }}</h3>
+                  <p v-if="group.description" class="text-xs text-gray-500 mt-0.5">{{ group.description }}</p>
+                </div>
+                <button
+                  v-if="group.entries.length"
+                  @click="addGroupToMenu(group, 'footer')"
+                  class="text-xs bg-gray-100 hover:bg-primary-50 hover:text-primary-700 text-gray-500 px-2.5 py-1 rounded font-medium transition-colors"
+                  :title="`Add this entire group as a Footer column with ${group.entries.length} link${group.entries.length===1?'':'s'}`"
+                >
+                  Add group as footer column
+                </button>
               </div>
               <table class="w-full text-sm">
                 <thead class="bg-gray-50/40 border-b border-gray-100">
                   <tr>
                     <th class="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Title</th>
-                    <th class="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Slug</th>
                     <th class="text-left px-5 py-2.5 text-xs font-medium text-gray-500">URL</th>
-                    <th class="px-5 py-2.5 w-16"></th>
+                    <th class="px-5 py-2.5 w-72 text-right text-xs font-medium text-gray-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
-                  <tr v-for="row in group.entries" :key="row.url" class="hover:bg-gray-50">
+                  <tr v-for="row in group.entries" :key="row.url" class="hover:bg-gray-50/60">
                     <td class="px-5 py-2.5 text-gray-800 font-medium">{{ row.title || '—' }}</td>
-                    <td class="px-5 py-2.5 text-gray-500 font-mono text-xs">{{ row.slug || '—' }}</td>
-                    <td class="px-5 py-2.5 text-gray-500 font-mono text-xs truncate max-w-md">{{ row.url }}</td>
-                    <td class="px-5 py-2.5 text-right">
-                      <a :href="row.url" target="_blank" class="text-primary-600 hover:text-primary-800 text-xs font-medium">Open ↗</a>
+                    <td class="px-5 py-2.5 text-gray-500 font-mono text-xs truncate max-w-md">{{ relativeUrl(row.url) }}</td>
+                    <td class="px-5 py-2.5">
+                      <div class="flex items-center justify-end gap-1.5 flex-wrap">
+                        <button @click="addEntryToMenu(row, 'main')"
+                          class="text-xs bg-primary-50 hover:bg-primary-100 text-primary-700 px-2 py-1 rounded font-medium"
+                          title="Add to Main Navigation">
+                          + Main
+                        </button>
+                        <button @click="addEntryToMenu(row, 'footer')"
+                          class="text-xs bg-primary-50 hover:bg-primary-100 text-primary-700 px-2 py-1 rounded font-medium"
+                          title="Add to Footer (creates a 'Links' column if needed)">
+                          + Footer
+                        </button>
+                        <button @click="copyUrl(row.url)"
+                          class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1 rounded font-medium"
+                          :title="`Copy ${row.url}`">
+                          <i class="icofont-copy"></i> {{ copiedUrl === row.url ? 'Copied!' : 'Copy' }}
+                        </button>
+                        <a :href="row.url" target="_blank" class="text-xs text-gray-500 hover:text-primary-700 px-2 py-1 font-medium">
+                          Open <i class="icofont-external-link"></i>
+                        </a>
+                      </div>
                     </td>
                   </tr>
                   <tr v-if="!group.entries.length">
-                    <td colspan="4" class="px-5 py-6 text-center text-gray-400 text-sm">No entries</td>
+                    <td colspan="3" class="px-5 py-6 text-center text-gray-400 text-sm">No entries</td>
                   </tr>
                 </tbody>
               </table>
@@ -1127,6 +1183,7 @@ function addMenuItem(n) { menus[n].push({id:makeId(),label:'',url:'',children:[]
 function removeMenuItem(n,id) { menus[n]=menus[n].filter(i=>i.id!==id) }
 function addSubItem(n,pid) { const item=menus[n].find(i=>i.id===pid); if(item){ item.children=[...(item.children||[]),{id:makeId(),label:'',url:''}] } }
 function removeSubItem(n,pid,cid) { const item=menus[n].find(i=>i.id===pid); if(item){ item.children=item.children.filter(c=>c.id!==cid) } }
+function addMegaItem(item) { if (!item.megaItems) item.megaItems = []; item.megaItems.push({id:makeId(),label:'',url:'',icon:''}) }
 function menuDragStart(e,n,item) { menuDragSrc={n,item} }
 function menuDrop(e,n,target) {
   if(!menuDragSrc||menuDragSrc.item.id===target.id||menuDragSrc.n!==n) return
@@ -1296,6 +1353,79 @@ function editInvest(i) { editingId.value=i.id; form.value={...i}; formError.valu
 // ── Sitemap ───────────────────────────────────────────────────────
 const sitemap = ref([])
 const sitemapLoading = ref(false)
+const copiedUrl = ref('')
+
+function relativeUrl(u) {
+  if (!u) return ''
+  try {
+    const url = new URL(u)
+    return url.pathname + url.search + url.hash
+  } catch { return u }
+}
+
+async function copyUrl(url) {
+  const rel = relativeUrl(url)
+  try {
+    await navigator.clipboard.writeText(rel)
+    copiedUrl.value = url
+    showToast(`Copied ${rel}`)
+    setTimeout(() => { if (copiedUrl.value === url) copiedUrl.value = '' }, 1500)
+  } catch {
+    showToast('Copy failed — select and copy manually')
+  }
+}
+
+async function addEntryToMenu(entry, target) {
+  // Make sure the menus are loaded before mutating
+  if (!menus[target] || menus[target].length === 0) {
+    try { await loadMenus() } catch {}
+    if (!menus[target]) menus[target] = []
+  }
+  const url = relativeUrl(entry.url)
+
+  if (target === 'main') {
+    // Top-level link in main nav
+    menus.main.push({
+      id: makeId(),
+      label: entry.title || url,
+      url,
+      children: [],
+      mega: false,
+      megaItems: []
+    })
+  } else {
+    // Append to the first non-empty column, or create a "Links" column
+    let col = menus.footer.find(c => Array.isArray(c.children))
+    if (!col) {
+      col = { id: makeId(), label: 'Links', url: '', children: [] }
+      menus.footer.push(col)
+    }
+    if (!col.children) col.children = []
+    col.children.push({ id: makeId(), label: entry.title || url, url })
+  }
+  showToast(`Added to ${target === 'main' ? 'Main' : 'Footer'} menu — remember to Save`)
+}
+
+async function addGroupToMenu(group, target) {
+  if (!menus[target]) {
+    try { await loadMenus() } catch {}
+    if (!menus[target]) menus[target] = []
+  }
+  if (target !== 'footer') return
+  // Create one footer column from the entire group
+  const col = {
+    id: makeId(),
+    label: group.label.replace(/\s*\(\d+\)\s*$/, ''),
+    url: '',
+    children: group.entries.map(e => ({
+      id: makeId(),
+      label: e.title || relativeUrl(e.url),
+      url: relativeUrl(e.url)
+    }))
+  }
+  menus.footer.push(col)
+  showToast(`Added “${col.label}” as a footer column — remember to Save`)
+}
 async function loadSitemap() {
   sitemapLoading.value = true
   const origin = window.location.origin
