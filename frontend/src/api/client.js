@@ -1,7 +1,20 @@
 import axios from 'axios'
 
+// Resolve the API base URL at runtime so the same build works on any host.
+// Priority: VITE_API_BASE_URL env var → same host as the browser on port 9080.
+function resolveApiBase() {
+  const envBase = import.meta.env?.VITE_API_BASE_URL
+  if (envBase) return envBase.replace(/\/$/, '')
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    return `${window.location.protocol}//${window.location.hostname}:9080`
+  }
+  return 'http://localhost:9080'
+}
+
+export const API_BASE_URL = resolveApiBase()
+
 const apiClient = axios.create({
-  baseURL: 'http://localhost:9080',
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -69,7 +82,7 @@ apiClient.interceptors.response.use(
       }
 
       try {
-        const response = await axios.post('http://localhost:9080/api/v1/auth/refresh', {
+        const response = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {
           refresh_token: refreshToken
         })
         const { access_token, refresh_token: new_refresh } = response.data.data
