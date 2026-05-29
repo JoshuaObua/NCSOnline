@@ -1086,9 +1086,13 @@ func (r *CMSRepo) UpdateSetting(ctx context.Context, key string, value []byte) e
 
 // ── Fun Facts ─────────────────────────────────────────────────────
 
-func (r *CMSRepo) ListFunFacts(ctx context.Context) ([]*models.CMSFunFact, error) {
-	const q = `SELECT id, label, value, COALESCE(icon,''), sort_order, is_active, created_at, updated_at
-	           FROM cms_fun_facts ORDER BY sort_order ASC, created_at ASC`
+func (r *CMSRepo) ListFunFacts(ctx context.Context, activeOnly bool) ([]*models.CMSFunFact, error) {
+	q := `SELECT id, label, value, COALESCE(icon,''), sort_order, is_active, created_at, updated_at
+	      FROM cms_fun_facts`
+	if activeOnly {
+		q += ` WHERE is_active = true`
+	}
+	q += ` ORDER BY sort_order ASC, created_at ASC`
 	rows, err := r.db.Query(ctx, q)
 	if err != nil {
 		return nil, err

@@ -745,7 +745,8 @@ func (h *CMSHandler) UploadMedia(w http.ResponseWriter, r *http.Request) {
 // ── Fun Facts ─────────────────────────────────────────────────────
 
 func (h *CMSHandler) ListFunFacts(w http.ResponseWriter, r *http.Request) {
-	items, err := h.repo.ListFunFacts(r.Context())
+	activeOnly := r.URL.Query().Get("active") != "false"
+	items, err := h.repo.ListFunFacts(r.Context(), activeOnly)
 	if err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list fun facts")
 		return

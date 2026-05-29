@@ -148,6 +148,34 @@
       </div>
     </section>
 
+    <!-- Fun Facts / Stats Strip -->
+    <section v-if="displayedFunFacts.length" ref="funFactsRef" class="py-16 bg-gray-900 px-4">
+      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+        <div class="text-center mb-10">
+          <p class="text-primary-400 font-semibold text-sm uppercase tracking-wide mb-2">Sports in Uganda</p>
+          <h2 class="text-3xl font-bold text-white">Sports at a Glance</h2>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div
+            v-for="(fact, i) in displayedFunFacts"
+            :key="fact.id || i"
+            class="fun-fact-card text-center"
+          >
+            <div v-if="fact.icon" class="text-primary-400 text-4xl mb-3">
+              <i :class="fact.icon"></i>
+            </div>
+            <div v-else class="w-10 h-0.5 bg-primary-500 mx-auto mb-4"></div>
+            <div
+              class="fun-fact-num text-4xl md:text-5xl font-bold text-white mb-2"
+              :data-target="parseStatValue(fact.value)"
+              :data-suffix="statSuffix(fact.value)"
+            >{{ fact.value }}</div>
+            <div class="text-sm font-medium text-gray-400 uppercase tracking-wide">{{ fact.label }}</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Latest News -->
     <section ref="newsRef" class="py-20 bg-gray-50 px-4">
       <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -272,9 +300,9 @@ const funFacts = ref([])
 const postsLoading = ref(true)
 
 const defaultStats = [
-  { label: 'Sports Federations', value: '50' },
-  { label: 'Registered Clubs',   value: '500' },
-  { label: 'Licensed Athletes',  value: '10,000' },
+  { label: 'Sports Federations', value: '50+' },
+  { label: 'Registered Clubs',   value: '500+' },
+  { label: 'Licensed Athletes',  value: '10,000+' },
   { label: 'Districts Covered',  value: '112' },
 ]
 const displayedStats = computed(() =>
@@ -282,10 +310,19 @@ const displayedStats = computed(() =>
     ? funFacts.value.slice(0, 4).map(f => ({ label: f.label, value: f.value }))
     : defaultStats
 )
+const displayedFunFacts = computed(() =>
+  funFacts.value.length > 0 ? funFacts.value : defaultStats.map((s, i) => ({ id: String(i), label: s.label, value: s.value, icon: '', is_active: true }))
+)
 function parseStatValue(v) {
   if (!v) return 0
   const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10)
   return isNaN(n) ? 0 : n
+}
+function statSuffix(v) {
+  const s = String(v || '')
+  if (s.includes('K') || s.includes('k')) return 'K+'
+  if (s.includes('+')) return '+'
+  return ''
 }
 
 // ── Slideshow ─────────────────────────────────────────────────────
@@ -336,6 +373,7 @@ function monthShort(d) {
 const heroRef = ref(null)
 const heroContent = ref(null)
 const aboutRef = ref(null)
+const funFactsRef = ref(null)
 const newsRef = ref(null)
 const eventsRef = ref(null)
 const ctaRef = ref(null)
@@ -370,6 +408,16 @@ function initAnimations() {
         onEnter: animateCounters } }
   )
 
+  // Fun facts strip
+  if (funFactsRef.value) {
+    gsap.fromTo('.fun-fact-card',
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, duration: 0.6, stagger: 0.12, ease: 'power2.out',
+        scrollTrigger: { trigger: funFactsRef.value, start: 'top 80%',
+          onEnter: animateFunFactCounters } }
+    )
+  }
+
   // News cards stagger
   gsap.fromTo('.news-card',
     { opacity: 0, y: 40 },
@@ -398,6 +446,20 @@ function animateCounters() {
     const suffix = target >= 10000 ? 'K+' : target >= 100 ? '+' : ''
     const displayTarget = target >= 10000 ? target / 1000 : target
     gsap.fromTo({ val: 0 }, { val: displayTarget, duration: 1.8, ease: 'power2.out',
+      onUpdate: function () {
+        el.textContent = Math.floor(this.targets()[0].val) + suffix
+      }
+    })
+  })
+}
+
+function animateFunFactCounters() {
+  document.querySelectorAll('.fun-fact-num').forEach(el => {
+    const target = parseInt(el.dataset.target || '0', 10)
+    const suffix = el.dataset.suffix || ''
+    if (!target) return
+    const displayTarget = suffix.startsWith('K') ? target / 1000 : target
+    gsap.fromTo({ val: 0 }, { val: displayTarget, duration: 2, ease: 'power2.out',
       onUpdate: function () {
         el.textContent = Math.floor(this.targets()[0].val) + suffix
       }

@@ -131,7 +131,7 @@ export function uploadMedia(file) {
 // ── Fun Facts ─────────────────────────────────────────────────────
 
 export function listFunFacts() { return apiClient.get('/api/v1/cms/fun-facts') }
-export function adminListFunFacts() { return apiClient.get('/api/v1/admin/cms/fun-facts') }
+export function adminListFunFacts() { return apiClient.get('/api/v1/admin/cms/fun-facts', { params: { active: 'false' } }) }
 export function adminCreateFunFact(data) { return apiClient.post('/api/v1/admin/cms/fun-facts', data) }
 export function adminUpdateFunFact(id, data) { return apiClient.put(`/api/v1/admin/cms/fun-facts/${id}`, data) }
 export function adminDeleteFunFact(id) { return apiClient.delete(`/api/v1/admin/cms/fun-facts/${id}`) }
