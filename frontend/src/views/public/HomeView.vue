@@ -13,7 +13,7 @@
           <div
             v-if="slide.image_url"
             class="absolute inset-0 bg-cover bg-center"
-            :style="{ backgroundImage: `url(${slide.image_url})` }"
+            :style="{ backgroundImage: `url(${mediaUrl(slide.image_url)})` }"
           >
             <div class="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/70 to-gray-900/30"></div>
           </div>
@@ -171,7 +171,7 @@
             class="news-card group bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1"
           >
             <div v-if="post.cover_image_url" class="h-44 overflow-hidden">
-              <img :src="post.cover_image_url" :alt="post.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <img :src="mediaUrl(post.cover_image_url)" :alt="post.title" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
             </div>
             <div v-else class="h-44 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
               <svg class="w-12 h-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/></svg>
@@ -257,6 +257,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { listPosts, listEvents, listSlides, listFunFacts } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 import { useAuthStore } from '@/stores/auth.js'
 
 gsap.registerPlugin(ScrollTrigger)

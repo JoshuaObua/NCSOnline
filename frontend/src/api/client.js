@@ -13,6 +13,26 @@ function resolveApiBase() {
 
 export const API_BASE_URL = resolveApiBase()
 
+/**
+ * Resolve a possibly-relative media path (e.g. "/uploads/images/x.jpg") to an
+ * absolute URL the browser can fetch. nginx serves uploads at the API origin
+ * (port 9080), but the frontend is hosted on port 3000 during dev, so a bare
+ * "/uploads/..." path would 404 against the Vite host.
+ *
+ * Accepts:
+ *   - "" / null / undefined         → returns ""
+ *   - "http(s)://..." absolute URLs → returned unchanged
+ *   - "data:..." or "blob:..."      → returned unchanged
+ *   - any other path starting with "/" → prefixed with API_BASE_URL
+ *   - bare path (no leading slash)  → "/" + path, then prefixed
+ */
+export function mediaUrl(path) {
+  if (!path) return ''
+  if (/^(https?:|data:|blob:)/i.test(path)) return path
+  const normalized = path.startsWith('/') ? path : `/${path}`
+  return `${API_BASE_URL}${normalized}`
+}
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {

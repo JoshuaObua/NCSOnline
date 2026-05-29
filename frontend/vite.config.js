@@ -13,6 +13,14 @@ export default defineConfig({
     watch: {
       usePolling: true,
       interval: 300
+    },
+    // Proxy /uploads and /api to the nginx gateway so uploaded media (slides,
+    // facility images, logos, PDFs etc.) resolve correctly when the SPA is
+    // served from the Vite dev port. nginx serves them at port 80 inside the
+    // ncsms_net docker network.
+    proxy: {
+      '/uploads': { target: 'http://nginx', changeOrigin: true },
+      '/api':     { target: 'http://nginx', changeOrigin: true }
     }
   }
 })

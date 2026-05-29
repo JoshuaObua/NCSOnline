@@ -30,7 +30,7 @@
         </div>
       </div>
 
-      <img v-if="event.cover_image_url" :src="event.cover_image_url" :alt="event.title" class="w-full rounded-xl mb-10 max-h-80 object-cover">
+      <img v-if="event.cover_image_url" :src="mediaUrl(event.cover_image_url)" :alt="event.title" class="w-full rounded-xl mb-10 max-h-80 object-cover">
 
       <div class="prose prose-gray max-w-none" v-html="formattedDescription"></div>
 
@@ -50,6 +50,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getEvent } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 const route = useRoute()
 const event = ref(null)

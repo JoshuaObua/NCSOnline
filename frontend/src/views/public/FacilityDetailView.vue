@@ -20,7 +20,7 @@
     <!-- Content -->
     <div v-else>
       <div class="relative h-72 md:h-96 bg-gray-200 overflow-hidden">
-        <img v-if="facility.image_url" :src="facility.image_url" :alt="facility.name" class="w-full h-full object-cover">
+        <img v-if="facility.image_url" :src="mediaUrl(facility.image_url)" :alt="facility.name" class="w-full h-full object-cover">
         <div v-else class="w-full h-full bg-gradient-to-br from-primary-700 to-primary-500"/>
         <div class="absolute inset-0 bg-black/40 flex items-end">
           <div class="max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-8">
@@ -45,6 +45,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { listFacilities } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 const route = useRoute()
 const facility = ref(null)

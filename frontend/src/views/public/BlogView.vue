@@ -39,7 +39,7 @@
       <div v-else-if="posts.length" class="grid md:grid-cols-3 gap-6">
         <article v-for="post in posts" :key="post.id" class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100">
           <div v-if="post.cover_image_url" class="h-44 overflow-hidden">
-            <img :src="post.cover_image_url" :alt="post.title" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+            <img :src="mediaUrl(post.cover_image_url)" :alt="post.title" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
           </div>
           <div v-else class="h-44 bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center">
             <span class="text-primary-300 font-bold text-3xl">NCS</span>
@@ -78,6 +78,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { listPosts } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 const categories = [
   { value: '', label: 'All' },

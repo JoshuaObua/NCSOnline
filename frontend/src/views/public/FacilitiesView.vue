@@ -26,7 +26,7 @@
           class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg border border-gray-100 transition-all"
         >
           <div class="h-48 overflow-hidden bg-gray-100">
-            <img v-if="f.image_url" :src="f.image_url" :alt="f.name" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            <img v-if="f.image_url" :src="mediaUrl(f.image_url)" :alt="f.name" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
             <div v-else class="w-full h-full flex items-center justify-center text-primary-200 text-5xl">
               <i class="icofont-football"></i>
             </div>
@@ -52,6 +52,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { listFacilities } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 const facilities = ref([])
 const loading = ref(true)

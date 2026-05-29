@@ -15,7 +15,7 @@
 
       <!-- Preview: image -->
       <template v-if="modelValue && !uploading && !isPdf">
-        <img :src="modelValue" class="w-full object-cover rounded-xl" :class="previewClass" @click.stop="$refs.fileInput.click()"/>
+        <img :src="resolvedSrc" class="w-full object-cover rounded-xl" :class="previewClass" @click.stop="$refs.fileInput.click()" @error="onPreviewError"/>
         <button type="button" @click.stop="$emit('update:modelValue', '')"
           class="absolute top-2 right-2 bg-white/90 hover:bg-white shadow rounded-full w-7 h-7 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors z-10">
           <i class="icofont-close text-sm leading-none"></i>
@@ -68,6 +68,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import * as cmsApi from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
@@ -89,6 +90,12 @@ const isPdf = computed(() => {
 })
 const emptyIcon = computed(() => isPdf.value ? 'icofont-file-pdf' : 'icofont-image')
 const fileName = computed(() => props.modelValue?.split('/').pop() || 'document.pdf')
+const resolvedSrc = computed(() => mediaUrl(props.modelValue))
+
+function onPreviewError(e) {
+  // Hide broken image so the dropzone stays usable
+  e.target.style.display = 'none'
+}
 
 async function upload(file) {
   if (!file) return

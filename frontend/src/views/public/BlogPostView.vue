@@ -31,7 +31,7 @@
 
       <p v-if="post.excerpt" class="text-lg text-gray-500 mb-8 border-l-4 border-primary-500 pl-4">{{ post.excerpt }}</p>
 
-      <img v-if="post.cover_image_url" :src="post.cover_image_url" :alt="post.title" class="w-full rounded-xl mb-10 max-h-80 object-cover">
+      <img v-if="post.cover_image_url" :src="mediaUrl(post.cover_image_url)" :alt="post.title" class="w-full rounded-xl mb-10 max-h-80 object-cover">
 
       <!-- Content -->
       <div class="prose prose-gray max-w-none prose-headings:text-gray-900 prose-a:text-primary-600" v-html="formattedContent"></div>
@@ -52,6 +52,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPost } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 const route = useRoute()
 const post = ref(null)

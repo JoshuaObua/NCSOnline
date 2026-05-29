@@ -25,7 +25,7 @@
         >
           <div>
             <div class="aspect-[4/3] bg-gray-100 rounded-2xl overflow-hidden shadow-sm">
-              <img v-if="item.image_url" :src="item.image_url" :alt="item.title" class="w-full h-full object-cover">
+              <img v-if="item.image_url" :src="mediaUrl(item.image_url)" :alt="item.title" class="w-full h-full object-cover">
               <div v-else class="w-full h-full bg-gradient-to-br from-primary-100 to-primary-50 flex items-center justify-center">
                 <i class="icofont-money-bag text-6xl text-primary-300"></i>
               </div>
@@ -61,6 +61,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { listInvest } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 const items = ref([])
 const loading = ref(true)

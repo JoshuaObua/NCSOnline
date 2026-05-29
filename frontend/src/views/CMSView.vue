@@ -96,7 +96,7 @@
               @drop="dropSlide($event,slide)"
               class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex items-center gap-4 cursor-grab active:opacity-60">
               <svg class="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 9h16.5m-16.5 6.75h16.5"/></svg>
-              <img v-if="slide.image_url" :src="slide.image_url" class="w-16 h-10 object-cover rounded flex-shrink-0"/>
+              <img v-if="slide.image_url" :src="mediaUrl(slide.image_url)" class="w-16 h-10 object-cover rounded flex-shrink-0"/>
               <div v-else class="w-16 h-10 bg-gray-100 rounded flex-shrink-0 flex items-center justify-center text-gray-300 text-xs">No img</div>
               <div class="flex-1 min-w-0">
                 <div class="font-medium text-gray-900 truncate">{{ slide.title }}</div>
@@ -297,7 +297,7 @@
             <div v-for="member in team" :key="member.id"
               class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div class="h-40 bg-gray-100 overflow-hidden">
-                <img v-if="member.image_url" :src="member.image_url" class="w-full h-full object-cover"/>
+                <img v-if="member.image_url" :src="mediaUrl(member.image_url)" class="w-full h-full object-cover"/>
                 <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-300">👤</div>
               </div>
               <div class="p-3">
@@ -659,7 +659,7 @@
                 <input v-model="form.video_url" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="https://youtube.com/..."/>
               </div>
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Cover Image URL <span class="text-gray-400 font-normal">(1920×1280 recommended)</span></label><input v-model="form.cover_image_url" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="https://..."/>
-                <img v-if="form.cover_image_url" :src="form.cover_image_url" class="mt-2 h-24 object-cover rounded-lg border border-gray-200"/>
+                <img v-if="form.cover_image_url" :src="mediaUrl(form.cover_image_url)" class="mt-2 h-24 object-cover rounded-lg border border-gray-200"/>
               </div>
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Excerpt</label><textarea v-model="form.excerpt" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none" rows="2"/></div>
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Content</label><textarea v-model="form.content" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none font-mono" rows="8"/></div>
@@ -723,7 +723,7 @@
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Full Name *</label><input v-model="form.full_name" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Designation</label><input v-model="form.designation" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="e.g. General Secretary"/></div>
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Photo URL <span class="text-gray-400 font-normal">(1:1 ratio recommended)</span></label><input v-model="form.image_url" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/>
-                <img v-if="form.image_url" :src="form.image_url" class="mt-2 w-20 h-20 object-cover rounded-full border-2 border-gray-200"/></div>
+                <img v-if="form.image_url" :src="mediaUrl(form.image_url)" class="mt-2 w-20 h-20 object-cover rounded-full border-2 border-gray-200"/></div>
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Bio</label><textarea v-model="form.bio" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none" rows="3"/></div>
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Sort Order</label><input v-model.number="form.sort_order" type="number" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
             </template>
@@ -894,6 +894,7 @@ import { ref, reactive, computed, onMounted, defineComponent, h } from 'vue'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
 import DropzoneUpload from '@/components/ui/DropzoneUpload.vue'
 import * as cmsApi from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 // ── ContentTable render component ─────────────────────────────────
 const ContentTable = defineComponent({

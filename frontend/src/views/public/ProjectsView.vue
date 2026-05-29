@@ -20,7 +20,7 @@
       <div v-else-if="posts.length" class="grid md:grid-cols-3 gap-6">
         <article v-for="post in posts" :key="post.id" class="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100">
           <div v-if="post.cover_image_url" class="h-44 overflow-hidden">
-            <img :src="post.cover_image_url" :alt="post.title" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+            <img :src="mediaUrl(post.cover_image_url)" :alt="post.title" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
           </div>
           <div v-else class="h-44 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
             <svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
@@ -45,6 +45,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { listPosts } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 const posts = ref([])
 const loading = ref(true)

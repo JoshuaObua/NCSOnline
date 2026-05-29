@@ -37,7 +37,7 @@
         <a
           v-for="r in filtered"
           :key="r.id"
-          :href="r.file_url"
+          :href="mediaUrl(r.file_url)"
           target="_blank"
           rel="noopener"
           class="block bg-white border border-gray-200 rounded-xl p-5 hover:border-primary-300 hover:shadow-md transition-all flex items-center gap-4"
@@ -72,6 +72,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { listResources } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 const route = useRoute()
 

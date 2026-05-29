@@ -23,7 +23,7 @@
         >
           <div class="flex items-start gap-4 mb-3">
             <div class="flex-shrink-0 w-16 h-16 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden p-1.5">
-              <img v-if="a.logo_url" :src="a.logo_url" :alt="a.name" class="max-w-full max-h-full object-contain">
+              <img v-if="a.logo_url" :src="mediaUrl(a.logo_url)" :alt="a.name" class="max-w-full max-h-full object-contain">
               <i v-else class="icofont-trophy text-3xl text-primary-400"></i>
             </div>
             <div class="flex-1 min-w-0">
@@ -54,6 +54,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { listAssociations } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 const associations = ref([])
 const loading = ref(true)
