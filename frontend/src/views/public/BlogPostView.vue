@@ -1,49 +1,73 @@
 <template>
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-    <div v-if="loading" class="animate-pulse">
-      <div class="h-8 bg-gray-200 rounded mb-4 w-3/4"></div>
-      <div class="h-4 bg-gray-200 rounded mb-8 w-1/2"></div>
-      <div class="h-64 bg-gray-200 rounded-xl mb-8"></div>
-      <div class="space-y-3">
-        <div class="h-4 bg-gray-200 rounded"></div>
-        <div class="h-4 bg-gray-200 rounded"></div>
-        <div class="h-4 bg-gray-200 rounded w-4/5"></div>
+  <div>
+    <!-- Loading skeleton -->
+    <div v-if="loading" class="bg-cream pt-24 pb-16">
+      <div class="max-w-4xl mx-auto px-4 sm:px-6 animate-pulse">
+        <div class="h-6 bg-gray-300 rounded w-1/4 mb-4"></div>
+        <div class="h-12 bg-gray-300 rounded mb-3 w-3/4"></div>
+        <div class="h-4 bg-gray-300 rounded w-1/3"></div>
       </div>
     </div>
 
     <div v-else-if="post">
-      <!-- Breadcrumb -->
-      <nav class="flex items-center gap-2 text-sm text-gray-400 mb-8">
-        <router-link to="/" class="hover:text-primary-600">Home</router-link>
-        <span>/</span>
-        <router-link to="/news" class="hover:text-primary-600">News</router-link>
-        <span>/</span>
-        <span class="text-gray-600 truncate max-w-xs">{{ post.title }}</span>
-      </nav>
+      <!-- Hero image banner with dark overlay + title -->
+      <div class="relative min-h-[360px] flex items-end" :style="post.cover_image_url ? '' : ''">
+        <div
+          v-if="post.cover_image_url"
+          class="absolute inset-0 bg-cover bg-center"
+          :style="`background-image: url('${mediaUrl(post.cover_image_url)}')`"
+        ></div>
+        <div v-else class="absolute inset-0 bg-gradient-to-br from-[#112b4e] to-[#1e4080]"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
 
-      <!-- Meta -->
-      <div class="flex flex-wrap items-center gap-3 mb-4">
-        <span class="text-xs font-medium text-primary-600 bg-primary-50 px-3 py-1 rounded-full capitalize">{{ post.category }}</span>
-        <span v-if="post.published_at" class="text-sm text-gray-400">{{ formatDate(post.published_at) }}</span>
+        <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 pb-12 pt-32 w-full">
+          <!-- Breadcrumb -->
+          <nav class="flex items-center gap-2 text-sm text-white/60 mb-5">
+            <router-link to="/" class="hover:text-white transition-colors">Home</router-link>
+            <span>/</span>
+            <router-link to="/news" class="hover:text-white transition-colors">News</router-link>
+            <span>/</span>
+            <span class="text-white/80 truncate max-w-xs">{{ post.title }}</span>
+          </nav>
+
+          <!-- Meta + title -->
+          <div class="flex items-center gap-3 mb-4">
+            <span class="text-xs font-semibold bg-yellow-300 text-yellow-900 px-3 py-1 rounded-full capitalize">{{ post.category || 'News' }}</span>
+            <span v-if="post.published_at" class="text-sm text-white/70">{{ formatDate(post.published_at) }}</span>
+          </div>
+          <h1 class="text-3xl md:text-4xl font-bold text-white leading-tight">{{ post.title }}</h1>
+        </div>
       </div>
 
-      <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{{ post.title }}</h1>
+      <!-- Article content -->
+      <div class="bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-14">
+          <!-- Excerpt block -->
+          <p v-if="post.excerpt" class="text-lg text-gray-500 mb-8 border-l-4 border-[#F48C06] pl-5 italic">{{ post.excerpt }}</p>
 
-      <p v-if="post.excerpt" class="text-lg text-gray-500 mb-8 border-l-4 border-primary-500 pl-4">{{ post.excerpt }}</p>
+          <!-- Body -->
+          <div
+            class="prose prose-gray max-w-none prose-headings:text-[#112b4e] prose-a:text-[#F48C06] prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-p:text-gray-600 prose-p:leading-relaxed"
+            v-html="formattedContent"
+          ></div>
 
-      <img v-if="post.cover_image_url" :src="mediaUrl(post.cover_image_url)" :alt="post.title" class="w-full rounded-xl mb-10 max-h-80 object-cover">
-
-      <!-- Content -->
-      <div class="prose prose-gray max-w-none prose-headings:text-gray-900 prose-a:text-primary-600" v-html="formattedContent"></div>
-
-      <div class="mt-12 pt-8 border-t border-gray-100">
-        <router-link to="/news" class="text-primary-600 hover:text-primary-700 font-medium text-sm">← Back to News</router-link>
+          <!-- Footer -->
+          <div class="mt-14 pt-8 border-t border-gray-100 flex items-center justify-between flex-wrap gap-4">
+            <router-link
+              to="/news"
+              class="text-sm font-semibold text-[#112b4e] hover:text-[#F48C06] flex items-center gap-2 transition-colors"
+            >
+              ← Back to News
+            </router-link>
+            <span v-if="post.published_at" class="text-xs text-gray-400">Published {{ formatDate(post.published_at) }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div v-else class="text-center py-20 text-gray-400">
-      <p class="text-lg">Article not found.</p>
-      <router-link to="/news" class="mt-4 inline-block text-primary-600 hover:underline">Browse all articles</router-link>
+    <div v-else class="bg-cream pt-32 pb-20 text-center text-gray-400">
+      <p class="text-lg font-medium mb-4">Article not found.</p>
+      <router-link to="/news" class="text-sm font-semibold text-accent hover:text-[#d47b05]">← Browse all articles</router-link>
     </div>
   </div>
 </template>
@@ -64,7 +88,6 @@ function formatDate(d) {
 
 const formattedContent = computed(() => {
   if (!post.value?.content) return ''
-  // Render newlines as paragraphs for plain text content
   return post.value.content
     .split('\n\n')
     .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)

@@ -1,3 +1,48 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer components {
+  .admin-card          { @apply bg-white rounded-xl border border-gray-200 shadow-sm; }
+  .admin-card-header   { @apply px-5 py-4 border-b border-gray-100 flex items-center justify-between; }
+  .admin-card-body     { @apply p-5; }
+  .admin-card-footer   { @apply px-5 py-3 border-t border-gray-100 bg-gray-50/60; }
+  .stat-card           { @apply bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-start gap-4; }
+  .page-title          { @apply text-xl font-bold text-gray-900; }
+  .section-label       { @apply text-[10px] font-semibold text-primary-300 uppercase tracking-widest px-3 pt-4 pb-1.5; }
+  .btn-primary         { @apply bg-primary-700 hover:bg-primary-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors; }
+  .btn-ghost           { @apply text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors; }
+  .table-th            { @apply px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider bg-gray-50; }
+  .table-td            { @apply px-4 py-3 text-sm text-gray-700; }
+  .form-input          { @apply w-full text-sm border border-gray-200 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-primary-700 focus:border-primary-700 placeholder-gray-400 bg-white transition; }
+  .form-label          { @apply block text-xs font-semibold text-gray-600 mb-1.5; }
+  .badge-green         { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700; }
+  .badge-red           { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700; }
+  .badge-yellow        { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700; }
+  .badge-blue          { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700; }
+  .badge-gray          { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600; }
+}
+
+/* ── Global font ─────────────────────────────────── */
+body { font-family: 'Poppins', sans-serif; }
+
+/* ── Public site palette & utilities ─────────────── */
+.bg-cream    { background-color: #FEF9F2; }
+.text-darken { color: #112b4e; }
+.text-accent { color: #F48C06; }
+.bg-accent   { background-color: #F48C06; }
+
+/* Floating animation for hero decorative elements */
+.pub-floating      { animation: pub-float 3s ease-in-out infinite; }
+.pub-floating-slow { animation: pub-float 4.5s ease-in-out infinite; }
+@keyframes pub-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(10px); }
+}
+
+/* Section tag label (INTEGRATIONS, TESTIMONIAL style) */
+.section-tag { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: #9ca3af; }
+
+/* Line clamp utility */
+.line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.line-clamp-3 { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }

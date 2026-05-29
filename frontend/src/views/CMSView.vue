@@ -29,12 +29,11 @@
         <!-- Section header -->
         <div class="flex items-center justify-between mb-5">
           <div>
-            <h2 class="text-xl font-bold text-gray-900">{{ currentNavItem?.label }}</h2>
-            <p v-if="currentNavItem?.description" class="text-sm text-gray-500 mt-0.5">{{ currentNavItem.description }}</p>
+            <h2 class="page-title">{{ currentNavItem?.label }}</h2>
+            <p v-if="currentNavItem?.description" class="text-xs text-gray-500 mt-0.5">{{ currentNavItem.description }}</p>
           </div>
-          <button v-if="creatableSections.includes(activeSection)" @click="openCreate"
-            class="flex items-center gap-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+          <button v-if="creatableSections.includes(activeSection)" @click="openCreate" class="btn-primary flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
             New {{ currentNavItem?.singular || 'Item' }}
           </button>
         </div>
@@ -999,6 +998,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted, defineComponent, h } from 'vue'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
+import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
+const breadcrumbStore = useBreadcrumbStore()
 import DropzoneUpload from '@/components/ui/DropzoneUpload.vue'
 import * as cmsApi from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
@@ -1014,21 +1015,21 @@ const ContentTable = defineComponent({
         return h('div', { class:'space-y-2' },
           [1,2,3,4,5].map(i => h('div', { key:i, class:'h-14 bg-gray-100 rounded-lg animate-pulse' })))
       }
-      return h('div', { class:'bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden' }, [
+      return h('div', { class:'admin-card overflow-hidden' }, [
         h('table', { class:'w-full text-sm' }, [
-          h('thead', { class:'bg-gray-50 border-b border-gray-100' },
-            h('tr', {}, [
+          h('thead', {},
+            h('tr', { class:'border-b border-gray-100' }, [
               ...(props.cols||[]).map((col,ci) =>
-                h('th', { key:ci, class:'text-left px-4 py-3 font-medium text-gray-500 '+(ci>0?'hidden md:table-cell':'') }, col.label)
+                h('th', { key:ci, class:'table-th '+(ci>0?'hidden md:table-cell':'') }, col.label)
               ),
-              h('th', { class:'px-4 py-3 w-20' })
+              h('th', { class:'table-th w-20' })
             ])
           ),
           h('tbody', { class:'divide-y divide-gray-50' }, [
             ...(props.items||[]).map(item =>
-              h('tr', { key:item.id, class:'hover:bg-gray-50' }, [
+              h('tr', { key:item.id, class:'hover:bg-gray-50 transition-colors' }, [
                 ...(props.cols||[]).map((col,ci) =>
-                  h('td', { key:ci, class:'px-4 py-3 '+(ci>0?'text-gray-500 hidden md:table-cell':'font-medium text-gray-900') }, [
+                  h('td', { key:ci, class:'table-td '+(ci>0?'text-gray-500 hidden md:table-cell':'font-semibold text-gray-800') }, [
                     col.key==='status' ? h('span', { class:'inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize '+(item.status==='published'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700') }, item.status||'—') :
                     (col.key==='created_at'||col.key==='published_at'||col.key==='event_date') ? (item[col.key] ? new Date(item[col.key]).toLocaleDateString('en-UG',{day:'numeric',month:'short',year:'numeric'}) : '—') :
                     col.key==='category' ? h('span', { class:'capitalize' }, (item.category||'').replace(/_/g,' ')||'—') :
@@ -1856,6 +1857,7 @@ function loadLocalSettings() {
 }
 
 onMounted(() => {
+  breadcrumbStore.set('Content Management', [{ label: 'Website Content' }, { label: 'Content Management' }])
   loadLocalSettings()
   loadPosts()
 })

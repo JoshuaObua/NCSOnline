@@ -1,94 +1,102 @@
 <template>
   <LayoutDefault title="Dashboard">
-    <!-- Loading state -->
-    <div v-if="loading" class="flex items-center justify-center h-64">
-      <div class="flex flex-col items-center gap-3">
-        <svg class="animate-spin w-8 h-8 text-primary-600" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <p class="text-gray-500 text-sm">Loading dashboard...</p>
+
+    <!-- Loading -->
+    <div v-if="loading" class="space-y-5">
+      <div class="h-28 bg-gray-100 rounded-xl animate-pulse"></div>
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div v-for="i in 4" :key="i" class="h-28 bg-gray-100 rounded-xl animate-pulse"></div>
       </div>
+      <div class="h-64 bg-gray-100 rounded-xl animate-pulse"></div>
     </div>
 
     <div v-else class="space-y-6">
-      <!-- Welcome Banner -->
-      <div class="bg-gradient-to-r from-primary-700 to-primary-600 rounded-xl p-6 text-white flex flex-col md:flex-row md:items-center gap-4">
-        <div class="flex-1">
-          <h2 class="text-xl font-semibold">Welcome back, {{ welcomeName }}</h2>
-          <p class="text-primary-100 mt-1 text-sm">Here's what's happening with the National Council of Sports today.</p>
+
+      <!-- Welcome banner -->
+      <div class="relative overflow-hidden bg-gradient-to-r from-primary-700 via-primary-600 to-primary-500 rounded-xl p-6 text-white shadow-lg">
+        <!-- Decorative circles -->
+        <div class="absolute -top-8 -right-8 w-36 h-36 bg-white/5 rounded-full pointer-events-none"></div>
+        <div class="absolute -bottom-6 right-20 w-20 h-20 bg-white/5 rounded-full pointer-events-none"></div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div class="flex-1 min-w-0">
+            <p class="text-primary-200 text-xs font-semibold uppercase tracking-widest mb-1">{{ greeting }}</p>
+            <h2 class="text-xl font-bold">{{ welcomeName }}!</h2>
+            <p class="text-primary-200 mt-1 text-sm">Here's what's happening with the National Council of Sports today.</p>
+          </div>
+          <router-link
+            to="/apply"
+            class="inline-flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-primary-900 font-semibold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex-shrink-0 text-sm"
+          >
+            <i class="icofont-paper-plane text-lg"></i>
+            Start Application
+          </router-link>
         </div>
-        <router-link
-          to="/apply"
-          class="inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-primary-900 font-semibold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex-shrink-0"
-        >
-          <i class="icofont-paper-plane text-lg"></i>
-          Start Application
-        </router-link>
       </div>
 
-      <!-- Error Alert -->
+      <!-- Error alert -->
       <div v-if="error" class="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
         <i class="icofont-warning-alt text-xl text-red-500 flex-shrink-0"></i>
         <p class="text-red-700 text-sm">{{ error }}</p>
       </div>
 
-      <!-- Stats Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        <div
-          v-for="stat in statCards"
-          :key="stat.label"
-          class="bg-white rounded-xl border border-gray-200 p-5 flex items-start gap-4 shadow-sm hover:shadow-md transition-shadow"
-        >
-          <div :class="stat.iconBg" class="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center">
+      <!-- Stat tiles -->
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        <div v-for="stat in statCards" :key="stat.label" class="stat-card hover:shadow-md transition-shadow">
+          <div :class="[stat.iconBg, 'flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center']">
             <i :class="['text-2xl leading-none', stat.icon, stat.iconColor]"></i>
           </div>
-          <div>
+          <div class="min-w-0">
             <div class="text-2xl font-bold text-gray-900">{{ stat.value }}</div>
-            <div class="text-sm text-gray-500 mt-0.5">{{ stat.label }}</div>
+            <div class="text-xs text-gray-500 mt-0.5 leading-tight">{{ stat.label }}</div>
+            <div v-if="stat.sub" class="text-xs mt-1">
+              <span :class="stat.subColor">{{ stat.sub }}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <!-- Middle row: status breakdown + recent applications -->
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
         <!-- Applications by Status -->
-        <div v-if="stats && stats.applications_by_status" class="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div class="px-6 py-4 border-b border-gray-100">
-            <h3 class="font-semibold text-gray-800">Applications by Status</h3>
+        <div v-if="stats?.applications_by_status && Object.keys(stats.applications_by_status).length" class="admin-card">
+          <div class="admin-card-header">
+            <span class="text-sm font-semibold text-gray-800">By Status</span>
           </div>
-          <div class="p-6 space-y-3">
-            <div
-              v-for="(count, status) in stats.applications_by_status"
-              :key="status"
-              class="flex items-center justify-between"
-            >
-              <div class="flex items-center gap-2">
-                <StatusBadge :status="status" />
+          <div class="admin-card-body space-y-2.5">
+            <div v-for="(count, status) in stats.applications_by_status" :key="status" class="flex items-center gap-2">
+              <StatusBadge :status="status" />
+              <div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden ml-1">
+                <div
+                  :class="statusBarColor(status)"
+                  class="h-full rounded-full transition-all"
+                  :style="{ width: barWidth(count) }"
+                ></div>
               </div>
-              <span class="text-sm font-semibold text-gray-700">{{ count }}</span>
-            </div>
-            <div v-if="!Object.keys(stats.applications_by_status).length" class="text-center py-4 text-gray-400 text-sm">
-              No application data yet
+              <span class="text-sm font-semibold text-gray-700 w-6 text-right">{{ count }}</span>
             </div>
           </div>
         </div>
 
         <!-- Recent Applications -->
-        <div class="bg-white rounded-xl border border-gray-200 shadow-sm" :class="stats?.applications_by_status ? 'xl:col-span-2' : 'xl:col-span-3'">
-          <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 class="font-semibold text-gray-800">Recent Applications</h3>
-            <router-link to="/applications" class="text-sm text-primary-600 hover:text-primary-700 font-medium">
-              View all
+        <div
+          class="admin-card overflow-hidden"
+          :class="stats?.applications_by_status && Object.keys(stats.applications_by_status).length ? 'xl:col-span-2' : 'xl:col-span-3'"
+        >
+          <div class="admin-card-header">
+            <span class="text-sm font-semibold text-gray-800">Recent Applications</span>
+            <router-link to="/applications" class="text-xs font-medium text-primary-700 hover:text-primary-600">
+              View all →
             </router-link>
           </div>
           <div class="overflow-x-auto">
             <table v-if="recentApplications.length" class="w-full">
               <thead>
-                <tr class="border-b border-gray-100">
-                  <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Reference</th>
-                  <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Type</th>
-                  <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Status</th>
-                  <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Date</th>
+                <tr>
+                  <th class="table-th">Reference</th>
+                  <th class="table-th">Type</th>
+                  <th class="table-th">Status</th>
+                  <th class="table-th">Date</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-50">
@@ -97,28 +105,45 @@
                   :key="app.id"
                   class="hover:bg-gray-50 transition-colors"
                 >
-                  <td class="px-6 py-3 text-sm font-medium text-gray-900">
+                  <td class="table-td font-medium text-gray-900">
                     {{ app.reference_number || app.id?.substring(0, 8) || 'N/A' }}
                   </td>
-                  <td class="px-6 py-3 text-sm text-gray-600">
-                    {{ formatFormType(app.form_type) }}
-                  </td>
-                  <td class="px-6 py-3">
-                    <StatusBadge :status="app.status" />
-                  </td>
-                  <td class="px-6 py-3 text-sm text-gray-500">
-                    {{ formatDate(app.submitted_at || app.created_at) }}
-                  </td>
+                  <td class="table-td text-gray-600">{{ formatFormType(app.form_type) }}</td>
+                  <td class="table-td"><StatusBadge :status="app.status" /></td>
+                  <td class="table-td text-gray-500">{{ formatDate(app.submitted_at || app.created_at) }}</td>
                 </tr>
               </tbody>
             </table>
             <div v-else class="flex flex-col items-center justify-center py-12 text-gray-400">
-              <i class="icofont-files-stack text-5xl text-gray-300 mb-3"></i>
+              <i class="icofont-files-stack text-5xl text-gray-200 mb-3"></i>
               <p class="text-sm">No recent applications</p>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- Quick Actions -->
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <span class="text-sm font-semibold text-gray-800">Quick Actions</span>
+        </div>
+        <div class="admin-card-body">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <router-link
+              v-for="action in quickActions"
+              :key="action.label"
+              :to="action.to"
+              class="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50/50 transition-all group text-center"
+            >
+              <div :class="[action.iconBg, 'w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform']">
+                <i :class="['text-xl leading-none', action.icon, action.iconColor]"></i>
+              </div>
+              <span class="text-xs font-medium text-gray-600 group-hover:text-primary-700 transition-colors leading-tight">{{ action.label }}</span>
+            </router-link>
+          </div>
+        </div>
+      </div>
+
     </div>
   </LayoutDefault>
 </template>
@@ -128,13 +153,22 @@ import { ref, computed, onMounted } from 'vue'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import { useAuthStore } from '@/stores/auth.js'
+import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
 import apiClient from '@/api/client.js'
 
 const authStore = useAuthStore()
+const breadcrumbStore = useBreadcrumbStore()
 const loading = ref(true)
 const error = ref('')
 const stats = ref(null)
 const recentApplications = ref([])
+
+const greeting = computed(() => {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 17) return 'Good afternoon'
+  return 'Good evening'
+})
 
 const welcomeName = computed(() => {
   const u = authStore.user
@@ -146,44 +180,74 @@ const welcomeName = computed(() => {
 
 const statCards = computed(() => [
   {
-    label: 'Total Users',
-    value: stats.value?.total_users ?? '—',
-    icon: 'icofont-users-alt-5',
-    iconBg: 'bg-blue-50',
-    iconColor: 'text-blue-600'
-  },
-  {
     label: 'Total Applications',
     value: stats.value?.total_applications ?? '—',
     icon: 'icofont-files-stack',
     iconBg: 'bg-primary-50',
-    iconColor: 'text-primary-700'
+    iconColor: 'text-primary-700',
+    sub: null
   },
   {
     label: 'Pending Review',
     value: stats.value?.pending_review ?? '—',
     icon: 'icofont-clock-time',
     iconBg: 'bg-yellow-50',
-    iconColor: 'text-yellow-600'
+    iconColor: 'text-yellow-600',
+    sub: 'Awaiting action',
+    subColor: 'text-yellow-600'
   },
   {
     label: 'Needs Attention',
     value: stats.value?.needs_attention ?? '—',
     icon: 'icofont-warning-alt',
     iconBg: 'bg-red-50',
-    iconColor: 'text-red-500'
+    iconColor: 'text-red-500',
+    sub: null
+  },
+  {
+    label: 'Total Users',
+    value: stats.value?.total_users ?? '—',
+    icon: 'icofont-users-alt-5',
+    iconBg: 'bg-blue-50',
+    iconColor: 'text-blue-600',
+    sub: null
   }
 ])
+
+const quickActions = computed(() => {
+  const actions = [
+    { label: 'New Application', to: '/apply',        icon: 'icofont-paper-plane', iconBg: 'bg-yellow-50',  iconColor: 'text-yellow-600' },
+    { label: 'All Applications',to: '/applications', icon: 'icofont-files-stack', iconBg: 'bg-primary-50', iconColor: 'text-primary-700' },
+    { label: 'My Profile',      to: '/profile',      icon: 'icofont-user-alt-5',  iconBg: 'bg-indigo-50',  iconColor: 'text-indigo-600' },
+  ]
+  if (authStore.isAdmin || authStore.isSuperAdmin) {
+    actions.splice(2, 0, { label: 'Manage Users', to: '/users', icon: 'icofont-people', iconBg: 'bg-green-50', iconColor: 'text-green-600' })
+  }
+  return actions.slice(0, 4)
+})
+
+const maxCount = computed(() => {
+  if (!stats.value?.applications_by_status) return 1
+  return Math.max(...Object.values(stats.value.applications_by_status), 1)
+})
+
+function barWidth(count) {
+  return `${Math.round((count / maxCount.value) * 100)}%`
+}
+
+function statusBarColor(status) {
+  const map = {
+    approved: 'bg-green-500', pending: 'bg-yellow-500', submitted: 'bg-blue-500',
+    rejected: 'bg-red-500', draft: 'bg-gray-400', reviewing: 'bg-indigo-500'
+  }
+  return map[status?.toLowerCase()] || 'bg-gray-400'
+}
 
 function formatDate(dateStr) {
   if (!dateStr) return 'N/A'
   try {
-    return new Date(dateStr).toLocaleDateString('en-UG', {
-      day: '2-digit', month: 'short', year: 'numeric'
-    })
-  } catch {
-    return dateStr
-  }
+    return new Date(dateStr).toLocaleDateString('en-UG', { day: '2-digit', month: 'short', year: 'numeric' })
+  } catch { return dateStr }
 }
 
 function formatFormType(type) {
@@ -199,24 +263,14 @@ async function loadDashboard() {
       apiClient.get('/api/v1/admin/dashboard'),
       apiClient.get('/api/v1/admin/applications?page=1&per_page=5')
     ])
-
-    if (dashRes.status === 'fulfilled') {
-      stats.value = dashRes.value.data.data
-    }
-
+    if (dashRes.status === 'fulfilled') stats.value = dashRes.value.data.data
     if (appsRes.status === 'fulfilled') {
-      const appData = appsRes.value.data
-      recentApplications.value = Array.isArray(appData.data) ? appData.data : []
+      recentApplications.value = Array.isArray(appsRes.value.data.data) ? appsRes.value.data.data : []
     } else {
-      // Fall back to user's own applications
       try {
         const userApps = await apiClient.get('/api/v1/applications')
-        recentApplications.value = Array.isArray(userApps.data.data)
-          ? userApps.data.data.slice(0, 5)
-          : []
-      } catch {
-        recentApplications.value = []
-      }
+        recentApplications.value = Array.isArray(userApps.data.data) ? userApps.data.data.slice(0, 5) : []
+      } catch { recentApplications.value = [] }
     }
   } catch (err) {
     error.value = err.response?.data?.error?.message || 'Failed to load dashboard data.'
@@ -225,5 +279,8 @@ async function loadDashboard() {
   }
 }
 
-onMounted(loadDashboard)
+onMounted(() => {
+  breadcrumbStore.set('Dashboard')
+  loadDashboard()
+})
 </script>

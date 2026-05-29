@@ -1,174 +1,237 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-white">
-    <!-- Navigation -->
-    <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
+  <div class="min-h-screen flex flex-col">
+
+    <!-- ── Navbar ──────────────────────────────────────────── -->
+    <header
+      :class="[
+        'sticky top-0 z-50 transition-all duration-300',
+        scrolled ? 'bg-white shadow-md' : 'bg-white border-b border-gray-100'
+      ]"
+    >
+      <div class="max-w-screen-xl px-6 mx-auto">
+        <div class="flex items-center justify-between h-20">
+
           <!-- Logo -->
-          <router-link to="/" class="flex items-center gap-3">
-            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden p-0.5 shadow-sm border border-gray-100">
-              <img src="/main-logo.png" alt="NCS Logo" class="w-full h-full object-contain" />
+          <router-link to="/" class="flex items-center gap-3 flex-shrink-0">
+            <div class="relative flex-shrink-0">
+              <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-sm border border-gray-100 z-10 relative">
+                <img src="/main-logo.png" alt="NCS Logo" class="w-10 h-10 object-contain" />
+              </div>
+              <!-- Diamond accent -->
+              <svg class="absolute -top-1.5 -left-1.5 w-8 h-8 z-0 opacity-30" viewBox="0 0 79 79" fill="none">
+                <path d="M35.26 2.24C37.6-.1 41.4-.1 43.74 2.24L76.76 35.26C79.1 37.6 79.1 41.4 76.76 43.74L43.74 76.76C41.4 79.1 37.6 79.1 35.26 76.76L2.24 43.74C-.1 41.4-.1 37.6 2.24 35.26L35.26 2.24Z" fill="#112b4e"/>
+              </svg>
             </div>
             <div class="leading-tight">
-              <div class="font-bold text-gray-900 text-sm">National Council of Sports</div>
-              <div class="text-xs text-gray-500">Uganda</div>
+              <div class="font-bold text-sm text-darken">National Council of Sports</div>
+              <div class="text-xs text-gray-400 font-medium">Republic of Uganda</div>
             </div>
           </router-link>
 
-          <!-- Desktop Navigation (dynamic from CMS) -->
-          <nav class="hidden md:flex items-center gap-6 text-sm font-medium">
+          <!-- Desktop nav -->
+          <nav class="hidden lg:flex items-center gap-1 text-sm font-medium">
             <template v-for="item in menuItems" :key="item.id || item.label">
-              <div v-if="(item.children && item.children.length) || item.mega" class="relative group">
-                <button class="flex items-center gap-1 text-gray-600 hover:text-primary-700 transition-colors">
+              <div v-if="(item.children?.length) || item.mega" class="relative group">
+                <button class="flex items-center gap-1 px-4 py-2 text-gray-600 hover:text-darken rounded-lg hover:bg-gray-50 transition-colors">
                   {{ item.label }}
-                  <i class="icofont-rounded-down text-xs"></i>
+                  <svg class="w-3 h-3 mt-0.5 group-hover:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                  </svg>
                 </button>
-                <div class="absolute left-0 top-full mt-1 min-w-[200px] bg-white rounded-lg shadow-lg border border-gray-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
-                  <router-link
-                    v-for="sub in (item.children || item.megaItems || [])"
-                    :key="sub.id || sub.label"
-                    :to="sub.url || '/'"
-                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700"
-                  >
-                    <span v-if="sub.icon" class="mr-2">{{ sub.icon }}</span>{{ sub.label }}
-                  </router-link>
+                <div class="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 min-w-[200px] z-50">
+                  <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2 overflow-hidden">
+                    <router-link
+                      v-for="sub in (item.children || item.megaItems || [])"
+                      :key="sub.id || sub.label"
+                      :to="sub.url || '/'"
+                      class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                    >
+                      <span v-if="sub.icon" class="text-base">{{ sub.icon }}</span>
+                      {{ sub.label }}
+                    </router-link>
+                  </div>
                 </div>
               </div>
               <router-link
                 v-else
                 :to="item.url || '/'"
-                class="text-gray-600 hover:text-primary-700 transition-colors"
-              >
-                {{ item.label }}
-              </router-link>
+                class="px-4 py-2 text-gray-600 hover:text-darken rounded-lg hover:bg-gray-50 transition-colors"
+              >{{ item.label }}</router-link>
             </template>
           </nav>
 
-          <!-- CTA -->
-          <div class="flex items-center gap-3">
+          <!-- Desktop CTAs -->
+          <div class="hidden lg:flex items-center gap-3">
             <router-link
               v-if="!isAuthenticated"
               to="/login"
-              class="text-sm font-medium text-gray-600 hover:text-primary-700 transition-colors"
-            >
-              Sign In
-            </router-link>
+              class="px-6 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 rounded-full hover:border-gray-400 hover:bg-gray-50 transition-all"
+            >Sign In</router-link>
             <router-link
               v-if="isAuthenticated"
               to="/dashboard"
-              class="text-sm font-medium text-primary-700 hover:text-primary-800 transition-colors"
-            >
-              Dashboard
-            </router-link>
+              class="px-6 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 rounded-full hover:border-gray-400 hover:bg-gray-50 transition-all"
+            >Dashboard</router-link>
             <router-link
               to="/apply"
-              class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-            >
-              Apply Now
-            </router-link>
-
-            <button
-              class="md:hidden p-2 rounded-md text-gray-500 hover:text-gray-700"
-              @click="mobileOpen = !mobileOpen"
-            >
-              <i :class="mobileOpen ? 'icofont-close' : 'icofont-navigation-menu'" class="text-xl"></i>
-            </button>
+              class="px-6 py-2.5 text-sm font-semibold text-white bg-accent rounded-full hover:bg-yellow-600 transition-colors shadow-sm hover:shadow-md"
+            >Apply Now</router-link>
           </div>
-        </div>
 
-        <!-- Mobile menu -->
-        <div v-if="mobileOpen" class="md:hidden pb-4 pt-2 border-t border-gray-100 flex flex-col gap-3 text-sm font-medium">
-          <template v-for="item in menuItems" :key="item.id || item.label">
-            <router-link
-              :to="item.url || '/'"
-              class="text-gray-700 hover:text-primary-700"
-              @click="mobileOpen = false"
-            >{{ item.label }}</router-link>
-            <router-link
-              v-for="sub in (item.children || item.megaItems || [])"
-              :key="sub.id || sub.label"
-              :to="sub.url || '/'"
-              class="pl-4 text-gray-500 hover:text-primary-700 text-xs"
-              @click="mobileOpen = false"
-            >↳ {{ sub.label }}</router-link>
-          </template>
+          <!-- Mobile toggle -->
+          <button
+            class="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
+            @click="mobileOpen = !mobileOpen"
+            aria-label="Toggle menu"
+          >
+            <svg v-if="!mobileOpen" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/>
+            </svg>
+            <svg v-else class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
         </div>
       </div>
+
+      <!-- Mobile menu -->
+      <Transition name="mobile-drop">
+        <div v-if="mobileOpen" class="lg:hidden bg-white border-t border-gray-100 shadow-lg">
+          <div class="max-w-screen-xl px-6 mx-auto py-4 flex flex-col gap-0.5">
+            <template v-for="item in menuItems" :key="item.id || item.label">
+              <router-link
+                :to="item.url || '/'"
+                class="px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+                @click="mobileOpen = false"
+              >{{ item.label }}</router-link>
+              <router-link
+                v-for="sub in (item.children || item.megaItems || [])"
+                :key="sub.id || sub.label"
+                :to="sub.url || '/'"
+                class="pl-8 py-2 text-sm text-gray-500 hover:text-primary-700 rounded-lg transition-colors"
+                @click="mobileOpen = false"
+              >↳ {{ sub.label }}</router-link>
+            </template>
+            <div class="flex gap-3 mt-4 pt-4 border-t border-gray-100">
+              <router-link
+                v-if="!isAuthenticated"
+                to="/login"
+                class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-full text-gray-700"
+                @click="mobileOpen = false"
+              >Sign In</router-link>
+              <router-link
+                v-if="isAuthenticated"
+                to="/dashboard"
+                class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-full text-gray-700"
+                @click="mobileOpen = false"
+              >Dashboard</router-link>
+              <router-link
+                to="/apply"
+                class="flex-1 py-2.5 text-sm font-semibold text-center bg-accent text-white rounded-full"
+                @click="mobileOpen = false"
+              >Apply Now</router-link>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </header>
 
-    <!-- Page Content -->
+    <!-- Page content -->
     <main class="flex-1">
       <router-view />
     </main>
 
-    <!-- Footer: 4-column layout. Col 1 = brand/about/contact (fixed
-         shape, editable text). Cols 2-4 = dynamic title + links from
-         the footer settings in the CMS. -->
-    <footer class="bg-gray-900 text-gray-300 mt-auto">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
-          <!-- Column 1: brand + about + contact -->
+    <!-- ── Footer ──────────────────────────────────────────── -->
+    <footer style="background-color: #0d1b2e;">
+
+      <!-- Newsletter bar -->
+      <div class="border-b border-white/10">
+        <div class="max-w-screen-xl mx-auto px-6 py-10">
+          <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+              <h3 class="text-white font-bold text-lg mb-1">Subscribe to NCS Updates</h3>
+              <p class="text-gray-400 text-sm">Get the latest sports news, events and regulatory updates.</p>
+            </div>
+            <div class="flex w-full md:w-auto gap-3">
+              <input
+                type="email"
+                placeholder="Your email address"
+                class="flex-1 md:w-64 bg-white/10 border border-white/20 text-white placeholder-gray-500 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:border-accent transition-colors"
+              />
+              <button class="bg-accent hover:bg-yellow-600 text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-colors whitespace-nowrap shadow-sm">
+                Subscribe
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Links grid -->
+      <div class="max-w-screen-xl mx-auto px-6 py-14">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+
+          <!-- Brand + contact -->
           <div>
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-10 h-10 rounded-xl bg-primary-700 flex items-center justify-center flex-shrink-0">
                 <span class="text-white font-bold text-sm">NCS</span>
               </div>
               <div>
-                <div class="font-bold text-white text-sm">National Council of Sports</div>
-                <div class="text-xs text-gray-400">Republic of Uganda</div>
+                <div class="text-white font-bold text-sm leading-tight">National Council of Sports</div>
+                <div class="text-gray-500 text-xs">Republic of Uganda</div>
               </div>
             </div>
-            <p class="text-sm text-gray-400">{{ footerSettings.about }}</p>
-
-            <!-- Contact details (dynamic) -->
-            <div class="mt-5 space-y-1.5 text-sm text-gray-400">
+            <p class="text-gray-400 text-sm leading-relaxed mb-5">{{ footerSettings.about }}</p>
+            <div class="space-y-2 text-sm text-gray-400">
               <div v-if="contact.phone" class="flex items-center gap-2">
-                <i class="icofont-phone text-primary-400"></i>
-                <a :href="`tel:${contact.phone}`" class="hover:text-primary-400">{{ contact.phone }}</a>
+                <i class="icofont-phone text-accent text-base flex-shrink-0"></i>
+                <a :href="`tel:${contact.phone}`" class="hover:text-accent transition-colors">{{ contact.phone }}</a>
               </div>
               <div v-if="contact.email" class="flex items-center gap-2">
-                <i class="icofont-email text-primary-400"></i>
-                <a :href="`mailto:${contact.email}`" class="hover:text-primary-400 break-all">{{ contact.email }}</a>
+                <i class="icofont-email text-accent text-base flex-shrink-0"></i>
+                <a :href="`mailto:${contact.email}`" class="hover:text-accent transition-colors break-all">{{ contact.email }}</a>
               </div>
               <div v-if="contact.address" class="flex items-start gap-2">
-                <i class="icofont-location-pin text-primary-400 mt-0.5 flex-shrink-0"></i>
+                <i class="icofont-location-pin text-accent text-base flex-shrink-0 mt-0.5"></i>
                 <span>{{ contact.address }}</span>
               </div>
-              <div v-if="contact.hours" class="flex items-center gap-2">
-                <i class="icofont-clock-time text-primary-400"></i>
-                <span>{{ contact.hours }}</span>
-              </div>
             </div>
-
-            <!-- Social links (dynamic) -->
-            <div v-if="hasSocial" class="flex gap-3 mt-5">
-              <a v-if="contact.social?.facebook"  :href="contact.social.facebook"  target="_blank" rel="noopener" class="text-gray-400 hover:text-primary-400 text-lg"><i class="icofont-facebook"></i></a>
-              <a v-if="contact.social?.twitter"   :href="contact.social.twitter"   target="_blank" rel="noopener" class="text-gray-400 hover:text-primary-400 text-lg"><i class="icofont-twitter"></i></a>
-              <a v-if="contact.social?.linkedin"  :href="contact.social.linkedin"  target="_blank" rel="noopener" class="text-gray-400 hover:text-primary-400 text-lg"><i class="icofont-linkedin"></i></a>
-              <a v-if="contact.social?.instagram" :href="contact.social.instagram" target="_blank" rel="noopener" class="text-gray-400 hover:text-primary-400 text-lg"><i class="icofont-instagram"></i></a>
-              <a v-if="contact.social?.youtube"   :href="contact.social.youtube"   target="_blank" rel="noopener" class="text-gray-400 hover:text-primary-400 text-lg"><i class="icofont-youtube"></i></a>
+            <!-- Social icons -->
+            <div v-if="hasSocial" class="flex gap-2 mt-5">
+              <a v-if="contact.social?.facebook"  :href="contact.social.facebook"  target="_blank" rel="noopener" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-accent hover:bg-white/20 transition-all"><i class="icofont-facebook text-sm"></i></a>
+              <a v-if="contact.social?.twitter"   :href="contact.social.twitter"   target="_blank" rel="noopener" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-accent hover:bg-white/20 transition-all"><i class="icofont-twitter text-sm"></i></a>
+              <a v-if="contact.social?.linkedin"  :href="contact.social.linkedin"  target="_blank" rel="noopener" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-accent hover:bg-white/20 transition-all"><i class="icofont-linkedin text-sm"></i></a>
+              <a v-if="contact.social?.instagram" :href="contact.social.instagram" target="_blank" rel="noopener" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-accent hover:bg-white/20 transition-all"><i class="icofont-instagram text-sm"></i></a>
+              <a v-if="contact.social?.youtube"   :href="contact.social.youtube"   target="_blank" rel="noopener" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-accent hover:bg-white/20 transition-all"><i class="icofont-youtube text-sm"></i></a>
             </div>
           </div>
 
-          <!-- Columns 2-4: dynamic link columns -->
+          <!-- Dynamic link columns -->
           <div v-for="(col, idx) in displayedColumns" :key="idx">
-            <h4 class="font-semibold text-white mb-3 text-sm uppercase tracking-wide">{{ col.title }}</h4>
-            <ul class="space-y-2 text-sm">
+            <h4 class="text-white font-semibold text-xs uppercase tracking-widest mb-5">{{ col.title }}</h4>
+            <ul class="space-y-3">
               <li v-for="(link, li) in (col.links || [])" :key="li">
                 <component
                   :is="isExternalLink(link.url) ? 'a' : 'router-link'"
                   v-bind="isExternalLink(link.url) ? { href: link.url, target: '_blank', rel: 'noopener' } : { to: link.url || '/' }"
-                  class="hover:text-primary-400 transition-colors"
+                  class="text-sm text-gray-400 hover:text-accent transition-colors"
                 >{{ link.label }}</component>
               </li>
-              <li v-if="!col.links?.length" class="text-xs text-gray-600 italic">No links</li>
+              <li v-if="!col.links?.length" class="text-xs text-gray-600 italic">—</li>
             </ul>
           </div>
         </div>
+      </div>
 
-        <div class="border-t border-gray-800 pt-6 text-sm text-gray-500 flex flex-col md:flex-row justify-between gap-2">
+      <!-- Bottom bar -->
+      <div class="border-t border-white/10">
+        <div class="max-w-screen-xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <span>&copy; {{ currentYear }} {{ footerSettings.copyright }}</span>
-          <span v-if="contact.address">{{ contact.address }}</span>
+          <div class="flex gap-5">
+            <router-link to="/faqs" class="hover:text-gray-300 transition-colors">FAQs</router-link>
+            <router-link to="/contact-us" class="hover:text-gray-300 transition-colors">Contact</router-link>
+            <router-link to="/apply" class="hover:text-gray-300 transition-colors">Apply</router-link>
+          </div>
         </div>
       </div>
     </footer>
@@ -176,14 +239,19 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import { useAuthStore } from '@/stores/auth.js'
 import { getMenu, getSettings } from '@/api/cms.js'
 
 const mobileOpen = ref(false)
+const scrolled = ref(false)
 const authStore = useAuthStore()
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const currentYear = computed(() => new Date().getFullYear())
+
+function onScroll() { scrolled.value = window.scrollY > 20 }
+onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
+onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
 const defaultMenu = [
   { label: 'Home',            url: '/' },
@@ -222,9 +290,6 @@ const defaultFooter = {
 const menuItems = ref(defaultMenu)
 const footerSettings = reactive({ ...defaultFooter, columns: [...defaultFooter.columns] })
 
-// Footer always renders exactly 3 link columns (cols 2-4 of a 4-col grid).
-// Slice to 3 max; if fewer are configured, pad with empty headings so
-// the grid layout doesn't collapse.
 const displayedColumns = computed(() => {
   const cols = (footerSettings.columns || []).slice(0, 3)
   while (cols.length < 3) cols.push({ title: '', links: [] })
@@ -236,16 +301,11 @@ function isExternalLink(url) {
 }
 
 const contact = reactive({
-  phone: '',
-  email: '',
-  address: 'Plot 6, Impala Avenue, Kampala, Uganda',
-  hours: '',
-  mapUrl: '',
+  phone: '', email: '', address: 'Plot 6, Impala Avenue, Kampala, Uganda',
+  hours: '', mapUrl: '',
   social: { facebook: '', twitter: '', linkedin: '', instagram: '', youtube: '' }
 })
-const hasSocial = computed(() =>
-  Object.values(contact.social || {}).some(v => v && v.trim())
-)
+const hasSocial = computed(() => Object.values(contact.social || {}).some(v => v?.trim()))
 
 async function loadMenu() {
   try {
@@ -262,9 +322,7 @@ async function loadFooterSettings() {
     if (v && typeof v === 'object' && Object.keys(v).length) {
       if (typeof v.about     === 'string') footerSettings.about = v.about
       if (typeof v.copyright === 'string') footerSettings.copyright = v.copyright
-      if (Array.isArray(v.columns) && v.columns.length) {
-        footerSettings.columns = v.columns
-      }
+      if (Array.isArray(v.columns) && v.columns.length) footerSettings.columns = v.columns
     }
   } catch { /* show defaults */ }
 }
@@ -290,3 +348,8 @@ onMounted(() => {
   loadContact()
 })
 </script>
+
+<style scoped>
+.mobile-drop-enter-active, .mobile-drop-leave-active { transition: opacity 0.2s, transform 0.2s; transform-origin: top; }
+.mobile-drop-enter-from, .mobile-drop-leave-to { opacity: 0; transform: scaleY(0.95); }
+</style>

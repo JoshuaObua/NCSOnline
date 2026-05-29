@@ -1,55 +1,21 @@
 <template>
   <LayoutDefault title="Audit Logs">
-    <div class="space-y-5">
-      <!-- Toolbar -->
+    <div class="space-y-4">
+
+      <!-- Stats bar -->
       <div class="flex flex-wrap items-center gap-3">
-        <div class="relative flex-1 min-w-48">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-          </div>
-          <input
-            v-model="searchQuery"
-            @input="debouncedSearch"
-            type="text"
-            placeholder="Search by action, resource, country, event type…"
-            class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
-        </div>
-
-        <!-- Severity filter -->
-        <select v-model="filterSeverity" @change="applyFilters" class="py-2 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-          <option value="">All Severities</option>
-          <option value="CRITICAL">Critical</option>
-          <option value="WARNING">Warning</option>
-          <option value="ERROR">Error</option>
-          <option value="INFO">Info</option>
-        </select>
-
-        <!-- Threat filter -->
-        <select v-model="filterThreat" @change="applyFilters" class="py-2 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
-          <option value="">All Threat Levels</option>
-          <option value="high">High (≥70)</option>
-          <option value="medium">Medium (≥40)</option>
-          <option value="low">Low (&lt;40)</option>
-        </select>
-
-        <!-- Stats bar -->
-        <div class="ml-auto flex items-center gap-3 text-xs">
-          <span class="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 font-medium">
-            <span class="w-2 h-2 rounded-full bg-red-500"></span>
-            {{ stats.critical }} Critical
-          </span>
-          <span class="flex items-center gap-1.5 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg px-3 py-2 font-medium">
-            <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
-            {{ stats.warnings }} Warnings
-          </span>
-          <span class="flex items-center gap-1.5 bg-orange-50 border border-orange-200 text-orange-700 rounded-lg px-3 py-2 font-medium">
-            <span class="w-2 h-2 rounded-full bg-orange-500"></span>
-            {{ stats.vpn }} VPN/Proxy
-          </span>
-        </div>
+        <span class="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-red-500"></span>
+          {{ stats.critical }} Critical
+        </span>
+        <span class="flex items-center gap-1.5 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg px-3 py-2 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+          {{ stats.warnings }} Warnings
+        </span>
+        <span class="flex items-center gap-1.5 bg-orange-50 border border-orange-200 text-orange-700 rounded-lg px-3 py-2 text-xs font-medium">
+          <span class="w-2 h-2 rounded-full bg-orange-500"></span>
+          {{ stats.vpn }} VPN/Proxy
+        </span>
       </div>
 
       <!-- Error alert -->
@@ -57,36 +23,71 @@
         {{ error }}
       </div>
 
-      <!-- Table -->
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div v-if="loading" class="flex items-center justify-center py-20">
+      <!-- Main card -->
+      <div class="admin-card overflow-hidden">
+
+        <!-- Card header: search + filters -->
+        <div class="admin-card-header flex-wrap gap-2">
+          <h2 class="text-sm font-semibold text-gray-800">Security Audit Logs</h2>
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- Search -->
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+              </div>
+              <input
+                v-model="searchQuery"
+                @input="debouncedSearch"
+                type="text"
+                placeholder="Search logs…"
+                class="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-700 w-48"
+              />
+            </div>
+            <select v-model="filterSeverity" @change="applyFilters" class="py-1.5 px-3 text-xs border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-700">
+              <option value="">All Severities</option>
+              <option value="CRITICAL">Critical</option>
+              <option value="WARNING">Warning</option>
+              <option value="ERROR">Error</option>
+              <option value="INFO">Info</option>
+            </select>
+            <select v-model="filterThreat" @change="applyFilters" class="py-1.5 px-3 text-xs border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-700">
+              <option value="">All Threats</option>
+              <option value="high">High (≥70)</option>
+              <option value="medium">Medium (≥40)</option>
+              <option value="low">Low (&lt;40)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="loading" class="p-8 flex justify-center">
           <svg class="animate-spin w-7 h-7 text-primary-600" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
           </svg>
         </div>
 
         <div v-else class="overflow-x-auto">
           <table class="w-full">
-            <thead class="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3 w-24">Severity</th>
-                <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Event</th>
-                <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Status</th>
-                <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">User / IP</th>
-                <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Location</th>
-                <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Client</th>
-                <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3 w-20">Threat</th>
-                <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-4 py-3">Time</th>
+            <thead>
+              <tr class="border-b border-gray-100">
+                <th class="table-th w-24">Severity</th>
+                <th class="table-th">Event</th>
+                <th class="table-th">Status</th>
+                <th class="table-th">User / IP</th>
+                <th class="table-th">Location</th>
+                <th class="table-th">Client</th>
+                <th class="table-th w-20">Threat</th>
+                <th class="table-th">Time</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-100">
+            <tbody class="divide-y divide-gray-50">
               <tr v-if="filtered.length === 0">
-                <td colspan="8" class="text-center py-16 text-gray-400">
-                  <div class="flex flex-col items-center gap-2">
-                    <svg class="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z" />
-                    </svg>
+                <td colspan="8" class="py-16 text-center">
+                  <div class="flex flex-col items-center gap-2 text-gray-400">
+                    <i class="icofont-history text-5xl text-gray-200"></i>
                     <p class="text-sm">No audit logs found</p>
                   </div>
                 </td>
@@ -98,45 +99,38 @@
                 class="hover:bg-gray-50 transition-colors cursor-pointer"
                 :class="rowHighlight(log)"
               >
-                <!-- Severity -->
-                <td class="px-4 py-3">
+                <td class="table-td">
                   <span :class="severityBadge(log.severity_level)" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold">
                     <span class="w-1.5 h-1.5 rounded-full" :class="severityDot(log.severity_level)"></span>
                     {{ log.severity_level || 'INFO' }}
                   </span>
                 </td>
-                <!-- Event type + endpoint -->
-                <td class="px-4 py-3">
+                <td class="table-td">
                   <div class="text-sm font-medium text-gray-800">{{ log.event_type || log.resource || '—' }}</div>
                   <div class="text-xs text-gray-400 font-mono mt-0.5 truncate max-w-48">{{ log.method }} {{ truncatePath(log.endpoint) }}</div>
                 </td>
-                <!-- Event status + response code -->
-                <td class="px-4 py-3">
+                <td class="table-td">
                   <span :class="statusBadge(log.event_status)" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium">
                     {{ log.event_status || '—' }}
                   </span>
                   <div class="text-xs text-gray-400 mt-0.5">{{ log.response_code }} · {{ log.response_time_ms }}ms</div>
                 </td>
-                <!-- User + IP -->
-                <td class="px-4 py-3">
+                <td class="table-td">
                   <div class="text-sm font-medium text-gray-700">{{ displayName(log) }}</div>
                   <div class="text-xs text-gray-400 font-mono mt-0.5">{{ log.ip_address || '—' }}</div>
                 </td>
-                <!-- Geo location + VPN flag -->
-                <td class="px-4 py-3">
+                <td class="table-td">
                   <div class="flex items-center gap-1.5">
                     <span class="text-sm text-gray-700">{{ log.geo_country || '—' }}</span>
                     <span v-if="log.vpn_detected" class="text-xs bg-red-100 text-red-700 font-semibold px-1.5 py-0.5 rounded">VPN</span>
                   </div>
                   <div class="text-xs text-gray-400 mt-0.5">{{ log.geo_city || '' }}</div>
                 </td>
-                <!-- Client type + browser/OS -->
-                <td class="px-4 py-3">
+                <td class="table-td">
                   <div class="text-sm text-gray-700">{{ log.client_type || '—' }}</div>
                   <div class="text-xs text-gray-400 mt-0.5 truncate max-w-36">{{ log.browser }}{{ log.os_name ? ' / ' + log.os_name : '' }}</div>
                 </td>
-                <!-- Threat score -->
-                <td class="px-4 py-3">
+                <td class="table-td">
                   <div class="flex items-center gap-1">
                     <div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden w-12">
                       <div class="h-full rounded-full transition-all" :class="threatBarColor(log.threat_score)" :style="{ width: log.threat_score + '%' }"></div>
@@ -145,22 +139,21 @@
                   </div>
                   <span v-if="log.anomaly_detected" class="text-xs text-orange-600 font-medium">Anomaly</span>
                 </td>
-                <!-- Time -->
-                <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">{{ formatDateTime(log.created_at) }}</td>
+                <td class="table-td text-gray-500 whitespace-nowrap">{{ formatDateTime(log.created_at) }}</td>
               </tr>
             </tbody>
           </table>
         </div>
 
         <!-- Pagination -->
-        <div v-if="meta && meta.total > 0" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50">
-          <p class="text-sm text-gray-500">
-            Showing {{ (meta.page - 1) * meta.per_page + 1 }}–{{ Math.min(meta.page * meta.per_page, meta.total) }} of {{ meta.total }} entries
+        <div v-if="meta && meta.total > 0" class="admin-card-footer flex items-center justify-between">
+          <p class="text-xs text-gray-500">
+            Showing <span class="font-medium text-gray-700">{{ (meta.page - 1) * meta.per_page + 1 }}–{{ Math.min(meta.page * meta.per_page, meta.total) }}</span> of <span class="font-medium text-gray-700">{{ meta.total }}</span> entries
           </p>
-          <div class="flex items-center gap-2">
-            <button @click="prevPage" :disabled="meta.page <= 1" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Previous</button>
-            <span class="text-sm text-gray-600 px-2">Page {{ meta.page }}</span>
-            <button @click="nextPage" :disabled="meta.page * meta.per_page >= meta.total" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Next</button>
+          <div class="flex items-center gap-1.5">
+            <button @click="prevPage" :disabled="meta.page <= 1" class="px-3 py-1 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">← Prev</button>
+            <span class="text-xs text-gray-500 px-2 font-medium">{{ meta.page }}</span>
+            <button @click="nextPage" :disabled="meta.page * meta.per_page >= meta.total" class="px-3 py-1 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Next →</button>
           </div>
         </div>
       </div>
@@ -272,7 +265,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
+import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
 import apiClient from '@/api/client.js'
+
+const breadcrumbStore = useBreadcrumbStore()
 
 const logs = ref([])
 const loading = ref(true)
@@ -407,5 +403,8 @@ function nextPage() {
   if (meta.value && currentPage.value * meta.value.per_page < meta.value.total) { currentPage.value++; loadLogs() }
 }
 
-onMounted(loadLogs)
+onMounted(() => {
+  breadcrumbStore.set('Audit Logs', [{ label: 'Security' }, { label: 'Audit Logs' }])
+  loadLogs()
+})
 </script>

@@ -1,57 +1,95 @@
 <template>
-  <aside class="fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-primary-700 shadow-xl">
+  <aside
+    :class="[
+      'fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-primary-700 shadow-xl transition-transform duration-300',
+      open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+    ]"
+  >
     <!-- Brand -->
-    <div class="flex items-center gap-3 px-4 py-4 border-b border-primary-600">
-      <div class="flex-shrink-0 w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden p-1">
+    <div class="flex items-center gap-3 px-4 py-4 border-b border-primary-600/60 flex-shrink-0">
+      <div class="flex-shrink-0 w-11 h-11 bg-white rounded-xl flex items-center justify-center overflow-hidden p-1">
         <img src="/main-logo.png" alt="NCS Logo" class="w-full h-full object-contain" />
       </div>
-      <div>
-        <div class="text-white font-bold text-base leading-none">National Council Of Sports</div>
-        <div class="text-white text-primary-200 text-xs mt-0.5 leading-none">Management System</div>
+      <div class="min-w-0">
+        <div class="text-white font-bold text-sm leading-tight">National Council</div>
+        <div class="text-primary-300 text-xs mt-0.5 leading-tight">of Sports · NCSMS</div>
+      </div>
+      <!-- Mobile close -->
+      <button @click="$emit('close')" class="ml-auto md:hidden text-primary-300 hover:text-white p-1 rounded-lg">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Profile block -->
+    <div class="px-4 py-3 border-b border-primary-600/40 flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-primary-600 border-2 border-primary-500 flex items-center justify-center flex-shrink-0">
+          <span class="text-white text-sm font-bold">{{ userInitials }}</span>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="text-white text-sm font-semibold truncate leading-tight">{{ userName }}</div>
+          <div class="text-primary-300 text-xs truncate mt-0.5">{{ userRole }}</div>
+        </div>
+        <router-link to="/profile" class="flex-shrink-0 text-primary-300 hover:text-white transition-colors" title="My Profile">
+          <i class="icofont-settings text-base leading-none"></i>
+        </router-link>
       </div>
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-      <router-link
-        v-for="item in navItems"
-        :key="item.to"
-        :to="item.to"
-        custom
-        v-slot="{ href, isActive, navigate }"
-      >
-        <a
-          :href="href"
-          @click="navigate"
-          :class="[
-            item.highlight
-              ? (isActive ? 'bg-yellow-400 text-primary-900 shadow' : 'bg-yellow-500/90 hover:bg-yellow-400 text-primary-900 shadow')
-              : (isActive ? 'bg-primary-600 text-white' : 'text-primary-100 hover:bg-primary-600/70 hover:text-white'),
-            'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150'
-          ]"
-        >
-          <i :class="['text-lg leading-none flex-shrink-0', item.icon]"></i>
-          {{ item.label }}
-        </a>
-      </router-link>
+    <nav class="flex-1 overflow-y-auto pb-4">
+
+      <!-- MAIN -->
+      <div class="section-label">Main</div>
+      <div class="px-2 space-y-0.5">
+        <NavItem :to="'/dashboard'" label="Dashboard" icon="icofont-dashboard-web" />
+        <NavItem :to="'/apply'" label="Start Application" icon="icofont-paper-plane" :highlight="true" />
+      </div>
+
+      <!-- MANAGEMENT -->
+      <div v-if="canManage" class="section-label">Management</div>
+      <div v-if="canManage" class="px-2 space-y-0.5">
+        <NavItem :to="'/applications'" label="Applications" icon="icofont-files-stack" />
+        <NavItem v-if="isAdminPlus" :to="'/users'" label="Users" icon="icofont-people" />
+        <NavItem v-if="authStore.isSuperAdmin" :to="'/roles'" label="Roles & Permissions" icon="icofont-safety" />
+      </div>
+
+      <!-- Only non-admins see Applications under main context -->
+      <div v-if="!canManage" class="section-label">Applications</div>
+      <div v-if="!canManage" class="px-2 space-y-0.5">
+        <NavItem :to="'/applications'" label="My Applications" icon="icofont-files-stack" />
+      </div>
+
+      <!-- WEBSITE CONTENT -->
+      <template v-if="isContentManager">
+        <div class="section-label">Website Content</div>
+        <div class="px-2 space-y-0.5">
+          <NavItem :to="'/cms'" label="Content Manager" icon="icofont-newspaper" />
+        </div>
+      </template>
+
+      <!-- SECURITY -->
+      <template v-if="isAdminPlus">
+        <div class="section-label">Security</div>
+        <div class="px-2 space-y-0.5">
+          <NavItem :to="'/audit-logs'" label="Audit Logs" icon="icofont-history" />
+        </div>
+      </template>
+
+      <!-- ACCOUNT -->
+      <div class="section-label">Account</div>
+      <div class="px-2 space-y-0.5">
+        <NavItem :to="'/profile'" label="My Profile" icon="icofont-user-alt-5" />
+      </div>
     </nav>
 
-    <!-- User section + Logout -->
-    <div class="border-t border-primary-600 px-3 py-3">
-      <div class="flex items-center gap-3 px-3 py-2 mb-2">
-        <div class="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0">
-          <span class="text-white text-sm font-semibold">
-            {{ userInitials }}
-          </span>
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="text-white text-sm font-medium truncate">{{ userName }}</div>
-          <div class="text-primary-300 text-xs truncate">{{ userRole }}</div>
-        </div>
-      </div>
+    <!-- Sign out -->
+    <div class="flex-shrink-0 border-t border-primary-600/60 px-3 py-3">
       <button
         @click="handleLogout"
-        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-primary-100 hover:bg-red-600 hover:text-white transition-all duration-150"
+        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-primary-200 hover:bg-red-500/80 hover:text-white transition-all duration-150"
       >
         <i class="icofont-logout text-lg leading-none flex-shrink-0"></i>
         Sign Out
@@ -61,33 +99,19 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, defineComponent, h } from 'vue'
+import { useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
+
+defineProps({ open: { type: Boolean, default: true } })
+defineEmits(['close'])
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const allNavItems = [
-  { to: '/dashboard',   label: 'Dashboard',          icon: 'icofont-dashboard-web',  roles: null },
-  { to: '/apply',       label: 'Start Application',  icon: 'icofont-paper-plane',    roles: null, highlight: true },
-  { to: '/users',       label: 'Users',               icon: 'icofont-people',          roles: ['super_admin', 'admin'] },
-  { to: '/applications',label: 'Applications',        icon: 'icofont-files-stack',     roles: null },
-  { to: '/cms',         label: 'Content',             icon: 'icofont-newspaper',       roles: ['super_admin', 'admin', 'content_manager'] },
-  { to: '/audit-logs',  label: 'Audit Logs',          icon: 'icofont-history',         roles: ['super_admin', 'admin'] },
-  { to: '/roles',       label: 'Roles & Permissions', icon: 'icofont-safety',          roles: ['super_admin'] },
-  { to: '/profile',     label: 'My Profile',          icon: 'icofont-user-alt-5',      roles: null }
-]
-
-const navItems = computed(() => {
-  return allNavItems.filter(item => {
-    if (!item.roles) return true
-    if (authStore.isSuperAdmin) return true
-    if (authStore.isAdmin && item.roles.includes('admin')) return true
-    if (authStore.isContentManager && item.roles.includes('content_manager')) return true
-    return false
-  })
-})
+const isAdminPlus     = computed(() => authStore.isSuperAdmin || authStore.isAdmin)
+const isContentManager = computed(() => authStore.isSuperAdmin || authStore.isAdmin || authStore.isContentManager)
+const canManage       = computed(() => isAdminPlus.value)
 
 const userName = computed(() => {
   const u = authStore.user
@@ -117,4 +141,34 @@ async function handleLogout() {
   await authStore.logout()
   router.push('/login')
 }
+
+// Inline nav item component to keep template clean
+const NavItem = defineComponent({
+  name: 'NavItem',
+  props: {
+    to: String,
+    label: String,
+    icon: String,
+    highlight: { type: Boolean, default: false }
+  },
+  render() {
+    return h(RouterLink, { to: this.to, custom: true }, {
+      default: ({ href, navigate, isActive }) => h('a', {
+        href,
+        onClick: navigate,
+        class: [
+          this.highlight
+            ? (isActive ? 'bg-yellow-400 text-primary-900' : 'bg-yellow-500/90 hover:bg-yellow-400 text-primary-900')
+            : (isActive
+                ? 'bg-primary-600 text-white border-l-2 border-white/70 pl-[10px]'
+                : 'text-primary-200 hover:bg-primary-600/50 hover:text-white'),
+          'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150'
+        ].flat().filter(Boolean).join(' ')
+      }, [
+        h('i', { class: `text-base leading-none flex-shrink-0 ${this.icon}` }),
+        this.label
+      ])
+    })
+  }
+})
 </script>

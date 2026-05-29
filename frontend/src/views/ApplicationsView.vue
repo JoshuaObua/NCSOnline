@@ -25,7 +25,7 @@
       </div>
 
       <!-- Table -->
-      <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="admin-card overflow-hidden">
         <div v-if="loading" class="flex items-center justify-center py-20">
           <svg class="animate-spin w-7 h-7 text-primary-600" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -34,15 +34,15 @@
         </div>
 
         <table v-else class="w-full">
-          <thead class="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Reference</th>
-              <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Applicant</th>
-              <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Form Type</th>
-              <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Status</th>
-              <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Payment</th>
-              <th class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Submitted</th>
-              <th class="text-right text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">Actions</th>
+          <thead>
+            <tr class="border-b border-gray-100">
+              <th class="table-th">Reference</th>
+              <th class="table-th">Applicant</th>
+              <th class="table-th">Form Type</th>
+              <th class="table-th">Status</th>
+              <th class="table-th">Payment</th>
+              <th class="table-th">Submitted</th>
+              <th class="table-th text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
@@ -94,14 +94,14 @@
         </table>
 
         <!-- Pagination -->
-        <div v-if="meta && meta.total > 0" class="flex items-center justify-between px-6 py-3 border-t border-gray-100 bg-gray-50">
-          <p class="text-sm text-gray-500">
-            Showing {{ (meta.page - 1) * meta.per_page + 1 }}–{{ Math.min(meta.page * meta.per_page, meta.total) }} of {{ meta.total }} applications
+        <div v-if="meta && meta.total > 0" class="admin-card-footer flex items-center justify-between">
+          <p class="text-xs text-gray-500">
+            Showing <span class="font-medium text-gray-700">{{ (meta.page - 1) * meta.per_page + 1 }}–{{ Math.min(meta.page * meta.per_page, meta.total) }}</span> of <span class="font-medium text-gray-700">{{ meta.total }}</span>
           </p>
-          <div class="flex items-center gap-2">
-            <button @click="prevPage" :disabled="meta.page <= 1" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Previous</button>
-            <span class="text-sm text-gray-600 px-2">Page {{ meta.page }}</span>
-            <button @click="nextPage" :disabled="meta.page * meta.per_page >= meta.total" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Next</button>
+          <div class="flex items-center gap-1.5">
+            <button @click="prevPage" :disabled="meta.page <= 1" class="px-3 py-1 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">← Prev</button>
+            <span class="text-xs text-gray-500 px-2 font-medium">{{ meta.page }}</span>
+            <button @click="nextPage" :disabled="meta.page * meta.per_page >= meta.total" class="px-3 py-1 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Next →</button>
           </div>
         </div>
       </div>
@@ -176,6 +176,8 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
+const breadcrumbStore = useBreadcrumbStore()
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
 import StatusBadge from '@/components/ui/StatusBadge.vue'
 import Modal from '@/components/ui/Modal.vue'
@@ -311,5 +313,8 @@ function nextPage() {
   if (meta.value && currentPage.value * meta.value.per_page < meta.value.total) { currentPage.value++; loadApplications() }
 }
 
-onMounted(loadApplications)
+onMounted(() => {
+  breadcrumbStore.set('Applications', [{ label: 'Management' }, { label: 'Applications' }])
+  loadApplications()
+})
 </script>

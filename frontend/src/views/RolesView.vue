@@ -62,7 +62,7 @@
         <div v-else class="space-y-4">
 
           <!-- Role header card -->
-          <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-start justify-between gap-4">
+          <div class="admin-card p-5 flex items-start justify-between gap-4">
             <div>
               <div class="flex items-center gap-2">
                 <h2 class="text-lg font-bold text-gray-900">{{ fmt(selectedRole.name) }}</h2>
@@ -116,10 +116,10 @@
             <div
               v-for="(perms, resource) in allPermsByResource"
               :key="resource"
-              class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+              class="admin-card overflow-hidden"
             >
               <!-- Resource header -->
-              <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+              <div class="admin-card-header">
                 <h3 class="font-semibold text-sm text-gray-800 uppercase tracking-wide">
                   {{ fmt(resource) }}
                 </h3>
@@ -264,7 +264,10 @@
 <script setup>
 import { ref, computed, onMounted, reactive } from 'vue'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
+import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
 import apiClient from '@/api/client.js'
+
+const breadcrumbStore = useBreadcrumbStore()
 
 const roles = ref([])
 const allPerms = ref([])
@@ -444,5 +447,8 @@ async function loadData() {
   }
 }
 
-onMounted(loadData)
+onMounted(() => {
+  breadcrumbStore.set('Roles & Permissions', [{ label: 'Management' }, { label: 'Roles & Permissions' }])
+  loadData()
+})
 </script>
