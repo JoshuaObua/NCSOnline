@@ -1050,6 +1050,30 @@ func (r *CMSRepo) UpdateMenu(ctx context.Context, name string, items []models.CM
 	return err
 }
 
+// ── Settings (generic key/value JSONB store) ──────────────────────
+
+func (r *CMSRepo) GetSetting(ctx context.Context, key string) (*models.CMSSetting, error) {
+	var s models.CMSSetting
+	var raw []byte
+	const q = `SELECT key, value, updated_at FROM cms_settings WHERE key=$1`
+	err := r.db.QueryRow(ctx, q, key).Scan(&s.Key, &raw, &s.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	s.Value = raw
+	return &s, nil
+}
+
+func (r *CMSRepo) UpdateSetting(ctx context.Context, key string, value []byte) error {
+	const q = `INSERT INTO cms_settings (key, value, updated_at) VALUES ($1,$2,NOW())
+	           ON CONFLICT (key) DO UPDATE SET value=$2, updated_at=NOW()`
+	_, err := r.db.Exec(ctx, q, key, value)
+	return err
+}
+
 // ── Fun Facts ─────────────────────────────────────────────────────
 
 func (r *CMSRepo) ListFunFacts(ctx context.Context) ([]*models.CMSFunFact, error) {

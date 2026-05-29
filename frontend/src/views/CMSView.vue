@@ -201,55 +201,104 @@
           </div>
         </div>
 
-        <!-- ═══ WIDGET BUILDER ════════════════════════════════════ -->
+        <!-- ═══ FOOTER BUILDER ════════════════════════════════════ -->
         <div v-else-if="activeSection==='widgets'">
-          <div class="flex gap-5">
-            <!-- Available widgets -->
-            <div class="w-48 flex-shrink-0">
-              <h3 class="text-sm font-semibold text-gray-700 mb-3">Available Widgets</h3>
-              <div class="space-y-2">
-                <div v-for="w in availableWidgets" :key="w.type"
-                  draggable="true"
-                  @dragstart="widgetDragStart($event,w)"
-                  class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg p-2.5 cursor-grab hover:border-primary-300 hover:bg-primary-50 transition-colors">
-                  <span class="text-lg leading-none">{{ w.icon }}</span>
-                  <span class="text-sm text-gray-700">{{ w.label }}</span>
+          <div class="mb-5 flex items-start justify-between gap-4 flex-wrap">
+            <p class="text-sm text-gray-500 max-w-2xl">
+              <i class="icofont-info-circle text-primary-500"></i>
+              The public footer is a 4-column grid. Column&nbsp;1 is fixed
+              (logo + about text + contact details + social links).
+              Columns 2–4 are fully customisable — give each one a heading
+              and a list of links. Need URLs? Open the
+              <button @click="navigate('sitemap')" class="text-primary-600 hover:underline font-medium">Page Sitemap</button>.
+            </p>
+            <div class="flex gap-2 flex-shrink-0">
+              <button @click="loadFooterBuilder" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg font-medium"><i class="icofont-refresh"></i> Reload</button>
+              <button @click="saveFooterBuilder" :disabled="savingFooter"
+                class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold px-4 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+                {{ savingFooter ? 'Saving…' : 'Save Footer' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+            <!-- Column 1: brand + about + contact (fixed structure, editable text) -->
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div class="bg-primary-50 px-4 py-2.5 border-b border-primary-100 flex items-center gap-2">
+                <i class="icofont-lock text-primary-600 text-sm"></i>
+                <span class="text-xs font-semibold text-primary-700 uppercase tracking-wider">Column 1 — Brand</span>
+              </div>
+              <div class="p-4 space-y-3">
+                <div>
+                  <label class="text-[11px] uppercase font-semibold text-gray-400 tracking-wider block mb-1">About</label>
+                  <textarea v-model="footerBuilder.about" rows="5"
+                    class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none"
+                    placeholder="A short description shown under the logo on the public site."/>
+                </div>
+                <div class="text-xs text-gray-400 border-t border-gray-100 pt-3">
+                  Contact details &amp; social links shown in this column are managed under
+                  <button @click="navigate('contact')" class="text-primary-600 hover:underline font-medium">Contact Info</button>.
                 </div>
               </div>
             </div>
-            <!-- Footer columns -->
-            <div class="flex-1 grid grid-cols-2 xl:grid-cols-4 gap-4">
-              <div v-for="col in 4" :key="col" class="min-h-48"
-                @dragover.prevent
-                @drop="dropWidget($event,col)">
-                <h3 class="text-sm font-semibold text-gray-700 mb-2">Column {{ col }}</h3>
-                <div class="min-h-32 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-2 space-y-2 transition-colors"
-                  :class="widgetDropTarget===col ? 'border-primary-400 bg-primary-50' : ''"
-                  @dragenter="widgetDropTarget=col" @dragleave="widgetDropTarget=null">
-                  <div v-for="(w,wi) in widgetColumns[col]||[]" :key="wi"
-                    class="bg-white border border-gray-200 rounded-lg p-2.5 flex items-start gap-2 group">
-                    <span class="text-base leading-none mt-0.5">{{ w.icon }}</span>
-                    <div class="flex-1 min-w-0">
-                      <div class="text-xs font-medium text-gray-700">{{ w.label }}</div>
-                      <input v-if="w.type==='html'" v-model="w.content" placeholder="HTML content…" class="mt-1 w-full text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none"/>
-                      <input v-else-if="w.type==='image'" v-model="w.imageUrl" placeholder="Image URL…" class="mt-1 w-full text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none"/>
-                      <input v-else-if="w.type==='about'" v-model="w.text" placeholder="About text…" class="mt-1 w-full text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none"/>
+
+            <!-- Columns 2-4: dynamic title + links -->
+            <div v-for="(col, idx) in footerBuilder.columns" :key="idx"
+              class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div class="bg-gray-50 px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+                <span class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Column {{ idx + 2 }}</span>
+                <span class="text-[10px] text-gray-400">{{ (col.links || []).length }} link{{ (col.links || []).length === 1 ? '' : 's' }}</span>
+              </div>
+              <div class="p-4 space-y-3">
+                <div>
+                  <label class="text-[11px] uppercase font-semibold text-gray-400 tracking-wider block mb-1">Column Title</label>
+                  <input v-model="col.title"
+                    class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"
+                    placeholder="e.g. Services"/>
+                </div>
+                <div>
+                  <label class="text-[11px] uppercase font-semibold text-gray-400 tracking-wider block mb-1">Links</label>
+                  <div class="space-y-2">
+                    <div v-for="(link, li) in (col.links || [])" :key="li"
+                      class="flex items-center gap-1.5">
+                      <input v-model="link.label" placeholder="Label"
+                        class="flex-1 min-w-0 text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-400"/>
+                      <input v-model="link.url" placeholder="/url"
+                        class="flex-1 min-w-0 text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-400 font-mono"/>
+                      <button @click="removeFooterLink(idx, li)" class="text-gray-400 hover:text-red-500 flex-shrink-0" title="Remove link">
+                        <i class="icofont-close text-sm"></i>
+                      </button>
                     </div>
-                    <button @click="removeWidget(col,wi)" class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-all flex-shrink-0">
-                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
+                    <div v-if="!(col.links || []).length" class="text-xs text-gray-400 italic py-2 text-center border-2 border-dashed border-gray-200 rounded-lg">
+                      No links yet
+                    </div>
                   </div>
-                  <div v-if="!(widgetColumns[col]||[]).length" class="flex items-center justify-center h-20 text-xs text-gray-400">
-                    Drop widget here
-                  </div>
+                  <button @click="addFooterLink(idx)"
+                    class="mt-2 w-full text-xs text-primary-600 hover:text-primary-800 hover:bg-primary-50 border border-dashed border-primary-200 rounded-lg py-1.5 font-medium transition-colors">
+                    + Add Link
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-          <div class="mt-4 flex justify-end">
-            <button @click="saveWidgets" class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">
-              Save Widget Layout
-            </button>
+
+          <!-- Copyright bar -->
+          <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <div class="flex items-start justify-between gap-4 flex-wrap mb-3">
+              <div>
+                <h3 class="text-sm font-semibold text-gray-700">Copyright text</h3>
+                <p class="text-xs text-gray-500 mt-0.5">The © symbol and current year are added automatically.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-semibold text-gray-700 flex-shrink-0">© {{ currentYear }}</span>
+              <input v-model="footerBuilder.copyright"
+                class="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"
+                placeholder="National Council of Sports, Uganda. All rights reserved."/>
+            </div>
+            <p class="text-xs text-gray-400 mt-2">
+              Preview: <span class="font-medium text-gray-600">© {{ currentYear }} {{ footerBuilder.copyright || '...' }}</span>
+            </p>
           </div>
         </div>
 
@@ -361,7 +410,9 @@
                 </div>
               </div>
             </div>
-            <button @click="saveContactSettings" class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-6 py-2.5 rounded-xl transition-colors">Save Contact Info</button>
+            <button @click="saveContactSettings" :disabled="savingContact" class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-6 py-2.5 rounded-xl transition-colors disabled:opacity-50">
+              {{ savingContact ? 'Saving…' : 'Save Contact Info' }}
+            </button>
           </div>
         </div>
 
@@ -1030,7 +1081,7 @@ const navGroups = [
   ]},
   { id:'navigation', label:'Navigation', items:[
     { id:'menus',   label:'Menu Builder',   singular:null, icon:'☰', description:'Drag & drop menu management' },
-    { id:'widgets', label:'Widget Builder', singular:null, icon:'🧩', description:'Footer widget areas' },
+    { id:'widgets', label:'Footer Builder', singular:null, icon:'', description:'4-column footer: brand, links and copyright' },
   ]},
   { id:'people', label:'People & Services', items:[
     { id:'team',     label:'Team Members', singular:'Member',  icon:'👥', description:'Staff and leadership' },
@@ -1093,6 +1144,8 @@ function navigate(id) {
   else if (id==='associations') loadAssociations()
   else if (id==='invest')       loadInvest()
   else if (id==='sitemap')      loadSitemap()
+  else if (id==='widgets')      loadFooterBuilder()
+  else if (id==='contact')      loadContactFromBackend()
 }
 
 function showToast(msg) {
@@ -1197,29 +1250,76 @@ async function saveMenu(n) {
   catch {} finally { savingMenu.value='' }
 }
 
-// ── Widget Builder ────────────────────────────────────────────────
-const availableWidgets = [
-  {type:'html',label:'HTML Block',icon:'📝'},{type:'image',label:'Image',icon:'🖼'},
-  {type:'newsletter',label:'Newsletter',icon:'📧'},{type:'recent-posts',label:'Recent Posts',icon:'📰'},
-  {type:'social',label:'Social Links',icon:'🔗'},{type:'contact',label:'Contact Info',icon:'📞'},
-  {type:'hours',label:'Opening Hours',icon:'🕐'},{type:'about',label:'About Text',icon:'📖'},
-  {type:'tags',label:'Tag Cloud',icon:'🏷'},
-]
-const widgetColumns = reactive({1:[],2:[],3:[],4:[]})
-const widgetDropTarget = ref(null)
-let dragWidget = null
-function widgetDragStart(e,w) { dragWidget={...w,content:'',imageUrl:'',text:''} }
-function dropWidget(e,col) {
-  widgetDropTarget.value=null
-  if(!dragWidget) return
-  if(!widgetColumns[col]) widgetColumns[col]=[]
-  widgetColumns[col]=[...widgetColumns[col],{...dragWidget}]
-  dragWidget=null
+// ── Footer Builder ────────────────────────────────────────────────
+const currentYear = computed(() => new Date().getFullYear())
+const savingFooter = ref(false)
+const defaultFooterBuilder = () => ({
+  about: 'The National Council of Sports is the government body responsible for the development, promotion and regulation of sports in Uganda.',
+  copyright: 'National Council of Sports, Uganda. All rights reserved.',
+  columns: [
+    { title: 'Services',    links: [
+      { label: 'Apply for License', url: '/apply' },
+      { label: 'Resource Centre',   url: '/resource-centre' },
+      { label: 'FAQs',              url: '/faqs' },
+    ]},
+    { title: 'Information', links: [
+      { label: 'News & Updates', url: '/news' },
+      { label: 'Events',         url: '/events' },
+      { label: 'Careers',        url: '/careers' },
+    ]},
+    { title: 'Explore',     links: [
+      { label: 'Facilities',     url: '/facilities' },
+      { label: 'Associations',   url: '/associations' },
+      { label: 'Invest with Us', url: '/invest' },
+    ]},
+  ]
+})
+const footerBuilder = reactive(defaultFooterBuilder())
+
+async function loadFooterBuilder() {
+  try {
+    const r = await cmsApi.getSettings('footer')
+    const v = r.data?.data?.value
+    if (v && typeof v === 'object' && Object.keys(v).length) {
+      if (typeof v.about     === 'string') footerBuilder.about = v.about
+      if (typeof v.copyright === 'string') footerBuilder.copyright = v.copyright
+      if (Array.isArray(v.columns)) {
+        // Always keep exactly 3 link columns (cols 2-4)
+        const cols = v.columns.slice(0, 3).map(c => ({
+          title: c.title || '',
+          links: Array.isArray(c.links) ? c.links.map(l => ({ label: l.label || '', url: l.url || '' })) : []
+        }))
+        while (cols.length < 3) cols.push({ title: '', links: [] })
+        footerBuilder.columns = cols
+      }
+    }
+  } catch (err) {
+    // Keep defaults if backend is unreachable
+  }
 }
-function removeWidget(col,idx) { widgetColumns[col]=widgetColumns[col].filter((_,i)=>i!==idx) }
-function saveWidgets() {
-  localStorage.setItem('cms_widgets',JSON.stringify(widgetColumns))
-  showToast('Widget layout saved!')
+
+async function saveFooterBuilder() {
+  savingFooter.value = true
+  try {
+    await cmsApi.adminUpdateSettings('footer', {
+      about: footerBuilder.about,
+      copyright: footerBuilder.copyright,
+      columns: footerBuilder.columns
+    })
+    showToast('Footer saved — visit the public site to see it live')
+  } catch (err) {
+    showToast('Save failed: ' + (err.response?.data?.error?.message || err.message))
+  } finally {
+    savingFooter.value = false
+  }
+}
+
+function addFooterLink(colIdx) {
+  if (!footerBuilder.columns[colIdx].links) footerBuilder.columns[colIdx].links = []
+  footerBuilder.columns[colIdx].links.push({ label: '', url: '' })
+}
+function removeFooterLink(colIdx, linkIdx) {
+  footerBuilder.columns[colIdx].links.splice(linkIdx, 1)
 }
 
 // ── Homepage Builder ──────────────────────────────────────────────
@@ -1543,11 +1643,37 @@ function saveAppearance() {
   showToast('Appearance saved!')
 }
 
-// ── Contact settings ──────────────────────────────────────────────
+// ── Contact settings (backed by cms_settings.contact) ────────────
 const contactSettings = reactive({ phone:'', email:'', address:'', hours:'', mapUrl:'', social:{facebook:'',twitter:'',linkedin:'',instagram:'',youtube:''} })
-function saveContactSettings() {
-  localStorage.setItem('cms_contact',JSON.stringify(contactSettings))
-  showToast('Contact info saved!')
+const savingContact = ref(false)
+
+async function loadContactFromBackend() {
+  try {
+    const r = await cmsApi.getSettings('contact')
+    const v = r.data?.data?.value
+    if (v && typeof v === 'object' && Object.keys(v).length) {
+      if (typeof v.phone   === 'string') contactSettings.phone = v.phone
+      if (typeof v.email   === 'string') contactSettings.email = v.email
+      if (typeof v.address === 'string') contactSettings.address = v.address
+      if (typeof v.hours   === 'string') contactSettings.hours = v.hours
+      if (typeof v.mapUrl  === 'string') contactSettings.mapUrl = v.mapUrl
+      if (v.social) Object.assign(contactSettings.social, v.social)
+    }
+  } catch {}
+}
+
+async function saveContactSettings() {
+  savingContact.value = true
+  try {
+    await cmsApi.adminUpdateSettings('contact', { ...contactSettings })
+    // Cache for instant render on next visit
+    localStorage.setItem('cms_contact', JSON.stringify(contactSettings))
+    showToast('Contact info saved — now visible on the public footer')
+  } catch (err) {
+    showToast('Save failed: ' + (err.response?.data?.error?.message || err.message))
+  } finally {
+    savingContact.value = false
+  }
 }
 
 // ── Site settings ─────────────────────────────────────────────────
@@ -1719,7 +1845,6 @@ function loadLocalSettings() {
     const a=localStorage.getItem('cms_appearance'); if(a) Object.assign(appearance,JSON.parse(a))
     const c=localStorage.getItem('cms_contact');    if(c) Object.assign(contactSettings,JSON.parse(c))
     const s=localStorage.getItem('cms_settings');   if(s) Object.assign(siteSettings,JSON.parse(s))
-    const w=localStorage.getItem('cms_widgets');    if(w) { const d=JSON.parse(w); Object.keys(d).forEach(k=>widgetColumns[k]=d[k]) }
     const h=localStorage.getItem('cms_home');
     if (h) {
       const d=JSON.parse(h)

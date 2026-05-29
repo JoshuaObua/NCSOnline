@@ -81,6 +81,7 @@ func main() {
 			r.Get("/careers/{id}", h.CMS.GetCareer)
 			r.Get("/slides", h.CMS.ListSlides)
 			r.Get("/menus/{name}", h.CMS.GetMenu)
+			r.Get("/settings/{key}", h.CMS.GetSetting)
 			r.Get("/fun-facts", h.CMS.ListFunFacts)
 			r.Get("/faqs", h.CMS.ListFAQs)
 			r.Get("/resources", h.CMS.ListResources)
@@ -207,6 +208,7 @@ func main() {
 				})
 
 				r.Put("/admin/cms/menus/{name}", h.CMS.UpdateMenu)
+				r.Put("/admin/cms/settings/{key}", h.CMS.UpdateSetting)
 
 				r.Route("/admin/cms/fun-facts", func(r chi.Router) {
 					r.Get("/", h.CMS.ListFunFacts)

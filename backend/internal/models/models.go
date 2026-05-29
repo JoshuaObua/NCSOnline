@@ -246,6 +246,15 @@ type CMSMenu struct {
 	UpdatedAt time.Time     `json:"updated_at"`
 }
 
+// CMSSetting is a key/value record used for site-wide configuration:
+// footer config, contact info, etc. Value is opaque JSON so the
+// frontend can store whatever shape it needs without backend changes.
+type CMSSetting struct {
+	Key       string          `json:"key"`
+	Value     json.RawMessage `json:"value"`
+	UpdatedAt time.Time       `json:"updated_at"`
+}
+
 type CMSFunFact struct {
 	ID        string    `json:"id"`
 	Label     string    `json:"label"`

@@ -644,6 +644,49 @@ func (h *CMSHandler) UpdateMenu(w http.ResponseWriter, r *http.Request) {
 	response.JSONMsg(w, http.StatusOK, "Menu updated")
 }
 
+// ── Settings (generic JSON key/value) ─────────────────────────────
+
+// GET /api/v1/cms/settings/{key}
+func (h *CMSHandler) GetSetting(w http.ResponseWriter, r *http.Request) {
+	key := chi.URLParam(r, "key")
+	s, err := h.repo.GetSetting(r.Context(), key)
+	if errors.Is(err, repository.ErrNotFound) {
+		// Treat missing as empty value so the public site can render
+		// defaults without per-request error handling.
+		response.JSON(w, http.StatusOK, map[string]interface{}{
+			"key":   key,
+			"value": map[string]interface{}{},
+		})
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not get setting")
+		return
+	}
+	response.JSON(w, http.StatusOK, s)
+}
+
+// PUT /api/v1/admin/cms/settings/{key}
+func (h *CMSHandler) UpdateSetting(w http.ResponseWriter, r *http.Request) {
+	key := chi.URLParam(r, "key")
+	body, err := io.ReadAll(r.Body)
+	if err != nil || len(body) == 0 {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Body required")
+		return
+	}
+	// Validate the body is well-formed JSON; store raw bytes.
+	var probe interface{}
+	if err := json.Unmarshal(body, &probe); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Body must be valid JSON")
+		return
+	}
+	if err := h.repo.UpdateSetting(r.Context(), key, body); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save setting")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Setting saved")
+}
+
 // ── Media Upload ──────────────────────────────────────────────────
 
 // POST /api/v1/admin/media/upload

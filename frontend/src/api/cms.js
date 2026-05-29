@@ -108,6 +108,16 @@ export function adminUpdateMenu(name, items) {
   return apiClient.put(`/api/v1/admin/cms/menus/${name}`, items)
 }
 
+// ── Settings (generic key/value JSON store) ──────────────────────
+
+export function getSettings(key) {
+  return apiClient.get(`/api/v1/cms/settings/${key}`)
+}
+
+export function adminUpdateSettings(key, value) {
+  return apiClient.put(`/api/v1/admin/cms/settings/${key}`, value)
+}
+
 // ── Media Upload ──────────────────────────────────────────────────
 
 export function uploadMedia(file) {
