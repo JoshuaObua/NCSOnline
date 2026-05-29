@@ -655,18 +655,22 @@ func (r *AuditRepo) Log(ctx context.Context, a *models.AuditLog) error {
 
 func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*models.AuditLog, int64, error) {
 	const countQ = `SELECT COUNT(*) FROM audit_logs WHERE ($1='' OR action ILIKE $1 OR resource ILIKE $1 OR COALESCE(geo_country,'') ILIKE $1 OR COALESCE(event_type,'') ILIKE $1)`
-	const q = `SELECT id, user_id, action, resource, COALESCE(resource_id,''),
-	                  COALESCE(ip_address,''), COALESCE(method,''), COALESCE(endpoint,''),
-	                  COALESCE(response_code,0), COALESCE(response_time_ms,0),
-	                  COALESCE(device_info,''),
-	                  COALESCE(event_type,''), COALESCE(event_status,''), COALESCE(severity_level,''),
-	                  COALESCE(forwarded_ip,''), COALESCE(geo_country,''), COALESCE(geo_city,''),
-	                  COALESCE(vpn_detected,false), COALESCE(browser,''), COALESCE(os_name,''),
-	                  COALESCE(client_type,''), COALESCE(threat_score,0),
-	                  COALESCE(anomaly_detected,false), COALESCE(session_id,''),
-	                  COALESCE(username,''), created_at
-	           FROM audit_logs WHERE ($1='' OR action ILIKE $1 OR resource ILIKE $1 OR COALESCE(geo_country,'') ILIKE $1 OR COALESCE(event_type,'') ILIKE $1)
-	           ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	const q = `SELECT al.id, al.user_id, al.action, al.resource, COALESCE(al.resource_id,''),
+	                  COALESCE(al.ip_address,''), COALESCE(al.method,''), COALESCE(al.endpoint,''),
+	                  COALESCE(al.response_code,0), COALESCE(al.response_time_ms,0),
+	                  COALESCE(al.device_info,''),
+	                  COALESCE(al.event_type,''), COALESCE(al.event_status,''), COALESCE(al.severity_level,''),
+	                  COALESCE(al.forwarded_ip,''), COALESCE(al.geo_country,''), COALESCE(al.geo_city,''),
+	                  COALESCE(al.vpn_detected,false), COALESCE(al.browser,''), COALESCE(al.os_name,''),
+	                  COALESCE(al.client_type,''), COALESCE(al.threat_score,0),
+	                  COALESCE(al.anomaly_detected,false), COALESCE(al.session_id,''),
+	                  COALESCE(al.username,''),
+	                  COALESCE(u.first_name,''), COALESCE(u.last_name,''),
+	                  al.created_at
+	           FROM audit_logs al
+	           LEFT JOIN users u ON al.user_id = u.id
+	           WHERE ($1='' OR al.action ILIKE $1 OR al.resource ILIKE $1 OR COALESCE(al.geo_country,'') ILIKE $1 OR COALESCE(al.event_type,'') ILIKE $1)
+	           ORDER BY al.created_at DESC LIMIT $2 OFFSET $3`
 	search := ""
 	if p.Search != "" {
 		search = "%" + p.Search + "%"
@@ -692,6 +696,7 @@ func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mo
 			&l.VPNDetected, &l.Browser, &l.OSName,
 			&l.ClientType, &l.ThreatScore,
 			&l.AnomalyDetected, &l.SessionID, &l.Username,
+			&l.FirstName, &l.LastName,
 			&l.CreatedAt,
 		); err != nil {
 			return nil, 0, err
@@ -702,18 +707,22 @@ func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mo
 }
 
 func (r *AuditRepo) GetByID(ctx context.Context, id string) (*models.AuditLog, error) {
-	const q = `SELECT id, user_id, action, resource, COALESCE(resource_id,''),
-	                  old_values, new_values, COALESCE(ip_address,''), COALESCE(user_agent,''),
-	                  COALESCE(method,''), COALESCE(endpoint,''),
-	                  COALESCE(response_code,0), COALESCE(response_time_ms,0),
-	                  COALESCE(device_info,''),
-	                  COALESCE(event_type,''), COALESCE(event_status,''), COALESCE(severity_level,''),
-	                  COALESCE(forwarded_ip,''), COALESCE(geo_country,''), COALESCE(geo_city,''),
-	                  COALESCE(vpn_detected,false), COALESCE(browser,''), COALESCE(os_name,''),
-	                  COALESCE(client_type,''), COALESCE(threat_score,0),
-	                  COALESCE(anomaly_detected,false), COALESCE(session_id,''),
-	                  COALESCE(username,''), created_at
-	           FROM audit_logs WHERE id=$1`
+	const q = `SELECT al.id, al.user_id, al.action, al.resource, COALESCE(al.resource_id,''),
+	                  al.old_values, al.new_values, COALESCE(al.ip_address,''), COALESCE(al.user_agent,''),
+	                  COALESCE(al.method,''), COALESCE(al.endpoint,''),
+	                  COALESCE(al.response_code,0), COALESCE(al.response_time_ms,0),
+	                  COALESCE(al.device_info,''),
+	                  COALESCE(al.event_type,''), COALESCE(al.event_status,''), COALESCE(al.severity_level,''),
+	                  COALESCE(al.forwarded_ip,''), COALESCE(al.geo_country,''), COALESCE(al.geo_city,''),
+	                  COALESCE(al.vpn_detected,false), COALESCE(al.browser,''), COALESCE(al.os_name,''),
+	                  COALESCE(al.client_type,''), COALESCE(al.threat_score,0),
+	                  COALESCE(al.anomaly_detected,false), COALESCE(al.session_id,''),
+	                  COALESCE(al.username,''),
+	                  COALESCE(u.first_name,''), COALESCE(u.last_name,''),
+	                  al.created_at
+	           FROM audit_logs al
+	           LEFT JOIN users u ON al.user_id = u.id
+	           WHERE al.id=$1`
 	l := &models.AuditLog{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
 		&l.ID, &l.UserID, &l.Action, &l.Resource, &l.ResourceID,
@@ -725,6 +734,7 @@ func (r *AuditRepo) GetByID(ctx context.Context, id string) (*models.AuditLog, e
 		&l.VPNDetected, &l.Browser, &l.OSName,
 		&l.ClientType, &l.ThreatScore,
 		&l.AnomalyDetected, &l.SessionID, &l.Username,
+		&l.FirstName, &l.LastName,
 		&l.CreatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {

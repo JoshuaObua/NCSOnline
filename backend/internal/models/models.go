@@ -164,6 +164,8 @@ type AuditLog struct {
 	AnomalyDetected bool            `json:"anomaly_detected"`
 	SessionID       string          `json:"session_id,omitempty"`
 	Username        string          `json:"username,omitempty"`
+	FirstName       string          `json:"first_name,omitempty"`
+	LastName        string          `json:"last_name,omitempty"`
 	CreatedAt       time.Time       `json:"created_at"`
 }
 

@@ -119,7 +119,7 @@
                 </td>
                 <!-- User + IP -->
                 <td class="px-4 py-3">
-                  <div class="text-sm font-medium text-gray-700">{{ log.username || (log.user_id ? log.user_id.slice(0,8)+'…' : 'Anonymous') }}</div>
+                  <div class="text-sm font-medium text-gray-700">{{ displayName(log) }}</div>
                   <div class="text-xs text-gray-400 font-mono mt-0.5">{{ log.ip_address || '—' }}</div>
                 </td>
                 <!-- Geo location + VPN flag -->
@@ -227,6 +227,7 @@
             <div>
               <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">User & Session</h4>
               <dl class="grid grid-cols-2 gap-3">
+                <div class="col-span-2"><dt class="text-xs text-gray-500">User</dt><dd class="text-sm font-medium text-gray-800 mt-0.5">{{ displayName(detailLog) }}</dd></div>
                 <div class="col-span-2"><dt class="text-xs text-gray-500">User ID</dt><dd class="text-sm font-mono text-gray-700 mt-0.5 break-all">{{ detailLog.user_id || 'Anonymous' }}</dd></div>
                 <div class="col-span-2"><dt class="text-xs text-gray-500">Session ID (JTI)</dt><dd class="text-sm font-mono text-gray-700 mt-0.5 break-all">{{ detailLog.session_id || '—' }}</dd></div>
               </dl>
@@ -325,6 +326,14 @@ async function loadLogs() {
 }
 
 function openDetail(log) { detailLog.value = log }
+
+function displayName(log) {
+  const first = log.first_name || ''
+  const last  = log.last_name  || ''
+  const full  = [first, last].filter(Boolean).join(' ')
+  if (full) return full
+  return log.username || (log.user_id ? log.user_id.slice(0, 8) + '…' : 'Anonymous')
+}
 
 // ── Badge helpers ─────────────────────────────────────────────────
 
