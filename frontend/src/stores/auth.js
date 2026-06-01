@@ -91,6 +91,32 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function register(firstName, lastName, email, password) {
+    loading.value = true
+    try {
+      const response = await apiClient.post('/api/v1/auth/register', {
+        first_name: firstName,
+        last_name: lastName,
+        email,
+        password,
+      })
+      const data = response.data.data
+      // Auto-login if backend returns tokens
+      if (data?.access_token) {
+        accessToken.value = data.access_token
+        refreshToken.value = data.refresh_token
+        user.value = data.user
+        persistToStorage()
+      }
+      return { success: true }
+    } catch (error) {
+      const message = error.response?.data?.error?.message || 'Registration failed. Please try again.'
+      return { success: false, message }
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function login(email, password) {
     loading.value = true
     try {
@@ -158,6 +184,7 @@ export const useAuthStore = defineStore('auth', () => {
     isSuperAdmin,
     isContentManager,
     isApplicant,
+    register,
     login,
     logout,
     refreshAccessToken,

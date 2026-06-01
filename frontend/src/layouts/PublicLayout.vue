@@ -57,17 +57,35 @@
           </nav>
 
           <!-- Desktop CTAs -->
-          <div class="hidden lg:flex items-center gap-3">
+          <div class="hidden lg:flex items-center gap-2">
+            <!-- Sign In icon (unauthenticated) -->
             <router-link
               v-if="!isAuthenticated"
               to="/login"
-              class="px-6 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 rounded-full hover:border-gray-400 hover:bg-gray-50 transition-all"
-            >Sign In</router-link>
+              title="Sign In"
+              class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-[#112b4e] hover:text-[#112b4e] hover:bg-gray-50 transition-all"
+            ><i class="icofont-sign-in text-xl leading-none"></i></router-link>
+            <!-- Register icon (unauthenticated) -->
             <router-link
-              v-if="isAuthenticated"
+              v-if="!isAuthenticated"
+              to="/register"
+              title="Create Account"
+              class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-[#F48C06] hover:text-[#F48C06] hover:bg-orange-50 transition-all"
+            ><i class="icofont-ui-user-group text-xl leading-none"></i></router-link>
+            <!-- Portal icon (authenticated applicant) -->
+            <router-link
+              v-if="isAuthenticated && isApplicant"
+              to="/my-portal"
+              title="My Portal"
+              class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-[#112b4e] hover:text-[#112b4e] hover:bg-gray-50 transition-all"
+            ><i class="icofont-ui-home text-xl leading-none"></i></router-link>
+            <!-- Dashboard icon (authenticated admin/staff) -->
+            <router-link
+              v-if="isAuthenticated && !isApplicant"
               to="/dashboard"
-              class="px-6 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 rounded-full hover:border-gray-400 hover:bg-gray-50 transition-all"
-            >Dashboard</router-link>
+              title="Dashboard"
+              class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-[#112b4e] hover:text-[#112b4e] hover:bg-gray-50 transition-all"
+            ><i class="icofont-dashboard-web text-xl leading-none"></i></router-link>
             <router-link
               to="/apply"
               class="px-6 py-2.5 text-sm font-semibold text-white bg-accent rounded-full hover:bg-yellow-600 transition-colors shadow-sm hover:shadow-md"
@@ -112,15 +130,27 @@
               <router-link
                 v-if="!isAuthenticated"
                 to="/login"
-                class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-full text-gray-700"
+                class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-full text-gray-700 flex items-center justify-center gap-1.5"
                 @click="mobileOpen = false"
-              >Sign In</router-link>
+              ><i class="icofont-sign-in"></i> Sign In</router-link>
               <router-link
-                v-if="isAuthenticated"
-                to="/dashboard"
-                class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-full text-gray-700"
+                v-if="!isAuthenticated"
+                to="/register"
+                class="flex-1 py-2.5 text-sm font-semibold text-center border border-[#F48C06] text-[#F48C06] rounded-full flex items-center justify-center gap-1.5"
                 @click="mobileOpen = false"
-              >Dashboard</router-link>
+              ><i class="icofont-ui-user-group"></i> Register</router-link>
+              <router-link
+                v-if="isAuthenticated && isApplicant"
+                to="/my-portal"
+                class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-full text-gray-700 flex items-center justify-center gap-1.5"
+                @click="mobileOpen = false"
+              ><i class="icofont-ui-home"></i> My Portal</router-link>
+              <router-link
+                v-if="isAuthenticated && !isApplicant"
+                to="/dashboard"
+                class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-full text-gray-700 flex items-center justify-center gap-1.5"
+                @click="mobileOpen = false"
+              ><i class="icofont-dashboard-web"></i> Dashboard</router-link>
               <router-link
                 to="/apply"
                 class="flex-1 py-2.5 text-sm font-semibold text-center bg-accent text-white rounded-full"
@@ -239,6 +269,7 @@ const mobileOpen = ref(false)
 const scrolled = ref(false)
 const authStore = useAuthStore()
 const isAuthenticated = computed(() => authStore.isAuthenticated)
+const isApplicant = computed(() => authStore.isApplicant)
 const currentYear = computed(() => new Date().getFullYear())
 
 function onScroll() { scrolled.value = window.scrollY > 20 }

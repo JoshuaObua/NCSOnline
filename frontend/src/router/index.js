@@ -22,6 +22,10 @@ const InvestView = () => import('@/views/public/InvestView.vue')
 const FAQsView = () => import('@/views/public/FAQsView.vue')
 const ContactUsView = () => import('@/views/public/ContactUsView.vue')
 
+// ── Auth / applicant views ────────────────────────────────────────
+const RegisterView = () => import('@/views/RegisterView.vue')
+const ApplicantPortalView = () => import('@/views/ApplicantPortalView.vue')
+
 // ── Admin / auth views ────────────────────────────────────────────
 const LoginView = () => import('@/views/LoginView.vue')
 const DashboardView = () => import('@/views/DashboardView.vue')
@@ -65,6 +69,26 @@ const routes = [
     name: 'Login',
     component: LoginView,
     meta: { requiresAuth: false }
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: RegisterView,
+    meta: { requiresAuth: false }
+  },
+
+  // ── Applicant self-service portal (uses PublicLayout) ─────────
+  {
+    path: '/',
+    component: PublicLayout,
+    children: [
+      {
+        path: 'my-portal',
+        name: 'ApplicantPortal',
+        component: ApplicantPortalView,
+        meta: { requiresAuth: true }
+      }
+    ]
   },
 
   // ── Admin portal (existing admin views, no layout wrapper here — they have LayoutDefault) ──
@@ -132,9 +156,15 @@ router.beforeEach((to, from, next) => {
 
   // Public routes — always accessible
   if (to.meta.requiresAuth === false) {
-    // If authenticated and trying to go to login, redirect to dashboard
-    if (isAuthenticated && to.name === 'Login') {
-      return next('/dashboard')
+    // If authenticated and trying to reach login/register, redirect to correct portal
+    if (isAuthenticated && (to.name === 'Login' || to.name === 'Register')) {
+      const storedUser = localStorage.getItem('ncsms_user')
+      let roles = []
+      if (storedUser) {
+        try { roles = (JSON.parse(storedUser).roles || []).map(r => typeof r === 'string' ? r : r.name) } catch { roles = [] }
+      }
+      const isApplicant = !roles.length || roles.some(r => r === 'applicant' || r === 'user')
+      return next(isApplicant ? '/my-portal' : '/dashboard')
     }
     return next()
   }

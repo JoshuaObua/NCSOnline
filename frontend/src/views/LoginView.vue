@@ -119,7 +119,12 @@
           </button>
         </form>
 
-        <p class="text-center text-xs text-gray-400 mt-8">
+        <p class="text-center text-sm text-gray-500 mt-6">
+          Don't have an account?
+          <router-link to="/register" class="text-[#F48C06] font-semibold hover:text-[#d47b05]">Create one</router-link>
+        </p>
+
+        <p class="text-center text-xs text-gray-400 mt-4">
           &copy; {{ year }} National Council of Sports — Uganda
         </p>
       </div>
@@ -148,7 +153,7 @@ async function handleLogin() {
   const result = await authStore.login(email.value, password.value)
   loading.value = false
   if (result.success) {
-    router.push('/dashboard')
+    router.push(authStore.isApplicant ? '/my-portal' : '/dashboard')
   } else {
     errorMessage.value = result.message || 'Login failed. Please try again.'
   }
