@@ -12,19 +12,15 @@
         <div class="flex items-center justify-between h-20">
 
           <!-- Logo -->
-          <router-link to="/" class="flex items-center gap-3 flex-shrink-0">
+          <router-link to="/" class="flex items-center flex-shrink-0">
             <div class="relative flex-shrink-0">
-              <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-sm border border-gray-100 z-10 relative">
-                <img src="/main-logo.png" alt="NCS Logo" class="w-10 h-10 object-contain" />
+              <div class="w-16 h-16 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-sm border border-gray-100 z-10 relative">
+                <img src="/main-logo.png" alt="NCS Logo" class="w-14 h-14 object-contain" />
               </div>
               <!-- Diamond accent -->
               <svg class="absolute -top-1.5 -left-1.5 w-8 h-8 z-0 opacity-30" viewBox="0 0 79 79" fill="none">
                 <path d="M35.26 2.24C37.6-.1 41.4-.1 43.74 2.24L76.76 35.26C79.1 37.6 79.1 41.4 76.76 43.74L43.74 76.76C41.4 79.1 37.6 79.1 35.26 76.76L2.24 43.74C-.1 41.4-.1 37.6 2.24 35.26L35.26 2.24Z" fill="#112b4e"/>
               </svg>
-            </div>
-            <div class="leading-tight">
-              <div class="font-bold text-sm text-darken">National Council of Sports</div>
-              <div class="text-xs text-gray-400 font-medium">Republic of Uganda</div>
             </div>
           </router-link>
 
@@ -172,13 +168,9 @@
 
           <!-- Brand + contact -->
           <div>
-            <div class="flex items-center gap-3 mb-5">
-              <div class="w-10 h-10 rounded-xl bg-primary-700 flex items-center justify-center flex-shrink-0">
-                <span class="text-white font-bold text-sm">NCS</span>
-              </div>
-              <div>
-                <div class="text-white font-bold text-sm leading-tight">National Council of Sports</div>
-                <div class="text-gray-500 text-xs">Republic of Uganda</div>
+            <div class="mb-5">
+              <div class="w-20 h-20 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm border border-white/10">
+                <img src="/main-logo.png" alt="NCS Logo" class="w-18 h-18 object-contain" style="width:4.25rem;height:4.25rem" />
               </div>
             </div>
             <p class="text-gray-400 text-sm leading-relaxed mb-5">{{ footerSettings.about }}</p>
