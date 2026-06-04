@@ -65,6 +65,7 @@ func main() {
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(middleware.GeoBlocker)
 			r.Use(authRL.Middleware)
+			r.Post("/register", h.Auth.Register)
 			r.Post("/login", h.Auth.Login)
 			r.Post("/refresh", h.Auth.RefreshToken)
 			r.Post("/forgot-password", h.Auth.ForgotPassword)

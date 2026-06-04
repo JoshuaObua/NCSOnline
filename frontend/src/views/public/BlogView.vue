@@ -107,16 +107,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { listPosts } from '@/api/cms.js'
+import { listPosts, getSettings } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 
-const categories = [
-  { value: '', label: 'All' },
-  { value: 'blog', label: 'Blog' },
-  { value: 'news', label: 'News' },
-  { value: 'announcement', label: 'Announcements' },
-]
+const EXCLUDED = ['page', 'case_study']
 
+const categories = ref([{ value: '', label: 'All' }])
 const posts = ref([])
 const total = ref(0)
 const loading = ref(true)
@@ -128,11 +124,32 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('en-UG', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+async function loadCategories() {
+  try {
+    const res = await getSettings('post_categories')
+    const val = res.data?.data?.value
+    if (Array.isArray(val) && val.length) {
+      categories.value = [{ value: '', label: 'All' }, ...val.filter(c => !EXCLUDED.includes(c.value))]
+    }
+  } catch {
+    categories.value = [
+      { value: '', label: 'All' },
+      { value: 'blog', label: 'Blog' },
+      { value: 'news', label: 'News' },
+      { value: 'announcement', label: 'Announcements' },
+    ]
+  }
+}
+
 async function loadPosts() {
   loading.value = true
   try {
     const res = await listPosts({ status: 'published', category: activeCategory.value, page: page.value, per_page: perPage })
-    posts.value = res.data.data?.items || []
+    let items = res.data.data?.items || []
+    if (!activeCategory.value) {
+      items = items.filter(p => !EXCLUDED.includes(p.category))
+    }
+    posts.value = items
     total.value = res.data.data?.total || 0
   } catch {
     posts.value = []
@@ -141,5 +158,8 @@ async function loadPosts() {
   }
 }
 
-onMounted(loadPosts)
+onMounted(async () => {
+  await loadCategories()
+  loadPosts()
+})
 </script>

@@ -7,6 +7,7 @@ const PublicLayout = () => import('@/layouts/PublicLayout.vue')
 const HomeView = () => import('@/views/public/HomeView.vue')
 const BlogView = () => import('@/views/public/BlogView.vue')
 const BlogPostView = () => import('@/views/public/BlogPostView.vue')
+const PageView = () => import('@/views/public/PageView.vue')
 const EventsView = () => import('@/views/public/EventsView.vue')
 const EventDetailView = () => import('@/views/public/EventDetailView.vue')
 const CareersView = () => import('@/views/public/CareersView.vue')
@@ -45,6 +46,7 @@ const routes = [
       { path: '', name: 'Home', component: HomeView, meta: { requiresAuth: false } },
       { path: 'news', name: 'News', component: BlogView, meta: { requiresAuth: false } },
       { path: 'news/:slug', name: 'NewsPost', component: BlogPostView, meta: { requiresAuth: false } },
+      { path: 'pages/:slug', name: 'Page', component: PageView, meta: { requiresAuth: false } },
       { path: 'events', name: 'Events', component: EventsView, meta: { requiresAuth: false } },
       { path: 'events/:slug', name: 'EventDetail', component: EventDetailView, meta: { requiresAuth: false } },
       { path: 'careers', name: 'Careers', component: CareersView, meta: { requiresAuth: false } },

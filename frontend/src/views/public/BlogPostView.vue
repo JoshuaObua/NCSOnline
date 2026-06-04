@@ -31,9 +31,14 @@
           </nav>
 
           <!-- Meta + title -->
-          <div class="flex items-center gap-3 mb-4">
+          <div class="flex items-center gap-3 mb-4 flex-wrap">
             <span class="text-xs font-semibold bg-yellow-300 text-yellow-900 px-3 py-1 rounded-full capitalize">{{ post.category || 'News' }}</span>
             <span v-if="post.published_at" class="text-sm text-white/70">{{ formatDate(post.published_at) }}</span>
+            <span v-if="post.author_name" class="text-sm text-white/70">By {{ post.author_name }}</span>
+            <span v-if="post.view_count" class="text-sm text-white/60 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              {{ post.view_count }}
+            </span>
           </div>
           <h1 class="text-3xl md:text-4xl font-bold text-white leading-tight">{{ post.title }}</h1>
         </div>
@@ -48,7 +53,7 @@
           <!-- Body -->
           <div
             class="prose prose-gray max-w-none prose-headings:text-[#112b4e] prose-a:text-[#F48C06] prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-p:text-gray-600 prose-p:leading-relaxed"
-            v-html="formattedContent"
+            v-html="post.content"
           ></div>
 
           <!-- Footer -->
@@ -73,7 +78,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getPost } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
@@ -85,14 +90,6 @@ const loading = ref(true)
 function formatDate(d) {
   return new Date(d).toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
-
-const formattedContent = computed(() => {
-  if (!post.value?.content) return ''
-  return post.value.content
-    .split('\n\n')
-    .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
-    .join('')
-})
 
 onMounted(async () => {
   try {

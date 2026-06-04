@@ -210,6 +210,16 @@ func (r *UserRepo) SetPinHash(ctx context.Context, userID, hash string) error {
 	return err
 }
 
+func (r *UserRepo) GetRoleByName(ctx context.Context, name string) (*models.Role, error) {
+	const q = `SELECT id, name, description, is_system, created_at FROM roles WHERE name=$1`
+	role := &models.Role{}
+	err := r.db.QueryRow(ctx, q, name).Scan(&role.ID, &role.Name, &role.Description, &role.IsSystem, &role.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return role, err
+}
+
 func (r *UserRepo) GetPinHash(ctx context.Context, userID string) (string, error) {
 	var hash *string
 	err := r.db.QueryRow(ctx, `SELECT pin_hash FROM users WHERE id=$1`, userID).Scan(&hash)
@@ -750,22 +760,29 @@ type CMSRepo struct{ db *pgxpool.Pool }
 // Posts
 
 func (r *CMSRepo) CreatePost(ctx context.Context, p *models.CMSPost) error {
-	const q = `INSERT INTO cms_posts (id, title, slug, content, excerpt, category, status, cover_image_url, author_id, published_at)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING created_at, updated_at`
+	const q = `INSERT INTO cms_posts (id, title, slug, content, excerpt, category, status, cover_image_url, author_id, published_at, meta_title, meta_description)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING created_at, updated_at`
 	return r.db.QueryRow(ctx, q,
 		p.ID, p.Title, p.Slug, p.Content, p.Excerpt, p.Category, p.Status,
-		p.CoverImageURL, p.AuthorID, p.PublishedAt,
+		p.CoverImageURL, p.AuthorID, p.PublishedAt, p.MetaTitle, p.MetaDescription,
 	).Scan(&p.CreatedAt, &p.UpdatedAt)
 }
 
 func (r *CMSRepo) GetPostBySlug(ctx context.Context, slug string) (*models.CMSPost, error) {
-	const q = `SELECT id, title, slug, content, excerpt, category, status,
-	                  COALESCE(cover_image_url,''), author_id, published_at, created_at, updated_at
-	           FROM cms_posts WHERE slug=$1`
+	_, _ = r.db.Exec(ctx, `UPDATE cms_posts SET view_count = COALESCE(view_count,0)+1 WHERE slug=$1`, slug)
+	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, p.status,
+	                  COALESCE(p.cover_image_url,''), p.author_id,
+	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
+	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
+	                  COALESCE(p.view_count,0), p.published_at, p.created_at, p.updated_at
+	           FROM cms_posts p
+	           LEFT JOIN users u ON u.id = p.author_id
+	           WHERE p.slug=$1`
 	p := &models.CMSPost{}
 	err := r.db.QueryRow(ctx, q, slug).Scan(
 		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.Status,
-		&p.CoverImageURL, &p.AuthorID, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
+		&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
+		&p.ViewCount, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -774,13 +791,19 @@ func (r *CMSRepo) GetPostBySlug(ctx context.Context, slug string) (*models.CMSPo
 }
 
 func (r *CMSRepo) GetPostByID(ctx context.Context, id string) (*models.CMSPost, error) {
-	const q = `SELECT id, title, slug, content, excerpt, category, status,
-	                  COALESCE(cover_image_url,''), author_id, published_at, created_at, updated_at
-	           FROM cms_posts WHERE id=$1`
+	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, p.status,
+	                  COALESCE(p.cover_image_url,''), p.author_id,
+	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
+	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
+	                  COALESCE(p.view_count,0), p.published_at, p.created_at, p.updated_at
+	           FROM cms_posts p
+	           LEFT JOIN users u ON u.id = p.author_id
+	           WHERE p.id=$1`
 	p := &models.CMSPost{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
 		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.Status,
-		&p.CoverImageURL, &p.AuthorID, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
+		&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
+		&p.ViewCount, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -789,14 +812,16 @@ func (r *CMSRepo) GetPostByID(ctx context.Context, id string) (*models.CMSPost, 
 }
 
 func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit, offset int) ([]*models.CMSPost, int64, error) {
-	// NULL-safe filtering: empty string matches all via ($1='' OR category=$1)
-	const countQ = `SELECT COUNT(*) FROM cms_posts
-	                WHERE ($1='' OR category=$1) AND ($2='' OR status=$2)`
-	const q = `SELECT id, title, slug, excerpt, category, status,
-	                  COALESCE(cover_image_url,''), author_id, published_at, created_at, updated_at
-	           FROM cms_posts
-	           WHERE ($1='' OR category=$1) AND ($2='' OR status=$2)
-	           ORDER BY COALESCE(published_at, created_at) DESC LIMIT $3 OFFSET $4`
+	const countQ = `SELECT COUNT(*) FROM cms_posts p
+	                WHERE ($1='' OR p.category=$1) AND ($2='' OR p.status=$2)`
+	const q = `SELECT p.id, p.title, p.slug, p.excerpt, p.category, p.status,
+	                  COALESCE(p.cover_image_url,''), p.author_id,
+	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
+	                  COALESCE(p.view_count,0), p.published_at, p.created_at, p.updated_at
+	           FROM cms_posts p
+	           LEFT JOIN users u ON u.id = p.author_id
+	           WHERE ($1='' OR p.category=$1) AND ($2='' OR p.status=$2)
+	           ORDER BY COALESCE(p.published_at, p.created_at) DESC LIMIT $3 OFFSET $4`
 	var total int64
 	if err := r.db.QueryRow(ctx, countQ, category, status).Scan(&total); err != nil {
 		return nil, 0, err
@@ -810,7 +835,8 @@ func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit,
 	for rows.Next() {
 		p := &models.CMSPost{}
 		if err := rows.Scan(&p.ID, &p.Title, &p.Slug, &p.Excerpt, &p.Category, &p.Status,
-			&p.CoverImageURL, &p.AuthorID, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.ViewCount,
+			&p.PublishedAt, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		posts = append(posts, p)
@@ -820,9 +846,10 @@ func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit,
 
 func (r *CMSRepo) UpdatePost(ctx context.Context, p *models.CMSPost) error {
 	const q = `UPDATE cms_posts SET title=$2, slug=$3, content=$4, excerpt=$5, category=$6,
-	           status=$7, cover_image_url=$8, published_at=$9, updated_at=NOW() WHERE id=$1`
+	           status=$7, cover_image_url=$8, published_at=$9,
+	           meta_title=$10, meta_description=$11, updated_at=NOW() WHERE id=$1`
 	_, err := r.db.Exec(ctx, q, p.ID, p.Title, p.Slug, p.Content, p.Excerpt,
-		p.Category, p.Status, p.CoverImageURL, p.PublishedAt)
+		p.Category, p.Status, p.CoverImageURL, p.PublishedAt, p.MetaTitle, p.MetaDescription)
 	return err
 }
 

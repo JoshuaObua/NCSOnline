@@ -17,6 +17,49 @@ type AuthHandler struct {
 	users *repository.UserRepo
 }
 
+// POST /api/v1/auth/register
+func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
+		Password  string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	errs := map[string]string{}
+	if req.FirstName == "" {
+		errs["first_name"] = "required"
+	}
+	if req.LastName == "" {
+		errs["last_name"] = "required"
+	}
+	if req.Email == "" {
+		errs["email"] = "required"
+	}
+	if len(req.Password) < 8 {
+		errs["password"] = "minimum 8 characters"
+	}
+	if len(errs) > 0 {
+		response.ValidationErr(w, errs)
+		return
+	}
+
+	result, err := h.svc.Register(r.Context(), req.FirstName, req.LastName,
+		strings.ToLower(req.Email), req.Password, r.RemoteAddr, r.UserAgent())
+	if errors.Is(err, services.ErrEmailTaken) {
+		response.Err(w, http.StatusConflict, "EMAIL_TAKEN", "An account with that email already exists")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Registration failed. Please try again.")
+		return
+	}
+	response.JSON(w, http.StatusCreated, result)
+}
+
 // POST /api/v1/auth/login
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req struct {

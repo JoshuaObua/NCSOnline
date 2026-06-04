@@ -51,11 +51,7 @@
           <div class="flex gap-3 mb-4 flex-wrap">
             <select v-if="activeSection==='posts'" v-model="postCategory" @change="loadPosts()" class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700">
               <option value="">All Categories</option>
-              <option value="news">News</option>
-              <option value="announcement">Announcement</option>
-              <option value="project">Project</option>
-              <option value="blog">Blog</option>
-              <option value="case_study">Case Study</option>
+              <option v-for="cat in postCategories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
             </select>
             <select v-model="postStatus" @change="loadPosts()" class="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700">
               <option value="">All Statuses</option>
@@ -66,6 +62,39 @@
           <ContentTable :items="posts" :loading="postsLoading"
             :cols="[{key:'title',label:'Title'},{key:'category',label:'Category'},{key:'status',label:'Status'},{key:'published_at',label:'Date'}]"
             @edit="editPost" @delete="id=>confirmDelete('post',id)" />
+        </div>
+
+        <!-- ═══ BLOG CATEGORIES ════════════════════════════════════ -->
+        <div v-else-if="activeSection==='post-categories'" class="max-w-xl">
+          <p class="text-sm text-gray-500 mb-5">Define the category tags used for blog posts and news articles. These appear as filter chips on the public blog page.</p>
+          <div class="space-y-2 mb-4">
+            <div v-for="(cat, idx) in postCategories" :key="idx"
+              class="flex items-center gap-3 bg-white border border-gray-200 rounded-lg px-3 py-2">
+              <div class="flex-1 grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[10px] text-gray-400 uppercase tracking-wider block mb-0.5">Label</label>
+                  <input v-model="cat.label" type="text" placeholder="e.g. Blog"
+                    class="w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400"/>
+                </div>
+                <div>
+                  <label class="text-[10px] text-gray-400 uppercase tracking-wider block mb-0.5">Value (slug)</label>
+                  <input v-model="cat.value" type="text" placeholder="e.g. blog"
+                    class="w-full text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary-400 font-mono"/>
+                </div>
+              </div>
+              <button type="button" @click="postCategories.splice(idx,1)"
+                class="text-gray-300 hover:text-red-500 p-1 transition-colors text-lg leading-none">×</button>
+            </div>
+          </div>
+          <button type="button" @click="postCategories.push({label:'',value:''})"
+            class="text-sm text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1 mb-5">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+            Add Category
+          </button>
+          <button @click="savePostCategories" :disabled="postCategoriesSaving"
+            class="bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">
+            {{ postCategoriesSaving ? 'Saving…' : 'Save Categories' }}
+          </button>
         </div>
 
         <!-- ═══ EVENTS ══════════════════════════════════════════════ -->
@@ -739,10 +768,15 @@
             <!-- Posts / Blogs / Case Studies / Pages form -->
             <template v-if="['posts','blogs','case-studies','pages'].includes(activeSection)">
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Title *</label><input v-model="form.title" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
+              <!-- Page URL copy row (edit mode only) -->
+              <div v-if="activeSection==='pages' && editingId && form.slug" class="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                <span class="text-xs text-gray-500 truncate flex-1 font-mono">/pages/{{ form.slug }}</span>
+                <button type="button" @click="copyPageUrl(form.slug)" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Copy URL</button>
+              </div>
               <div class="grid grid-cols-2 gap-4">
-                <div v-if="activeSection==='posts'"><label class="text-xs font-medium text-gray-600 block mb-1">Category</label>
+                <div v-if="['posts','blogs'].includes(activeSection)"><label class="text-xs font-medium text-gray-600 block mb-1">Category</label>
                   <select v-model="form.category" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2">
-                    <option value="news">News</option><option value="announcement">Announcement</option><option value="project">Project</option><option value="blog">Blog</option><option value="case_study">Case Study</option>
+                    <option v-for="cat in postCategories" :key="cat.value" :value="cat.value">{{ cat.label }}</option>
                   </select>
                 </div>
                 <div><label class="text-xs font-medium text-gray-600 block mb-1">Status</label>
@@ -764,11 +798,15 @@
                 <label class="text-xs font-medium text-gray-600 block mb-1">Video URL (optional)</label>
                 <input v-model="form.video_url" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="https://youtube.com/..."/>
               </div>
-              <div><label class="text-xs font-medium text-gray-600 block mb-1">Cover Image URL <span class="text-gray-400 font-normal">(1920×1280 recommended)</span></label><input v-model="form.cover_image_url" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="https://..."/>
-                <img v-if="form.cover_image_url" :src="mediaUrl(form.cover_image_url)" class="mt-2 h-24 object-cover rounded-lg border border-gray-200"/>
+              <div>
+                <label class="text-xs font-medium text-gray-600 block mb-1">Cover Image <span class="text-gray-400 font-normal">(1920×1280 recommended)</span></label>
+                <DropzoneUpload v-model="form.cover_image_url" label="Drop cover image or click to upload" hint="JPG/PNG recommended" preview-class="h-32"/>
               </div>
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Excerpt</label><textarea v-model="form.excerpt" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none" rows="2"/></div>
-              <div><label class="text-xs font-medium text-gray-600 block mb-1">Content</label><textarea v-model="form.content" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none font-mono" rows="8"/></div>
+              <div>
+                <label class="text-xs font-medium text-gray-600 block mb-1">Content</label>
+                <RichTextEditor v-model="form.content"/>
+              </div>
               <div class="border-t border-gray-100 pt-4">
                 <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">SEO</p>
                 <div class="space-y-3">
@@ -1001,6 +1039,7 @@ import LayoutDefault from '@/components/layout/LayoutDefault.vue'
 import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
 const breadcrumbStore = useBreadcrumbStore()
 import DropzoneUpload from '@/components/ui/DropzoneUpload.vue'
+import RichTextEditor from '@/components/ui/RichTextEditor.vue'
 import * as cmsApi from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 
@@ -1063,11 +1102,12 @@ const ContentTable = defineComponent({
 // ── Nav definition ─────────────────────────────────────────────────
 const navGroups = [
   { id:'content', label:'Content', items:[
-    { id:'posts',       label:'Posts & Articles', singular:'Post',         icon:'📰', description:'News, announcements and articles' },
-    { id:'blogs',       label:'Blogs',            singular:'Blog Post',    icon:'✍️', description:'Long-form blog content' },
-    { id:'events',      label:'Events',           singular:'Event',        icon:'📅', description:'Upcoming and past events' },
-    { id:'case-studies',label:'Case Studies',     singular:'Case Study',   icon:'📁', description:'Project case studies' },
-    { id:'pages',       label:'Static Pages',     singular:'Page',         icon:'📄', description:'About, Privacy, Terms pages' },
+    { id:'posts',           label:'Posts & Articles',  singular:'Post',       icon:'📰', description:'News, announcements and articles' },
+    { id:'blogs',           label:'Blogs',             singular:'Blog Post',  icon:'✍️', description:'Long-form blog content' },
+    { id:'post-categories', label:'Blog Categories',   singular:null,         icon:'🏷', description:'Manage blog post categories' },
+    { id:'events',          label:'Events',            singular:'Event',      icon:'📅', description:'Upcoming and past events' },
+    { id:'case-studies',    label:'Case Studies',      singular:'Case Study', icon:'📁', description:'Project case studies' },
+    { id:'pages',           label:'Static Pages',      singular:'Page',       icon:'📄', description:'Stand-alone pages with custom slugs' },
     { id:'careers',       label:'Careers / Jobs',  singular:'Job',          icon:'💼', description:'Jobs, Tenders & Internships' },
     { id:'fun-facts',     label:'Fun Facts',        singular:'Fun Fact',     icon:'🔢', description:'Statistics displayed on homepage' },
     { id:'faqs',          label:'FAQs',             singular:'FAQ',          icon:'❓', description:'Frequently asked questions' },
@@ -1130,6 +1170,7 @@ function navigate(id) {
   else if (id==='blogs') { postCategory.value='blog'; postStatus.value=''; loadPosts() }
   else if (id==='case-studies') { postCategory.value='case_study'; postStatus.value=''; loadPosts() }
   else if (id==='pages') { postCategory.value='page'; postStatus.value=''; loadPosts() }
+  else if (id==='post-categories') loadPostCategories()
   else if (id==='events')   loadEvents()
   else if (id==='careers')  loadCareers()
   else if (id==='slides')   loadSlides()
@@ -1154,6 +1195,11 @@ function showToast(msg) {
   setTimeout(() => { toast.value = '' }, 3000)
 }
 
+function copyPageUrl(slug) {
+  navigator.clipboard.writeText(window.location.origin + '/pages/' + slug)
+  showToast('URL copied!')
+}
+
 function fmt(d) {
   if (!d) return '—'
   return new Date(d).toLocaleDateString('en-UG', { day:'numeric', month:'short', year:'numeric' })
@@ -1174,6 +1220,31 @@ async function loadPosts() {
 }
 
 function editPost(p) { editingId.value=p.id; form.value={...p, visibility:p.visibility||'public'}; formError.value=''; showModal.value=true }
+
+// ── Blog Categories ───────────────────────────────────────────────
+const postCategories = ref([
+  { value:'blog', label:'Blog' },
+  { value:'news', label:'News' },
+  { value:'announcement', label:'Announcements' },
+])
+const postCategoriesSaving = ref(false)
+
+async function loadPostCategories() {
+  try {
+    const r = await cmsApi.getSettings('post_categories')
+    const v = r.data?.data?.value
+    if (Array.isArray(v) && v.length) postCategories.value = v
+  } catch { /* use defaults */ }
+}
+
+async function savePostCategories() {
+  postCategoriesSaving.value = true
+  try {
+    await cmsApi.adminUpdateSettings('post_categories', postCategories.value)
+    showToast('Categories saved!')
+  } catch { showToast('Failed to save categories.') }
+  finally { postCategoriesSaving.value = false }
+}
 
 // ── Events ────────────────────────────────────────────────────────
 const events = ref([])
@@ -1859,6 +1930,7 @@ function loadLocalSettings() {
 onMounted(() => {
   breadcrumbStore.set('Content Management', [{ label: 'Website Content' }, { label: 'Content Management' }])
   loadLocalSettings()
+  loadPostCategories()
   loadPosts()
 })
 </script>

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/config"
@@ -25,6 +26,7 @@ var (
 	ErrPINIncorrect       = errors.New("PIN is incorrect")
 	ErrPINNotSet          = errors.New("PIN has not been set")
 	ErrInvalidPIN         = errors.New("PIN must be 4–6 digits")
+	ErrEmailTaken         = errors.New("email already registered")
 )
 
 var pinRegex = regexp.MustCompile(`^\d{4,6}$`)
@@ -45,6 +47,76 @@ type LoginResult struct {
 	ExpiresIn         int          `json:"expires_in_seconds"`
 	PinChangeRequired bool         `json:"pin_change_required"`
 	User              *models.User `json:"user"`
+}
+
+func (s *AuthService) Register(ctx context.Context, firstName, lastName, email, password, ip, ua string) (*LoginResult, error) {
+	email = strings.ToLower(strings.TrimSpace(email))
+
+	_, err := s.users.GetByEmail(ctx, email)
+	if err == nil {
+		return nil, ErrEmailTaken
+	}
+	if !errors.Is(err, repository.ErrNotFound) {
+		return nil, fmt.Errorf("check email: %w", err)
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("hash password: %w", err)
+	}
+
+	u := &models.User{
+		ID:           uuid.NewString(),
+		Email:        email,
+		PasswordHash: string(hash),
+		FirstName:    strings.TrimSpace(firstName),
+		LastName:     strings.TrimSpace(lastName),
+		IsActive:     true,
+	}
+	if err := s.users.Create(ctx, u); err != nil {
+		return nil, fmt.Errorf("create user: %w", err)
+	}
+
+	if role, err := s.users.GetRoleByName(ctx, "user"); err == nil {
+		_ = s.users.AssignRole(ctx, u.ID, role.ID, u.ID)
+	}
+
+	roles, _ := s.users.GetRoles(ctx, u.ID)
+	u.Roles = roles
+
+	roleNames := u.RoleNames()
+	accessToken, err := middleware.GenerateAccessToken(s.cfg.JWTSecret, s.cfg.AccessTokenTTL, u.ID, u.Email, roleNames)
+	if err != nil {
+		return nil, fmt.Errorf("generate access token: %w", err)
+	}
+
+	rawRefresh, tokenHash, err := generateRefreshToken()
+	if err != nil {
+		return nil, fmt.Errorf("generate refresh token: %w", err)
+	}
+
+	rt := &models.RefreshToken{
+		ID:        uuid.NewString(),
+		UserID:    u.ID,
+		TokenHash: tokenHash,
+		ExpiresAt: time.Now().Add(s.cfg.RefreshTokenTTL),
+		IPAddress: ip,
+		UserAgent: ua,
+	}
+	if err := s.tokens.StoreRefreshToken(ctx, rt); err != nil {
+		return nil, fmt.Errorf("store refresh token: %w", err)
+	}
+
+	_ = s.users.UpdateLastLogin(ctx, u.ID)
+	u.PasswordHash = ""
+	u.PinHash = ""
+
+	return &LoginResult{
+		AccessToken:  accessToken,
+		RefreshToken: rawRefresh,
+		ExpiresIn:    int(s.cfg.AccessTokenTTL.Seconds()),
+		User:         u,
+	}, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, email, password, ip, ua string) (*LoginResult, error) {

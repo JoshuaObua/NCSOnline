@@ -172,18 +172,22 @@ type AuditLog struct {
 // ── CMS ───────────────────────────────────────────────────────────
 
 type CMSPost struct {
-	ID            string     `json:"id"`
-	Title         string     `json:"title"`
-	Slug          string     `json:"slug"`
-	Content       string     `json:"content"`
-	Excerpt       string     `json:"excerpt"`
-	Category      string     `json:"category"`
-	Status        string     `json:"status"`
-	CoverImageURL string     `json:"cover_image_url,omitempty"`
-	AuthorID      *string    `json:"author_id,omitempty"`
-	PublishedAt   *time.Time `json:"published_at,omitempty"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	ID              string     `json:"id"`
+	Title           string     `json:"title"`
+	Slug            string     `json:"slug"`
+	Content         string     `json:"content"`
+	Excerpt         string     `json:"excerpt"`
+	Category        string     `json:"category"`
+	Status          string     `json:"status"`
+	CoverImageURL   string     `json:"cover_image_url,omitempty"`
+	AuthorID        *string    `json:"author_id,omitempty"`
+	AuthorName      string     `json:"author_name,omitempty"`
+	MetaTitle       string     `json:"meta_title,omitempty"`
+	MetaDescription string     `json:"meta_description,omitempty"`
+	ViewCount       int        `json:"view_count"`
+	PublishedAt     *time.Time `json:"published_at,omitempty"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
 type CMSEvent struct {

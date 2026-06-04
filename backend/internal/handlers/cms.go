@@ -94,13 +94,15 @@ func (h *CMSHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 func (h *CMSHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	authorID, _ := r.Context().Value(models.CtxUserID).(string)
 	var req struct {
-		Title         string  `json:"title"`
-		Content       string  `json:"content"`
-		Excerpt       string  `json:"excerpt"`
-		Category      string  `json:"category"`
-		Status        string  `json:"status"`
-		CoverImageURL string  `json:"cover_image_url"`
-		Slug          *string `json:"slug"`
+		Title           string  `json:"title"`
+		Content         string  `json:"content"`
+		Excerpt         string  `json:"excerpt"`
+		Category        string  `json:"category"`
+		Status          string  `json:"status"`
+		CoverImageURL   string  `json:"cover_image_url"`
+		Slug            *string `json:"slug"`
+		MetaTitle       string  `json:"meta_title"`
+		MetaDescription string  `json:"meta_description"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
@@ -128,16 +130,18 @@ func (h *CMSHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	post := &models.CMSPost{
-		ID:            uuid.NewString(),
-		Title:         req.Title,
-		Slug:          toSlug(slug),
-		Content:       req.Content,
-		Excerpt:       req.Excerpt,
-		Category:      req.Category,
-		Status:        req.Status,
-		CoverImageURL: req.CoverImageURL,
-		AuthorID:      &authorID,
-		PublishedAt:   publishedAt,
+		ID:              uuid.NewString(),
+		Title:           req.Title,
+		Slug:            toSlug(slug),
+		Content:         req.Content,
+		Excerpt:         req.Excerpt,
+		Category:        req.Category,
+		Status:          req.Status,
+		CoverImageURL:   req.CoverImageURL,
+		AuthorID:        &authorID,
+		PublishedAt:     publishedAt,
+		MetaTitle:       req.MetaTitle,
+		MetaDescription: req.MetaDescription,
 	}
 	if err := h.repo.CreatePost(r.Context(), post); err != nil {
 		if errors.Is(err, repository.ErrDuplicate) {
@@ -164,13 +168,15 @@ func (h *CMSHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Title         string  `json:"title"`
-		Content       string  `json:"content"`
-		Excerpt       string  `json:"excerpt"`
-		Category      string  `json:"category"`
-		Status        string  `json:"status"`
-		CoverImageURL string  `json:"cover_image_url"`
-		Slug          *string `json:"slug"`
+		Title           string  `json:"title"`
+		Content         string  `json:"content"`
+		Excerpt         string  `json:"excerpt"`
+		Category        string  `json:"category"`
+		Status          string  `json:"status"`
+		CoverImageURL   string  `json:"cover_image_url"`
+		Slug            *string `json:"slug"`
+		MetaTitle       string  `json:"meta_title"`
+		MetaDescription string  `json:"meta_description"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
@@ -189,12 +195,12 @@ func (h *CMSHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	if req.Category != "" {
 		post.Category = req.Category
 	}
-	if req.CoverImageURL != "" {
-		post.CoverImageURL = req.CoverImageURL
-	}
+	post.CoverImageURL = req.CoverImageURL
 	if req.Slug != nil && *req.Slug != "" {
 		post.Slug = toSlug(*req.Slug)
 	}
+	post.MetaTitle = req.MetaTitle
+	post.MetaDescription = req.MetaDescription
 	if req.Status != "" {
 		prevStatus := post.Status
 		post.Status = req.Status
