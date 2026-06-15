@@ -191,6 +191,10 @@ func (s *AuthService) RefreshToken(ctx context.Context, rawToken, ip, ua string)
 	}
 
 	if rt.RevokedAt != nil || time.Now().After(rt.ExpiresAt) {
+		user, userErr := s.users.GetByID(ctx, rt.UserID)
+		if userErr == nil {
+			return &LoginResult{User: user}, ErrTokenInvalid
+		}
 		return nil, ErrTokenInvalid
 	}
 

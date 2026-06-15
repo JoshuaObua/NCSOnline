@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-50 flex">
+    <a href="#main-content" class="skip-link">Skip to main content</a>
 
     <!-- Mobile overlay -->
     <Transition name="fade-overlay">
@@ -38,12 +39,12 @@
       </div>
 
       <!-- Main content -->
-      <main class="flex-1 p-6 overflow-auto">
+      <main id="main-content" tabindex="-1" class="flex-1 p-4 sm:p-6 overflow-auto min-w-0">
         <slot />
       </main>
 
       <!-- Footer -->
-      <footer class="flex-shrink-0 px-6 py-3 border-t border-gray-100 bg-white flex items-center justify-between text-xs text-gray-400">
+      <footer class="flex-shrink-0 px-4 sm:px-6 py-3 border-t border-gray-100 bg-white flex flex-col sm:flex-row gap-1 sm:items-center sm:justify-between text-xs text-gray-400">
         <span>&copy; {{ year }} National Council of Sports, Uganda. All rights reserved.</span>
         <span class="font-medium">NCSMS v1</span>
       </footer>

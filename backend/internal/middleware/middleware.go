@@ -7,6 +7,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -38,6 +40,16 @@ func getAuditCtx(r *http.Request) *AuditContext {
 	return nil
 }
 
+// SetAuditIdentity attributes public authentication endpoints to the user
+// established by the handler after credentials or a refresh token are valid.
+func SetAuditIdentity(r *http.Request, userID, email, sessionID string) {
+	if ac := getAuditCtx(r); ac != nil {
+		ac.UserID = strings.TrimSpace(userID)
+		ac.UserEmail = strings.ToLower(strings.TrimSpace(email))
+		ac.SessionID = strings.TrimSpace(sessionID)
+	}
+}
+
 // ── JWT Claims ────────────────────────────────────────────────────
 
 type Claims struct {
@@ -66,19 +78,75 @@ func GenerateAccessToken(secret string, ttl time.Duration, userID, email string,
 
 func ParseToken(secret, tokenStr string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+		if t.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return []byte(secret), nil
-	})
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithIssuer("ncsms-api"), jwt.WithIssuedAt())
 	if err != nil {
 		return nil, err
 	}
 	claims, ok := token.Claims.(*Claims)
-	if !ok || !token.Valid {
+	if !ok || !token.Valid || claims.UserID == "" || claims.IssuedAt == nil {
 		return nil, fmt.Errorf("invalid token claims")
 	}
 	return claims, nil
+}
+
+// parseSignedTokenIdentity recovers identity from an expired token only after
+// validating its signature, algorithm and issuer. It is used for audit
+// attribution and never grants access.
+func parseSignedTokenIdentity(secret, tokenStr string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(t *jwt.Token) (interface{}, error) {
+		if t.Method != jwt.SigningMethodHS256 {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return []byte(secret), nil
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithoutClaimsValidation())
+	if err != nil {
+		return nil, err
+	}
+	claims, ok := token.Claims.(*Claims)
+	if !ok || !token.Valid || claims.Issuer != "ncsms-api" || claims.UserID == "" {
+		return nil, fmt.Errorf("invalid token identity")
+	}
+	return claims, nil
+}
+
+func SecurityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
+		w.Header().Set("Cache-Control", "no-store")
+		next.ServeHTTP(w, r)
+	})
+}
+
+func LimitRequestBody(maxBytes int64) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Body != nil && maxBytes > 0 {
+				r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func RejectAmbiguousPaths(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw := r.URL.EscapedPath()
+		decoded, err := url.PathUnescape(raw)
+		if err != nil || strings.Contains(decoded, "\\") || strings.Contains(decoded, ";") ||
+			strings.Contains(decoded, "//") || path.Clean(decoded) != decoded {
+			response.Err(w, http.StatusBadRequest, "INVALID_PATH", "Request path is not canonical")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // ── Auth Middleware ───────────────────────────────────────────────
@@ -100,6 +168,9 @@ func Authenticate(jwtSecret string) func(http.Handler) http.Handler {
 
 			claims, err := ParseToken(jwtSecret, parts[1])
 			if err != nil {
+				if auditClaims, auditErr := parseSignedTokenIdentity(jwtSecret, parts[1]); auditErr == nil {
+					SetAuditIdentity(r, auditClaims.UserID, auditClaims.Email, auditClaims.ID)
+				}
 				response.Err(w, http.StatusUnauthorized, "TOKEN_EXPIRED", "Token is invalid or expired")
 				return
 			}
@@ -108,15 +179,44 @@ func Authenticate(jwtSecret string) func(http.Handler) http.Handler {
 			ctx = context.WithValue(ctx, models.CtxUserEmail, claims.Email)
 			ctx = context.WithValue(ctx, models.CtxUserRoles, claims.Roles)
 			ctx = context.WithValue(ctx, models.CtxSessionID, claims.ID) // JTI as session ID
+			ctx = context.WithValue(ctx, models.CtxTokenIssuedAt, claims.IssuedAt.Time)
 
 			// Propagate to the shared audit context so AuditLogger captures
 			// the authenticated user even though it runs at the outer scope.
-			if ac := getAuditCtx(r); ac != nil {
-				ac.UserID = claims.UserID
-				ac.UserEmail = claims.Email
-				ac.SessionID = claims.ID
-			}
+			SetAuditIdentity(r, claims.UserID, claims.Email, claims.ID)
 
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// ValidateAuthenticatedUser prevents deleted, disabled, password-reset, or
+// stale-role sessions from reaching protected handlers.
+type AuthorizationStore interface {
+	GetAuthorizationState(context.Context, string) (string, bool, *time.Time, []string, error)
+}
+
+func ValidateAuthenticatedUser(users AuthorizationStore) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			userID, _ := r.Context().Value(models.CtxUserID).(string)
+			issuedAt, _ := r.Context().Value(models.CtxTokenIssuedAt).(time.Time)
+			if userID == "" || issuedAt.IsZero() {
+				response.Err(w, http.StatusUnauthorized, "INVALID_SESSION", "Authenticated session is invalid")
+				return
+			}
+			email, active, invalidBefore, roles, err := users.GetAuthorizationState(r.Context(), userID)
+			if err != nil || !active {
+				response.Err(w, http.StatusUnauthorized, "ACCOUNT_UNAVAILABLE", "User account is unavailable or inactive")
+				return
+			}
+			if invalidBefore != nil && issuedAt.Before(*invalidBefore) {
+				response.Err(w, http.StatusUnauthorized, "SESSION_REVOKED", "Session has been revoked. Please sign in again")
+				return
+			}
+			ctx := context.WithValue(r.Context(), models.CtxUserEmail, email)
+			ctx = context.WithValue(ctx, models.CtxUserRoles, roles)
+			SetAuditIdentity(r, userID, email, r.Context().Value(models.CtxSessionID).(string))
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -164,6 +264,9 @@ type responseWriter struct {
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
+	if rw.status != http.StatusOK {
+		return
+	}
 	rw.status = code
 	rw.ResponseWriter.WriteHeader(code)
 }
@@ -479,6 +582,9 @@ func classifyEventType(method, path string) string {
 	case strings.Contains(p, "/admin/users") && method == http.MethodGet:
 		return "USER_LIST"
 	case strings.Contains(p, "/admin/users") && method == http.MethodPost:
+		if strings.Contains(p, "/reset-password") {
+			return "USER_PASSWORD_RESET"
+		}
 		if strings.Contains(p, "/activate") {
 			return "USER_ACTIVATE"
 		}

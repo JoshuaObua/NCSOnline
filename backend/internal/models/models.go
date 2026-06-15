@@ -8,21 +8,28 @@ import (
 // ── User ─────────────────────────────────────────────────────────
 
 type User struct {
-	ID               string     `json:"id"`
-	Email            string     `json:"email"`
-	PasswordHash     string     `json:"-"`
-	PinHash          string     `json:"-"`
-	PinChangeRequired bool      `json:"pin_change_required"`
-	FirstName        string     `json:"first_name"`
-	LastName         string     `json:"last_name"`
-	Phone            string     `json:"phone,omitempty"`
-	IsActive         bool       `json:"is_active"`
-	IsEmailVerified  bool       `json:"is_email_verified"`
-	EmailVerifiedAt  *time.Time `json:"email_verified_at,omitempty"`
-	LastLoginAt      *time.Time `json:"last_login_at,omitempty"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
-	Roles            []Role     `json:"roles,omitempty"`
+	ID                string     `json:"id"`
+	Email             string     `json:"email"`
+	PasswordHash      string     `json:"-"`
+	PinHash           string     `json:"-"`
+	PinChangeRequired bool       `json:"pin_change_required"`
+	FirstName         string     `json:"first_name"`
+	LastName          string     `json:"last_name"`
+	Phone             string     `json:"phone,omitempty"`
+	IsActive          bool       `json:"is_active"`
+	AccountStatus     string     `json:"account_status"`
+	StatusReason      string     `json:"status_reason,omitempty"`
+	FraudFlag         bool       `json:"fraud_flag"`
+	FraudReason       string     `json:"fraud_reason,omitempty"`
+	SuspendedUntil    *time.Time `json:"suspended_until,omitempty"`
+	StatusChangedAt   *time.Time `json:"status_changed_at,omitempty"`
+	IsEmailVerified   bool       `json:"is_email_verified"`
+	EmailVerifiedAt   *time.Time `json:"email_verified_at,omitempty"`
+	LastLoginAt       *time.Time `json:"last_login_at,omitempty"`
+	AuthInvalidBefore *time.Time `json:"-"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+	Roles             []Role     `json:"roles,omitempty"`
 }
 
 // HasPIN reports whether the user has set a screen-lock PIN.
@@ -69,11 +76,11 @@ type Role struct {
 }
 
 type Permission struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description,omitempty"`
-	Resource    string    `json:"resource"`
-	Action      string    `json:"action"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Resource    string `json:"resource"`
+	Action      string `json:"action"`
 }
 
 // ── Auth Tokens ───────────────────────────────────────────────────
@@ -92,33 +99,33 @@ type RefreshToken struct {
 // ── Application ───────────────────────────────────────────────────
 
 type Application struct {
-	ID                     string          `json:"id"`
-	ApplicationReference   string          `json:"application_reference,omitempty"`
-	UserID                 string          `json:"user_id"`
-	FormType               string          `json:"form_type"`
-	ApplicationType        string          `json:"application_type,omitempty"`
-	OrganisationType       string          `json:"organisation_type,omitempty"`
-	Status                 string          `json:"status"`
-	PaymentStatus          string          `json:"payment_status"`
-	PaymentMethod          string          `json:"payment_method,omitempty"`
-	PaymentReference       string          `json:"payment_reference,omitempty"`
-	PaymentAmountUGX       *float64        `json:"payment_amount_ugx,omitempty"`
-	PaymentVerifiedAt      *time.Time      `json:"payment_verified_at,omitempty"`
-	PaymentVerifiedBy      *string         `json:"payment_verified_by,omitempty"`
-	FormData               json.RawMessage `json:"form_data"`
-	SignedFormURL          string          `json:"signed_form_url,omitempty"`
-	SignedFormUploadedAt   *time.Time      `json:"signed_form_uploaded_at,omitempty"`
-	PDFGeneratedAt         *time.Time      `json:"pdf_generated_at,omitempty"`
-	SubmittedAt            *time.Time      `json:"submitted_at,omitempty"`
-	ReviewerID             *string         `json:"reviewer_id,omitempty"`
-	ReviewNotes            string          `json:"review_notes,omitempty"`
-	ApprovedAt             *time.Time      `json:"approved_at,omitempty"`
-	RejectedAt             *time.Time      `json:"rejected_at,omitempty"`
-	DraftExpiresAt         *time.Time      `json:"draft_expires_at,omitempty"`
-	LastSavedStep          int             `json:"last_saved_step"`
-	CreatedAt              time.Time       `json:"created_at"`
-	UpdatedAt              time.Time       `json:"updated_at"`
-	Attachments            []Attachment    `json:"attachments,omitempty"`
+	ID                   string          `json:"id"`
+	ApplicationReference string          `json:"application_reference,omitempty"`
+	UserID               string          `json:"user_id"`
+	FormType             string          `json:"form_type"`
+	ApplicationType      string          `json:"application_type,omitempty"`
+	OrganisationType     string          `json:"organisation_type,omitempty"`
+	Status               string          `json:"status"`
+	PaymentStatus        string          `json:"payment_status"`
+	PaymentMethod        string          `json:"payment_method,omitempty"`
+	PaymentReference     string          `json:"payment_reference,omitempty"`
+	PaymentAmountUGX     *float64        `json:"payment_amount_ugx,omitempty"`
+	PaymentVerifiedAt    *time.Time      `json:"payment_verified_at,omitempty"`
+	PaymentVerifiedBy    *string         `json:"payment_verified_by,omitempty"`
+	FormData             json.RawMessage `json:"form_data"`
+	SignedFormURL        string          `json:"signed_form_url,omitempty"`
+	SignedFormUploadedAt *time.Time      `json:"signed_form_uploaded_at,omitempty"`
+	PDFGeneratedAt       *time.Time      `json:"pdf_generated_at,omitempty"`
+	SubmittedAt          *time.Time      `json:"submitted_at,omitempty"`
+	ReviewerID           *string         `json:"reviewer_id,omitempty"`
+	ReviewNotes          string          `json:"review_notes,omitempty"`
+	ApprovedAt           *time.Time      `json:"approved_at,omitempty"`
+	RejectedAt           *time.Time      `json:"rejected_at,omitempty"`
+	DraftExpiresAt       *time.Time      `json:"draft_expires_at,omitempty"`
+	LastSavedStep        int             `json:"last_saved_step"`
+	CreatedAt            time.Time       `json:"created_at"`
+	UpdatedAt            time.Time       `json:"updated_at"`
+	Attachments          []Attachment    `json:"attachments,omitempty"`
 }
 
 type Attachment struct {
@@ -135,38 +142,38 @@ type Attachment struct {
 // ── Audit Log ─────────────────────────────────────────────────────
 
 type AuditLog struct {
-	ID              string          `json:"id"`
-	UserID          *string         `json:"user_id,omitempty"`
-	Action          string          `json:"action"`
-	Resource        string          `json:"resource"`
-	ResourceID      string          `json:"resource_id,omitempty"`
-	OldValues       json.RawMessage `json:"old_values,omitempty"`
-	NewValues       json.RawMessage `json:"new_values,omitempty"`
-	IPAddress       string          `json:"ip_address,omitempty"`
-	UserAgent       string          `json:"user_agent,omitempty"`
-	Method          string          `json:"method,omitempty"`
-	Endpoint        string          `json:"endpoint,omitempty"`
-	ResponseCode    int             `json:"response_code,omitempty"`
-	ResponseTimeMs  int64           `json:"response_time_ms,omitempty"`
-	DeviceInfo      string          `json:"device_info,omitempty"`
+	ID             string          `json:"id"`
+	UserID         *string         `json:"user_id,omitempty"`
+	Action         string          `json:"action"`
+	Resource       string          `json:"resource"`
+	ResourceID     string          `json:"resource_id,omitempty"`
+	OldValues      json.RawMessage `json:"old_values,omitempty"`
+	NewValues      json.RawMessage `json:"new_values,omitempty"`
+	IPAddress      string          `json:"ip_address,omitempty"`
+	UserAgent      string          `json:"user_agent,omitempty"`
+	Method         string          `json:"method,omitempty"`
+	Endpoint       string          `json:"endpoint,omitempty"`
+	ResponseCode   int             `json:"response_code"`
+	ResponseTimeMs int64           `json:"response_time_ms"`
+	DeviceInfo     string          `json:"device_info,omitempty"`
 	// Enhanced audit fields
-	EventType       string          `json:"event_type,omitempty"`
-	EventStatus     string          `json:"event_status,omitempty"`
-	SeverityLevel   string          `json:"severity_level,omitempty"`
-	ForwardedIP     string          `json:"forwarded_ip,omitempty"`
-	GeoCountry      string          `json:"geo_country,omitempty"`
-	GeoCity         string          `json:"geo_city,omitempty"`
-	VPNDetected     bool            `json:"vpn_detected"`
-	Browser         string          `json:"browser,omitempty"`
-	OSName          string          `json:"os_name,omitempty"`
-	ClientType      string          `json:"client_type,omitempty"`
-	ThreatScore     int             `json:"threat_score"`
-	AnomalyDetected bool            `json:"anomaly_detected"`
-	SessionID       string          `json:"session_id,omitempty"`
-	Username        string          `json:"username,omitempty"`
-	FirstName       string          `json:"first_name,omitempty"`
-	LastName        string          `json:"last_name,omitempty"`
-	CreatedAt       time.Time       `json:"created_at"`
+	EventType       string    `json:"event_type,omitempty"`
+	EventStatus     string    `json:"event_status,omitempty"`
+	SeverityLevel   string    `json:"severity_level,omitempty"`
+	ForwardedIP     string    `json:"forwarded_ip,omitempty"`
+	GeoCountry      string    `json:"geo_country,omitempty"`
+	GeoCity         string    `json:"geo_city,omitempty"`
+	VPNDetected     bool      `json:"vpn_detected"`
+	Browser         string    `json:"browser,omitempty"`
+	OSName          string    `json:"os_name,omitempty"`
+	ClientType      string    `json:"client_type,omitempty"`
+	ThreatScore     int       `json:"threat_score"`
+	AnomalyDetected bool      `json:"anomaly_detected"`
+	SessionID       string    `json:"session_id,omitempty"`
+	Username        string    `json:"username,omitempty"`
+	FirstName       string    `json:"first_name,omitempty"`
+	LastName        string    `json:"last_name,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 // ── CMS ───────────────────────────────────────────────────────────
@@ -206,20 +213,20 @@ type CMSEvent struct {
 }
 
 type CMSCareer struct {
-	ID          string     `json:"id"`
-	Title       string     `json:"title"`
-	Department  string     `json:"department,omitempty"`
-	Location    string     `json:"location,omitempty"`
-	JobType     string     `json:"job_type"`
-	Category    string     `json:"category"`
-	Description string     `json:"description"`
-	Requirements string    `json:"requirements,omitempty"`
-	SalaryRange string     `json:"salary_range,omitempty"`
-	Status      string     `json:"status"`
-	DeadlineAt  *time.Time `json:"deadline_at,omitempty"`
-	AuthorID    *string    `json:"author_id,omitempty"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID           string     `json:"id"`
+	Title        string     `json:"title"`
+	Department   string     `json:"department,omitempty"`
+	Location     string     `json:"location,omitempty"`
+	JobType      string     `json:"job_type"`
+	Category     string     `json:"category"`
+	Description  string     `json:"description"`
+	Requirements string     `json:"requirements,omitempty"`
+	SalaryRange  string     `json:"salary_range,omitempty"`
+	Status       string     `json:"status"`
+	DeadlineAt   *time.Time `json:"deadline_at,omitempty"`
+	AuthorID     *string    `json:"author_id,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+	UpdatedAt    time.Time  `json:"updated_at"`
 }
 
 type CMSSlide struct {
@@ -332,6 +339,18 @@ type CMSInvest struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type CMSTeamMember struct {
+	ID          string    `json:"id"`
+	FullName    string    `json:"full_name"`
+	Designation string    `json:"designation,omitempty"`
+	ImageURL    string    `json:"image_url,omitempty"`
+	Bio         string    `json:"bio,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 // ── Pagination ────────────────────────────────────────────────────
 
 type PaginationParams struct {
@@ -355,22 +374,26 @@ func (p *PaginationParams) Offset() int {
 // ── Application Status & Payment Status constants ─────────────────
 
 const (
-	StatusDraft              = "DRAFT"
-	StatusPendingSignature   = "PENDING_SIGNATURE"
-	StatusPendingPayment     = "PENDING_PAYMENT"
-	StatusSubmitted          = "SUBMITTED"
-	StatusUnderReview        = "UNDER_REVIEW"
-	StatusNeedsInformation   = "NEEDS_INFORMATION"
-	StatusResubmitted        = "RESUBMITTED"
-	StatusApproved           = "APPROVED"
-	StatusRejected           = "REJECTED"
+	AccountStatusActive    = "ACTIVE"
+	AccountStatusSuspended = "SUSPENDED"
+	AccountStatusBanned    = "BANNED"
 
-	PaymentUnpaid          = "UNPAID"
-	PaymentInitiated       = "PAYMENT_INITIATED"
-	PaymentPaid            = "PAID"
-	PaymentProofUploaded   = "PROOF_UPLOADED"
-	PaymentVerified        = "PAYMENT_VERIFIED"
-	PaymentRejected        = "PAYMENT_REJECTED"
+	StatusDraft            = "DRAFT"
+	StatusPendingSignature = "PENDING_SIGNATURE"
+	StatusPendingPayment   = "PENDING_PAYMENT"
+	StatusSubmitted        = "SUBMITTED"
+	StatusUnderReview      = "UNDER_REVIEW"
+	StatusNeedsInformation = "NEEDS_INFORMATION"
+	StatusResubmitted      = "RESUBMITTED"
+	StatusApproved         = "APPROVED"
+	StatusRejected         = "REJECTED"
+
+	PaymentUnpaid        = "UNPAID"
+	PaymentInitiated     = "PAYMENT_INITIATED"
+	PaymentPaid          = "PAID"
+	PaymentProofUploaded = "PROOF_UPLOADED"
+	PaymentVerified      = "PAYMENT_VERIFIED"
+	PaymentRejected      = "PAYMENT_REJECTED"
 
 	PaymentMethodOnline = "ONLINE"
 	PaymentMethodProof  = "PROOF_UPLOAD"
@@ -381,8 +404,9 @@ const (
 type contextKey string
 
 const (
-	CtxUserID    contextKey = "ctx_user_id"
-	CtxUserEmail contextKey = "ctx_user_email"
-	CtxUserRoles contextKey = "ctx_user_roles"
-	CtxSessionID contextKey = "ctx_session_id"
+	CtxUserID        contextKey = "ctx_user_id"
+	CtxUserEmail     contextKey = "ctx_user_email"
+	CtxUserRoles     contextKey = "ctx_user_roles"
+	CtxSessionID     contextKey = "ctx_session_id"
+	CtxTokenIssuedAt contextKey = "ctx_token_issued_at"
 )

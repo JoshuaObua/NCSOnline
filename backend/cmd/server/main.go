@@ -13,6 +13,7 @@ import (
 	"github.com/atenimedia-llc/ncs-online/backend/internal/database"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/handlers"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/middleware"
+	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -41,13 +42,15 @@ func main() {
 	r := chi.NewRouter()
 
 	r.Use(chimiddleware.RequestID)
-	r.Use(chimiddleware.RealIP)
+	r.Use(middleware.SecurityHeaders)
+	r.Use(middleware.RejectAmbiguousPaths)
+	r.Use(middleware.LimitRequestBody(1 << 20))
 	r.Use(middleware.Logger)
 	r.Use(middleware.AuditLogger(repos.Audit))
 	r.Use(rl.Middleware)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.AllowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
 		ExposedHeaders:   []string{"X-Request-ID"},
 		AllowCredentials: true,
@@ -89,12 +92,14 @@ func main() {
 			r.Get("/facilities", h.CMS.ListFacilities)
 			r.Get("/associations", h.CMS.ListAssociations)
 			r.Get("/invest", h.CMS.ListInvest)
+			r.Get("/team", h.CMS.ListTeam)
 		})
 
 		// ── Authenticated routes (geo-blocked: Uganda only, no VPN) ─────
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.GeoBlocker)
 			r.Use(middleware.Authenticate(cfg.JWTSecret))
+			r.Use(middleware.ValidateAuthenticatedUser(repos.Users))
 
 			// Self-service auth
 			r.Post("/auth/logout", h.Auth.Logout)
@@ -146,6 +151,8 @@ func main() {
 					r.Delete("/{id}", h.Users.Delete)
 					r.Post("/{id}/activate", h.Users.Activate)
 					r.Post("/{id}/deactivate", h.Users.Deactivate)
+					r.Post("/{id}/reset-password", h.Users.ResetPassword)
+					r.Post("/{id}/account-action", h.Users.AccountAction)
 					r.Post("/{id}/roles", h.Users.AssignRole)
 					r.Delete("/{id}/roles/{roleID}", h.Users.RemoveRole)
 				})
@@ -253,6 +260,13 @@ func main() {
 					r.Delete("/{id}", h.CMS.DeleteInvest)
 				})
 
+				r.Route("/admin/cms/team", func(r chi.Router) {
+					r.Get("/", h.CMS.ListTeam)
+					r.Post("/", h.CMS.CreateTeamMember)
+					r.Put("/{id}", h.CMS.UpdateTeamMember)
+					r.Delete("/{id}", h.CMS.DeleteTeamMember)
+				})
+
 				r.Post("/admin/media/upload", h.CMS.UploadMedia)
 			})
 
@@ -275,12 +289,20 @@ func main() {
 		})
 	})
 
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		response.Err(w, http.StatusNotFound, "NOT_FOUND", "Endpoint not found")
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		response.Err(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "HTTP method is not allowed for this endpoint")
+	})
+
 	srv := &http.Server{
-		Addr:         ":" + cfg.Port,
-		Handler:      r,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:              ":" + cfg.Port,
+		Handler:           r,
+		ReadTimeout:       15 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	quit := make(chan os.Signal, 1)

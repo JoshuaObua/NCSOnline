@@ -24,7 +24,33 @@
 }
 
 /* ── Global font ─────────────────────────────────── */
-body { font-family: 'Poppins', sans-serif; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Poppins', sans-serif; min-width: 320px; }
+
+:focus-visible { outline: 3px solid #F48C06; outline-offset: 2px; }
+
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 100;
+  transform: translateY(-150%);
+  border-radius: 0.5rem;
+  background: #112b4e;
+  color: white;
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+}
+.skip-link:focus { transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
 
 /* ── Public site palette & utilities ─────────────── */
 .bg-cream    { background-color: #FEF9F2; }

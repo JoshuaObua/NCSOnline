@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/atenimedia-llc/ncs-online/backend/internal/middleware"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
@@ -57,6 +58,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Registration failed. Please try again.")
 		return
 	}
+	middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
 	response.JSON(w, http.StatusCreated, result)
 }
 
@@ -89,6 +91,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "An unexpected error occurred")
 		return
 	}
+	middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
 	response.JSON(w, http.StatusOK, result)
 }
 
@@ -103,6 +106,9 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.svc.RefreshToken(r.Context(), req.RefreshToken, r.RemoteAddr, r.UserAgent())
+	if result != nil && result.User != nil {
+		middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
+	}
 	if errors.Is(err, services.ErrTokenInvalid) {
 		response.Err(w, http.StatusUnauthorized, "TOKEN_INVALID", "Refresh token is invalid or expired")
 		return
@@ -111,6 +117,7 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "An unexpected error occurred")
 		return
 	}
+	middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
 	response.JSON(w, http.StatusOK, result)
 }
 

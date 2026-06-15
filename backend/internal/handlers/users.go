@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
@@ -145,8 +146,12 @@ func (h *UsersHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/admin/users/{id}/activate
 func (h *UsersHandler) Activate(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	if err := h.svc.SetActive(r.Context(), id, true); err != nil {
-		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not activate user")
+	actorID, _ := r.Context().Value(models.CtxUserID).(string)
+	if err := h.svc.ApplyAccountAction(r.Context(), services.AccountActionInput{UserID: id, ActorID: actorID, Action: "REACTIVATE"}); err != nil {
+		if protectedGuard(w, err) {
+			return
+		}
+		response.Err(w, http.StatusBadRequest, "ACTIVATE_FAILED", err.Error())
 		return
 	}
 	response.JSONMsg(w, http.StatusOK, "User activated")
@@ -155,11 +160,14 @@ func (h *UsersHandler) Activate(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/admin/users/{id}/deactivate
 func (h *UsersHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	if err := h.svc.SetActive(r.Context(), id, false); err != nil {
+	actorID, _ := r.Context().Value(models.CtxUserID).(string)
+	if err := h.svc.ApplyAccountAction(r.Context(), services.AccountActionInput{
+		UserID: id, ActorID: actorID, Action: "SUSPEND", Reason: "Deactivated by administrator",
+	}); err != nil {
 		if protectedGuard(w, err) {
 			return
 		}
-		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not deactivate user")
+		response.Err(w, http.StatusBadRequest, "DEACTIVATE_FAILED", err.Error())
 		return
 	}
 	response.JSONMsg(w, http.StatusOK, "User deactivated")
@@ -195,4 +203,75 @@ func (h *UsersHandler) RemoveRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSONMsg(w, http.StatusOK, "Role removed")
+}
+
+// POST /api/v1/admin/users/{id}/reset-password
+func (h *UsersHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "id")
+	actorID, _ := r.Context().Value(models.CtxUserID).(string)
+	if actorID == userID {
+		response.Err(w, http.StatusBadRequest, "USE_CHANGE_PASSWORD", "Use the profile password-change form for your own account")
+		return
+	}
+	var req struct {
+		NewPassword string `json:"new_password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if len(req.NewPassword) < 12 {
+		response.ValidationErr(w, map[string]string{"new_password": "minimum 12 characters"})
+		return
+	}
+	if err := h.svc.ResetPassword(r.Context(), userID, req.NewPassword); err != nil {
+		if protectedGuard(w, err) {
+			return
+		}
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "User not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "PASSWORD_RESET_FAILED", err.Error())
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Password reset successfully. All existing sessions were revoked")
+}
+
+// POST /api/v1/admin/users/{id}/account-action
+func (h *UsersHandler) AccountAction(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "id")
+	actorID, _ := r.Context().Value(models.CtxUserID).(string)
+	var req struct {
+		Action         string     `json:"action"`
+		Reason         string     `json:"reason"`
+		SuspendedUntil *time.Time `json:"suspended_until"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	err := h.svc.ApplyAccountAction(r.Context(), services.AccountActionInput{
+		UserID: userID, ActorID: actorID, Action: req.Action,
+		Reason: req.Reason, SuspendedUntil: req.SuspendedUntil,
+	})
+	if err != nil {
+		if protectedGuard(w, err) {
+			return
+		}
+		switch {
+		case errors.Is(err, services.ErrSelfAccountAction):
+			response.Err(w, http.StatusBadRequest, "SELF_ACCOUNT_ACTION", err.Error())
+		case errors.Is(err, services.ErrFraudFlagged):
+			response.Err(w, http.StatusConflict, "FRAUD_FLAGGED", err.Error())
+		case errors.Is(err, services.ErrInvalidAccountAction):
+			response.Err(w, http.StatusBadRequest, "INVALID_ACCOUNT_ACTION", err.Error())
+		case errors.Is(err, repository.ErrNotFound):
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "User not found")
+		default:
+			response.Err(w, http.StatusBadRequest, "ACCOUNT_ACTION_FAILED", err.Error())
+		}
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Account action completed successfully")
 }

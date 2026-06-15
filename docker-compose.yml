@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # ── PostgreSQL ─────────────────────────────────────────────────
   postgres:
@@ -91,7 +89,7 @@ services:
       - postgres
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-pgadmin@ncs.go.ug}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-PgAdmin@NCS2026}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?PGADMIN_PASSWORD must be set}
       PGADMIN_CONFIG_SERVER_MODE: "False"
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
     ports:

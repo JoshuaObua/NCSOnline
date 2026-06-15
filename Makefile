@@ -1,4 +1,4 @@
-.PHONY: help up down build logs migrate seed dev test lint
+.PHONY: help up down build deploy-backend logs migrate seed dev test lint
 
 BACKEND_DIR=./backend
 DOCKER_COMPOSE=docker compose
@@ -32,7 +32,21 @@ migrate: ## Run all migrations against running postgres container
 		-f /docker-entrypoint-initdb.d/003_create_auth_tokens.sql \
 		-f /docker-entrypoint-initdb.d/004_create_applications.sql \
 		-f /docker-entrypoint-initdb.d/005_create_audit_logs.sql \
-		-f /docker-entrypoint-initdb.d/006_seed_roles_permissions.sql
+		-f /docker-entrypoint-initdb.d/006_seed_roles_permissions.sql \
+		-f /docker-entrypoint-initdb.d/007_seed_super_admin.sql \
+		-f /docker-entrypoint-initdb.d/008_add_pin_cms.sql \
+		-f /docker-entrypoint-initdb.d/009_enhance_audit_logs.sql \
+		-f /docker-entrypoint-initdb.d/010_cms_slides_menus.sql \
+		-f /docker-entrypoint-initdb.d/011_new_modules.sql \
+		-f /docker-entrypoint-initdb.d/012_cms_settings.sql \
+		-f /docker-entrypoint-initdb.d/013_cms_team.sql \
+		-f /docker-entrypoint-initdb.d/014_user_auth_invalidation.sql \
+		-f /docker-entrypoint-initdb.d/015_user_account_management.sql
+
+deploy-backend: ## Apply migrations, rebuild, and restart the backend and gateway
+	$(DOCKER_COMPOSE) up -d postgres
+	$(MAKE) migrate
+	$(DOCKER_COMPOSE) up -d --build backend nginx
 
 psql: ## Open psql shell in postgres container
 	$(DOCKER_COMPOSE) exec postgres psql -U $${POSTGRES_USER:-ncsms_user} -d $${POSTGRES_DB:-ncsms}

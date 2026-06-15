@@ -52,10 +52,14 @@
             </td>
             <!-- Status -->
             <td class="table-td">
-              <span :class="user.is_active ? 'badge-green' : 'badge-red'">
-                <span class="w-1.5 h-1.5 rounded-full mr-1" :class="user.is_active ? 'bg-green-500' : 'bg-red-500'"></span>
-                {{ user.is_active ? 'Active' : 'Inactive' }}
-              </span>
+              <div class="flex flex-col items-start gap-1">
+                <span :class="statusBadgeClass(user)">
+                  <span class="w-1.5 h-1.5 rounded-full mr-1" :class="statusDotClass(user)"></span>
+                  {{ formatAccountStatus(user) }}
+                </span>
+                <span v-if="user.fraud_flag" class="badge-red">Fraud flagged</span>
+                <span v-if="user.suspended_until" class="text-[11px] text-gray-500">Until {{ formatDateTime(user.suspended_until) }}</span>
+              </div>
             </td>
             <!-- Roles -->
             <td class="table-td">
@@ -70,31 +74,21 @@
             <td class="table-td text-gray-500">{{ formatDate(user.last_login_at) }}</td>
             <!-- Actions -->
             <td class="table-td">
-              <div class="flex items-center justify-end gap-1">
-                <button @click="openEditModal(user)" title="Edit" class="p-1.5 text-gray-400 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                  </svg>
-                </button>
-                <button
-                  @click="toggleUserStatus(user)"
-                  :title="user.is_active ? 'Deactivate' : 'Activate'"
-                  :class="user.is_active ? 'hover:text-yellow-600 hover:bg-yellow-50' : 'hover:text-green-600 hover:bg-green-50'"
-                  class="p-1.5 text-gray-400 rounded-lg transition-colors"
-                >
-                  <svg v-if="user.is_active" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                  </svg>
-                  <svg v-else class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </button>
-                <button @click="confirmDelete(user)" title="Delete" class="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                  </svg>
-                </button>
-              </div>
+              <select
+                aria-label="User actions"
+                class="form-input min-w-[9rem] py-1.5 text-xs"
+                @change="handleActionSelection($event, user)"
+              >
+                <option value="">Actions...</option>
+                <option value="edit">Edit user</option>
+                <option v-if="canManageAccount(user)" value="reset">Reset password</option>
+                <option v-if="canManageAccount(user) && accountStatus(user) === 'ACTIVE'" value="SUSPEND">Suspend</option>
+                <option v-if="canManageAccount(user) && accountStatus(user) !== 'BANNED'" value="BAN">Ban</option>
+                <option v-if="canManageAccount(user) && !user.fraud_flag" value="MARK_FRAUD">Mark as fraud</option>
+                <option v-if="canManageAccount(user) && user.fraud_flag" value="CLEAR_FRAUD">Clear fraud flag</option>
+                <option v-if="canManageAccount(user) && accountStatus(user) !== 'ACTIVE' && !user.fraud_flag" value="REACTIVATE">Reactivate</option>
+                <option v-if="canManageAccount(user)" value="delete">Delete user</option>
+              </select>
             </td>
           </tr>
         </template>
@@ -189,6 +183,62 @@
       </template>
     </Modal>
 
+	<!-- Reset Password Modal -->
+	<Modal :show="showResetModal" title="Reset User Password" size="sm" @close="closeResetModal">
+	  <form @submit.prevent="submitPasswordReset" class="space-y-4">
+		<div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+		  Resetting <strong>{{ resetTarget?.email }}</strong> will immediately sign the user out of every active session.
+		</div>
+		<div>
+		  <label class="form-label">New Password</label>
+		  <input v-model="resetForm.new_password" type="password" minlength="12" autocomplete="new-password" required class="form-input" />
+		  <p class="text-xs text-gray-500 mt-1">Use at least 12 characters.</p>
+		</div>
+		<div>
+		  <label class="form-label">Confirm New Password</label>
+		  <input v-model="resetForm.confirm_password" type="password" minlength="12" autocomplete="new-password" required class="form-input" />
+		</div>
+		<div v-if="resetForm.confirm_password && resetForm.new_password !== resetForm.confirm_password" class="text-xs text-red-600">
+		  Passwords do not match.
+		</div>
+		<div v-if="modalError" class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{{ modalError }}</div>
+	  </form>
+	  <template #footer>
+		<button @click="closeResetModal" class="btn-ghost">Cancel</button>
+		<button
+		  @click="submitPasswordReset"
+		  :disabled="submitting || resetForm.new_password.length < 12 || resetForm.new_password !== resetForm.confirm_password"
+		  class="btn-primary disabled:opacity-60"
+		>
+		  {{ submitting ? 'Resetting…' : 'Reset Password' }}
+		</button>
+	  </template>
+	</Modal>
+
+    <!-- Account Action Modal -->
+    <Modal :show="showAccountActionModal" :title="accountActionTitle" size="sm" @close="closeAccountActionModal">
+      <form @submit.prevent="submitAccountAction" class="space-y-4">
+        <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+          {{ accountActionDescription }}
+        </div>
+        <div v-if="accountActionRequiresReason">
+          <label class="form-label">Reason</label>
+          <textarea v-model="accountActionForm.reason" rows="3" maxlength="500" required class="form-input" placeholder="Enter a clear reason for the audit record"></textarea>
+        </div>
+        <div v-if="accountActionForm.action === 'SUSPEND'">
+          <label class="form-label">Suspended Until <span class="text-gray-400">(optional)</span></label>
+          <input v-model="accountActionForm.suspended_until" type="datetime-local" class="form-input" />
+        </div>
+        <div v-if="modalError" class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{{ modalError }}</div>
+      </form>
+      <template #footer>
+        <button @click="closeAccountActionModal" class="btn-ghost">Cancel</button>
+        <button @click="submitAccountAction" :disabled="submitting || (accountActionRequiresReason && !accountActionForm.reason.trim())" class="btn-primary disabled:opacity-60">
+          {{ submitting ? 'Applying...' : accountActionButtonLabel }}
+        </button>
+      </template>
+    </Modal>
+
     <!-- Delete Confirmation Modal -->
     <Modal :show="showDeleteModal" title="Delete User" size="sm" @close="showDeleteModal = false">
       <p class="text-sm text-gray-600">
@@ -210,9 +260,11 @@ import LayoutDefault from '@/components/layout/LayoutDefault.vue'
 import AdminTable from '@/components/ui/AdminTable.vue'
 import Modal from '@/components/ui/Modal.vue'
 import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
+import { useAuthStore } from '@/stores/auth.js'
 import apiClient from '@/api/client.js'
 
 const breadcrumbStore = useBreadcrumbStore()
+const authStore = useAuthStore()
 
 const users = ref([])
 const loading = ref(true)
@@ -225,13 +277,19 @@ const alertType = ref('success')
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
+const showResetModal = ref(false)
+const showAccountActionModal = ref(false)
 const submitting = ref(false)
 const modalError = ref('')
 const editTarget = ref(null)
 const deleteTarget = ref(null)
+const resetTarget = ref(null)
+const accountActionTarget = ref(null)
 
 const createForm = ref({ first_name: '', last_name: '', email: '', phone: '', password: '', role_id: '' })
 const editForm = ref({ first_name: '', last_name: '', phone: '' })
+const resetForm = ref({ new_password: '', confirm_password: '' })
+const accountActionForm = ref({ action: '', reason: '', suspended_until: '' })
 const availableRoles = ref([])
 const newRoleId = ref('')
 const roleActionLoading = ref(false)
@@ -240,6 +298,27 @@ const assignableRoles = computed(() => availableRoles.value.filter(r => r.name !
 const assignableRolesForEdit = computed(() => {
   const has = new Set((editTarget.value?.roles || []).map(r => typeof r === 'string' ? r : r.name))
   return assignableRoles.value.filter(r => !has.has(r.name))
+})
+const accountActionRequiresReason = computed(() => ['SUSPEND', 'BAN', 'MARK_FRAUD'].includes(accountActionForm.value.action))
+const accountActionLabels = {
+  SUSPEND: 'Suspend Account',
+  BAN: 'Ban Account',
+  MARK_FRAUD: 'Mark as Fraud',
+  CLEAR_FRAUD: 'Clear Fraud Flag',
+  REACTIVATE: 'Reactivate Account',
+}
+const accountActionTitle = computed(() => accountActionLabels[accountActionForm.value.action] || 'Account Action')
+const accountActionButtonLabel = computed(() => accountActionLabels[accountActionForm.value.action] || 'Apply Action')
+const accountActionDescription = computed(() => {
+  const email = accountActionTarget.value?.email || 'this user'
+  const descriptions = {
+    SUSPEND: `Suspend ${email} and immediately revoke all active sessions.`,
+    BAN: `Ban ${email} and immediately revoke all active sessions.`,
+    MARK_FRAUD: `Flag ${email} for fraud, ban access, and revoke all active sessions.`,
+    CLEAR_FRAUD: `Remove the fraud flag from ${email}. This does not automatically reactivate the account.`,
+    REACTIVATE: `Restore access for ${email}.`,
+  }
+  return descriptions[accountActionForm.value.action] || ''
 })
 
 let searchTimer = null
@@ -287,10 +366,52 @@ function getRoleName(role) {
   const name = typeof role === 'string' ? role : role.name
   return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
+function isProtectedUser(user) {
+  return (user.roles || []).some(role => (typeof role === 'string' ? role : role.name) === 'super_admin')
+}
+function canResetPassword(user) {
+  return !isProtectedUser(user) && user.id !== authStore.user?.id
+}
+function canManageAccount(user) { return canResetPassword(user) }
+function accountStatus(user) { return user.account_status || (user.is_active ? 'ACTIVE' : 'SUSPENDED') }
+function formatAccountStatus(user) { return formatRoleName(accountStatus(user)) }
+function statusBadgeClass(user) {
+  return accountStatus(user) === 'ACTIVE'
+    ? 'badge-green'
+    : accountStatus(user) === 'SUSPENDED'
+      ? 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700'
+      : 'badge-red'
+}
+function statusDotClass(user) {
+  return accountStatus(user) === 'ACTIVE' ? 'bg-green-500' : accountStatus(user) === 'SUSPENDED' ? 'bg-yellow-500' : 'bg-red-500'
+}
 function formatDate(dateStr) {
   if (!dateStr) return 'Never'
   try { return new Date(dateStr).toLocaleDateString('en-UG', { day: '2-digit', month: 'short', year: 'numeric' }) }
   catch { return dateStr }
+}
+function formatDateTime(dateStr) {
+  if (!dateStr) return ''
+  try { return new Date(dateStr).toLocaleString('en-UG', { dateStyle: 'medium', timeStyle: 'short' }) }
+  catch { return dateStr }
+}
+function apiMessage(err, fallback) {
+  const responseData = err.response?.data
+  const apiError = err.response?.data?.error
+  const details = apiError?.details
+  const detailText = details && typeof details === 'object'
+    ? Object.entries(details).map(([field, message]) => `${field}: ${message}`).join('; ')
+    : ''
+  if (apiError?.message) return detailText ? `${apiError.message} (${detailText})` : apiError.message
+  if (typeof responseData === 'string' && responseData.trim()) return `${responseData.trim()} (HTTP ${err.response.status})`
+  if (responseData?.message) return `${responseData.message} (HTTP ${err.response.status})`
+  if (err.response) {
+    const requestPath = err.config?.url ? ` for ${err.config.url}` : ''
+    const statusText = err.response.statusText ? ` ${err.response.statusText}` : ''
+    return `${fallback} (HTTP ${err.response.status}${statusText}${requestPath})`
+  }
+  if (err.request) return 'The backend could not be reached. Check that the API is running and try again.'
+  return err.message || fallback
 }
 function showAlert(msg, type = 'success') {
   alertMsg.value = msg; alertType.value = type
@@ -311,6 +432,36 @@ function openEditModal(user) {
   showEditModal.value = true
 }
 function confirmDelete(user) { deleteTarget.value = user; showDeleteModal.value = true }
+function openResetModal(user) {
+  resetTarget.value = user
+  resetForm.value = { new_password: '', confirm_password: '' }
+  modalError.value = ''
+  showResetModal.value = true
+}
+function closeResetModal() {
+  showResetModal.value = false
+  resetTarget.value = null
+  resetForm.value = { new_password: '', confirm_password: '' }
+  modalError.value = ''
+}
+function handleActionSelection(event, user) {
+  const action = event.target.value
+  event.target.value = ''
+  if (!action) return
+  if (action === 'edit') return openEditModal(user)
+  if (action === 'reset') return openResetModal(user)
+  if (action === 'delete') return confirmDelete(user)
+  accountActionTarget.value = user
+  accountActionForm.value = { action, reason: '', suspended_until: '' }
+  modalError.value = ''
+  showAccountActionModal.value = true
+}
+function closeAccountActionModal() {
+  showAccountActionModal.value = false
+  accountActionTarget.value = null
+  accountActionForm.value = { action: '', reason: '', suspended_until: '' }
+  modalError.value = ''
+}
 
 async function submitCreate() {
   submitting.value = true; modalError.value = ''
@@ -365,12 +516,37 @@ async function submitDelete() {
   } catch (err) { showAlert(err.response?.data?.error?.message || 'Failed to delete user.', 'error') }
   finally { submitting.value = false }
 }
-async function toggleUserStatus(user) {
+async function submitPasswordReset() {
+  if (!resetTarget.value?.id || resetForm.value.new_password.length < 12 || resetForm.value.new_password !== resetForm.value.confirm_password) return
+  submitting.value = true; modalError.value = ''
   try {
-    if (user.is_active) await apiClient.post(`/api/v1/admin/users/${user.id}/deactivate`)
-    else await apiClient.post(`/api/v1/admin/users/${user.id}/activate`)
-    showAlert(`${getFullName(user)} ${user.is_active ? 'deactivated' : 'activated'}.`); loadUsers()
-  } catch (err) { showAlert(err.response?.data?.error?.message || 'Action failed.', 'error') }
+    const res = await apiClient.post(`/api/v1/admin/users/${resetTarget.value.id}/reset-password`, {
+      new_password: resetForm.value.new_password,
+    })
+    closeResetModal()
+    showAlert(res.data?.message || 'Password reset successfully. All existing sessions were revoked.')
+  } catch (err) {
+    modalError.value = apiMessage(err, 'Failed to reset password.')
+  } finally { submitting.value = false }
+}
+async function submitAccountAction() {
+  if (!accountActionTarget.value?.id) return
+  submitting.value = true; modalError.value = ''
+  try {
+    const payload = {
+      action: accountActionForm.value.action,
+      reason: accountActionForm.value.reason.trim(),
+      suspended_until: accountActionForm.value.suspended_until
+        ? new Date(accountActionForm.value.suspended_until).toISOString()
+        : null,
+    }
+    const res = await apiClient.post(`/api/v1/admin/users/${accountActionTarget.value.id}/account-action`, payload)
+    closeAccountActionModal()
+    showAlert(res.data?.message || 'Account action completed successfully.')
+    loadUsers()
+  } catch (err) {
+    modalError.value = apiMessage(err, 'Account action failed.')
+  } finally { submitting.value = false }
 }
 
 onMounted(() => {

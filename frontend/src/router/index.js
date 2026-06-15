@@ -176,18 +176,26 @@ router.beforeEach((to, from, next) => {
     return next('/login')
   }
 
-  // Role-based access check
-  if (to.meta.roles && to.meta.roles.length > 0) {
-    const storedUser = localStorage.getItem('ncsms_user')
-    let userRoles = []
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser)
-        userRoles = (user.roles || []).map(r => (typeof r === 'string' ? r : r.name))
-      } catch {
-        userRoles = []
-      }
+  // Resolve user roles once for both checks below
+  const storedUser = localStorage.getItem('ncsms_user')
+  let userRoles = []
+  if (storedUser) {
+    try {
+      userRoles = (JSON.parse(storedUser).roles || []).map(r => (typeof r === 'string' ? r : r.name))
+    } catch {
+      userRoles = []
     }
+  }
+  const isApplicantUser = !userRoles.length || userRoles.some(r => r === 'applicant' || r === 'user')
+
+  // Applicant/user role — only allowed on portal and profile; block all staff routes
+  const staffRoutes = ['Dashboard', 'Users', 'Applications', 'AuditLogs', 'Roles', 'CMS']
+  if (isApplicantUser && staffRoutes.includes(to.name)) {
+    return next('/my-portal')
+  }
+
+  // Role-based access check for routes that declare required roles
+  if (to.meta.roles && to.meta.roles.length > 0) {
     const hasRole = to.meta.roles.some(role => userRoles.includes(role))
     if (!hasRole) {
       return next('/dashboard')

@@ -113,10 +113,11 @@
                   <span :class="statusBadge(log.event_status)" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium">
                     {{ log.event_status || '—' }}
                   </span>
-                  <div class="text-xs text-gray-400 mt-0.5">{{ log.response_code }} · {{ log.response_time_ms }}ms</div>
+                  <div class="text-xs text-gray-400 mt-0.5">{{ log.response_code ?? '—' }} · {{ log.response_time_ms ?? 0 }}ms</div>
                 </td>
                 <td class="table-td">
-                  <div class="text-sm font-medium text-gray-700">{{ displayName(log) }}</div>
+                  <div class="text-sm font-medium" :class="log.user_id ? 'text-gray-700' : 'text-gray-500'">{{ displayName(log) }}</div>
+                  <div v-if="log.user_id && log.username" class="text-xs text-gray-400 mt-0.5 truncate max-w-48">{{ log.username }}</div>
                   <div class="text-xs text-gray-400 font-mono mt-0.5">{{ log.ip_address || '—' }}</div>
                 </td>
                 <td class="table-td">
@@ -209,8 +210,8 @@
                 <div><dt class="text-xs text-gray-500">Event Type</dt><dd class="text-sm font-medium text-gray-800 mt-0.5">{{ detailLog.event_type || '—' }}</dd></div>
                 <div><dt class="text-xs text-gray-500">HTTP Method</dt><dd class="text-sm font-mono font-medium text-gray-800 mt-0.5">{{ detailLog.method || '—' }}</dd></div>
                 <div class="col-span-2"><dt class="text-xs text-gray-500">Endpoint</dt><dd class="text-sm font-mono text-gray-700 mt-0.5 break-all">{{ detailLog.endpoint || '—' }}</dd></div>
-                <div><dt class="text-xs text-gray-500">Response Code</dt><dd class="text-sm font-medium mt-0.5" :class="detailLog.response_code >= 400 ? 'text-red-600' : 'text-green-600'">{{ detailLog.response_code || '—' }}</dd></div>
-                <div><dt class="text-xs text-gray-500">Response Time</dt><dd class="text-sm font-medium text-gray-800 mt-0.5">{{ detailLog.response_time_ms }}ms</dd></div>
+                <div><dt class="text-xs text-gray-500">Response Code</dt><dd class="text-sm font-medium mt-0.5" :class="detailLog.response_code >= 400 ? 'text-red-600' : 'text-green-600'">{{ detailLog.response_code ?? '—' }}</dd></div>
+                <div><dt class="text-xs text-gray-500">Response Time</dt><dd class="text-sm font-medium text-gray-800 mt-0.5">{{ detailLog.response_time_ms ?? 0 }}ms</dd></div>
                 <div><dt class="text-xs text-gray-500">Resource</dt><dd class="text-sm font-medium text-gray-800 mt-0.5">{{ detailLog.resource || '—' }}</dd></div>
                 <div><dt class="text-xs text-gray-500">Timestamp</dt><dd class="text-sm font-medium text-gray-800 mt-0.5">{{ formatDateTime(detailLog.created_at) }}</dd></div>
               </dl>
@@ -221,7 +222,8 @@
               <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">User & Session</h4>
               <dl class="grid grid-cols-2 gap-3">
                 <div class="col-span-2"><dt class="text-xs text-gray-500">User</dt><dd class="text-sm font-medium text-gray-800 mt-0.5">{{ displayName(detailLog) }}</dd></div>
-                <div class="col-span-2"><dt class="text-xs text-gray-500">User ID</dt><dd class="text-sm font-mono text-gray-700 mt-0.5 break-all">{{ detailLog.user_id || 'Anonymous' }}</dd></div>
+                <div v-if="detailLog.username" class="col-span-2"><dt class="text-xs text-gray-500">Email</dt><dd class="text-sm text-gray-700 mt-0.5 break-all">{{ detailLog.username }}</dd></div>
+                <div class="col-span-2"><dt class="text-xs text-gray-500">User ID</dt><dd class="text-sm font-mono text-gray-700 mt-0.5 break-all">{{ detailLog.user_id || 'Not authenticated' }}</dd></div>
                 <div class="col-span-2"><dt class="text-xs text-gray-500">Session ID (JTI)</dt><dd class="text-sm font-mono text-gray-700 mt-0.5 break-all">{{ detailLog.session_id || '—' }}</dd></div>
               </dl>
             </div>
@@ -328,7 +330,7 @@ function displayName(log) {
   const last  = log.last_name  || ''
   const full  = [first, last].filter(Boolean).join(' ')
   if (full) return full
-  return log.username || (log.user_id ? log.user_id.slice(0, 8) + '…' : 'Anonymous')
+  return log.username || (log.user_id ? log.user_id.slice(0, 8) + '…' : 'Unauthenticated')
 }
 
 // ── Badge helpers ─────────────────────────────────────────────────

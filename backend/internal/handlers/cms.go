@@ -1297,3 +1297,92 @@ func (h *CMSHandler) DeleteInvest(w http.ResponseWriter, r *http.Request) {
 	}
 	response.JSONMsg(w, http.StatusOK, "Deleted")
 }
+
+// ── Team Members ──────────────────────────────────────────────────
+
+func (h *CMSHandler) ListTeam(w http.ResponseWriter, r *http.Request) {
+	activeOnly := r.URL.Query().Get("active") != "false"
+	items, err := h.repo.ListTeamMembers(r.Context(), activeOnly)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list team members")
+		return
+	}
+	if items == nil {
+		items = []*models.CMSTeamMember{}
+	}
+	response.JSON(w, http.StatusOK, items)
+}
+
+func (h *CMSHandler) CreateTeamMember(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		FullName    string `json:"full_name"`
+		Designation string `json:"designation"`
+		ImageURL    string `json:"image_url"`
+		Bio         string `json:"bio"`
+		SortOrder   int    `json:"sort_order"`
+		IsActive    bool   `json:"is_active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
+		return
+	}
+	if req.FullName == "" {
+		response.ValidationErr(w, map[string]string{"full_name": "required"})
+		return
+	}
+	m := &models.CMSTeamMember{
+		ID: uuid.NewString(), FullName: req.FullName, Designation: req.Designation,
+		ImageURL: req.ImageURL, Bio: req.Bio, SortOrder: req.SortOrder, IsActive: req.IsActive,
+	}
+	if err := h.repo.CreateTeamMember(r.Context(), m); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create team member")
+		return
+	}
+	response.JSON(w, http.StatusCreated, m)
+}
+
+func (h *CMSHandler) UpdateTeamMember(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	existing, err := h.repo.GetTeamMemberByID(r.Context(), id)
+	if errors.Is(err, repository.ErrNotFound) {
+		response.Err(w, http.StatusNotFound, "NOT_FOUND", "Team member not found")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not get team member")
+		return
+	}
+	var req struct {
+		FullName    string `json:"full_name"`
+		Designation string `json:"designation"`
+		ImageURL    string `json:"image_url"`
+		Bio         string `json:"bio"`
+		SortOrder   int    `json:"sort_order"`
+		IsActive    bool   `json:"is_active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
+		return
+	}
+	if req.FullName != "" {
+		existing.FullName = req.FullName
+	}
+	existing.Designation = req.Designation
+	existing.ImageURL = req.ImageURL
+	existing.Bio = req.Bio
+	existing.SortOrder = req.SortOrder
+	existing.IsActive = req.IsActive
+	if err := h.repo.UpdateTeamMember(r.Context(), existing); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update team member")
+		return
+	}
+	response.JSON(w, http.StatusOK, existing)
+}
+
+func (h *CMSHandler) DeleteTeamMember(w http.ResponseWriter, r *http.Request) {
+	if err := h.repo.DeleteTeamMember(r.Context(), chi.URLParam(r, "id")); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not delete team member")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Deleted")
+}

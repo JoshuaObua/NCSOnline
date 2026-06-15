@@ -22,7 +22,7 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 	repos := repository.New(db)
 
 	authSvc := services.NewAuthService(repos.Users, repos.Tokens, cfg)
-	userSvc := services.NewUserService(repos.Users, repos.Roles)
+	userSvc := services.NewUserService(repos.Users, repos.Roles, repos.Tokens)
 	appSvc := services.NewApplicationService(repos.Applications, repos.Audit)
 
 	return &Handlers{

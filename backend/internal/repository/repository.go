@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/jackc/pgx/v5"
@@ -50,14 +51,20 @@ func (r *UserRepo) Create(ctx context.Context, u *models.User) error {
 func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error) {
 	const q = `SELECT id, email, password_hash, first_name, last_name, COALESCE(phone,''),
 	                  COALESCE(pin_hash,''), COALESCE(pin_change_required, TRUE),
-	                  is_active, is_email_verified, email_verified_at, last_login_at,
+	                  is_active, account_status, status_reason, fraud_flag, fraud_reason,
+	                  suspended_until, status_changed_at,
+	                  is_email_verified, email_verified_at, last_login_at,
+	                  auth_invalid_before,
 	                  created_at, updated_at
 	           FROM users WHERE id=$1 AND deleted_at IS NULL`
 	u := &models.User{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &u.Phone,
 		&u.PinHash, &u.PinChangeRequired,
-		&u.IsActive, &u.IsEmailVerified, &u.EmailVerifiedAt, &u.LastLoginAt,
+		&u.IsActive, &u.AccountStatus, &u.StatusReason, &u.FraudFlag, &u.FraudReason,
+		&u.SuspendedUntil, &u.StatusChangedAt,
+		&u.IsEmailVerified, &u.EmailVerifiedAt, &u.LastLoginAt,
+		&u.AuthInvalidBefore,
 		&u.CreatedAt, &u.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -69,14 +76,20 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	const q = `SELECT id, email, password_hash, first_name, last_name, COALESCE(phone,''),
 	                  COALESCE(pin_hash,''), COALESCE(pin_change_required, TRUE),
-	                  is_active, is_email_verified, email_verified_at, last_login_at,
+	                  is_active, account_status, status_reason, fraud_flag, fraud_reason,
+	                  suspended_until, status_changed_at,
+	                  is_email_verified, email_verified_at, last_login_at,
+	                  auth_invalid_before,
 	                  created_at, updated_at
 	           FROM users WHERE email=$1 AND deleted_at IS NULL`
 	u := &models.User{}
 	err := r.db.QueryRow(ctx, q, email).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &u.Phone,
 		&u.PinHash, &u.PinChangeRequired,
-		&u.IsActive, &u.IsEmailVerified, &u.EmailVerifiedAt, &u.LastLoginAt,
+		&u.IsActive, &u.AccountStatus, &u.StatusReason, &u.FraudFlag, &u.FraudReason,
+		&u.SuspendedUntil, &u.StatusChangedAt,
+		&u.IsEmailVerified, &u.EmailVerifiedAt, &u.LastLoginAt,
+		&u.AuthInvalidBefore,
 		&u.CreatedAt, &u.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -88,7 +101,9 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, 
 func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams) ([]*models.User, int64, error) {
 	const countQ = `SELECT COUNT(*) FROM users WHERE deleted_at IS NULL
 	                AND ($1='' OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1)`
-	const q = `SELECT id, email, first_name, last_name, COALESCE(phone,''), is_active, is_email_verified,
+	const q = `SELECT id, email, first_name, last_name, COALESCE(phone,''),
+	                  is_active, account_status, status_reason, fraud_flag, fraud_reason,
+	                  suspended_until, status_changed_at, is_email_verified,
 	                  last_login_at, created_at, updated_at
 	           FROM users WHERE deleted_at IS NULL
 	           AND ($1='' OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1)
@@ -114,7 +129,9 @@ func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mod
 	for rows.Next() {
 		u := &models.User{}
 		if err := rows.Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.Phone,
-			&u.IsActive, &u.IsEmailVerified, &u.LastLoginAt, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			&u.IsActive, &u.AccountStatus, &u.StatusReason, &u.FraudFlag, &u.FraudReason,
+			&u.SuspendedUntil, &u.StatusChangedAt, &u.IsEmailVerified,
+			&u.LastLoginAt, &u.CreatedAt, &u.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		users = append(users, u)
@@ -130,21 +147,72 @@ func (r *UserRepo) Update(ctx context.Context, u *models.User) error {
 }
 
 func (r *UserRepo) UpdatePassword(ctx context.Context, userID, hash string) error {
-	const q = `UPDATE users SET password_hash=$2, updated_at=NOW() WHERE id=$1`
+	const q = `UPDATE users SET password_hash=$2, auth_invalid_before=date_trunc('second', NOW()), updated_at=NOW()
+	           WHERE id=$1 AND deleted_at IS NULL`
 	_, err := r.db.Exec(ctx, q, userID, hash)
 	return err
 }
 
 func (r *UserRepo) SetActive(ctx context.Context, userID string, active bool) error {
-	const q = `UPDATE users SET is_active=$2, updated_at=NOW() WHERE id=$1`
-	_, err := r.db.Exec(ctx, q, userID, active)
+	status := models.AccountStatusSuspended
+	if active {
+		status = models.AccountStatusActive
+	}
+	const q = `UPDATE users SET is_active=$2, account_status=$3,
+	                  status_reason=CASE WHEN $2 THEN '' ELSE status_reason END,
+	                  suspended_until=CASE WHEN $2 THEN NULL ELSE suspended_until END,
+	                  auth_invalid_before=CASE WHEN $2=FALSE THEN date_trunc('second', NOW()) ELSE auth_invalid_before END,
+	                  updated_at=NOW()
+	           WHERE id=$1 AND deleted_at IS NULL`
+	_, err := r.db.Exec(ctx, q, userID, active, status)
 	return err
 }
 
+func (r *UserRepo) SetAccountManagement(ctx context.Context, userID, actorID, status, reason string, fraud bool, fraudReason string, suspendedUntil *time.Time) error {
+	const q = `UPDATE users
+	           SET account_status=$3, is_active=($3='ACTIVE'), status_reason=$4,
+	               fraud_flag=$5, fraud_reason=$6, suspended_until=$7,
+	               status_changed_by=$2, status_changed_at=NOW(),
+	               auth_invalid_before=CASE WHEN $3<>'ACTIVE' THEN date_trunc('second', NOW()) ELSE auth_invalid_before END,
+	               updated_at=NOW()
+	           WHERE id=$1 AND deleted_at IS NULL`
+	result, err := r.db.Exec(ctx, q, userID, actorID, status, reason, fraud, fraudReason, suspendedUntil)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *UserRepo) SoftDelete(ctx context.Context, userID string) error {
-	const q = `UPDATE users SET deleted_at=NOW(), updated_at=NOW() WHERE id=$1`
+	const q = `UPDATE users SET deleted_at=NOW(), auth_invalid_before=date_trunc('second', NOW()), updated_at=NOW() WHERE id=$1`
 	_, err := r.db.Exec(ctx, q, userID)
 	return err
+}
+
+func (r *UserRepo) GetAuthorizationState(ctx context.Context, userID string) (string, bool, *time.Time, []string, error) {
+	const q = `SELECT email, is_active, auth_invalid_before
+	           FROM users WHERE id=$1 AND deleted_at IS NULL`
+	var email string
+	var active bool
+	var invalidBefore *time.Time
+	if err := r.db.QueryRow(ctx, q, userID).Scan(&email, &active, &invalidBefore); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", false, nil, nil, ErrNotFound
+		}
+		return "", false, nil, nil, err
+	}
+	roles, err := r.GetRoles(ctx, userID)
+	if err != nil {
+		return "", false, nil, nil, err
+	}
+	names := make([]string, 0, len(roles))
+	for _, role := range roles {
+		names = append(names, role.Name)
+	}
+	return email, active, invalidBefore, names, nil
 }
 
 func (r *UserRepo) UpdateLastLogin(ctx context.Context, userID string) error {
@@ -664,7 +732,12 @@ func (r *AuditRepo) Log(ctx context.Context, a *models.AuditLog) error {
 }
 
 func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*models.AuditLog, int64, error) {
-	const countQ = `SELECT COUNT(*) FROM audit_logs WHERE ($1='' OR action ILIKE $1 OR resource ILIKE $1 OR COALESCE(geo_country,'') ILIKE $1 OR COALESCE(event_type,'') ILIKE $1)`
+	const countQ = `SELECT COUNT(*) FROM audit_logs al
+	               LEFT JOIN users u ON al.user_id = u.id
+	               WHERE ($1='' OR al.action ILIKE $1 OR al.resource ILIKE $1 OR
+	                      COALESCE(al.ip_address,'') ILIKE $1 OR COALESCE(al.username,'') ILIKE $1 OR
+	                      COALESCE(u.first_name,'') ILIKE $1 OR COALESCE(u.last_name,'') ILIKE $1 OR
+	                      COALESCE(al.geo_country,'') ILIKE $1 OR COALESCE(al.event_type,'') ILIKE $1)`
 	const q = `SELECT al.id, al.user_id, al.action, al.resource, COALESCE(al.resource_id,''),
 	                  COALESCE(al.ip_address,''), COALESCE(al.method,''), COALESCE(al.endpoint,''),
 	                  COALESCE(al.response_code,0), COALESCE(al.response_time_ms,0),
@@ -679,7 +752,10 @@ func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mo
 	                  al.created_at
 	           FROM audit_logs al
 	           LEFT JOIN users u ON al.user_id = u.id
-	           WHERE ($1='' OR al.action ILIKE $1 OR al.resource ILIKE $1 OR COALESCE(al.geo_country,'') ILIKE $1 OR COALESCE(al.event_type,'') ILIKE $1)
+	           WHERE ($1='' OR al.action ILIKE $1 OR al.resource ILIKE $1 OR
+	                  COALESCE(al.ip_address,'') ILIKE $1 OR COALESCE(al.username,'') ILIKE $1 OR
+	                  COALESCE(u.first_name,'') ILIKE $1 OR COALESCE(u.last_name,'') ILIKE $1 OR
+	                  COALESCE(al.geo_country,'') ILIKE $1 OR COALESCE(al.event_type,'') ILIKE $1)
 	           ORDER BY al.created_at DESC LIMIT $2 OFFSET $3`
 	search := ""
 	if p.Search != "" {
@@ -1422,6 +1498,67 @@ func (r *CMSRepo) UpdateInvest(ctx context.Context, inv *models.CMSInvest) error
 
 func (r *CMSRepo) DeleteInvest(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM cms_invest WHERE id=$1`, id)
+	return err
+}
+
+// ── Team Members ─────────────────────────────────────────────────
+
+func (r *CMSRepo) ListTeamMembers(ctx context.Context, activeOnly bool) ([]*models.CMSTeamMember, error) {
+	q := `SELECT id, full_name, COALESCE(designation,''), COALESCE(image_url,''), COALESCE(bio,''),
+	             sort_order, is_active, created_at, updated_at
+	      FROM cms_team_members`
+	if activeOnly {
+		q += ` WHERE is_active=TRUE`
+	}
+	q += ` ORDER BY sort_order ASC, created_at ASC`
+	rows, err := r.db.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []*models.CMSTeamMember
+	for rows.Next() {
+		m := &models.CMSTeamMember{}
+		if err := rows.Scan(&m.ID, &m.FullName, &m.Designation, &m.ImageURL, &m.Bio,
+			&m.SortOrder, &m.IsActive, &m.CreatedAt, &m.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, m)
+	}
+	return out, nil
+}
+
+func (r *CMSRepo) GetTeamMemberByID(ctx context.Context, id string) (*models.CMSTeamMember, error) {
+	m := &models.CMSTeamMember{}
+	err := r.db.QueryRow(ctx, `SELECT id, full_name, COALESCE(designation,''), COALESCE(image_url,''), COALESCE(bio,''),
+	                                  sort_order, is_active, created_at, updated_at
+	                           FROM cms_team_members WHERE id=$1`, id).
+		Scan(&m.ID, &m.FullName, &m.Designation, &m.ImageURL, &m.Bio,
+			&m.SortOrder, &m.IsActive, &m.CreatedAt, &m.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return m, err
+}
+
+func (r *CMSRepo) CreateTeamMember(ctx context.Context, m *models.CMSTeamMember) error {
+	return r.db.QueryRow(ctx,
+		`INSERT INTO cms_team_members (id, full_name, designation, image_url, bio, sort_order, is_active)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING created_at, updated_at`,
+		m.ID, m.FullName, m.Designation, m.ImageURL, m.Bio, m.SortOrder, m.IsActive,
+	).Scan(&m.CreatedAt, &m.UpdatedAt)
+}
+
+func (r *CMSRepo) UpdateTeamMember(ctx context.Context, m *models.CMSTeamMember) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE cms_team_members SET full_name=$2, designation=$3, image_url=$4, bio=$5,
+		 sort_order=$6, is_active=$7, updated_at=NOW() WHERE id=$1`,
+		m.ID, m.FullName, m.Designation, m.ImageURL, m.Bio, m.SortOrder, m.IsActive)
+	return err
+}
+
+func (r *CMSRepo) DeleteTeamMember(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM cms_team_members WHERE id=$1`, id)
 	return err
 }
 

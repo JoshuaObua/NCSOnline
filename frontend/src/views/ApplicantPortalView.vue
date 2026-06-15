@@ -117,45 +117,43 @@
         </div>
       </div>
 
-      <!-- Quick actions -->
-      <div class="grid sm:grid-cols-3 gap-4">
-        <router-link
-          to="/apply"
-          class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:border-[#F48C06]/30 hover:shadow-md transition-all flex items-center gap-4 group"
-        >
-          <div class="w-12 h-12 bg-[#F48C06]/10 group-hover:bg-[#F48C06] rounded-2xl flex items-center justify-center transition-colors flex-shrink-0">
-            <i class="icofont-paper-plane text-[#F48C06] group-hover:text-white text-xl transition-colors"></i>
-          </div>
+      <!-- Apply for a Licence -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <div class="font-bold text-darken text-sm">Apply for Licence</div>
-            <div class="text-xs text-gray-400 mt-0.5">New application</div>
+            <h2 class="font-bold text-darken">Start a New Application</h2>
+            <p class="text-xs text-gray-400 mt-0.5">Select a licence type to begin your application</p>
           </div>
-        </router-link>
+        </div>
+        <div class="p-6 grid sm:grid-cols-3 gap-4">
+          <router-link
+            v-for="type in licenceTypes"
+            :key="type.id"
+            :to="`/apply?type=${type.id}`"
+            class="rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-all flex flex-col gap-3 group"
+            :class="type.hoverBorder"
+          >
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors" :class="type.iconBg">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="type.icon"/>
+              </svg>
+            </div>
+            <div>
+              <div class="font-bold text-darken text-sm group-hover:text-accent transition-colors">{{ type.title }}</div>
+              <div class="text-xs text-gray-400 mt-1 leading-relaxed">{{ type.description }}</div>
+            </div>
+            <span class="text-xs font-semibold text-accent flex items-center gap-1 mt-auto">Apply now →</span>
+          </router-link>
+        </div>
+      </div>
 
-        <router-link
-          to="/apply"
-          class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:border-[#112b4e]/30 hover:shadow-md transition-all flex items-center gap-4 group"
-        >
-          <div class="w-12 h-12 bg-[#112b4e]/8 group-hover:bg-[#112b4e] rounded-2xl flex items-center justify-center transition-colors flex-shrink-0">
-            <i class="icofont-refresh text-[#112b4e] group-hover:text-white text-xl transition-colors"></i>
-          </div>
-          <div>
-            <div class="font-bold text-darken text-sm">Renew Licence</div>
-            <div class="text-xs text-gray-400 mt-0.5">Renew existing licence</div>
-          </div>
-        </router-link>
-
+      <!-- Profile shortcut -->
+      <div class="flex justify-end">
         <router-link
           to="/profile"
-          class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:border-sky-200 hover:shadow-md transition-all flex items-center gap-4 group"
+          class="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-darken transition-colors"
         >
-          <div class="w-12 h-12 bg-sky-50 group-hover:bg-sky-500 rounded-2xl flex items-center justify-center transition-colors flex-shrink-0">
-            <i class="icofont-ui-user text-sky-500 group-hover:text-white text-xl transition-colors"></i>
-          </div>
-          <div>
-            <div class="font-bold text-darken text-sm">My Profile</div>
-            <div class="text-xs text-gray-400 mt-0.5">Update your details</div>
-          </div>
+          <i class="icofont-ui-user"></i> Update my profile
         </router-link>
       </div>
     </div>
@@ -174,6 +172,33 @@ const authStore = useAuthStore()
 const applications = ref([])
 const loading = ref(true)
 const activeStatus = ref('')
+
+const licenceTypes = [
+  {
+    id: 'national_federation',
+    title: 'National Federation',
+    description: 'Register and license a national sports federation to organise competitions at national level.',
+    iconBg: 'bg-[#112b4e]',
+    hoverBorder: 'hover:border-[#112b4e]/30',
+    icon: 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064',
+  },
+  {
+    id: 'community_club',
+    title: 'Community / Club',
+    description: 'Register a community-level sports club or local association for your district.',
+    iconBg: 'bg-gray-600',
+    hoverBorder: 'hover:border-gray-300',
+    icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0',
+  },
+  {
+    id: 'renewal',
+    title: 'Renew Existing Licence',
+    description: 'Renew your sports organisation licence before it expires for the current season.',
+    iconBg: 'bg-[#F48C06]',
+    hoverBorder: 'hover:border-[#F48C06]/30',
+    icon: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
+  },
+]
 
 const statusTabs = [
   { value: '', label: 'All' },

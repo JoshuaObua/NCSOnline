@@ -1425,7 +1425,7 @@ const team = ref([])
 const teamLoading = ref(false)
 async function loadTeam() {
   teamLoading.value=true
-  try { const r=await cmsApi.adminListTeam?.({per_page:50}); team.value=r.data.data?.items||[] }
+  try { const r=await cmsApi.adminListTeam({per_page:50}); team.value=r.data||[] }
   catch { team.value=[] } finally { teamLoading.value=false }
 }
 function editTeam(m) { editingId.value=m.id; form.value={...m}; formError.value=''; showModal.value=true }
@@ -1839,7 +1839,7 @@ async function saveItem() {
       await loadSlides()
     } else if (s==='team') {
       if (!form.value.full_name) { formError.value='Name is required'; return }
-      try { editingId.value ? await cmsApi.adminUpdateTeam?.(editingId.value,form.value) : await cmsApi.adminCreateTeam?.(form.value) } catch {}
+      editingId.value ? await cmsApi.adminUpdateTeam(editingId.value,form.value) : await cmsApi.adminCreateTeam(form.value)
       await loadTeam()
     } else if (s==='services') {
       if (!form.value.title) { formError.value='Title is required'; return }

@@ -11,7 +11,6 @@ import (
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/services"
 	"github.com/go-chi/chi/v5"
-	"github.com/google/uuid"
 )
 
 type ApplicationsHandler struct {
@@ -155,12 +154,12 @@ func (h *ApplicationsHandler) UploadPaymentProof(w http.ResponseWriter, r *http.
 	userID, _ := r.Context().Value(models.CtxUserID).(string)
 	id := chi.URLParam(r, "id")
 	var req struct {
-		PaymentDate        string  `json:"payment_date"`
-		BankOrChannel      string  `json:"paying_bank_or_channel"`
-		DepositorName      string  `json:"depositor_name"`
-		PaymentReference   string  `json:"payment_reference_number"`
-		AmountUGX          float64 `json:"payment_amount_ugx"`
-		ProofDocumentURL   string  `json:"proof_document_url"`
+		PaymentDate      string  `json:"payment_date"`
+		BankOrChannel    string  `json:"paying_bank_or_channel"`
+		DepositorName    string  `json:"depositor_name"`
+		PaymentReference string  `json:"payment_reference_number"`
+		AmountUGX        float64 `json:"payment_amount_ugx"`
+		ProofDocumentURL string  `json:"proof_document_url"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
@@ -209,10 +208,10 @@ func (h *ApplicationsHandler) GetPayment(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	response.JSON(w, http.StatusOK, map[string]interface{}{
-		"payment_status":    app.PaymentStatus,
-		"payment_method":    app.PaymentMethod,
-		"payment_reference": app.PaymentReference,
-		"payment_amount_ugx": app.PaymentAmountUGX,
+		"payment_status":      app.PaymentStatus,
+		"payment_method":      app.PaymentMethod,
+		"payment_reference":   app.PaymentReference,
+		"payment_amount_ugx":  app.PaymentAmountUGX,
 		"payment_verified_at": app.PaymentVerifiedAt,
 	})
 }
@@ -257,33 +256,7 @@ func (h *ApplicationsHandler) Respond(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/applications/{id}/attachments
 func (h *ApplicationsHandler) UploadAttachment(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	var req struct {
-		FieldName string `json:"field_name"`
-		FileName  string `json:"file_name"`
-		FileURL   string `json:"file_url"`
-		FileSize  int64  `json:"file_size"`
-		MimeType  string `json:"mime_type"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
-		return
-	}
-	if req.FieldName == "" || req.FileURL == "" {
-		response.ValidationErr(w, map[string]string{"field_name": "required", "file_url": "required"})
-		return
-	}
-	att := &models.Attachment{
-		ID:            uuid.NewString(),
-		ApplicationID: id,
-		FieldName:     req.FieldName,
-		FileName:      req.FileName,
-		FileURL:       req.FileURL,
-		FileSize:      req.FileSize,
-		MimeType:      req.MimeType,
-	}
-	// TODO: call repo directly — expose via service in future refactor
-	response.JSON(w, http.StatusCreated, att)
+	response.Err(w, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Secure attachment storage is not yet configured")
 }
 
 // GET /api/v1/applications/{id}/attachments
@@ -300,7 +273,7 @@ func (h *ApplicationsHandler) ListAttachments(w http.ResponseWriter, r *http.Req
 
 // DELETE /api/v1/applications/{id}/attachments/{attachmentID}
 func (h *ApplicationsHandler) DeleteAttachment(w http.ResponseWriter, r *http.Request) {
-	response.JSONMsg(w, http.StatusOK, "Attachment removed")
+	response.Err(w, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Secure attachment deletion is not yet configured")
 }
 
 // GET /api/v1/admin/applications

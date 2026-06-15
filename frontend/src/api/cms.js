@@ -175,3 +175,11 @@ export function adminListInvest() { return apiClient.get('/api/v1/admin/cms/inve
 export function adminCreateInvest(data) { return apiClient.post('/api/v1/admin/cms/invest', data) }
 export function adminUpdateInvest(id, data) { return apiClient.put(`/api/v1/admin/cms/invest/${id}`, data) }
 export function adminDeleteInvest(id) { return apiClient.delete(`/api/v1/admin/cms/invest/${id}`) }
+
+// ── Team Members ──────────────────────────────────────────────────
+
+export function listTeam() { return apiClient.get('/api/v1/cms/team') }
+export function adminListTeam(params = {}) { return apiClient.get('/api/v1/admin/cms/team', { params: { active: 'false', ...params } }) }
+export function adminCreateTeam(data) { return apiClient.post('/api/v1/admin/cms/team', data) }
+export function adminUpdateTeam(id, data) { return apiClient.put(`/api/v1/admin/cms/team/${id}`, data) }
+export function adminDeleteTeam(id) { return apiClient.delete(`/api/v1/admin/cms/team/${id}`) }

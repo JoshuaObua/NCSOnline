@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
@@ -12,14 +14,18 @@ import (
 
 // ErrProtectedAccount is returned when an operation targets the protected super admin.
 var ErrProtectedAccount = errors.New("this account is protected and cannot be modified or deleted")
+var ErrSelfAccountAction = errors.New("you cannot apply this account action to your own account")
+var ErrFraudFlagged = errors.New("clear the fraud flag before reactivating this account")
+var ErrInvalidAccountAction = errors.New("invalid account action")
 
 type UserService struct {
-	users *repository.UserRepo
-	roles *repository.RoleRepo
+	users  *repository.UserRepo
+	roles  *repository.RoleRepo
+	tokens *repository.TokenRepo
 }
 
-func NewUserService(users *repository.UserRepo, roles *repository.RoleRepo) *UserService {
-	return &UserService{users: users, roles: roles}
+func NewUserService(users *repository.UserRepo, roles *repository.RoleRepo, tokens *repository.TokenRepo) *UserService {
+	return &UserService{users: users, roles: roles, tokens: tokens}
 }
 
 type CreateUserInput struct {
@@ -37,13 +43,14 @@ func (s *UserService) Create(ctx context.Context, in CreateUserInput) (*models.U
 	}
 
 	u := &models.User{
-		ID:           uuid.NewString(),
-		Email:        in.Email,
-		PasswordHash: hash,
-		FirstName:    in.FirstName,
-		LastName:     in.LastName,
-		Phone:        in.Phone,
-		IsActive:     true,
+		ID:            uuid.NewString(),
+		Email:         in.Email,
+		PasswordHash:  hash,
+		FirstName:     in.FirstName,
+		LastName:      in.LastName,
+		Phone:         in.Phone,
+		IsActive:      true,
+		AccountStatus: models.AccountStatusActive,
 	}
 
 	if err := s.users.Create(ctx, u); err != nil {
@@ -109,7 +116,10 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 	if err := s.guardSuperAdmin(ctx, id); err != nil {
 		return err
 	}
-	return s.users.SoftDelete(ctx, id)
+	if err := s.users.SoftDelete(ctx, id); err != nil {
+		return err
+	}
+	return s.tokens.RevokeAllForUser(ctx, id)
 }
 
 func (s *UserService) SetActive(ctx context.Context, id string, active bool) error {
@@ -118,7 +128,13 @@ func (s *UserService) SetActive(ctx context.Context, id string, active bool) err
 			return err
 		}
 	}
-	return s.users.SetActive(ctx, id, active)
+	if err := s.users.SetActive(ctx, id, active); err != nil {
+		return err
+	}
+	if !active {
+		return s.tokens.RevokeAllForUser(ctx, id)
+	}
+	return nil
 }
 
 func (s *UserService) AssignRole(ctx context.Context, userID, roleID, assignedBy string) error {
@@ -151,6 +167,92 @@ func (s *UserService) RemoveRole(ctx context.Context, userID, roleID string) err
 		return ErrProtectedAccount
 	}
 	return s.users.RemoveRole(ctx, userID, roleID)
+}
+
+func (s *UserService) ResetPassword(ctx context.Context, userID, newPassword string) error {
+	if err := s.guardSuperAdmin(ctx, userID); err != nil {
+		return err
+	}
+	if _, err := s.users.GetByID(ctx, userID); err != nil {
+		return err
+	}
+	hash, err := HashPassword(newPassword)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+	if err := s.users.UpdatePassword(ctx, userID, hash); err != nil {
+		return fmt.Errorf("update password: %w", err)
+	}
+	if err := s.tokens.RevokeAllForUser(ctx, userID); err != nil {
+		return fmt.Errorf("password updated but session revocation failed: %w", err)
+	}
+	return nil
+}
+
+type AccountActionInput struct {
+	UserID         string
+	ActorID        string
+	Action         string
+	Reason         string
+	SuspendedUntil *time.Time
+}
+
+func (s *UserService) ApplyAccountAction(ctx context.Context, in AccountActionInput) error {
+	if in.UserID == in.ActorID {
+		return ErrSelfAccountAction
+	}
+	if err := s.guardSuperAdmin(ctx, in.UserID); err != nil {
+		return err
+	}
+	user, err := s.users.GetByID(ctx, in.UserID)
+	if err != nil {
+		return err
+	}
+
+	action := strings.ToUpper(strings.TrimSpace(in.Action))
+	reason := strings.TrimSpace(in.Reason)
+	status := user.AccountStatus
+	fraud := user.FraudFlag
+	fraudReason := user.FraudReason
+	suspendedUntil := user.SuspendedUntil
+	restrictAccess := false
+
+	switch action {
+	case "SUSPEND":
+		if reason == "" {
+			return errors.New("a reason is required to suspend an account")
+		}
+		status, suspendedUntil, restrictAccess = models.AccountStatusSuspended, in.SuspendedUntil, true
+	case "BAN":
+		if reason == "" {
+			return errors.New("a reason is required to ban an account")
+		}
+		status, suspendedUntil, restrictAccess = models.AccountStatusBanned, nil, true
+	case "MARK_FRAUD":
+		if reason == "" {
+			return errors.New("a reason is required to mark an account as fraud")
+		}
+		status, fraud, fraudReason, suspendedUntil, restrictAccess = models.AccountStatusBanned, true, reason, nil, true
+	case "CLEAR_FRAUD":
+		fraud, fraudReason = false, ""
+	case "REACTIVATE":
+		if fraud {
+			return ErrFraudFlagged
+		}
+		status, reason, suspendedUntil = models.AccountStatusActive, "", nil
+	default:
+		return ErrInvalidAccountAction
+	}
+
+	if err := s.users.SetAccountManagement(ctx, in.UserID, in.ActorID, status, reason, fraud, fraudReason, suspendedUntil); err != nil {
+		return fmt.Errorf("apply account action: %w", err)
+	}
+	if restrictAccess {
+		if err := s.tokens.RevokeAllForUser(ctx, in.UserID); err != nil {
+			return fmt.Errorf("account restricted but session revocation failed: %w", err)
+		}
+	}
+	return nil
 }
 
 // guardSuperAdmin rejects any mutating operation targeting a user with the super_admin role.
