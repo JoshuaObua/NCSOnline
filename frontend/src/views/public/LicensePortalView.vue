@@ -94,8 +94,8 @@
         <!-- STEP 2: Fill Form -->
         <div v-else-if="currentStep === 1" class="max-w-2xl mx-auto">
           <div class="flex items-center gap-3 mb-8">
-            <button @click="currentStep = 0; selectedType = null" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors flex-shrink-0">
-              <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <button aria-label="Return to application type selection" @click="currentStep = 0; selectedType = null" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors flex-shrink-0">
+              <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </button>
             <div>
               <h2 class="text-xl font-bold text-darken">{{ selectedType?.title }}</h2>

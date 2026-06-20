@@ -45,6 +45,8 @@
               v-for="(_, i) in displaySlides"
               :key="i"
               @click="goToSlide(i)"
+              :aria-label="`Show slide ${i + 1} of ${displaySlides.length}`"
+              :aria-current="currentSlide === i ? 'true' : undefined"
               class="transition-all rounded-full"
               :class="currentSlide === i ? 'w-6 h-2.5 bg-accent' : 'w-2.5 h-2.5 bg-gray-300 hover:bg-gray-400'"
             ></button>
@@ -275,8 +277,8 @@
               </div>
             </div>
             <div class="w-28 h-28 bg-accent/20 rounded-xl pub-floating absolute -bottom-3 -right-3 pointer-events-none"></div>
-            <button class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform z-20">
-              <svg class="w-5 h-5 ml-0.5 text-accent" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <button aria-label="Play video about NCS impact" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform z-20">
+              <svg class="w-5 h-5 ml-0.5 text-accent" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
             </button>
           </div>
         </div>

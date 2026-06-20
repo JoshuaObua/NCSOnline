@@ -23,6 +23,7 @@
           v-for="cat in categories"
           :key="cat.value"
           @click="activeCategory = cat.value; loadPosts()"
+          :aria-pressed="activeCategory === cat.value"
           :class="activeCategory === cat.value
             ? 'bg-[#112b4e] text-white shadow-sm'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
@@ -80,7 +81,7 @@
         </div>
 
         <div v-else class="text-center py-20 text-gray-400">
-          <svg class="w-16 h-16 mx-auto mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-16 h-16 mx-auto mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
           </svg>
           <p>No articles in this category yet.</p>
@@ -93,7 +94,7 @@
             :disabled="page <= 1"
             class="px-5 py-2 rounded-full border border-gray-300 text-sm font-medium text-gray-600 hover:border-[#112b4e] hover:text-[#112b4e] disabled:opacity-40 transition-colors"
           >← Previous</button>
-          <span class="text-sm text-gray-500">Page {{ page }} of {{ Math.ceil(total / perPage) }}</span>
+          <span class="text-sm text-gray-500" aria-live="polite">Page {{ page }} of {{ Math.ceil(total / perPage) }}</span>
           <button
             @click="page++; loadPosts()"
             :disabled="page * perPage >= total"

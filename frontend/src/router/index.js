@@ -179,6 +179,21 @@ const router = createRouter({
   }
 })
 
+const publicPageTitles = {
+  Home: 'National Council of Sports Uganda',
+  News: 'News & Updates', NewsPost: 'News Article', Page: 'Information',
+  Events: 'Events', EventDetail: 'Event Details', Careers: 'Careers', CareerDetail: 'Career Opportunity',
+  Projects: 'Projects', CaseStudies: 'Case Studies', Apply: 'Apply for a Licence',
+  ResourceCentre: 'Resource Centre', Facilities: 'Sports Facilities', FacilityDetail: 'Facility Details',
+  Associations: 'Sports Associations', Invest: 'Invest with NCS', FAQs: 'Frequently Asked Questions',
+  ContactUs: 'Contact Us', ApplicantPortal: 'My Portal'
+}
+
+router.afterEach((to) => {
+  const title = publicPageTitles[to.name]
+  if (title) document.title = `${title} — NCS Uganda`
+})
+
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('ncsms_access_token')
   const isAuthenticated = !!token

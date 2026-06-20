@@ -23,6 +23,7 @@
           v-for="cat in categories"
           :key="cat.value"
           @click="activeCategory = cat.value"
+          :aria-pressed="activeCategory === cat.value"
           :class="activeCategory === cat.value
             ? 'bg-[#112b4e] text-white shadow-sm'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
@@ -48,6 +49,9 @@
           >
             <button
               @click="toggle(faq.id)"
+              :id="`faq-question-${faq.id}`"
+              :aria-expanded="open.has(faq.id)"
+              :aria-controls="`faq-answer-${faq.id}`"
               class="w-full px-5 py-4 flex items-start justify-between gap-4 text-left hover:bg-[#FEF9F2] transition-colors"
             >
               <span class="font-semibold text-darken flex-1">{{ faq.question }}</span>
@@ -55,7 +59,7 @@
                 class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center transition-colors mt-0.5"
                 :class="open.has(faq.id) ? 'bg-[#F48C06] text-white' : 'bg-gray-100 text-gray-500'"
               >
-                <i :class="open.has(faq.id) ? 'icofont-minus' : 'icofont-plus'" class="text-sm"></i>
+                <i :class="open.has(faq.id) ? 'icofont-minus' : 'icofont-plus'" class="text-sm" aria-hidden="true"></i>
               </div>
             </button>
             <Transition
@@ -68,6 +72,9 @@
             >
               <div
                 v-show="open.has(faq.id)"
+                :id="`faq-answer-${faq.id}`"
+                role="region"
+                :aria-labelledby="`faq-question-${faq.id}`"
                 class="px-5 pb-5 text-gray-600 leading-relaxed whitespace-pre-line border-t border-gray-100 pt-4 text-sm"
               >{{ faq.answer }}</div>
             </Transition>

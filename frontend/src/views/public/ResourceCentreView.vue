@@ -23,6 +23,7 @@
           v-for="cat in categories"
           :key="cat.value"
           @click="activeCategory = cat.value"
+          :aria-pressed="activeCategory === cat.value"
           :class="activeCategory === cat.value
             ? 'bg-[#112b4e] text-white shadow-sm'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
@@ -48,11 +49,12 @@
             :href="mediaUrl(r.file_url)"
             target="_blank"
             rel="noopener"
+            :aria-label="`${r.title} (opens in a new tab)`"
             class="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-5 hover:border-[#F48C06]/40 hover:shadow-md transition-all group"
           >
             <!-- File icon -->
             <div class="flex-shrink-0 w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center">
-              <i class="icofont-file-pdf text-3xl text-red-500"></i>
+              <i class="icofont-file-pdf text-3xl text-red-500" aria-hidden="true"></i>
             </div>
 
             <div class="flex-1 min-w-0">
@@ -67,7 +69,7 @@
 
             <!-- Download arrow -->
             <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-[#112b4e]/5 group-hover:bg-[#F48C06] flex items-center justify-center transition-colors">
-              <i class="icofont-download text-xl text-[#112b4e] group-hover:text-white transition-colors"></i>
+              <i class="icofont-download text-xl text-[#112b4e] group-hover:text-white transition-colors" aria-hidden="true"></i>
             </div>
           </a>
         </div>
