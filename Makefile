@@ -41,7 +41,10 @@ migrate: ## Run all migrations against running postgres container
 		-f /docker-entrypoint-initdb.d/012_cms_settings.sql \
 		-f /docker-entrypoint-initdb.d/013_cms_team.sql \
 		-f /docker-entrypoint-initdb.d/014_user_auth_invalidation.sql \
-		-f /docker-entrypoint-initdb.d/015_user_account_management.sql
+		-f /docker-entrypoint-initdb.d/015_user_account_management.sql \
+		-f /docker-entrypoint-initdb.d/016_nsmis_reporting_foundation.sql \
+		-f /docker-entrypoint-initdb.d/017_nsmis_domain_modules.sql \
+		-f /docker-entrypoint-initdb.d/018_nsmis_operations.sql
 
 deploy-backend: ## Apply migrations, rebuild, and restart the backend and gateway
 	$(DOCKER_COMPOSE) up -d postgres
@@ -58,6 +61,9 @@ dev: ## Run backend locally with hot reload (requires air)
 
 run: ## Run backend locally (no hot reload)
 	cd $(BACKEND_DIR) && go run ./cmd/server
+
+run-worker: ## Run the NSMIS background worker locally
+	cd $(BACKEND_DIR) && go run ./cmd/worker
 
 test: ## Run backend tests
 	cd $(BACKEND_DIR) && go test ./... -v -race -cover

@@ -244,11 +244,11 @@
             <p class="text-gray-500 mb-5 leading-relaxed">NCS's sports management platform helps sports bodies manage registration, licensing, and compliance — all in one secure cloud-based system, accessible from anywhere.</p>
             <div class="space-y-3 mb-6">
               <div class="flex items-start gap-3">
-                <div class="flex-shrink-0 bg-white shadow rounded-full p-2"><svg class="w-4 h-4 text-darken" fill="currentColor" viewBox="0 0 27 26"><rect width="11.8" height="11.8" rx="2" fill="#112b4e"/><rect y="14.2" width="11.8" height="11.8" rx="2" fill="#112b4e"/><rect x="14.8" width="11.8" height="11.8" rx="2" fill="#112b4e"/><rect x="14.8" y="14.2" width="11.8" height="11.8" rx="2" fill="#F48C06"/></svg></div>
+                <div class="flex-shrink-0 bg-white shadow rounded-full p-2"><svg class="w-4 h-4 text-darken" fill="currentColor" viewBox="0 0 27 26"><rect width="11.8" height="11.8" rx="2" fill="#2F327D"/><rect y="14.2" width="11.8" height="11.8" rx="2" fill="#2F327D"/><rect x="14.8" width="11.8" height="11.8" rx="2" fill="#2F327D"/><rect x="14.8" y="14.2" width="11.8" height="11.8" rx="2" fill="#F48C06"/></svg></div>
                 <p class="text-gray-500 text-sm">Administrators get a clear overview of all federations and clubs.</p>
               </div>
               <div class="flex items-start gap-3">
-                <div class="flex-shrink-0 bg-white shadow rounded-full p-2"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 28 26"><rect x="8" y="6" width="20" height="20" rx="2" fill="#112b4e"/><rect width="21" height="21" rx="2" fill="#F48C06"/></svg></div>
+                <div class="flex-shrink-0 bg-white shadow rounded-full p-2"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 28 26"><rect x="8" y="6" width="20" height="20" rx="2" fill="#2F327D"/><rect width="21" height="21" rx="2" fill="#F48C06"/></svg></div>
                 <p class="text-gray-500 text-sm">Applications and renewals handled digitally — no paperwork.</p>
               </div>
               <div class="flex items-start gap-3">
@@ -284,7 +284,7 @@
     </section>
 
     <!-- ── FUN FACTS / STATS STRIP ──────────────────────────── -->
-    <section v-if="displayedFunFacts.length" ref="funFactsRef" class="py-16 px-4" style="background-color: #0d1b2e;">
+    <section v-if="displayedFunFacts.length" ref="funFactsRef" class="py-16 px-4" style="background-color: #252641;">
       <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10">
           <span class="section-tag" style="color: #4a7fad;">Sports in Uganda</span>
@@ -428,7 +428,7 @@
     </section>
 
     <!-- ── CTA BANNER ───────────────────────────────────────── -->
-    <section ref="ctaRef" class="relative overflow-hidden py-20 px-4" style="background: linear-gradient(135deg, #0d1b2e 0%, #112b4e 60%, #1a4571 100%);">
+    <section ref="ctaRef" class="relative overflow-hidden py-20 px-4" style="background: linear-gradient(135deg, #252641 0%, #2F327D 60%, #4B4F9E 100%);">
       <!-- Decorative -->
       <div class="absolute top-0 left-0 w-40 h-40 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse pointer-events-none"></div>
       <div class="absolute bottom-0 right-0 w-56 h-56 bg-white/5 rounded-full translate-x-1/3 translate-y-1/3 animate-pulse pointer-events-none"></div>

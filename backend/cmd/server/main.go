@@ -44,7 +44,7 @@ func main() {
 	r.Use(chimiddleware.RequestID)
 	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.RejectAmbiguousPaths)
-	r.Use(middleware.LimitRequestBody(1 << 20))
+	r.Use(middleware.LimitRequestBody(25 << 20))
 	r.Use(middleware.Logger)
 	r.Use(middleware.AuditLogger(repos.Audit))
 	r.Use(rl.Middleware)
@@ -136,6 +136,35 @@ func main() {
 
 			r.Get("/transactions", h.Applications.ListTransactions)
 			r.Get("/transactions/{id}", h.Applications.GetTransaction)
+
+			r.Route("/nsmis", func(r chi.Router) {
+				r.Get("/federations", h.NSMIS.ListFederations)
+				r.Post("/federations", h.NSMIS.CreateFederation)
+				r.Put("/federations/{federationID}", h.NSMIS.UpdateFederation)
+				r.Get("/reporting-periods", h.NSMIS.ListPeriods)
+				r.Post("/reporting-periods", h.NSMIS.CreatePeriod)
+				r.Post("/reporting-periods/{periodID}/obligations", h.NSMIS.GenerateObligations)
+				r.Get("/report-obligations", h.NSMIS.ListObligations)
+				r.Put("/report-obligations/{obligationID}/governance-draft", h.NSMIS.SaveGovernanceDraft)
+				r.Post("/reports/{reportID}/transitions", h.NSMIS.TransitionReport)
+				r.Get("/dashboards/governance", h.NSMIS.GovernanceDashboard)
+				r.Get("/dashboards/athletes", h.NSMIS.AthleteDashboard)
+				r.Get("/dashboards/performance", h.NSMIS.PerformanceDashboard)
+				r.Get("/dashboards/finance", h.NSMIS.FinanceDashboard)
+				r.Get("/dashboards/talent", h.NSMIS.TalentDashboard)
+				r.Get("/federations/{federationID}/documents", h.NSMIS.ListDocuments)
+				r.Post("/federations/{federationID}/documents", h.NSMIS.UploadDocument)
+				r.Get("/documents/{documentID}/download", h.NSMIS.DownloadDocument)
+				r.Get("/jobs", h.NSMIS.ListJobs)
+				r.Post("/jobs", h.NSMIS.QueueJob)
+				r.Post("/jobs/{jobID}/retry", h.NSMIS.RetryJob)
+				r.Route("/{resource:federation-officers|federation-memberships|athletes|competitions|medals|coaches|technical-officials|talent|scholarships|safeguarding-aggregates|safeguarding-cases|disbursements|accountabilities|equipment}", func(r chi.Router) {
+					r.Get("/", h.NSMIS.ListDomain)
+					r.Post("/", h.NSMIS.CreateDomain)
+					r.Put("/{id}", h.NSMIS.UpdateDomain)
+					r.Delete("/{id}", h.NSMIS.DeleteDomain)
+				})
+			})
 
 			// ── Admin: dashboard + users + audit ─────────────────────
 			r.Group(func(r chi.Router) {

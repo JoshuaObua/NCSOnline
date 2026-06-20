@@ -1,11 +1,11 @@
 <template>
-  <div class="min-h-screen flex flex-col">
+  <div class="public-site min-h-screen flex flex-col">
 
     <!-- ── Navbar ──────────────────────────────────────────── -->
     <header
       :class="[
         'sticky top-0 z-50 transition-all duration-300',
-        scrolled ? 'bg-white shadow-md' : 'bg-white border-b border-gray-100'
+        scrolled ? 'bg-white shadow-md' : 'bg-cream'
       ]"
     >
       <div class="max-w-screen-xl px-6 mx-auto">
@@ -19,7 +19,7 @@
               </div>
               <!-- Diamond accent -->
               <svg class="absolute -top-1.5 -left-1.5 w-8 h-8 z-0 opacity-30" viewBox="0 0 79 79" fill="none">
-                <path d="M35.26 2.24C37.6-.1 41.4-.1 43.74 2.24L76.76 35.26C79.1 37.6 79.1 41.4 76.76 43.74L43.74 76.76C41.4 79.1 37.6 79.1 35.26 76.76L2.24 43.74C-.1 41.4-.1 37.6 2.24 35.26L35.26 2.24Z" fill="#112b4e"/>
+                <path d="M35.26 2.24C37.6-.1 41.4-.1 43.74 2.24L76.76 35.26C79.1 37.6 79.1 41.4 76.76 43.74L43.74 76.76C41.4 79.1 37.6 79.1 35.26 76.76L2.24 43.74C-.1 41.4-.1 37.6 2.24 35.26L35.26 2.24Z" fill="#2F327D"/>
               </svg>
             </div>
           </router-link>
@@ -168,7 +168,7 @@
     </main>
 
     <!-- ── Footer ──────────────────────────────────────────── -->
-    <footer style="background-color: #0d1b2e;">
+    <footer style="background-color: #252641;">
 
       <!-- Newsletter bar -->
       <div class="border-b border-white/10">

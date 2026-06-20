@@ -44,11 +44,11 @@
           </div>
         </div>
 
-        <div v-else-if="posts.length" class="grid md:grid-cols-3 gap-6">
+        <div v-else-if="posts.length" class="skilline-news-grid grid md:grid-cols-3 gap-8">
           <article
             v-for="post in posts"
             :key="post.id"
-            class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col"
+            class="bg-white rounded-xl overflow-hidden transition-all flex flex-col"
           >
             <div class="relative overflow-hidden">
               <img
@@ -65,10 +65,10 @@
                 {{ post.category || 'News' }}
               </span>
             </div>
-            <div class="p-5 flex flex-col flex-1">
+            <div class="p-6 flex flex-col flex-1">
               <p v-if="post.published_at" class="text-xs text-gray-400 mb-2">{{ formatDate(post.published_at) }}</p>
-              <h2 class="font-bold text-darken text-base mb-2 line-clamp-2 flex-1">{{ post.title }}</h2>
-              <p class="text-sm text-gray-500 line-clamp-2 mb-4">{{ post.excerpt }}</p>
+              <h2 class="font-semibold text-darken text-xl leading-snug mb-3 line-clamp-2 flex-1">{{ post.title }}</h2>
+              <p class="text-base text-gray-500 leading-relaxed line-clamp-3 mb-5">{{ post.excerpt }}</p>
               <router-link
                 :to="`/news/${post.slug}`"
                 class="text-sm font-semibold text-accent hover:text-[#d47b05] flex items-center gap-1 transition-colors"

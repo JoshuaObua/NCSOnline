@@ -351,6 +351,76 @@ type CMSTeamMember struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+// ── NSMIS federation reporting ───────────────────────────────────
+
+type Federation struct {
+	ID                    string    `json:"id"`
+	Name                  string    `json:"name"`
+	Acronym               string    `json:"acronym"`
+	NCSRegistrationNumber string    `json:"ncs_registration_number"`
+	RecognitionStatus     string    `json:"recognition_status"`
+	PhysicalAddress       string    `json:"physical_address"`
+	Email                 string    `json:"email"`
+	Website               string    `json:"website"`
+	ContactPerson         string    `json:"contact_person"`
+	IsActive              bool      `json:"is_active"`
+	Version               int       `json:"version"`
+	CreatedAt             time.Time `json:"created_at"`
+	UpdatedAt             time.Time `json:"updated_at"`
+}
+
+type ReportingPeriod struct {
+	ID          string     `json:"id"`
+	PeriodType  string     `json:"period_type"`
+	Name        string     `json:"name"`
+	StartsOn    time.Time  `json:"starts_on"`
+	EndsOn      time.Time  `json:"ends_on"`
+	DueOn       time.Time  `json:"due_on"`
+	GraceEndsOn *time.Time `json:"grace_ends_on,omitempty"`
+	Timezone    string     `json:"timezone"`
+	IsOpen      bool       `json:"is_open"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
+type ReportObligation struct {
+	ID                string    `json:"id"`
+	FederationID      string    `json:"federation_id"`
+	FederationName    string    `json:"federation_name"`
+	ReportingPeriodID string    `json:"reporting_period_id"`
+	PeriodName        string    `json:"period_name"`
+	ReportType        string    `json:"report_type"`
+	DueOn             time.Time `json:"due_on"`
+	Status            string    `json:"status"`
+	DaysOverdue       int       `json:"days_overdue"`
+	ReportID          *string   `json:"report_id,omitempty"`
+	ReportVersion     *int      `json:"report_version,omitempty"`
+	ReportStatus      *string   `json:"report_status,omitempty"`
+}
+
+type GovernanceFederationRow struct {
+	FederationID        string   `json:"federation_id"`
+	FederationName      string   `json:"federation_name"`
+	Acronym             string   `json:"acronym"`
+	ComplianceScore     *float64 `json:"compliance_score,omitempty"`
+	IsCompliant         *bool    `json:"is_compliant,omitempty"`
+	MissingReports      int64    `json:"missing_reports"`
+	ExpiredConstitution bool     `json:"expired_constitution"`
+}
+
+type GovernanceDashboard struct {
+	ReportingPeriodID    string                    `json:"reporting_period_id,omitempty"`
+	ReportingPeriodName  string                    `json:"reporting_period_name,omitempty"`
+	TotalFederations     int64                     `json:"total_federations"`
+	CompliantFederations int64                     `json:"compliant_federations"`
+	NonCompliant         int64                     `json:"non_compliant_federations"`
+	MissingReports       int64                     `json:"missing_reports"`
+	ExpiredConstitutions int64                     `json:"expired_constitutions"`
+	AverageScore         *float64                  `json:"average_compliance_score,omitempty"`
+	Rows                 []GovernanceFederationRow `json:"federations"`
+	AsOf                 time.Time                 `json:"as_of"`
+	CalculationVersion   int                       `json:"calculation_version"`
+}
+
 // ── Pagination ────────────────────────────────────────────────────
 
 type PaginationParams struct {

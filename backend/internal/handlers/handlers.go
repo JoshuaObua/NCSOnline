@@ -15,6 +15,7 @@ type Handlers struct {
 	Dashboard    *DashboardHandler
 	Audit        *AuditHandler
 	CMS          *CMSHandler
+	NSMIS        *NSMISHandler
 }
 
 // New constructs all handlers and returns them alongside the repos (needed by main for audit middleware).
@@ -26,12 +27,13 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 	appSvc := services.NewApplicationService(repos.Applications, repos.Audit)
 
 	return &Handlers{
-		Auth:         &AuthHandler{svc: authSvc, users: repos.Users},
+		Auth:         &AuthHandler{svc: authSvc, users: repos.Users, cfg: cfg},
 		Users:        &UsersHandler{svc: userSvc, audit: repos.Audit},
 		Roles:        &RolesHandler{roles: repos.Roles, audit: repos.Audit},
 		Applications: &ApplicationsHandler{svc: appSvc, audit: repos.Audit},
 		Dashboard:    &DashboardHandler{users: repos.Users, apps: repos.Applications},
 		Audit:        &AuditHandler{repo: repos.Audit},
 		CMS:          &CMSHandler{repo: repos.CMS},
+		NSMIS:        &NSMISHandler{repo: repos.NSMIS, cfg: cfg},
 	}, repos
 }

@@ -183,3 +183,21 @@ export function adminListTeam(params = {}) { return apiClient.get('/api/v1/admin
 export function adminCreateTeam(data) { return apiClient.post('/api/v1/admin/cms/team', data) }
 export function adminUpdateTeam(id, data) { return apiClient.put(`/api/v1/admin/cms/team/${id}`, data) }
 export function adminDeleteTeam(id) { return apiClient.delete(`/api/v1/admin/cms/team/${id}`) }
+
+// Compatibility placeholders for CMS sections whose backend modules are not
+// available yet. Keeping named exports prevents production bundlers from
+// replacing optional namespace lookups with undefined imports. Callers already
+// handle rejected requests and preserve the existing empty/error states.
+const unavailableCMSModule = (name) => Promise.reject(new Error(`${name} CMS module is not available`))
+export function adminListServices() { return unavailableCMSModule('Services') }
+export function adminCreateService() { return unavailableCMSModule('Services') }
+export function adminUpdateService() { return unavailableCMSModule('Services') }
+export function adminDeleteService() { return unavailableCMSModule('Services') }
+export function adminListTickets() { return unavailableCMSModule('Support tickets') }
+export function adminCreateTicket() { return unavailableCMSModule('Support tickets') }
+export function adminUpdateTicket() { return unavailableCMSModule('Support tickets') }
+export function adminDeleteTicket() { return unavailableCMSModule('Support tickets') }
+export function adminListArticles() { return unavailableCMSModule('Knowledgebase') }
+export function adminCreateArticle() { return unavailableCMSModule('Knowledgebase') }
+export function adminUpdateArticle() { return unavailableCMSModule('Knowledgebase') }
+export function adminDeleteArticle() { return unavailableCMSModule('Knowledgebase') }

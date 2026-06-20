@@ -54,7 +54,7 @@
     <!-- CTA Banner -->
     <div
       class="py-20 px-4 relative overflow-hidden"
-      style="background: linear-gradient(135deg, #0d1b2e 0%, #112b4e 100%)"
+      style="background: linear-gradient(135deg, #252641 0%, #2F327D 100%)"
     >
       <!-- Pulsing circles -->
       <div class="absolute left-10 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full bg-[#F48C06]/10 animate-ping" style="animation-duration:3s"></div>

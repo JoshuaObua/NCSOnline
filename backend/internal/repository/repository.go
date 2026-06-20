@@ -22,6 +22,7 @@ type Repos struct {
 	Audit        *AuditRepo
 	Tokens       *TokenRepo
 	CMS          *CMSRepo
+	NSMIS        *NSMISRepo
 }
 
 func New(db *pgxpool.Pool) *Repos {
@@ -32,6 +33,7 @@ func New(db *pgxpool.Pool) *Repos {
 		Audit:        &AuditRepo{db},
 		Tokens:       &TokenRepo{db},
 		CMS:          &CMSRepo{db},
+		NSMIS:        &NSMISRepo{db},
 	}
 }
 

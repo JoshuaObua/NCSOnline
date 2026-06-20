@@ -9,19 +9,21 @@ import (
 )
 
 type Config struct {
-	AppEnv          string
-	Port            string
-	DatabaseURL     string
-	JWTSecret       string
-	AccessTokenTTL  time.Duration
-	RefreshTokenTTL time.Duration
-	AllowedOrigins  []string
-	LogLevel        string
-	SupabaseURL     string
-	SupabaseKey     string
-	StorageBucket   string
-	RateLimitReqs   int
-	RateLimitWindow time.Duration
+	AppEnv             string
+	Port               string
+	DatabaseURL        string
+	JWTSecret          string
+	AccessTokenTTL     time.Duration
+	RefreshTokenTTL    time.Duration
+	AllowedOrigins     []string
+	LogLevel           string
+	SupabaseURL        string
+	SupabaseKey        string
+	StorageBucket      string
+	PrivateStoragePath string
+	MaxEvidenceBytes   int64
+	RateLimitReqs      int
+	RateLimitWindow    time.Duration
 }
 
 func Load() (*Config, error) {
@@ -40,20 +42,30 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
-		AppEnv:          getEnv("APP_ENV", "development"),
-		Port:            getEnv("PORT", "8080"),
-		DatabaseURL:     dbURL,
-		JWTSecret:       jwtSecret,
-		AccessTokenTTL:  parseDuration(getEnv("JWT_ACCESS_EXPIRY", "15m")),
-		RefreshTokenTTL: parseDuration(getEnv("JWT_REFRESH_EXPIRY", "168h")),
-		AllowedOrigins:  strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:3000"), ","),
-		LogLevel:        getEnv("LOG_LEVEL", "info"),
-		SupabaseURL:     getEnv("SUPABASE_URL", ""),
-		SupabaseKey:     getEnv("SUPABASE_SERVICE_ROLE_KEY", ""),
-		StorageBucket:   getEnv("SUPABASE_STORAGE_BUCKET", "ncsms-uploads"),
-		RateLimitReqs:   rlReqs,
-		RateLimitWindow: parseDuration(getEnv("RATE_LIMIT_WINDOW", "1m")),
+		AppEnv:             getEnv("APP_ENV", "development"),
+		Port:               getEnv("PORT", "8080"),
+		DatabaseURL:        dbURL,
+		JWTSecret:          jwtSecret,
+		AccessTokenTTL:     parseDuration(getEnv("JWT_ACCESS_EXPIRY", "15m")),
+		RefreshTokenTTL:    parseDuration(getEnv("JWT_REFRESH_EXPIRY", "168h")),
+		AllowedOrigins:     strings.Split(getEnv("ALLOWED_ORIGINS", "http://localhost:3000"), ","),
+		LogLevel:           getEnv("LOG_LEVEL", "info"),
+		SupabaseURL:        getEnv("SUPABASE_URL", ""),
+		SupabaseKey:        getEnv("SUPABASE_SERVICE_ROLE_KEY", ""),
+		StorageBucket:      getEnv("SUPABASE_STORAGE_BUCKET", "ncsms-uploads"),
+		PrivateStoragePath: getEnv("PRIVATE_STORAGE_PATH", "./private-data"),
+		MaxEvidenceBytes:   int64Env("MAX_EVIDENCE_BYTES", 15<<20),
+		RateLimitReqs:      rlReqs,
+		RateLimitWindow:    parseDuration(getEnv("RATE_LIMIT_WINDOW", "1m")),
 	}, nil
+}
+
+func int64Env(key string, fallback int64) int64 {
+	v, err := strconv.ParseInt(getEnv(key, ""), 10, 64)
+	if err != nil || v <= 0 {
+		return fallback
+	}
+	return v
 }
 
 func (c *Config) IsDevelopment() bool { return c.AppEnv == "development" }

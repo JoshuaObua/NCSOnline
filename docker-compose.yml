@@ -38,10 +38,28 @@ services:
       PORT: 8080
     volumes:
       - uploads_data:/app/uploads
+      - private_data:/app/private-data
     expose:
       - "8080"
     networks:
       - ncsms_net
+
+  nsmis-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    entrypoint: ["/nsmis-worker"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-ncsms_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ncsms}?sslmode=disable
+      PRIVATE_STORAGE_PATH: /app/private-data
+    volumes:
+      - private_data:/app/private-data
+    networks: [ncsms_net]
 
   # ── Nginx Reverse Proxy ────────────────────────────────────────
   nginx:
@@ -105,6 +123,7 @@ volumes:
   nginx_logs:
   pgadmin_data:
   uploads_data:
+  private_data:
 
 networks:
   ncsms_net:

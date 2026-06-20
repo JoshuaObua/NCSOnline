@@ -44,6 +44,14 @@ export const useAuthStore = defineStore('auth', () => {
     })
   })
 
+  const roleNames = computed(() => (user.value?.roles || []).map(r => typeof r === 'string' ? r : r.name))
+  const hasAnyRole = (...names) => names.some(name => roleNames.value.includes(name))
+  const canUseNSMIS = computed(() => hasAnyRole(
+    'super_admin', 'admin', 'ncs_general_secretary', 'general_secretary', 'technical_department',
+    'finance_department', 'federation_president', 'federation_general_secretary',
+    'safeguarding_officer', 'auditor'
+  ))
+
   async function refreshUser() {
     try {
       const res = await apiClient.get('/api/v1/auth/me')
@@ -59,11 +67,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   function loadFromStorage() {
     const token = localStorage.getItem('ncsms_access_token')
-    const refresh = localStorage.getItem('ncsms_refresh_token')
     const storedUser = localStorage.getItem('ncsms_user')
 
     if (token) accessToken.value = token
-    if (refresh) refreshToken.value = refresh
     if (storedUser) {
       try {
         user.value = JSON.parse(storedUser)
@@ -79,11 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
     } else {
       localStorage.removeItem('ncsms_access_token')
     }
-    if (refreshToken.value) {
-      localStorage.setItem('ncsms_refresh_token', refreshToken.value)
-    } else {
-      localStorage.removeItem('ncsms_refresh_token')
-    }
+	localStorage.removeItem('ncsms_refresh_token')
     if (user.value) {
       localStorage.setItem('ncsms_user', JSON.stringify(user.value))
     } else {
@@ -104,7 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Auto-login if backend returns tokens
       if (data?.access_token) {
         accessToken.value = data.access_token
-        refreshToken.value = data.refresh_token
+		refreshToken.value = null
         user.value = data.user
         persistToStorage()
       }
@@ -123,7 +125,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await apiClient.post('/api/v1/auth/login', { email, password })
       const data = response.data.data
       accessToken.value = data.access_token
-      refreshToken.value = data.refresh_token
+	  refreshToken.value = null
       user.value = data.user
       persistToStorage()
       return { success: true }
@@ -138,9 +140,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     loading.value = true
     try {
-      if (refreshToken.value) {
-        await apiClient.post('/api/v1/auth/logout', { refresh_token: refreshToken.value })
-      }
+	  await apiClient.post('/api/v1/auth/logout', {})
     } catch {
       // ignore logout errors
     } finally {
@@ -153,13 +153,10 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function refreshAccessToken() {
-    const storedRefresh = refreshToken.value || localStorage.getItem('ncsms_refresh_token')
-    if (!storedRefresh) throw new Error('No refresh token')
-
-    const response = await apiClient.post('/api/v1/auth/refresh', { refresh_token: storedRefresh })
+	const response = await apiClient.post('/api/v1/auth/refresh', {})
     const data = response.data.data
     accessToken.value = data.access_token
-    refreshToken.value = data.refresh_token
+	refreshToken.value = null
     if (data.user) user.value = data.user
     persistToStorage()
     return data.access_token
@@ -184,6 +181,9 @@ export const useAuthStore = defineStore('auth', () => {
     isSuperAdmin,
     isContentManager,
     isApplicant,
+    roleNames,
+    hasAnyRole,
+    canUseNSMIS,
     register,
     login,
     logout,

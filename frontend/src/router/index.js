@@ -36,6 +36,10 @@ const AuditLogsView = () => import('@/views/AuditLogsView.vue')
 const RolesView = () => import('@/views/RolesView.vue')
 const ProfileView = () => import('@/views/ProfileView.vue')
 const CMSView = () => import('@/views/CMSView.vue')
+const GovernanceDashboardView = () => import('@/views/GovernanceDashboardView.vue')
+const ReportingWorkspaceView = () => import('@/views/ReportingWorkspaceView.vue')
+const InsightsDashboardView = () => import('@/views/InsightsDashboardView.vue')
+const NSMISRegistryView = () => import('@/views/NSMISRegistryView.vue')
 
 const routes = [
   // ── Public website (uses PublicLayout) ────────────────────────
@@ -99,6 +103,29 @@ const routes = [
     name: 'Dashboard',
     component: DashboardView,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/nsmis/governance',
+    name: 'GovernanceDashboard',
+    component: GovernanceDashboardView,
+    meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'ncs_general_secretary', 'general_secretary', 'technical_department', 'federation_president', 'federation_general_secretary', 'auditor'] }
+  },
+  {
+    path: '/nsmis/reports',
+    name: 'FederationReports',
+    component: ReportingWorkspaceView,
+    meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'ncs_general_secretary', 'general_secretary', 'technical_department', 'finance_department', 'federation_president', 'federation_general_secretary', 'auditor'] }
+  },
+  {
+    path: '/nsmis/insights/:dashboard(athletes|performance|finance|talent)',
+    name: 'NSMISInsights',
+    component: InsightsDashboardView,
+    meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'ncs_general_secretary', 'general_secretary', 'technical_department', 'finance_department'] }
+  },
+  {
+    path: '/nsmis/data/:resource(federation-officers|athletes|competitions|medals|coaches|technical-officials|talent|safeguarding-aggregates|disbursements|accountabilities|equipment)',
+    name: 'NSMISRegistry', component: NSMISRegistryView,
+    meta: { requiresAuth: true, roles: ['super_admin','admin','ncs_general_secretary','general_secretary','technical_department','finance_department','federation_president','federation_general_secretary','safeguarding_officer'] }
   },
   {
     path: '/users',

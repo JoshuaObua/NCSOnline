@@ -34,10 +34,10 @@ func (h *DashboardHandler) Stats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.JSON(w, http.StatusOK, map[string]interface{}{
-		"total_users":        totalUsers,
-		"total_applications": totalApps,
+		"total_users":            totalUsers,
+		"total_applications":     totalApps,
 		"applications_by_status": byStatus,
-		"pending_review": byStatus["SUBMITTED"] + byStatus["UNDER_REVIEW"] + byStatus["RESUBMITTED"],
-		"needs_attention": byStatus["NEEDS_INFORMATION"] + byStatus["PROOF_UPLOADED"],
+		"pending_review":         byStatus["SUBMITTED"] + byStatus["UNDER_REVIEW"] + byStatus["RESUBMITTED"],
+		"needs_attention":        byStatus["NEEDS_INFORMATION"] + byStatus["PROOF_UPLOADED"],
 	})
 }

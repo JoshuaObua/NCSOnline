@@ -8,8 +8,8 @@ import (
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
-	"github.com/google/uuid"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type RolesHandler struct {

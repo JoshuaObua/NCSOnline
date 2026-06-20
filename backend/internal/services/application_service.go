@@ -20,11 +20,11 @@ var (
 
 // Valid form types matching the official NCS forms
 var validFormTypes = map[string]bool{
-	"form_1": true, // Declaration of National Sport
-	"form_3": true, // Registration/Renewal NSA/NSF
-	"form_5": true, // Transformation NSA to NSF
-	"form_7": true, // Organise Sports Competition
-	"form_8": true, // Operate Sports Facility
+	"form_1":  true, // Declaration of National Sport
+	"form_3":  true, // Registration/Renewal NSA/NSF
+	"form_5":  true, // Transformation NSA to NSF
+	"form_7":  true, // Organise Sports Competition
+	"form_8":  true, // Operate Sports Facility
 	"form_10": true, // Community Sports Club Registration/Renewal
 	"form_11": true, // Operate Sports Academy
 }

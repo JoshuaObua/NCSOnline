@@ -5,7 +5,9 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/atenimedia-llc/ncs-online/backend/internal/config"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/middleware"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
@@ -16,6 +18,29 @@ import (
 type AuthHandler struct {
 	svc   *services.AuthService
 	users *repository.UserRepo
+	cfg   *config.Config
+}
+
+const refreshCookieName = "ncsms_refresh"
+
+func (h *AuthHandler) setRefreshCookie(w http.ResponseWriter, token string) {
+	http.SetCookie(w, &http.Cookie{Name: refreshCookieName, Value: token, Path: "/api/v1/auth", HttpOnly: true, Secure: h.cfg.IsProduction(), SameSite: http.SameSiteStrictMode, MaxAge: int(h.cfg.RefreshTokenTTL.Seconds()), Expires: time.Now().Add(h.cfg.RefreshTokenTTL)})
+}
+func (h *AuthHandler) clearRefreshCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{Name: refreshCookieName, Value: "", Path: "/api/v1/auth", HttpOnly: true, Secure: h.cfg.IsProduction(), SameSite: http.SameSiteStrictMode, MaxAge: -1, Expires: time.Unix(1, 0)})
+}
+func refreshFromRequest(r *http.Request) string {
+	if c, e := r.Cookie(refreshCookieName); e == nil && c.Value != "" {
+		return c.Value
+	}
+	var req struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+	return req.RefreshToken
+}
+func (h *AuthHandler) secureResult(w http.ResponseWriter, result *services.LoginResult) {
+	h.setRefreshCookie(w, result.RefreshToken)
 }
 
 // POST /api/v1/auth/register
@@ -59,6 +84,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
+	h.secureResult(w, result)
 	response.JSON(w, http.StatusCreated, result)
 }
 
@@ -92,20 +118,18 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
+	h.secureResult(w, result)
 	response.JSON(w, http.StatusOK, result)
 }
 
 // POST /api/v1/auth/refresh
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		RefreshToken string `json:"refresh_token"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.RefreshToken == "" {
-		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "refresh_token is required")
+	raw := refreshFromRequest(r)
+	if raw == "" {
+		response.Err(w, http.StatusUnauthorized, "TOKEN_REQUIRED", "Refresh session is required")
 		return
 	}
-
-	result, err := h.svc.RefreshToken(r.Context(), req.RefreshToken, r.RemoteAddr, r.UserAgent())
+	result, err := h.svc.RefreshToken(r.Context(), raw, r.RemoteAddr, r.UserAgent())
 	if result != nil && result.User != nil {
 		middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
 	}
@@ -118,16 +142,15 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
+	h.secureResult(w, result)
 	response.JSON(w, http.StatusOK, result)
 }
 
 // POST /api/v1/auth/logout
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		RefreshToken string `json:"refresh_token"`
-	}
-	_ = json.NewDecoder(r.Body).Decode(&req)
-	_ = h.svc.Logout(r.Context(), req.RefreshToken)
+	raw := refreshFromRequest(r)
+	_ = h.svc.Logout(r.Context(), raw)
+	h.clearRefreshCookie(w)
 	response.JSONMsg(w, http.StatusOK, "Logged out successfully")
 }
 

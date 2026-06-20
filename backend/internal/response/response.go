@@ -13,8 +13,8 @@ type envelope struct {
 }
 
 type errEnvelope struct {
-	Success bool      `json:"success"`
-	Error   *errBody  `json:"error"`
+	Success bool     `json:"success"`
+	Error   *errBody `json:"error"`
 }
 
 type errBody struct {

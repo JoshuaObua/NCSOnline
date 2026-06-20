@@ -35,6 +35,7 @@ export function mediaUrl(path) {
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -94,21 +95,11 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true
       isRefreshing = true
 
-      const refreshToken = localStorage.getItem('ncsms_refresh_token')
-      if (!refreshToken) {
-        isRefreshing = false
-        clearAuthAndRedirect()
-        return Promise.reject(error)
-      }
-
       try {
-        const response = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {
-          refresh_token: refreshToken
-        })
-        const { access_token, refresh_token: new_refresh } = response.data.data
+		const response = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true })
+		const { access_token } = response.data.data
 
         localStorage.setItem('ncsms_access_token', access_token)
-        if (new_refresh) localStorage.setItem('ncsms_refresh_token', new_refresh)
 
         apiClient.defaults.headers.common.Authorization = `Bearer ${access_token}`
         originalRequest.headers.Authorization = `Bearer ${access_token}`
@@ -131,7 +122,6 @@ apiClient.interceptors.response.use(
 
 function clearAuthAndRedirect() {
   localStorage.removeItem('ncsms_access_token')
-  localStorage.removeItem('ncsms_refresh_token')
   localStorage.removeItem('ncsms_user')
   // Use window.location for hard redirect outside of Vue context
   if (window.location.pathname !== '/login') {

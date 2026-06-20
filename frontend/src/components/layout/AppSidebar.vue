@@ -48,6 +48,25 @@
         <NavItem :to="'/apply'" label="Start Application" icon="icofont-paper-plane" :highlight="true" />
       </div>
 
+      <template v-if="authStore.canUseNSMIS">
+        <div class="section-label">NSMIS Reporting</div>
+        <div class="px-2 space-y-0.5">
+          <NavItem v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department','federation_president','federation_general_secretary','auditor')" :to="'/nsmis/governance'" label="Governance" icon="icofont-chart-histogram" />
+          <NavItem :to="'/nsmis/reports'" label="Federation Reports" icon="icofont-file-document" />
+          <NavItem v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department')" :to="'/nsmis/insights/athletes'" label="Athletes" icon="icofont-runner-alt-1" />
+          <NavItem v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department')" :to="'/nsmis/insights/performance'" label="Performance" icon="icofont-medal" />
+          <NavItem v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','finance_department')" :to="'/nsmis/insights/finance'" label="Finance" icon="icofont-money" />
+          <NavItem v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department')" :to="'/nsmis/insights/talent'" label="Talent" icon="icofont-search-user" />
+          <NavItem :to="'/nsmis/data/federation-officers'" label="Federation Profiles" icon="icofont-building-alt" />
+          <NavItem :to="'/nsmis/data/athletes'" label="Athlete Registry" icon="icofont-users-alt-4" />
+          <NavItem :to="'/nsmis/data/competitions'" label="Competitions" icon="icofont-trophy" />
+          <NavItem :to="'/nsmis/data/medals'" label="Medal Records" icon="icofont-medal-sport" />
+          <NavItem :to="'/nsmis/data/coaches'" label="Coaches" icon="icofont-teacher" />
+          <NavItem :to="'/nsmis/data/technical-officials'" label="Technical Officials" icon="icofont-judge" />
+          <NavItem :to="'/nsmis/data/equipment'" label="Equipment" icon="icofont-box" />
+        </div>
+      </template>
+
       <!-- MANAGEMENT -->
       <div v-if="canManage" class="section-label">Management</div>
       <div v-if="canManage" class="px-2 space-y-0.5">

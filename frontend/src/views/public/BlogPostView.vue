@@ -40,7 +40,7 @@
               {{ post.view_count }}
             </span>
           </div>
-          <h1 class="text-3xl md:text-4xl font-bold text-white leading-tight">{{ post.title }}</h1>
+          <h1 class="text-4xl md:text-5xl font-bold text-white leading-tight">{{ post.title }}</h1>
         </div>
       </div>
 
@@ -48,7 +48,7 @@
       <div class="bg-white">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 py-14">
           <!-- Excerpt block -->
-          <p v-if="post.excerpt" class="text-lg text-gray-500 mb-8 border-l-4 border-[#F48C06] pl-5 italic">{{ post.excerpt }}</p>
+          <p v-if="post.excerpt" class="text-xl text-gray-500 leading-relaxed mb-10 border-l-4 border-[#F48C06] pl-6 italic">{{ post.excerpt }}</p>
 
           <!-- Body -->
           <div
