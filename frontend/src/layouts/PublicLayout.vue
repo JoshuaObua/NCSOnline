@@ -7,8 +7,10 @@
     <!-- ── Navbar ──────────────────────────────────────────── -->
     <header
       :class="[
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        scrolled ? 'bg-white shadow-md' : 'bg-cream'
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
+        scrolled
+          ? 'bg-white/95 backdrop-blur-md shadow-lg'
+          : 'bg-white/90 backdrop-blur-sm shadow-sm'
       ]"
     >
       <div class="public-topbar">
@@ -48,19 +50,19 @@
           <nav class="hidden lg:flex items-center gap-1 text-sm font-medium" aria-label="Primary navigation">
             <template v-for="item in menuItems" :key="item.id || item.label">
               <div v-if="(item.children?.length) || item.mega" class="relative group">
-                <button class="flex items-center gap-1 px-4 py-2 text-gray-600 hover:text-darken rounded-lg hover:bg-gray-50 transition-colors" aria-haspopup="true">
+                <button :class="['flex items-center gap-1 px-3 py-2 font-medium transition-colors duration-300 text-sm', isActiveTopLevel(item) ? 'text-[#f5a623]' : 'text-[#1a365d] hover:text-[#f5a623]']" aria-haspopup="true">
                   {{ item.label }}
-                  <svg class="w-3 h-3 mt-0.5 group-hover:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/>
+                  <svg class="w-4 h-4 group-hover:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"/>
                   </svg>
                 </button>
-                <div class="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 min-w-[200px] z-50">
+                <div class="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 min-w-[220px] z-50">
                   <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2 overflow-hidden">
                     <router-link
                       v-for="sub in (item.children || item.megaItems || [])"
                       :key="sub.id || sub.label"
                       :to="sub.url || '/'"
-                      class="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors"
+                      class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors"
                     >
                       <span v-if="sub.icon" class="text-base">{{ sub.icon }}</span>
                       {{ sub.label }}
@@ -71,7 +73,7 @@
               <router-link
                 v-else
                 :to="item.url || '/'"
-                class="px-4 py-2 text-gray-600 hover:text-darken rounded-lg hover:bg-gray-50 transition-colors"
+                :class="['px-3 py-2 font-medium transition-colors duration-300 text-sm', isActiveLink(item) ? 'text-[#f5a623]' : 'text-[#1a365d] hover:text-[#f5a623]']"
               >{{ item.label }}</router-link>
             </template>
           </nav>
@@ -85,24 +87,26 @@
             <button type="button" class="public-header-icon" :aria-expanded="searchOpen" aria-controls="public-site-search" aria-label="Search website" @click="searchOpen = !searchOpen">
               <i class="icofont-search-1" aria-hidden="true"></i>
             </button>
-            <button type="button" class="public-header-icon" aria-label="Open accessibility tools" @click="openAccessibility">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="4" r="2"/><path stroke-linecap="round" d="M5 8.5c4.6-1.7 9.4-1.7 14 0M12 7v13m0-7-4 7m4-7 4 7"/></svg>
+            <button type="button" class="public-header-icon" aria-label="Open accessibility tools" title="Accessibility tools" @click="openAccessibility">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-5 h-5"><circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-6 1"/><path d="m5 8 3-3 5.5 3-2.36 3.5"/><path d="M4.24 14.5a5 5 0 0 0 6.88 6"/><path d="M13.76 17.5a5 5 0 0 0-6.88-6"/></svg>
             </button>
-            <!-- Sign In icon (unauthenticated) -->
+            <!-- Login button (unauthenticated) -->
             <router-link
               v-if="!isAuthenticated"
               to="/login"
-              title="Sign In"
-              aria-label="Sign in"
-              class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-[#112b4e] hover:text-[#112b4e] hover:bg-gray-50 transition-all"
-            ><i class="icofont-sign-in text-xl leading-none" aria-hidden="true"></i></router-link>
-            <!-- Register icon (unauthenticated) -->
+              class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors"
+              aria-label="Login"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+              Login
+            </router-link>
+            <!-- Register icon (unauthenticated, mobile compact) -->
             <router-link
               v-if="!isAuthenticated"
               to="/register"
               title="Create Account"
               aria-label="Create an account"
-              class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-[#F48C06] hover:text-[#F48C06] hover:bg-orange-50 transition-all"
+              class="md:hidden w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-[#1a365d] hover:border-[#f5a623] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-all"
             ><i class="icofont-ui-user-group text-xl leading-none" aria-hidden="true"></i></router-link>
             <!-- Portal icon (authenticated applicant) -->
             <router-link
@@ -120,10 +124,6 @@
               aria-label="Open dashboard"
               class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-[#112b4e] hover:text-[#112b4e] hover:bg-gray-50 transition-all"
             ><i class="icofont-dashboard-web text-xl leading-none" aria-hidden="true"></i></router-link>
-            <router-link
-              to="/my-portal"
-              class="px-6 py-2.5 text-sm font-semibold text-white bg-accent rounded-full hover:bg-yellow-600 transition-colors shadow-sm hover:shadow-md"
-            >My Portal</router-link>
           </div>
 
           <!-- Mobile toggle -->
@@ -388,17 +388,38 @@ const contact = reactive({
   social: { facebook: '', twitter: '', linkedin: '', instagram: '', youtube: '' }
 })
 const headerSettings = reactive({
-  marquee: ['Welcome to National Council of Sports Uganda', 'A centre of excellence for promotion and development of Sports', 'Maximizing opportunities for all Ugandans to participate and excel in Sports', 'Established 1964'],
+  marquee: [
+    'Welcome to National Council of Sports Uganda',
+    'A centre of excellence for promotion and development of Sports.',
+    'Maximizing opportunities for all Ugandans to participate and excel in Sports.',
+    'Established 1964',
+  ],
   webmail_url: 'https://mail.umcs.go.ug/'
 })
+const socialDefaults = {
+  facebook:  'https://facebook.com/NCSUganda',
+  twitter:   'https://twitter.com/NCSUganda1',
+  linkedin:  'https://linkedin.com/company/ncsuganda',
+  youtube:   'http://www.youtube.com/@NCSUgTV',
+  instagram: '',
+}
 const socialNetworks = computed(() => [
-  { key:'facebook', label:'Facebook', icon:'icofont-facebook', url:contact.social.facebook },
-  { key:'twitter', label:'X / Twitter', icon:'icofont-twitter', url:contact.social.twitter },
-  { key:'linkedin', label:'LinkedIn', icon:'icofont-linkedin', url:contact.social.linkedin },
-  { key:'instagram', label:'Instagram', icon:'icofont-instagram', url:contact.social.instagram },
-  { key:'youtube', label:'YouTube', icon:'icofont-youtube', url:contact.social.youtube },
+  { key:'facebook',  label:'Facebook',     icon:'icofont-facebook',  url:contact.social.facebook  || socialDefaults.facebook },
+  { key:'twitter',   label:'X / Twitter',  icon:'icofont-twitter',   url:contact.social.twitter   || socialDefaults.twitter },
+  { key:'linkedin',  label:'LinkedIn',     icon:'icofont-linkedin',  url:contact.social.linkedin  || socialDefaults.linkedin },
+  { key:'instagram', label:'Instagram',    icon:'icofont-instagram', url:contact.social.instagram || socialDefaults.instagram },
+  { key:'youtube',   label:'YouTube',      icon:'icofont-youtube',   url:contact.social.youtube   || socialDefaults.youtube },
 ])
 const hasSocial = computed(() => Object.values(contact.social || {}).some(v => v?.trim()))
+
+function isActiveLink(item) {
+  if (!item?.url) return false
+  return route.path === item.url
+}
+function isActiveTopLevel(item) {
+  const children = item.children || item.megaItems || []
+  return children.some(c => c.url && route.path.startsWith(c.url))
+}
 
 async function loadMenu() {
   try {
