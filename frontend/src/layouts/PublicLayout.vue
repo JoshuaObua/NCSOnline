@@ -232,54 +232,84 @@
         </div>
       </div>
 
-      <!-- Links grid -->
-      <div class="max-w-screen-xl mx-auto px-6 py-14">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+      <!-- Links grid (NCS Footer Section Design spec) -->
+      <div class="max-w-7xl mx-auto px-4 py-12 md:py-16">
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-8">
 
-          <!-- Brand + contact -->
+          <!-- Column 1 — Brand + about + social -->
           <div>
-            <div class="mb-5">
-              <div class="w-20 h-20 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm border border-white/10">
-                <img :src="footerLogo" :alt="`${siteIdentity.name || 'NCS'} footer logo`" class="object-contain" style="width:4.25rem;height:4.25rem" />
-              </div>
+            <div class="flex items-center gap-3 mb-6">
+              <img :src="footerLogo" :alt="`${siteIdentity.name || 'NCS'} - National Council of Sports`" class="h-14 w-auto object-contain" :class="!siteIdentity.footerWhiteLogoUrl && !siteIdentity.whiteLogoUrl ? 'brightness-0 invert' : ''" />
             </div>
-            <p class="text-gray-400 text-sm leading-relaxed mb-5">{{ footerSettings.about }}</p>
-            <div class="space-y-2 text-sm text-gray-400">
-              <div v-if="contact.phone" class="flex items-center gap-2">
-                <i class="icofont-phone text-accent text-base flex-shrink-0"></i>
-                <a :href="`tel:${contact.phone}`" class="hover:text-accent transition-colors">{{ contact.phone }}</a>
-              </div>
-              <div v-if="contact.email" class="flex items-center gap-2">
-                <i class="icofont-email text-accent text-base flex-shrink-0"></i>
-                <a :href="`mailto:${contact.email}`" class="hover:text-accent transition-colors break-all">{{ contact.email }}</a>
-              </div>
-              <div v-if="contact.address" class="flex items-start gap-2">
-                <i class="icofont-location-pin text-accent text-base flex-shrink-0 mt-0.5"></i>
-                <span>{{ contact.address }}</span>
-              </div>
-            </div>
-            <!-- Social icons -->
-            <div v-if="hasSocial" class="flex gap-2 mt-5">
-              <a v-if="contact.social?.facebook"  :href="contact.social.facebook"  target="_blank" rel="noopener" aria-label="NCS on Facebook (opens in a new tab)" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-accent hover:bg-white/20 transition-all"><i class="icofont-facebook text-sm" aria-hidden="true"></i></a>
-              <a v-if="contact.social?.twitter"   :href="contact.social.twitter"   target="_blank" rel="noopener" aria-label="NCS on X (opens in a new tab)" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-accent hover:bg-white/20 transition-all"><i class="icofont-twitter text-sm" aria-hidden="true"></i></a>
-              <a v-if="contact.social?.linkedin"  :href="contact.social.linkedin"  target="_blank" rel="noopener" aria-label="NCS on LinkedIn (opens in a new tab)" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-accent hover:bg-white/20 transition-all"><i class="icofont-linkedin text-sm" aria-hidden="true"></i></a>
-              <a v-if="contact.social?.instagram" :href="contact.social.instagram" target="_blank" rel="noopener" aria-label="NCS on Instagram (opens in a new tab)" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-accent hover:bg-white/20 transition-all"><i class="icofont-instagram text-sm" aria-hidden="true"></i></a>
-              <a v-if="contact.social?.youtube"   :href="contact.social.youtube"   target="_blank" rel="noopener" aria-label="NCS on YouTube (opens in a new tab)" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-accent hover:bg-white/20 transition-all"><i class="icofont-youtube text-sm" aria-hidden="true"></i></a>
+            <p class="text-white/80 text-sm leading-relaxed mb-6">{{ footerSettings.about }}</p>
+            <div class="flex gap-3">
+              <a v-for="net in footerSocialLinks" :key="net.key" :href="net.url" target="_blank" rel="noopener noreferrer" :aria-label="net.label" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-[#f5a623] hover:text-white transition-all duration-300 hover:-translate-y-1">
+                <i :class="[net.icon, 'text-base']" aria-hidden="true"></i>
+              </a>
             </div>
           </div>
 
-          <!-- Dynamic link columns -->
-          <div v-for="(col, idx) in displayedColumns" :key="idx">
-            <h4 class="text-white font-semibold text-xs uppercase tracking-widest mb-5">{{ col.title }}</h4>
+          <!-- Column 2 — Contact Us -->
+          <div>
+            <h4 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
+              <span class="w-8 h-0.5 bg-[#f5a623]"></span>Contact Us
+            </h4>
+            <div class="space-y-4">
+              <div v-if="contactAddressLines.length" class="flex items-start gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#f5a623] flex-shrink-0 mt-0.5" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+                <div class="text-sm text-white/80">
+                  <p v-for="(line, i) in contactAddressLines" :key="i">{{ line }}</p>
+                </div>
+              </div>
+              <div v-if="contact.phone" class="flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#f5a623] flex-shrink-0" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                <a :href="`tel:${primaryPhone}`" class="text-sm text-white/80 hover:text-[#f5a623] transition-colors">{{ contact.phone }}</a>
+              </div>
+              <div v-if="contact.email" class="flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#f5a623] flex-shrink-0" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+                <a :href="`mailto:${contact.email}`" class="text-sm text-white/80 hover:text-[#f5a623] transition-colors break-all">{{ contact.email }}</a>
+              </div>
+            </div>
+            <a v-if="headerSettings.webmail_url" :href="headerSettings.webmail_url" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 mt-6 h-9 px-4 py-2 rounded-md text-sm font-medium bg-[#f5a623] hover:bg-[#e09612] text-white shadow transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+              Webmail
+            </a>
+          </div>
+
+          <!-- Column 3 — Quick Links (dynamic from footerSettings.columns[0]) -->
+          <div>
+            <h4 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
+              <span class="w-8 h-0.5 bg-[#f5a623]"></span>{{ quickLinksColumn.title || 'Quick Links' }}
+            </h4>
             <ul class="space-y-3">
-              <li v-for="(link, li) in (col.links || [])" :key="li">
+              <li v-for="(link, idx) in quickLinksColumn.links" :key="idx">
                 <component
                   :is="isExternalLink(link.url) ? 'a' : 'router-link'"
                   v-bind="isExternalLink(link.url) ? { href: link.url, target: '_blank', rel: 'noopener' } : { to: link.url || '/' }"
-                  class="text-sm text-gray-400 hover:text-accent transition-colors"
-                >{{ link.label }}</component>
+                  class="flex items-center gap-2 text-sm text-white/80 hover:text-[#f5a623] transition-colors group"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                  {{ link.label }}
+                </component>
               </li>
-              <li v-if="!col.links?.length" class="text-xs text-gray-600 italic">—</li>
+              <li v-if="!quickLinksColumn.links?.length" class="text-xs text-white/40 italic">No quick links configured yet.</li>
+            </ul>
+          </div>
+
+          <!-- Column 4 — Documents (dynamic from footerSettings.columns[1]) -->
+          <div>
+            <h4 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
+              <span class="w-8 h-0.5 bg-[#f5a623]"></span>{{ documentsColumn.title || 'Documents' }}
+            </h4>
+            <ul class="space-y-3">
+              <li v-for="(doc, idx) in documentsColumn.links" :key="idx">
+                <a :href="doc.url" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm text-white/80 hover:text-[#f5a623] transition-colors group">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-red-400 flex-shrink-0" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+                  <span class="flex-1 line-clamp-1">{{ doc.label }}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                </a>
+              </li>
+              <li v-if="!documentsColumn.links?.length" class="text-xs text-white/40 italic">No documents added yet.</li>
             </ul>
           </div>
         </div>
@@ -349,23 +379,26 @@ const defaultMenu = [
 ]
 
 const defaultFooter = {
-  about: 'The National Council of Sports is the government body responsible for the development, promotion and regulation of sports in Uganda.',
+  about: 'The National Council of Sports is the statutory body mandated to develop, promote, and control sports in Uganda.',
   copyright: 'National Council of Sports, Uganda. All rights reserved.',
   columns: [
-    { title: 'Services',    links: [
-      { label: 'My Portal', url: '/my-portal' },
-      { label: 'Resource Centre',   url: '/resource-centre' },
-      { label: 'FAQs',              url: '/faqs' },
-    ]},
-    { title: 'Information', links: [
-      { label: 'News & Updates', url: '/news' },
-      { label: 'Events',         url: '/events' },
-      { label: 'Careers',        url: '/careers' },
-    ]},
-    { title: 'Explore',     links: [
-      { label: 'Facilities',     url: '/facilities' },
+    // Column 0 — rendered as Quick Links (chevron icons)
+    { title: 'Quick Links', links: [
+      { label: 'Home',           url: '/' },
       { label: 'Associations',   url: '/associations' },
-      { label: 'Invest with Us', url: '/invest' },
+      { label: 'Invest With Us', url: '/invest' },
+      { label: 'Careers',        url: '/careers' },
+      { label: 'Contact',        url: '/contact-us' },
+      { label: 'About NCS',      url: '/about/mandate' },
+      { label: 'Latest News',    url: '/news' },
+    ]},
+    // Column 1 — rendered as Documents (PDF/external file icons)
+    { title: 'Documents', links: [
+      { label: 'NCS Annual Report 2023/2024',   url: 'https://www.ncs.go.ug/files/NCS%20ANNUAL%20REPORT%202023-2024_0.pdf' },
+      { label: 'NCS Annual Report 2022/2023',   url: 'https://www.ncs.go.ug/files/NCS%20ANNUAL%20REPORT%202022-2023.pdf' },
+      { label: 'NCS Strategic Plan 2020-2025',  url: 'https://www.ncs.go.ug/files/NCS%20STRATEGIC%20PLAN%202020%202025.pdf' },
+      { label: 'Policy Guidelines',             url: 'https://www.ncs.go.ug/files/POLICY%20GUIDELINES.pdf' },
+      { label: 'National Development Plan IV',  url: 'https://ncs.go.ug/files/NATIONAL%20DEVELOPMENT%20PLAN%20IV.pdf' },
     ]},
   ]
 }
@@ -373,10 +406,28 @@ const defaultFooter = {
 const menuItems = ref(defaultMenu)
 const footerSettings = reactive({ ...defaultFooter, columns: [...defaultFooter.columns] })
 
-const displayedColumns = computed(() => {
-  const cols = (footerSettings.columns || []).slice(0, 3)
-  while (cols.length < 3) cols.push({ title: '', links: [] })
-  return cols
+// Quick Links uses the first dynamic column (CMS), Documents uses the second
+const quickLinksColumn = computed(() => footerSettings.columns?.[0] || defaultFooter.columns[0])
+const documentsColumn = computed(() => footerSettings.columns?.[1] || defaultFooter.columns[1])
+
+// Address rendered as multi-line block: split contact.address on newlines (or commas),
+// then append postal_address as a separate line if present.
+const contactAddressLines = computed(() => {
+  const lines = []
+  if (contact.address) {
+    const parts = String(contact.address).split(/\r?\n/).map(s => s.trim()).filter(Boolean)
+    lines.push(...(parts.length ? parts : [String(contact.address).trim()]))
+  }
+  if (contact.postal_address) {
+    String(contact.postal_address).split(/\r?\n/).forEach(s => { const t = s.trim(); if (t) lines.push(t) })
+  }
+  return lines
+})
+
+// First number from "+256 414254477 / 343688" so tel: works on mobile.
+const primaryPhone = computed(() => {
+  if (!contact.phone) return ''
+  return String(contact.phone).split(/[\/,]/)[0].replace(/\s+/g, '')
 })
 
 function isExternalLink(url) {
@@ -384,8 +435,13 @@ function isExternalLink(url) {
 }
 
 const contact = reactive({
-  phone: '', email: '', address: 'Plot 6, Impala Avenue, Kampala, Uganda',
-  hours: '', mapUrl: '',
+  phone: '+256 414254477 / 343688',
+  email: 'info@ncs.go.ug',
+  address: 'Plot 2-10, Coronation Avenue',
+  postal_address: 'P.O. Box 20077, Lugogo\nKampala - UGANDA',
+  fax: '',
+  hours: '',
+  mapUrl: '',
   social: { facebook: '', twitter: '', linkedin: '', instagram: '', youtube: '' }
 })
 const headerSettings = reactive({
@@ -437,7 +493,19 @@ const socialNetworks = computed(() => [
   { key:'instagram', label:'Instagram',    icon:'icofont-instagram', url:contact.social.instagram || socialDefaults.instagram },
   { key:'youtube',   label:'YouTube',      icon:'icofont-youtube',   url:contact.social.youtube   || socialDefaults.youtube },
 ])
-const hasSocial = computed(() => Object.values(contact.social || {}).some(v => v?.trim()))
+// Footer-spec social row: FB, X, LinkedIn, YouTube, Webmail (Instagram dropped to match the design)
+const footerSocialLinks = computed(() => {
+  const rows = [
+    { key:'facebook',  label:'Facebook on NCS Uganda',  icon:'icofont-facebook',  url: contact.social.facebook  || socialDefaults.facebook },
+    { key:'twitter',   label:'X / Twitter',             icon:'icofont-twitter',   url: contact.social.twitter   || socialDefaults.twitter },
+    { key:'linkedin',  label:'LinkedIn',                icon:'icofont-linkedin',  url: contact.social.linkedin  || socialDefaults.linkedin },
+    { key:'youtube',   label:'YouTube',                 icon:'icofont-youtube',   url: contact.social.youtube   || socialDefaults.youtube },
+  ]
+  if (headerSettings.webmail_url) {
+    rows.push({ key:'webmail', label:'Webmail', icon:'icofont-email', url: headerSettings.webmail_url })
+  }
+  return rows.filter(r => r.url)
+})
 
 function isActiveLink(item) {
   if (!item?.url) return false
