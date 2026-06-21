@@ -121,8 +121,8 @@
               <h3 class="font-bold text-white mb-4 text-sm uppercase tracking-wide">Quick Links</h3>
               <ul class="space-y-2.5">
                 <li>
-                  <router-link to="/apply" class="flex items-center gap-2 text-white/70 hover:text-[#F48C06] text-sm font-medium transition-colors">
-                    <i class="icofont-arrow-right text-[#F48C06] text-xs"></i> Apply for a License
+                  <router-link to="/my-portal" class="flex items-center gap-2 text-white/70 hover:text-[#F48C06] text-sm font-medium transition-colors">
+                    <i class="icofont-arrow-right text-[#F48C06] text-xs"></i> My Portal
                   </router-link>
                 </li>
                 <li>

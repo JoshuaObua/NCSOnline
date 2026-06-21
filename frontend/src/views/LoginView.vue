@@ -134,10 +134,11 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -153,7 +154,8 @@ async function handleLogin() {
   const result = await authStore.login(email.value, password.value)
   loading.value = false
   if (result.success) {
-    router.push(authStore.isApplicant ? '/my-portal' : '/dashboard')
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') ? route.query.redirect : ''
+    router.push(redirect || (authStore.isApplicant ? '/my-portal' : '/dashboard'))
   } else {
     errorMessage.value = result.message || 'Login failed. Please try again.'
   }

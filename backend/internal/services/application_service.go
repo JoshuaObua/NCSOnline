@@ -30,12 +30,17 @@ var validFormTypes = map[string]bool{
 }
 
 type ApplicationService struct {
-	apps  *repository.ApplicationRepo
-	audit *repository.AuditRepo
+	apps          *repository.ApplicationRepo
+	audit         *repository.AuditRepo
+	organisations *repository.OrganisationRepo
 }
 
-func NewApplicationService(apps *repository.ApplicationRepo, audit *repository.AuditRepo) *ApplicationService {
-	return &ApplicationService{apps: apps, audit: audit}
+func NewApplicationService(apps *repository.ApplicationRepo, audit *repository.AuditRepo, organisations ...*repository.OrganisationRepo) *ApplicationService {
+	s := &ApplicationService{apps: apps, audit: audit}
+	if len(organisations) > 0 {
+		s.organisations = organisations[0]
+	}
+	return s
 }
 
 type SaveDraftInput struct {
@@ -182,8 +187,16 @@ func (s *ApplicationService) Approve(ctx context.Context, id, reviewerID, notes 
 	if err != nil {
 		return err
 	}
+	if app.Status == models.StatusApproved && (app.FormType == "form_3" || app.FormType == "form_10") && s.organisations != nil {
+		_, err = s.organisations.ApproveAndProvision(ctx, app, reviewerID, notes)
+		return err
+	}
 	if app.Status != models.StatusUnderReview && app.Status != models.StatusSubmitted && app.Status != models.StatusResubmitted {
 		return ErrInvalidTransition
+	}
+	if (app.FormType == "form_3" || app.FormType == "form_10") && s.organisations != nil {
+		_, err = s.organisations.ApproveAndProvision(ctx, app, reviewerID, notes)
+		return err
 	}
 	return s.apps.Approve(ctx, id, reviewerID, notes)
 }

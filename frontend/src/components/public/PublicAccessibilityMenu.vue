@@ -1,59 +1,77 @@
 <template>
-  <div ref="menuRoot" class="accessibility-menu">
+  <div
+    ref="menuRoot"
+    class="accessibility-menu"
+    @pointerenter="openFromHover"
+    @pointerleave="scheduleClose"
+    @focusin="cancelScheduledClose"
+    @focusout="onFocusOut"
+  >
     <button
       type="button"
       class="accessibility-trigger"
+      aria-label="Open accessibility tools"
+      title="Accessibility tools"
       :aria-expanded="open"
       aria-controls="visitor-accessibility-panel"
-      @click="togglePanel"
+      @focus="openPanel"
+      @click="openPanel"
     >
-      <span aria-hidden="true" class="text-xl font-bold">A</span>
-      <span class="hidden sm:inline">Accessibility</span>
+      <svg class="accessibility-trigger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+        <circle cx="12" cy="4" r="2" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 8.5c4.6-1.7 9.4-1.7 14 0M12 7v13m0-7-4 7m4-7 4 7" />
+      </svg>
     </button>
 
-    <section
-      v-if="open"
-      id="visitor-accessibility-panel"
-      ref="panel"
-      class="accessibility-panel"
-      aria-labelledby="accessibility-panel-title"
-    >
-      <div class="flex items-start justify-between gap-4 border-b border-gray-200 pb-3">
-        <div>
-          <h2 id="accessibility-panel-title" class="text-base font-bold text-[#2F327D]">Accessibility tools</h2>
-          <p class="mt-0.5 text-xs text-gray-600">Adjust this website for easier reading.</p>
+    <Transition name="accessibility-panel">
+      <section
+        v-if="open"
+        id="visitor-accessibility-panel"
+        ref="panel"
+        class="accessibility-panel"
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="accessibility-panel-title"
+        @keydown="trapFocus"
+      >
+        <div class="accessibility-panel-header">
+          <div>
+            <h2 id="accessibility-panel-title">Accessibility tools</h2>
+            <p>Choose the display that works best for you.</p>
+          </div>
+          <button type="button" class="accessibility-icon-button" aria-label="Close accessibility tools" @click="closePanel(true)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" d="m6 6 12 12M18 6 6 18" /></svg>
+          </button>
         </div>
-        <button type="button" class="accessibility-icon-button" aria-label="Close accessibility tools" @click="closePanel">
-          <span aria-hidden="true">&#10005;</span>
-        </button>
-      </div>
 
-      <div class="py-4">
-        <p id="text-size-label" class="mb-2 text-sm font-semibold text-gray-800">Text size</p>
-        <div class="grid grid-cols-3 gap-2" role="group" aria-labelledby="text-size-label">
-          <button type="button" class="accessibility-option" :disabled="preferences.textScale <= 90" aria-label="Decrease text size" @click="changeTextSize(-10)">A−</button>
-          <output class="accessibility-value" aria-live="polite">{{ preferences.textScale }}%</output>
-          <button type="button" class="accessibility-option text-lg" :disabled="preferences.textScale >= 130" aria-label="Increase text size" @click="changeTextSize(10)">A+</button>
+        <div class="accessibility-section">
+          <div class="accessibility-action-grid">
+            <button type="button" class="accessibility-toggle" @click="readSelectedText"><span>Read aloud</span><span aria-hidden="true">▶</span></button>
+            <button type="button" class="accessibility-toggle" @click="defineSelectedWord"><span>Define word</span><span aria-hidden="true">?</span></button>
+          </div>
+          <p class="accessibility-selection-help">Highlight text first, then choose Read aloud or Define word.</p>
         </div>
-      </div>
 
-      <div class="space-y-2 border-t border-gray-200 pt-4">
-        <button type="button" class="accessibility-toggle" :aria-pressed="preferences.highContrast" @click="togglePreference('highContrast')">
-          <span>High contrast</span><span class="toggle-state">{{ preferences.highContrast ? 'On' : 'Off' }}</span>
-        </button>
-        <button type="button" class="accessibility-toggle" :aria-pressed="preferences.underlineLinks" @click="togglePreference('underlineLinks')">
-          <span>Underline links</span><span class="toggle-state">{{ preferences.underlineLinks ? 'On' : 'Off' }}</span>
-        </button>
-        <button type="button" class="accessibility-toggle" :aria-pressed="preferences.reduceMotion" @click="togglePreference('reduceMotion')">
-          <span>Reduce motion</span><span class="toggle-state">{{ preferences.reduceMotion ? 'On' : 'Off' }}</span>
-        </button>
-      </div>
+        <div class="accessibility-section">
+          <p id="text-size-label" class="accessibility-section-label">Text size</p>
+          <div class="accessibility-size-controls" role="group" aria-labelledby="text-size-label">
+            <button type="button" class="accessibility-option" :disabled="preferences.textScale <= 90" aria-label="Decrease text size" @click="changeTextSize(-10)">A−</button>
+            <output class="accessibility-value" aria-live="polite">{{ preferences.textScale }}%</output>
+            <button type="button" class="accessibility-option accessibility-option-large" :disabled="preferences.textScale >= 130" aria-label="Increase text size" @click="changeTextSize(10)">A+</button>
+          </div>
+        </div>
 
-      <button type="button" class="mt-4 w-full rounded-lg border border-[#2F327D] px-3 py-2 text-sm font-semibold text-[#2F327D] hover:bg-[#2F327D] hover:text-white" @click="resetPreferences">
-        Reset accessibility settings
-      </button>
-    </section>
+        <div class="accessibility-toggle-grid">
+          <button v-for="tool in tools" :key="tool.key" type="button" class="accessibility-toggle" :aria-pressed="preferences[tool.key]" @click="togglePreference(tool.key)">
+            <span>{{ tool.label }}</span><span class="toggle-state">{{ preferences[tool.key] ? 'On' : 'Off' }}</span>
+          </button>
+        </div>
 
+        <button type="button" class="accessibility-reset" @click="resetPreferences">Reset all settings</button>
+      </section>
+    </Transition>
+
+    <div v-if="preferences.readingGuide" class="a11y-reading-guide" :style="{ top: `${pointerY}px` }" aria-hidden="true"></div>
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
   </div>
 </template>
@@ -62,21 +80,47 @@
 import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 const STORAGE_KEY = 'ncs_public_accessibility'
-const defaults = { textScale: 100, highContrast: false, underlineLinks: false, reduceMotion: false }
+const defaults = {
+  textScale: 100,
+  highContrast: false,
+  grayscale: false,
+  readableFont: false,
+  textSpacing: false,
+  underlineLinks: false,
+  highlightFocus: false,
+  largeCursor: false,
+  hideImages: false,
+  reduceMotion: false,
+  readingGuide: false,
+}
+const tools = [
+  { key: 'highContrast', label: 'High contrast' },
+  { key: 'grayscale', label: 'Grayscale' },
+  { key: 'readableFont', label: 'Readable font' },
+  { key: 'textSpacing', label: 'Text spacing' },
+  { key: 'underlineLinks', label: 'Underline links' },
+  { key: 'highlightFocus', label: 'Highlight focus' },
+  { key: 'largeCursor', label: 'Large cursor' },
+  { key: 'hideImages', label: 'Hide images' },
+  { key: 'reduceMotion', label: 'Reduce motion' },
+  { key: 'readingGuide', label: 'Reading guide' },
+]
 
 const open = ref(false)
 const panel = ref(null)
 const menuRoot = ref(null)
 const announcement = ref('')
+const pointerY = ref(window.innerHeight / 2)
 const preferences = reactive({ ...defaults })
+let closeTimer
 
 function readPreferences() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-    preferences.textScale = [90, 100, 110, 120, 130].includes(saved.textScale) ? saved.textScale : 100
-    preferences.highContrast = saved.highContrast === true
-    preferences.underlineLinks = saved.underlineLinks === true
-    preferences.reduceMotion = saved.reduceMotion === true
+    for (const key of Object.keys(defaults)) {
+      if (key === 'textScale') preferences[key] = [90, 100, 110, 120, 130].includes(saved[key]) ? saved[key] : defaults[key]
+      else preferences[key] = saved[key] === true
+    }
   } catch {
     Object.assign(preferences, defaults)
   }
@@ -86,60 +130,89 @@ function applyPreferences() {
   const site = document.querySelector('.public-site')
   if (!site) return
   document.documentElement.style.fontSize = `${preferences.textScale}%`
-  site.classList.toggle('a11y-high-contrast', preferences.highContrast)
-  site.classList.toggle('a11y-underline-links', preferences.underlineLinks)
-  site.classList.toggle('a11y-reduce-motion', preferences.reduceMotion)
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences))
-  } catch { /* preferences still apply for this visit */ }
+  for (const key of Object.keys(defaults)) {
+    if (key !== 'textScale') site.classList.toggle(`a11y-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`, preferences[key])
+  }
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences)) } catch { /* Applied for this visit. */ }
 }
 
-function togglePanel() {
-  open.value = !open.value
-  if (open.value) nextTick(() => panel.value?.querySelector('button')?.focus())
+function cancelScheduledClose() { clearTimeout(closeTimer) }
+function openFromHover(event) {
+  if (event.pointerType === 'mouse') {
+    cancelScheduledClose()
+    open.value = true
+  }
 }
-
-function closePanel() {
+function scheduleClose(event) {
+  if (event.pointerType === 'mouse') closeTimer = setTimeout(() => { open.value = false }, 220)
+}
+function onFocusOut(event) {
+  if (!menuRoot.value?.contains(event.relatedTarget)) scheduleClose({ pointerType: 'mouse' })
+}
+function openPanel() {
+  cancelScheduledClose()
+  open.value = true
+}
+function closePanel(returnFocus = false) {
+  cancelScheduledClose()
   open.value = false
-  nextTick(() => menuRoot.value?.querySelector('.accessibility-trigger')?.focus())
+  if (returnFocus) nextTick(() => menuRoot.value?.querySelector('.accessibility-trigger')?.focus())
 }
-
 function changeTextSize(amount) {
   preferences.textScale = Math.min(130, Math.max(90, preferences.textScale + amount))
   announcement.value = `Text size ${preferences.textScale} percent`
 }
-
 function togglePreference(name) {
   preferences[name] = !preferences[name]
-  const labels = { highContrast: 'High contrast', underlineLinks: 'Underline links', reduceMotion: 'Reduced motion' }
-  announcement.value = `${labels[name]} ${preferences[name] ? 'enabled' : 'disabled'}`
+  const label = tools.find(tool => tool.key === name)?.label || name
+  announcement.value = `${label} ${preferences[name] ? 'enabled' : 'disabled'}`
 }
-
 function resetPreferences() {
   Object.assign(preferences, defaults)
-  announcement.value = 'Accessibility settings reset'
+  announcement.value = 'All accessibility settings reset'
 }
-
-function onKeydown(event) {
-  if (event.key === 'Escape' && open.value) closePanel()
+function trapFocus(event) {
+  if (event.key !== 'Tab') return
+  const items = [...panel.value.querySelectorAll('button:not(:disabled), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+  if (!items.length) return
+  const first = items[0]
+  const last = items[items.length - 1]
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
 }
-
-function onPointerDown(event) {
-  if (open.value && menuRoot.value && !menuRoot.value.contains(event.target)) open.value = false
+function onKeydown(event) { if (event.key === 'Escape' && open.value) closePanel(true) }
+function onPointerDown(event) { if (open.value && menuRoot.value && !menuRoot.value.contains(event.target)) closePanel() }
+function onPointerMove(event) { if (preferences.readingGuide) pointerY.value = event.clientY }
+function readSelectedText() {
+  const text = window.getSelection()?.toString().trim() || document.querySelector('main')?.innerText?.slice(0, 3000) || ''
+  if (!text || !('speechSynthesis' in window)) { announcement.value = 'No readable text is selected'; return }
+  window.speechSynthesis.cancel()
+  window.speechSynthesis.speak(new SpeechSynthesisUtterance(text))
+  announcement.value = 'Reading selected text aloud'
 }
+function defineSelectedWord() {
+  const word = (window.getSelection()?.toString().trim() || '').split(/\s+/)[0]?.replace(/[^a-zA-Z'-]/g, '')
+  if (!word) { announcement.value = 'Highlight one word to define it'; return }
+  window.open(`https://www.merriam-webster.com/dictionary/${encodeURIComponent(word)}`, '_blank', 'noopener')
+  announcement.value = `Opening the definition of ${word}`
+}
+function onOpenRequest() { open.value = true }
 
 watch(preferences, applyPreferences, { deep: true })
-
 onMounted(() => {
   readPreferences()
   applyPreferences()
   document.addEventListener('keydown', onKeydown)
   document.addEventListener('pointerdown', onPointerDown)
+  document.addEventListener('pointermove', onPointerMove, { passive: true })
+  window.addEventListener('open-accessibility-menu', onOpenRequest)
 })
-
 onBeforeUnmount(() => {
+  clearTimeout(closeTimer)
   document.documentElement.style.fontSize = ''
   document.removeEventListener('keydown', onKeydown)
   document.removeEventListener('pointerdown', onPointerDown)
+  document.removeEventListener('pointermove', onPointerMove)
+  window.removeEventListener('open-accessibility-menu', onOpenRequest)
 })
 </script>

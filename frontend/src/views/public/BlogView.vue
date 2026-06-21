@@ -37,6 +37,7 @@
     <!-- Posts Grid -->
     <div class="bg-white">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+        <div v-if="searchQuery" class="mb-8 flex items-center justify-between gap-4 rounded-xl bg-blue-50 px-4 py-3 text-sm text-[#1a365d]"><span>Search results for <strong>“{{ searchQuery }}”</strong></span><button type="button" class="font-semibold" @click="clearSearch">Clear</button></div>
         <div v-if="loading" class="grid md:grid-cols-3 gap-6">
           <div v-for="i in 6" :key="i" class="animate-pulse">
             <div class="bg-gray-200 rounded-2xl h-48 mb-4"></div>
@@ -45,9 +46,9 @@
           </div>
         </div>
 
-        <div v-else-if="posts.length" class="skilline-news-grid grid md:grid-cols-3 gap-8">
+        <div v-else-if="displayedPosts.length" class="skilline-news-grid grid md:grid-cols-3 gap-8">
           <article
-            v-for="post in posts"
+            v-for="post in displayedPosts"
             :key="post.id"
             class="bg-white rounded-xl overflow-hidden transition-all flex flex-col"
           >
@@ -107,11 +108,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { listPosts, getSettings } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 
 const EXCLUDED = ['page', 'case_study']
+const route = useRoute()
+const router = useRouter()
 
 const categories = ref([{ value: '', label: 'All' }])
 const posts = ref([])
@@ -120,6 +124,9 @@ const loading = ref(true)
 const activeCategory = ref('')
 const page = ref(1)
 const perPage = 9
+const searchQuery = computed(() => String(route.query.search || '').trim())
+const displayedPosts = computed(() => { const q=searchQuery.value.toLowerCase(); return q ? posts.value.filter(post=>[post.title,post.excerpt,post.content,post.category].some(value=>String(value||'').toLowerCase().includes(q))) : posts.value })
+function clearSearch(){router.replace({path:'/news'})}
 
 function formatDate(d) {
   return new Date(d).toLocaleDateString('en-UG', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -163,4 +170,5 @@ onMounted(async () => {
   await loadCategories()
   loadPosts()
 })
+watch(()=>route.query.search,()=>loadPosts())
 </script>

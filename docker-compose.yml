@@ -44,6 +44,23 @@ services:
     networks:
       - ncsms_net
 
+  location-service:
+    build:
+      context: ./services/location_service
+    container_name: ncsms_location_service
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      LOCATION_PROVIDER_URL: ${LOCATION_PROVIDER_URL:-https://ipwho.is/{ip}}
+      LOCATION_CACHE_TTL_SECONDS: ${LOCATION_CACHE_TTL_SECONDS:-86400}
+    expose: ["8090"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [ncsms_net]
+
   nsmis-worker:
     build:
       context: ./backend

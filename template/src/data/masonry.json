@@ -1,0 +1,186 @@
+{
+    "imgs": [
+        {
+          "title": "Portfolio Title",
+          "descr":
+            "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+          "image": "01.jpg"
+        },
+        {
+          "title": "Portfolio Title",
+          "descr":
+            "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+          "image": "02.jpg"
+        },
+        {
+          "title": "Portfolio Title",
+          "descr":
+            "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+          "image": "03.jpg"
+        },
+        {
+          "title": "Portfolio Title",
+          "descr":
+            "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+          "image": "04.jpg"
+        },
+        {
+          "title": "Portfolio Title",
+          "descr":
+            "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+          "image": "05.jpg"
+        },
+        {
+          "title": "Portfolio Title",
+          "descr":
+            "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+          "image": "011.jpg"
+        },
+        {
+          "title": "Portfolio Title",
+          "descr":
+            "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+          "image": "010.jpg"
+        },
+        {
+          "title": "Portfolio Title",
+          "descr":
+            "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+          "image": "08.jpg"
+        },
+        {
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+            "image": "01.jpg"
+          },
+          {
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+            "image": "02.jpg"
+          },
+          {
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+            "image": "03.jpg"
+          },
+          {
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+            "image": "04.jpg"
+          },
+          {
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+            "image": "05.jpg"
+          },
+          {
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+            "image": "011.jpg"
+          },
+          {
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+            "image": "010.jpg"
+          },
+          {
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy.",
+            "image": "08.jpg"
+          }
+      ],
+      "imagearray":[
+        {  
+            "image": "1.jpg",
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {       
+             "image":"2.jpg",
+             "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {        
+            "image": "3.jpg",
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {    
+             "image":"4.jpg",
+             "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {  
+            "image": "5.jpg",
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {       
+            "image": "6.jpg",
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {       
+             "image":"8.jpg",
+             "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {        
+             "image":"9.jpg",
+             "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {      
+             "image":"10.jpg",
+             "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {      
+             "image":"11.jpg",
+             "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {         
+            "image": "12.jpg",
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {          
+            "image": "14.jpg",
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {          
+            "image": "15.jpg",
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           },
+           {
+            "image": "13.jpg",
+            "title": "Portfolio Title",
+            "descr":
+              "is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy."
+           }
+      ]
+}

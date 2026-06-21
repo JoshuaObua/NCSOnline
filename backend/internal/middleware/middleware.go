@@ -31,6 +31,26 @@ type AuditContext struct {
 	SessionID string
 }
 
+var locationService *LocationClient
+var auditJWTSecret string
+var geoAllowedCountries = map[string]struct{}{"UG": {}}
+var geoFailClosed bool
+
+func ConfigureLocationService(client *LocationClient, jwtSecret string, allowedCountries []string, failClosed bool) {
+	locationService = client
+	auditJWTSecret = jwtSecret
+	geoAllowedCountries = make(map[string]struct{}, len(allowedCountries))
+	for _, country := range allowedCountries {
+		if country = strings.ToUpper(strings.TrimSpace(country)); country != "" {
+			geoAllowedCountries[country] = struct{}{}
+		}
+	}
+	if len(geoAllowedCountries) == 0 {
+		geoAllowedCountries["UG"] = struct{}{}
+	}
+	geoFailClosed = failClosed
+}
+
 type auditCtxKey struct{}
 
 func getAuditCtx(r *http.Request) *AuditContext {
@@ -398,6 +418,16 @@ func lookupGeo(ipStr string) (country, city, countryCode string, vpn bool) {
 	if isPrivateIP(ipStr) {
 		return "Uganda", "Internal", "UG", false
 	}
+	if locationService != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+		defer cancel()
+		data, err := locationService.Locate(ctx, ipStr, "", "")
+		if err != nil {
+			return "Unknown", "", "", false
+		}
+		return data.Country, data.City, data.CountryCode,
+			data.IsProxy || data.IsVPN || data.IsTor || data.IsHosting
+	}
 
 	geoCache.RLock()
 	if e, ok := geoCache.m[ipStr]; ok && time.Since(e.fetchedAt) < 24*time.Hour {
@@ -453,7 +483,15 @@ func GeoBlocker(next http.Handler) http.Handler {
 			return
 		}
 		// Allow private/internal IPs (countryCode="UG" from isPrivateIP) and Uganda
-		if countryCode != "" && countryCode != "UG" && countryCode != "Unknown" {
+		if countryCode == "" && geoFailClosed {
+			response.Err(w, http.StatusServiceUnavailable, "LOCATION_UNAVAILABLE", "Location verification is temporarily unavailable")
+			return
+		}
+		if countryCode != "" && countryCode != "Unknown" {
+			if _, allowed := geoAllowedCountries[strings.ToUpper(countryCode)]; allowed {
+				next.ServeHTTP(w, r)
+				return
+			}
 			response.Err(w, http.StatusForbidden, "GEO_BLOCKED",
 				"Access denied: this system is only accessible from Uganda")
 			return
@@ -481,6 +519,14 @@ func AuditLogger(repo *repository.AuditRepo) func(http.Handler) http.Handler {
 			// Install shared audit context so downstream middlewares
 			// (Authenticate) can populate user details on it.
 			ac := &AuditContext{}
+			if auth := strings.TrimSpace(r.Header.Get("Authorization")); auth != "" && auditJWTSecret != "" {
+				parts := strings.SplitN(auth, " ", 2)
+				if len(parts) == 2 && strings.EqualFold(parts[0], "bearer") {
+					if claims, err := parseSignedTokenIdentity(auditJWTSecret, parts[1]); err == nil {
+						ac.UserID, ac.UserEmail, ac.SessionID = claims.UserID, claims.Email, claims.ID
+					}
+				}
+			}
 			ctx := context.WithValue(r.Context(), auditCtxKey{}, ac)
 			r = r.WithContext(ctx)
 
@@ -502,8 +548,15 @@ func AuditLogger(repo *repository.AuditRepo) func(http.Handler) http.Handler {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 
-				// Geo lookup (uses cache — no repeated external calls for same IP)
 				geoCountry, geoCity, _, vpnDetected := lookupGeo(ip)
+				var location *LocationResult
+				if locationService != nil {
+					location, _ = locationService.Locate(ctx, ip, ua, userID)
+					if location != nil {
+						geoCountry, geoCity = location.Country, location.City
+						vpnDetected = location.IsProxy || location.IsVPN || location.IsTor || location.IsHosting
+					}
+				}
 
 				// Classify the request
 				eventType := classifyEventType(method, endpoint)
@@ -547,6 +600,21 @@ func AuditLogger(repo *repository.AuditRepo) func(http.Handler) http.Handler {
 					VPNDetected:     vpnDetected,
 					ThreatScore:     threatScore,
 					AnomalyDetected: anomaly,
+				}
+				if location != nil {
+					entry.GeoRegion = location.Region
+					entry.GeoLatitude = location.Latitude
+					entry.GeoLongitude = location.Longitude
+					entry.GeoTimezone = location.Timezone
+					entry.GeoSource = location.Source
+					entry.Platform = location.Platform
+					entry.Authenticated = userID != ""
+					if location.Browser != "" {
+						entry.Browser = location.Browser
+					}
+					if location.DeviceType != "" {
+						entry.ClientType = location.DeviceType
+					}
 				}
 				if err := repo.Log(ctx, entry); err != nil {
 					log.Printf("[audit] failed to log request: %v", err)

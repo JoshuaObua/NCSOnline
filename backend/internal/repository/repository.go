@@ -16,24 +16,30 @@ var ErrNotFound = errors.New("record not found")
 var ErrDuplicate = errors.New("duplicate record")
 
 type Repos struct {
-	Users        *UserRepo
-	Roles        *RoleRepo
-	Applications *ApplicationRepo
-	Audit        *AuditRepo
-	Tokens       *TokenRepo
-	CMS          *CMSRepo
-	NSMIS        *NSMISRepo
+	Users         *UserRepo
+	Roles         *RoleRepo
+	Applications  *ApplicationRepo
+	Audit         *AuditRepo
+	Tokens        *TokenRepo
+	CMS           *CMSRepo
+	NSMIS         *NSMISRepo
+	USSD          *USSDRepo
+	Organisations *OrganisationRepo
+	Notifications *NotificationRepo
 }
 
 func New(db *pgxpool.Pool) *Repos {
 	return &Repos{
-		Users:        &UserRepo{db},
-		Roles:        &RoleRepo{db},
-		Applications: &ApplicationRepo{db},
-		Audit:        &AuditRepo{db},
-		Tokens:       &TokenRepo{db},
-		CMS:          &CMSRepo{db},
-		NSMIS:        &NSMISRepo{db},
+		Users:         &UserRepo{db},
+		Roles:         &RoleRepo{db},
+		Applications:  &ApplicationRepo{db},
+		Audit:         &AuditRepo{db},
+		Tokens:        &TokenRepo{db},
+		CMS:           &CMSRepo{db},
+		NSMIS:         &NSMISRepo{db},
+		USSD:          &USSDRepo{db: db},
+		Organisations: &OrganisationRepo{db: db},
+		Notifications: &NotificationRepo{db: db},
 	}
 }
 
@@ -704,11 +710,12 @@ func (r *AuditRepo) Log(ctx context.Context, a *models.AuditLog) error {
 	           (id, user_id, action, resource, resource_id, old_values, new_values,
 	            ip_address, user_agent, method, endpoint, response_code, response_time_ms, device_info,
 	            event_type, event_status, severity_level, forwarded_ip,
-	            geo_country, geo_city, vpn_detected,
+	            geo_country, geo_city, geo_region, geo_latitude, geo_longitude, geo_timezone, geo_source,
+	            platform, authenticated, vpn_detected,
 	            browser, os_name, client_type,
 	            threat_score, anomaly_detected, session_id, username)
 	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
-	                   $15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
+	                   $15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35)
 	           RETURNING created_at`
 	var responseCode *int
 	if a.ResponseCode != 0 {
@@ -727,7 +734,8 @@ func (r *AuditRepo) Log(ctx context.Context, a *models.AuditLog) error {
 		nullableStr(a.DeviceInfo),
 		nullableStr(a.EventType), nullableStr(a.EventStatus), nullableStr(a.SeverityLevel),
 		nullableStr(a.ForwardedIP),
-		nullableStr(a.GeoCountry), nullableStr(a.GeoCity), a.VPNDetected,
+		nullableStr(a.GeoCountry), nullableStr(a.GeoCity), nullableStr(a.GeoRegion), a.GeoLatitude, a.GeoLongitude,
+		nullableStr(a.GeoTimezone), nullableStr(a.GeoSource), nullableStr(a.Platform), a.Authenticated, a.VPNDetected,
 		nullableStr(a.Browser), nullableStr(a.OSName), nullableStr(a.ClientType),
 		a.ThreatScore, a.AnomalyDetected, nullableStr(a.SessionID), nullableStr(a.Username),
 	).Scan(&a.CreatedAt)
@@ -746,6 +754,8 @@ func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mo
 	                  COALESCE(al.device_info,''),
 	                  COALESCE(al.event_type,''), COALESCE(al.event_status,''), COALESCE(al.severity_level,''),
 	                  COALESCE(al.forwarded_ip,''), COALESCE(al.geo_country,''), COALESCE(al.geo_city,''),
+	                  COALESCE(al.geo_region,''), al.geo_latitude, al.geo_longitude, COALESCE(al.geo_timezone,''),
+	                  COALESCE(al.geo_source,''), COALESCE(al.platform,''), COALESCE(al.authenticated,false),
 	                  COALESCE(al.vpn_detected,false), COALESCE(al.browser,''), COALESCE(al.os_name,''),
 	                  COALESCE(al.client_type,''), COALESCE(al.threat_score,0),
 	                  COALESCE(al.anomaly_detected,false), COALESCE(al.session_id,''),
@@ -781,6 +791,8 @@ func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mo
 			&l.DeviceInfo,
 			&l.EventType, &l.EventStatus, &l.SeverityLevel,
 			&l.ForwardedIP, &l.GeoCountry, &l.GeoCity,
+			&l.GeoRegion, &l.GeoLatitude, &l.GeoLongitude, &l.GeoTimezone,
+			&l.GeoSource, &l.Platform, &l.Authenticated,
 			&l.VPNDetected, &l.Browser, &l.OSName,
 			&l.ClientType, &l.ThreatScore,
 			&l.AnomalyDetected, &l.SessionID, &l.Username,
@@ -802,6 +814,8 @@ func (r *AuditRepo) GetByID(ctx context.Context, id string) (*models.AuditLog, e
 	                  COALESCE(al.device_info,''),
 	                  COALESCE(al.event_type,''), COALESCE(al.event_status,''), COALESCE(al.severity_level,''),
 	                  COALESCE(al.forwarded_ip,''), COALESCE(al.geo_country,''), COALESCE(al.geo_city,''),
+	                  COALESCE(al.geo_region,''), al.geo_latitude, al.geo_longitude, COALESCE(al.geo_timezone,''),
+	                  COALESCE(al.geo_source,''), COALESCE(al.platform,''), COALESCE(al.authenticated,false),
 	                  COALESCE(al.vpn_detected,false), COALESCE(al.browser,''), COALESCE(al.os_name,''),
 	                  COALESCE(al.client_type,''), COALESCE(al.threat_score,0),
 	                  COALESCE(al.anomaly_detected,false), COALESCE(al.session_id,''),
@@ -819,6 +833,8 @@ func (r *AuditRepo) GetByID(ctx context.Context, id string) (*models.AuditLog, e
 		&l.DeviceInfo,
 		&l.EventType, &l.EventStatus, &l.SeverityLevel,
 		&l.ForwardedIP, &l.GeoCountry, &l.GeoCity,
+		&l.GeoRegion, &l.GeoLatitude, &l.GeoLongitude, &l.GeoTimezone,
+		&l.GeoSource, &l.Platform, &l.Authenticated,
 		&l.VPNDetected, &l.Browser, &l.OSName,
 		&l.ClientType, &l.ThreatScore,
 		&l.AnomalyDetected, &l.SessionID, &l.Username,
@@ -1391,6 +1407,7 @@ func (r *CMSRepo) DeleteFacility(ctx context.Context, id string) error {
 
 func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*models.CMSAssociation, error) {
 	q := `SELECT id, name, slug, COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
+	             COALESCE(category,'Other'), COALESCE(president,''), COALESCE(secretary,''), COALESCE(address,''), COALESCE(phone,''),
 	             sort_order, is_active, created_at, updated_at
 	      FROM cms_associations`
 	if activeOnly {
@@ -1406,6 +1423,7 @@ func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*mod
 	for rows.Next() {
 		a := &models.CMSAssociation{}
 		if err := rows.Scan(&a.ID, &a.Name, &a.Slug, &a.Description, &a.LogoURL, &a.WebsiteURL,
+			&a.Category, &a.President, &a.Secretary, &a.Address, &a.Phone,
 			&a.SortOrder, &a.IsActive, &a.CreatedAt, &a.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -1416,10 +1434,12 @@ func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*mod
 
 func (r *CMSRepo) GetAssociationByID(ctx context.Context, id string) (*models.CMSAssociation, error) {
 	const q = `SELECT id, name, slug, COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
+	                  COALESCE(category,'Other'), COALESCE(president,''), COALESCE(secretary,''), COALESCE(address,''), COALESCE(phone,''),
 	                  sort_order, is_active, created_at, updated_at
 	           FROM cms_associations WHERE id=$1`
 	a := &models.CMSAssociation{}
 	err := r.db.QueryRow(ctx, q, id).Scan(&a.ID, &a.Name, &a.Slug, &a.Description, &a.LogoURL, &a.WebsiteURL,
+		&a.Category, &a.President, &a.Secretary, &a.Address, &a.Phone,
 		&a.SortOrder, &a.IsActive, &a.CreatedAt, &a.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -1428,9 +1448,9 @@ func (r *CMSRepo) GetAssociationByID(ctx context.Context, id string) (*models.CM
 }
 
 func (r *CMSRepo) CreateAssociation(ctx context.Context, a *models.CMSAssociation) error {
-	const q = `INSERT INTO cms_associations (id, name, slug, description, logo_url, website_url, sort_order, is_active)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING created_at, updated_at`
-	err := r.db.QueryRow(ctx, q, a.ID, a.Name, a.Slug, a.Description, a.LogoURL, a.WebsiteURL, a.SortOrder, a.IsActive).Scan(&a.CreatedAt, &a.UpdatedAt)
+	const q = `INSERT INTO cms_associations (id, name, slug, description, logo_url, website_url, category, president, secretary, address, phone, sort_order, is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING created_at, updated_at`
+	err := r.db.QueryRow(ctx, q, a.ID, a.Name, a.Slug, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive).Scan(&a.CreatedAt, &a.UpdatedAt)
 	if err != nil && isDuplicate(err) {
 		return ErrDuplicate
 	}
@@ -1439,8 +1459,9 @@ func (r *CMSRepo) CreateAssociation(ctx context.Context, a *models.CMSAssociatio
 
 func (r *CMSRepo) UpdateAssociation(ctx context.Context, a *models.CMSAssociation) error {
 	const q = `UPDATE cms_associations SET name=$2, slug=$3, description=$4, logo_url=$5,
-	           website_url=$6, sort_order=$7, is_active=$8, updated_at=NOW() WHERE id=$1`
-	_, err := r.db.Exec(ctx, q, a.ID, a.Name, a.Slug, a.Description, a.LogoURL, a.WebsiteURL, a.SortOrder, a.IsActive)
+	           website_url=$6, category=$7, president=$8, secretary=$9, address=$10, phone=$11,
+	           sort_order=$12, is_active=$13, updated_at=NOW() WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, a.ID, a.Name, a.Slug, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive)
 	return err
 }
 

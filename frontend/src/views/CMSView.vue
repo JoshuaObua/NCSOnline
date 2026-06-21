@@ -332,8 +332,8 @@
 
         <!-- ═══ HOMEPAGE BUILDER ══════════════════════════════════ -->
         <div v-else-if="activeSection==='homepage-builder'">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            <div class="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div class="px-5 py-4 border-b border-gray-100">
                 <h3 class="font-semibold text-gray-900">Section Order & Visibility</h3>
                 <p class="text-xs text-gray-400 mt-0.5">Drag to reorder. Toggle to show/hide.</p>
@@ -358,30 +358,14 @@
                 </div>
               </div>
             </div>
-            <div class="space-y-4">
-              <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-                <h3 class="font-semibold text-gray-900 mb-3">Header Settings</h3>
-                <div class="space-y-3">
-                  <div>
-                    <label class="text-xs font-medium text-gray-600 block mb-1">Hero Background</label>
-                    <select v-model="homeSettings.heroStyle" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2">
-                      <option value="gradient">Gradient</option><option value="image">Image</option><option value="video">Video</option><option value="solid">Solid Color</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="text-xs font-medium text-gray-600 block mb-1">Overlay Opacity</label>
-                    <input type="range" min="0" max="100" v-model="homeSettings.overlayOpacity" class="w-full accent-primary-600"/>
-                    <span class="text-xs text-gray-400">{{ homeSettings.overlayOpacity }}%</span>
-                  </div>
-                  <div>
-                    <label class="text-xs font-medium text-gray-600 block mb-1">Counter Speed (ms)</label>
-                    <input type="number" v-model="homeSettings.counterSpeed" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"/>
-                  </div>
-                </div>
-              </div>
-              <button @click="saveHomeSettings" class="w-full bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
-                Save Page Settings
-              </button>
+            <div class="space-y-4 max-h-[72vh] overflow-y-auto pr-1">
+              <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-800">Hero slides, news, events, facilities, FAQs, fun facts and associations are edited from their dedicated CMS menus. The fields below control the homepage wording and layout.</div>
+              <div class="cms-home-card"><h3>Header marquee</h3><div v-for="(_,i) in headerEditor.marquee" :key="i" class="flex gap-2"><input v-model="headerEditor.marquee[i]" class="cms-home-input" :aria-label="`Marquee message ${i+1}`"/><button type="button" @click="headerEditor.marquee.splice(i,1)" class="text-red-500 px-2">×</button></div><button type="button" @click="headerEditor.marquee.push('')" class="cms-home-add">+ Add message</button><label>Webmail URL</label><input v-model="headerEditor.webmail_url" class="cms-home-input"/></div>
+              <div class="cms-home-card"><h3>About NCS</h3><label>Section label</label><input v-model="homeSettings.about.eyebrow" class="cms-home-input"/><label>Main heading</label><input v-model="homeSettings.about.title" class="cms-home-input"/><label>Introduction</label><textarea v-model="homeSettings.about.intro" rows="3" class="cms-home-input"></textarea><label>Background paragraph</label><textarea v-model="homeSettings.about.body" rows="4" class="cms-home-input"></textarea><div class="grid grid-cols-2 gap-3"><div><label>Leadership button</label><input v-model="homeSettings.about.leadership_label" class="cms-home-input"/></div><div><label>Button URL</label><input v-model="homeSettings.about.leadership_url" class="cms-home-input"/></div></div><h4 class="text-xs font-bold text-gray-700 mt-2">Milestone counters</h4><div v-for="(_,i) in homeSettings.milestones" :key="`milestone-${i}`" class="grid grid-cols-[5rem_1fr_1fr_auto] gap-2"><input v-model="homeSettings.milestones[i].value" class="cms-home-input" placeholder="60+"/><input v-model="homeSettings.milestones[i].label" class="cms-home-input" placeholder="Years of Excellence"/><input v-model="homeSettings.milestones[i].icon" class="cms-home-input" placeholder="icofont-award"/><button type="button" @click="homeSettings.milestones.splice(i,1)" class="text-red-500">×</button></div><button type="button" @click="homeSettings.milestones.push({value:'',label:'',icon:'icofont-award'})" class="cms-home-add">+ Add milestone</button><h4 class="text-xs font-bold text-gray-700 mt-2">Mission, vision & values cards</h4><div v-for="(_,i) in homeSettings.values" :key="`value-${i}`" class="border border-gray-100 rounded-lg p-3 space-y-2"><div class="flex gap-2"><input v-model="homeSettings.values[i].title" class="cms-home-input" placeholder="Card title"/><input v-model="homeSettings.values[i].icon" class="cms-home-input" placeholder="icofont-eye"/><button type="button" @click="homeSettings.values.splice(i,1)" class="text-red-500">×</button></div><textarea v-model="homeSettings.values[i].text" rows="2" class="cms-home-input" placeholder="Card content"></textarea><label class="flex items-center gap-2"><input v-model="homeSettings.values[i].featured" type="checkbox"/> Dark featured card</label></div><button type="button" @click="homeSettings.values.push({title:'',text:'',icon:'icofont-award',featured:false})" class="cms-home-add">+ Add value card</button><label>Core functions heading</label><input v-model="homeSettings.about.core_title" class="cms-home-input"/><label>Core functions introduction</label><textarea v-model="homeSettings.about.core_intro" rows="2" class="cms-home-input"></textarea><div v-for="(_,i) in homeSettings.core_functions" :key="i" class="flex gap-2"><input v-model="homeSettings.core_functions[i]" class="cms-home-input" :aria-label="`Core function ${i+1}`"/><button type="button" @click="homeSettings.core_functions.splice(i,1)" class="text-red-500 px-2">×</button></div><button type="button" @click="homeSettings.core_functions.push('')" class="cms-home-add">+ Add function</button></div>
+              <div class="cms-home-card"><h3>Section headings</h3><label>Statistics title</label><input v-model="homeSettings.stats_title" class="cms-home-input"/><label>Statistics introduction</label><textarea v-model="homeSettings.stats_intro" rows="2" class="cms-home-input"></textarea><label>Federation finder label</label><input v-model="homeSettings.finder_eyebrow" class="cms-home-input"/><label>Federation finder title</label><input v-model="homeSettings.finder_title" class="cms-home-input"/><label>Federation finder introduction</label><textarea v-model="homeSettings.finder_intro" rows="3" class="cms-home-input"></textarea></div>
+              <div class="cms-home-card"><h3>Get involved</h3><label>Section label</label><input v-model="homeSettings.involved_title" class="cms-home-input"/><label>Heading</label><input v-model="homeSettings.involved_subtitle" class="cms-home-input"/><label>Description</label><textarea v-model="homeSettings.involved_text" rows="3" class="cms-home-input"></textarea><div class="grid grid-cols-2 gap-3"><div><label>Register button</label><input v-model="homeSettings.register_label" class="cms-home-input"/></div><div><label>Register URL</label><input v-model="homeSettings.register_url" class="cms-home-input"/></div><div><label>Contact button</label><input v-model="homeSettings.contact_label" class="cms-home-input"/></div><div><label>Contact URL</label><input v-model="homeSettings.contact_url" class="cms-home-input"/></div></div></div>
+              <div class="cms-home-card"><h3>FAQ & fun facts</h3><label>FAQ label</label><input v-model="homeSettings.faq_eyebrow" class="cms-home-input"/><label>FAQ title</label><input v-model="homeSettings.faq_title" class="cms-home-input"/><label>Fun facts label</label><input v-model="homeSettings.facts_eyebrow" class="cms-home-input"/><label>Fun facts title</label><input v-model="homeSettings.facts_title" class="cms-home-input"/></div>
+              <button @click="saveHomeSettings" :disabled="savingHome" class="w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white text-sm font-medium py-2.5 rounded-xl transition-colors">{{ savingHome ? 'Saving…' : 'Save Homepage' }}</button>
             </div>
           </div>
         </div>
@@ -424,7 +408,9 @@
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div><label class="text-xs font-medium text-gray-600 block mb-1">Phone</label><input v-model="contactSettings.phone" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="+256 ..."/></div>
                 <div><label class="text-xs font-medium text-gray-600 block mb-1">Email</label><input v-model="contactSettings.email" type="email" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="info@..."/></div>
-                <div class="sm:col-span-2"><label class="text-xs font-medium text-gray-600 block mb-1">Address</label><textarea v-model="contactSettings.address" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none" rows="2" placeholder="Physical address"/></div>
+                <div class="sm:col-span-2"><label class="text-xs font-medium text-gray-600 block mb-1">Physical Address</label><textarea v-model="contactSettings.address" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none" rows="2" placeholder="Physical address"/></div>
+                <div class="sm:col-span-2"><label class="text-xs font-medium text-gray-600 block mb-1">Postal Address</label><input v-model="contactSettings.postal_address" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2" placeholder="P.O. Box ..."/></div>
+                <div><label class="text-xs font-medium text-gray-600 block mb-1">Fax</label><input v-model="contactSettings.fax" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"/></div>
                 <div><label class="text-xs font-medium text-gray-600 block mb-1">Working Hours</label><input v-model="contactSettings.hours" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="Mon–Fri, 8am–5pm"/></div>
                 <div><label class="text-xs font-medium text-gray-600 block mb-1">Google Maps Embed URL</label><input v-model="contactSettings.mapUrl" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="https://maps.google.com/..."/></div>
               </div>
@@ -979,8 +965,13 @@
               <div class="grid grid-cols-2 gap-4">
                 <div><label class="text-xs font-medium text-gray-600 block mb-1">Name *</label><input v-model="form.name" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
                 <div><label class="text-xs font-medium text-gray-600 block mb-1">Website URL</label><input v-model="form.website_url" type="url" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
+                <div><label class="text-xs font-medium text-gray-600 block mb-1">Sport Category</label><input v-model="form.category" type="text" list="sport-category-options" placeholder="Team Sports" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"/><datalist id="sport-category-options"><option value="Team Sports"/><option value="Combat"/><option value="Racket & Bat"/><option value="Water"/><option value="Athletics & Endurance"/><option value="Mind Sports"/><option value="Paralympic & Inclusive"/></datalist></div>
+                <div><label class="text-xs font-medium text-gray-600 block mb-1">Phone</label><input v-model="form.phone" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"/></div>
+                <div><label class="text-xs font-medium text-gray-600 block mb-1">President</label><input v-model="form.president" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"/></div>
+                <div><label class="text-xs font-medium text-gray-600 block mb-1">Secretary</label><input v-model="form.secretary" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"/></div>
                 <div><label class="text-xs font-medium text-gray-600 block mb-1">Sort Order</label><input v-model.number="form.sort_order" type="number" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
               </div>
+              <div><label class="text-xs font-medium text-gray-600 block mb-1">Address</label><input v-model="form.address" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"/></div>
               <div>
                 <label class="text-xs font-medium text-gray-600 block mb-1">Logo</label>
                 <DropzoneUpload v-model="form.logo_url" label="Drop association logo or click to upload" hint="Square format recommended" preview-class="h-28 object-contain bg-gray-50"/>
@@ -1330,7 +1321,7 @@ const defaultFooterBuilder = () => ({
   copyright: 'National Council of Sports, Uganda. All rights reserved.',
   columns: [
     { title: 'Services',    links: [
-      { label: 'Apply for License', url: '/apply' },
+      { label: 'My Portal', url: '/my-portal' },
       { label: 'Resource Centre',   url: '/resource-centre' },
       { label: 'FAQs',              url: '/faqs' },
     ]},
@@ -1396,17 +1387,22 @@ function removeFooterLink(colIdx, linkIdx) {
 
 // ── Homepage Builder ──────────────────────────────────────────────
 const homeSections = reactive([
-  {id:'hero',label:'Hero Section',icon:'🎯',description:'Slideshow hero banner',visible:true},
-  {id:'services',label:'Services',icon:'🔧',description:'Services offered grid',visible:true},
-  {id:'counters',label:'Counter Up',icon:'📊',description:'Statistics and numbers',visible:true},
-  {id:'projects',label:'Projects',icon:'📂',description:'Featured projects',visible:true},
-  {id:'blog',label:'Blog Area',icon:'📰',description:'Latest blog posts',visible:false},
-  {id:'testimonials',label:'Testimonials',icon:'💬',description:'Client testimonials',visible:true},
-  {id:'team',label:'Team',icon:'👥',description:'Team members section',visible:false},
-  {id:'contact',label:'Contact',icon:'📞',description:'Contact form and info',visible:true},
-  {id:'newsletter',label:'Newsletter',icon:'📧',description:'Email subscription area',visible:false},
+  {id:'hero',label:'Hero Slider',icon:'🎯',description:'Managed under Hero Slides',visible:true},
+  {id:'about',label:'About NCS',icon:'🏛',description:'History, milestones, values and core functions',visible:true},
+  {id:'stats',label:'Sports Statistics',icon:'📊',description:'Uses active Fun Facts',visible:true},
+  {id:'news',label:'Latest News',icon:'📰',description:'Uses published posts',visible:true},
+  {id:'find_sport',label:'Find Your Sport',icon:'🏆',description:'Searchable association directory',visible:true},
+  {id:'get_involved',label:'Get Involved & Contact',icon:'🤝',description:'Calls to action and contact settings',visible:true},
+  {id:'events',label:'Events',icon:'📅',description:'Uses published events',visible:true},
+  {id:'facilities',label:'Facilities',icon:'🏟',description:'Uses active facilities',visible:true},
+  {id:'associations',label:'Association Logos',icon:'🏅',description:'Recognised sports bodies',visible:true},
+  {id:'help',label:'Help & Support',icon:'💬',description:'Quick support links',visible:true},
+  {id:'cta',label:'Application CTA',icon:'📣',description:'Application call to action',visible:true},
+  {id:'faq_facts',label:'FAQs & Fun Facts',icon:'❓',description:'Top ten active entries',visible:true},
 ])
-const homeSettings = reactive({ heroStyle:'gradient', overlayOpacity:50, counterSpeed:2000 })
+const homeSettings = reactive({about:{eyebrow:'About NCS',title:'Developing Sports Excellence Since 1964',intro:'',body:'',leadership_label:'View Current Membership',leadership_url:'/team',core_title:'Core Functions of NCS',core_intro:'As mandated by the National Sports Act, NCS performs the following key functions:',mandate_label:'Read Full Mandate',mandate_url:'/pages/the-mandate'},milestones:[{value:'60+',label:'Years of Excellence',icon:'icofont-award'},{value:'54+',label:'Sports Associations',icon:'icofont-trophy'},{value:'32+',label:'Sports Facilities',icon:'icofont-stadium'}],values:[{title:'Our Mission',text:'Maximizing opportunities for all Ugandans to participate and excel in Sports.',icon:'icofont-dart',featured:true},{title:'Our Vision',text:'A centre of excellence for promotion and development of Sports.',icon:'icofont-eye',featured:false}],core_functions:[],stats_title:'Sports Excellence in Numbers',stats_intro:'',finder_eyebrow:'Discover your federation',finder_title:'Find Your Sport',finder_intro:'',involved_title:'Get Involved',involved_subtitle:"Be Part of Uganda's Sports Excellence",involved_text:'',register_label:'My Portal',register_url:'/my-portal',contact_label:'Contact Us',contact_url:'/contact-us',faq_eyebrow:'Got Questions?',faq_title:'Frequently Asked Questions',facts_eyebrow:'Did You Know?',facts_title:'Fun Facts'})
+const headerEditor = reactive({marquee:['Welcome to National Council of Sports Uganda'],webmail_url:'https://mail.umcs.go.ug/'})
+const savingHome = ref(false)
 let homeDragSrc = null
 function homeDragStart(e,sec) { homeDragSrc=sec }
 function homeDrop(e,target) {
@@ -1415,9 +1411,20 @@ function homeDrop(e,target) {
   homeSections.splice(to,0,homeSections.splice(from,1)[0])
   homeDragSrc=null
 }
-function saveHomeSettings() {
-  localStorage.setItem('cms_home',JSON.stringify({sections:homeSections,settings:homeSettings}))
-  showToast('Home page settings saved!')
+async function loadHomeSettings() {
+  try {
+    const [homeR,headerR]=await Promise.all([cmsApi.getSettings('homepage'),cmsApi.getSettings('header')])
+    const value=homeR.data?.data?.value
+    if(Array.isArray(value?.sections)){const labels=new Map(homeSections.map(s=>[s.id,s]));homeSections.splice(0,homeSections.length,...value.sections.map(s=>({...labels.get(s.id),...s})).filter(s=>s.id))}
+    if(value) for(const [key,val] of Object.entries(value)){if(key==='sections')continue;if(val&&typeof val==='object'&&!Array.isArray(val)&&homeSettings[key])Object.assign(homeSettings[key],val);else homeSettings[key]=val}
+    const header=headerR.data?.data?.value;if(header)Object.assign(headerEditor,header)
+  } catch {}
+}
+async function saveHomeSettings() {
+  savingHome.value=true
+  try { await Promise.all([cmsApi.adminUpdateSettings('homepage',{...homeSettings,sections:homeSections.map(({id,visible})=>({id,visible}))}),cmsApi.adminUpdateSettings('header',{...headerEditor})]);showToast('Homepage saved — changes are now live') }
+  catch(err){showToast('Save failed: '+(err.response?.data?.error?.message||err.message))}
+  finally{savingHome.value=false}
 }
 
 // ── Team ──────────────────────────────────────────────────────────
@@ -1646,7 +1653,7 @@ async function loadSitemap() {
           { title: 'FAQs',                slug: '/faqs',             url: origin + '/faqs' },
           { title: 'Invest with Us',      slug: '/invest',           url: origin + '/invest' },
           { title: 'Contact Us',          slug: '/contact-us',       url: origin + '/contact-us' },
-          { title: 'Apply (License Portal)', slug: '/apply',         url: origin + '/apply' },
+          { title: 'My Individual Portal', slug: '/my-portal', url: origin + '/my-portal' },
           { title: 'Sign In',             slug: '/login',            url: origin + '/login' },
         ]
       },
@@ -1717,7 +1724,7 @@ function saveAppearance() {
 }
 
 // ── Contact settings (backed by cms_settings.contact) ────────────
-const contactSettings = reactive({ phone:'', email:'', address:'', hours:'', mapUrl:'', social:{facebook:'',twitter:'',linkedin:'',instagram:'',youtube:''} })
+const contactSettings = reactive({ phone:'', email:'', address:'', postal_address:'', fax:'', hours:'', mapUrl:'', social:{facebook:'',twitter:'',linkedin:'',instagram:'',youtube:''} })
 const savingContact = ref(false)
 
 async function loadContactFromBackend() {
@@ -1728,6 +1735,8 @@ async function loadContactFromBackend() {
       if (typeof v.phone   === 'string') contactSettings.phone = v.phone
       if (typeof v.email   === 'string') contactSettings.email = v.email
       if (typeof v.address === 'string') contactSettings.address = v.address
+      if (typeof v.postal_address === 'string') contactSettings.postal_address = v.postal_address
+      if (typeof v.fax === 'string') contactSettings.fax = v.fax
       if (typeof v.hours   === 'string') contactSettings.hours = v.hours
       if (typeof v.mapUrl  === 'string') contactSettings.mapUrl = v.mapUrl
       if (v.social) Object.assign(contactSettings.social, v.social)
@@ -1807,7 +1816,7 @@ function openCreate() {
   else if (s==='faqs')         form.value={question:'',answer:'',category:'general',sort_order:0,is_active:true}
   else if (s==='resources')    form.value={title:'',category:'downloads',file_url:'',description:'',sort_order:0,is_active:true}
   else if (s==='facilities')   form.value={name:'',description:'',image_url:'',sort_order:0,is_active:true}
-  else if (s==='associations') form.value={name:'',description:'',logo_url:'',website_url:'',sort_order:0,is_active:true}
+  else if (s==='associations') form.value={name:'',description:'',logo_url:'',website_url:'',category:'Other',president:'',secretary:'',address:'',phone:'',sort_order:0,is_active:true}
   else if (s==='invest')       form.value={title:'',subtitle:'',content:'',image_url:'',sort_order:0,is_active:true}
   showModal.value=true
 }
@@ -1932,10 +1941,16 @@ onMounted(() => {
   loadLocalSettings()
   loadPostCategories()
   loadPosts()
+  loadHomeSettings()
 })
 </script>
 
 <style scoped>
 .toast-enter-active, .toast-leave-active { transition: all 0.3s ease; }
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(-12px); }
+.cms-home-card { background:white; border:1px solid #e5e7eb; border-radius:.75rem; padding:1.25rem; display:flex; flex-direction:column; gap:.55rem; }
+.cms-home-card h3 { color:#111827; font-weight:700; margin-bottom:.25rem; }
+.cms-home-card label { color:#4b5563; font-size:.72rem; font-weight:600; }
+.cms-home-input { width:100%; border:1px solid #d1d5db; border-radius:.5rem; padding:.5rem .65rem; font-size:.8rem; }
+.cms-home-add { align-self:flex-start; color:#2563eb; font-size:.75rem; font-weight:600; }
 </style>

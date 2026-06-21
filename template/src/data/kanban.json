@@ -1,0 +1,193 @@
+{
+    "default":[
+        {
+            "title": "Design Dashboard",
+            "list": 0,
+            "place":"Themeforest, australia",
+            "image":"@/assets/images/user/3.jpg",
+            "priority":"Medium",
+            "badge":"badge-primary",
+            "id":0,
+            "date":"23/7/20"
+          },
+          {
+           "title": "Test Sidebar",
+            "list": 0,
+            "place":"Themeforest, australia",
+            "image":"@/assets/images/user/3.jpg",
+            "badge":"badge-danger",
+            "id":0,
+            "priority":"Argent",
+             "date":"24/7/20"
+          },
+          {
+           
+            "title": "Test Sidebar",
+            "list": 1,
+            "place":"Themeforest, australia",
+            "image":"@/assets/images/user/3.jpg",
+            "badge":"badge-danger",
+            "id":1,
+            "priority":"Argent",
+             "date":"24/7/20"
+          },
+          {
+           
+           "title": "Dashboard issue",
+            "list": 1,
+            "place":"Pixelstrap, New york",
+            "image":"@/assets/images/user/3.jpg",
+            "priority":"Low",
+            "badge":"badge-success",
+            "id":1,
+             "date":"24/7/20"
+          },
+            {
+           "title": "Test Sidebar",
+            "list": 2,
+            "place":"Themeforest, australia",
+            "image":"@/assets/images/user/3.jpg",
+            "badge":"badge-danger",
+            "id":3,
+            "priority":"Argent",
+             "date":"24/7/20"
+          },
+          {
+            "title": "Design Dashboard",
+            "list": 2,
+            "place":"Themeforest, australia",
+            "image":"@/assets/images/user/3.jpg",
+            "priority":"Medium",
+            "badge":"badge-primary",
+            "id":3,
+             "date":"23/7/20"
+          }
+    ],
+    "custom":[
+        {
+            "title": "Design Dashboard",
+            "list": 0,
+            "place":"Themeforest, australia",
+            "image":"@/assets/images/user/3.jpg",
+            "priority":"medium",
+            "badge":"badge-info",
+            "id":0,
+            "date":"23/7/20"
+          },
+          {
+           "title": "Dashboard issue",
+            "list": 0,
+            "place":"Pixelstrap, New york",
+            "image":"@/assets/images/user/3.jpg",
+            "priority":"Low",
+            "badge":"badge-success",
+            "id":0,
+             "date":"24/7/20"
+          },
+          {
+           
+            "title": "Test Sidebar",
+            "list": 1,
+            "place":"Themeforest, australia",
+            "image":"@/assets/images/user/3.jpg",
+            "badge":"badge-danger",
+            "id":1,
+            "priority":"Argent",
+             "date":"24/7/20"
+          },
+          {
+           
+           "title": "Dashboard issue",
+            "list": 1,
+            "place":"Pixelstrap, New york",
+            "image":"@/assets/images/user/3.jpg",
+            "priority":"Low",
+            "badge":"badge-success",
+            "id":1,
+             "date":"24/7/20"
+          },
+            {
+           "title": "Test Sidebar",
+            "list": 2,
+            "place":"Themeforest, australia",
+            "image":"@/assets/images/user/3.jpg",
+            "badge":"badge-danger",
+            "id":3,
+            "priority":"Argent",
+             "date":"24/7/20"
+          },
+          {
+            "title": "Dashboard issue",
+            "list": 2,
+            "place":"Pixelstrap, New york",
+            "image":"@/assets/images/user/3.jpg",
+            "priority":"Low",
+            "badge":"badge-success",
+            "id":3,
+             "date":"24/7/20"
+          }
+    ],
+    "api":[
+      {
+         "title": "Design Dashboard",
+         "list": 0,
+         "place":"Themeforest, australia",
+        
+         "priority":"Medium",
+         "badge":"badge-info",
+         "id":1,
+         "date":"23/7/20"
+       },
+       {
+        "title": "Dashboard issue",
+         "list": 0,
+         "place":"Pixelstrap, New york",
+         
+         "priority":"Low",
+         "badge":"badge-success",
+         "id":2,
+          "date":"24/7/20"
+       },
+       {
+        
+         "title": "Test Sidebar",
+         "list": 1,
+         "place":"Themeforest, australia",
+         "img":"other-images/maintenance-bg.jpg",
+         "badge":"badge-danger",
+         "id":3,
+         "priority":"Argent",
+          "date":"24/7/20"
+       },
+       {
+        
+        "title": "Dashboard issue",
+         "list": 1,
+         "place":"Pixelstrap, New york",
+         "image":"3.jpg",
+         "priority":"Low",
+         "badge":"badge-success",
+         "id":4,
+          "date":"24/7/20"
+       },
+         {
+        "title": "Test Sidebar",
+         "list": 2,
+         "place":"Themeforest, australia",
+         "badge":"badge-danger",
+         "id":5,
+         "priority":"Argent",
+          "date":"24/7/20"
+       },
+       {
+         "title": "Dashboard issue",
+         "list": 2,
+         "place":"Pixelstrap, New york",
+         "img":"other-images/sidebar-bg.jpg",
+         "priority":"Low",
+         "badge":"badge-success",
+         "id":6,
+          "date":"24/7/20"
+       }
+    ]
+}

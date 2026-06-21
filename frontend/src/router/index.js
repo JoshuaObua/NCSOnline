@@ -22,14 +22,16 @@ const AssociationsView = () => import('@/views/public/AssociationsView.vue')
 const InvestView = () => import('@/views/public/InvestView.vue')
 const FAQsView = () => import('@/views/public/FAQsView.vue')
 const ContactUsView = () => import('@/views/public/ContactUsView.vue')
+const TeamView = () => import('@/views/public/TeamView.vue')
 
 // ── Auth / applicant views ────────────────────────────────────────
 const RegisterView = () => import('@/views/RegisterView.vue')
 const ApplicantPortalView = () => import('@/views/ApplicantPortalView.vue')
+const AcceptOrganisationInviteView = () => import('@/views/AcceptOrganisationInviteView.vue')
 
 // ── Admin / auth views ────────────────────────────────────────────
 const LoginView = () => import('@/views/LoginView.vue')
-const DashboardView = () => import('@/views/DashboardView.vue')
+const DashboardView = () => import('@/views/DashboardEntryView.vue')
 const UsersView = () => import('@/views/UsersView.vue')
 const ApplicationsView = () => import('@/views/ApplicationsView.vue')
 const AuditLogsView = () => import('@/views/AuditLogsView.vue')
@@ -57,7 +59,7 @@ const routes = [
       { path: 'careers/:id', name: 'CareerDetail', component: CareerDetailView, meta: { requiresAuth: false } },
       { path: 'projects', name: 'Projects', component: ProjectsView, meta: { requiresAuth: false } },
       { path: 'case-studies', name: 'CaseStudies', component: CaseStudiesView, meta: { requiresAuth: false } },
-      { path: 'apply', name: 'Apply', component: LicensePortalView, meta: { requiresAuth: false } },
+      { path: 'apply', redirect: () => localStorage.getItem('ncsms_access_token') ? '/my-portal/applications/new' : '/login?redirect=/my-portal/applications/new' },
       { path: 'resource-centre', name: 'ResourceCentre', component: ResourceCentreView, meta: { requiresAuth: false } },
       { path: 'resources', redirect: '/resource-centre' },
       { path: 'facilities', name: 'Facilities', component: FacilitiesView, meta: { requiresAuth: false } },
@@ -66,6 +68,7 @@ const routes = [
       { path: 'invest', name: 'Invest', component: InvestView, meta: { requiresAuth: false } },
       { path: 'faqs', name: 'FAQs', component: FAQsView, meta: { requiresAuth: false } },
       { path: 'contact-us', name: 'ContactUs', component: ContactUsView, meta: { requiresAuth: false } },
+      { path: 'team', name: 'Team', component: TeamView, meta: { requiresAuth: false } },
     ]
   },
 
@@ -92,6 +95,18 @@ const routes = [
         path: 'my-portal',
         name: 'ApplicantPortal',
         component: ApplicantPortalView,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'my-portal/applications/new',
+        name: 'NewOrganisationApplication',
+        component: LicensePortalView,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'accept-organisation-invite',
+        name: 'AcceptOrganisationInvite',
+        component: AcceptOrganisationInviteView,
         meta: { requiresAuth: true }
       }
     ]
@@ -183,10 +198,10 @@ const publicPageTitles = {
   Home: 'National Council of Sports Uganda',
   News: 'News & Updates', NewsPost: 'News Article', Page: 'Information',
   Events: 'Events', EventDetail: 'Event Details', Careers: 'Careers', CareerDetail: 'Career Opportunity',
-  Projects: 'Projects', CaseStudies: 'Case Studies', Apply: 'Apply for a Licence',
+  Projects: 'Projects', CaseStudies: 'Case Studies', NewOrganisationApplication: 'New Organisation Application',
   ResourceCentre: 'Resource Centre', Facilities: 'Sports Facilities', FacilityDetail: 'Facility Details',
   Associations: 'Sports Associations', Invest: 'Invest with NCS', FAQs: 'Frequently Asked Questions',
-  ContactUs: 'Contact Us', ApplicantPortal: 'My Portal'
+  ContactUs: 'Contact Us', Team: 'NCS Membership', ApplicantPortal: 'My Portal'
 }
 
 router.afterEach((to) => {
@@ -215,7 +230,7 @@ router.beforeEach((to, from, next) => {
 
   // Protected route — require authentication
   if (!isAuthenticated) {
-    return next('/login')
+    return next({ path: '/login', query: { redirect: to.fullPath } })
   }
 
   // Resolve user roles once for both checks below
@@ -232,7 +247,8 @@ router.beforeEach((to, from, next) => {
 
   // Applicant/user role — only allowed on portal and profile; block all staff routes
   const staffRoutes = ['Dashboard', 'Users', 'Applications', 'AuditLogs', 'Roles', 'CMS']
-  if (isApplicantUser && staffRoutes.includes(to.name)) {
+  const hasActiveOrganisation = !!localStorage.getItem('ncsms_active_organisation')
+  if (isApplicantUser && staffRoutes.includes(to.name) && !(to.name === 'Dashboard' && hasActiveOrganisation)) {
     return next('/my-portal')
   }
 

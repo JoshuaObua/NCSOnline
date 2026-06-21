@@ -1,107 +1,118 @@
-# NCSMS v1 — Changelog
+Building and optimizing complex, high-performance systems—especially when dealing with automation, real-time data, and hardware—requires choosing the right tool for the right job. Rather than sticking to a single monolithic language, modern system engineering relies on a ecosystem of targeted, lightweight, or highly specialized languages.
 
-All notable changes to this project are documented here.
-Format: `[YYYY-MM-DD] — Type: Description`
-Types: `Added` | `Changed` | `Fixed` | `Removed` | `Security` | `Infrastructure`
+Here is a comprehensive breakdown of "tiny," lightweight, or highly specialized programming and scripting languages you can introduce to your stack to improve performance, documentation, testing, and CI/CD, along with exactly why and where you need them.
 
 ---
 
-## [Unreleased]
+## Implemented service-language inventory (2026-06-21)
 
-### Added
-- Backend Go API skeleton with Chi router, JWT auth, and RBAC middleware
-- Docker Compose multi-service setup (postgres, backend, nginx)
-- PostgreSQL migrations 001–006 (users, roles, tokens, applications, audit logs, seeds)
-- Nginx reverse proxy configuration with rate limiting and security headers
-- Postman collection (v2.1) with all 52 endpoints grouped by domain
-- `progress-checklist.md` tracking all 52 API endpoints and infrastructure status
+- **Go** — authenticated API, USSD, business rules, authorisation, and audit persistence.
+- **Python** — isolated IP location, proxy/VPN signals, and platform enrichment.
+- **SQL** — transactional organisation provisioning, memberships, invitations, and audit schema.
+- **Vue/JavaScript, HTML, and CSS** — public site, portals, CMS, and dashboards.
+- **YAML** — Docker Compose deployment and OpenAPI contracts.
+- **Markdown** — implementation and operations documentation.
+- **Shell/PowerShell** — lightweight verification and deployment automation.
 
----
-
-## [2026-05-26] — Design: Application Workflow Architecture
-
-### Added
-- `application-workflow-v1.md` — shared 6-stage wizard workflow architecture for all application forms
-  - Stage 1: Multi-step form fill with auto-save, Save Draft, and Resume
-  - Stage 2: Read-only review with per-section edit links
-  - Stage 3: Pre-filled PDF generation + digital or print-sign-scan signature flow
-  - Stage 4: Dual payment methods (online digital payment + scanned proof upload) for all applications and renewals
-  - Stage 5: Pre-submission checklist + application reference assignment
-  - Stage 6: Status tracking dashboard with NEEDS_INFORMATION response flow
-- Status state machine: `DRAFT → PENDING_SIGNATURE → PENDING_PAYMENT → SUBMITTED → UNDER_REVIEW → APPROVED / REJECTED / NEEDS_INFORMATION`
-- Frontend component map (ApplicationWizard, PaymentSelector, ProofOfPaymentForm, etc.)
-- Full API endpoint list for draft, signed form, payment, submission, and tracking
-
-### Changed
-- All 8 application form design files updated with `## Wizard Steps` section mapping PDF parts to numbered wizard steps
-- `applications-v1.md` index updated with workflow overview, payment methods table, and status reference
-- `README.md` updated with workflow summary and full folder structure tree
+Lua, C++, HCL, AWK/sed, PHP/Hack, and Gherkin remain optional because no current production boundary justifies adding those runtimes.
 
 ---
 
-## [2026-05-26] — Design: PDF Form Integration
+## 1. System Logic & High-Performance Automation
 
-### Added
-- All 7 official NCS statutory PDF forms added to `Modular Design/applications/`
-- Each application markdown file completely rewritten with exact field names (snake_case), input types, field labels, and attachment requirements derived directly from the PDFs:
-  - `national-sport-recognition-application-v1.md` — Form 1, Reg. 3(1)
-  - `federation-registration-renewal-v1.md` — Form 3, Reg. 4(1), 5(1), 9(1)
-  - `national-sports-association-transformation-v1.md` — Form 5, Reg. 11(1)
-  - `national-sports-federation-transformation-v1.md` — Form 5, Reg. 11(1)
-  - `sports-competition-organization-application-v1.md` — Form 7, Reg. 16(1)
-  - `sports-facility-operation-application-v1.md` — Form 8, Reg. 17(2)
-  - `community-academy-registration-renewal-v1.md` — Form 10, Reg. 22(1)
-  - `sports-academy-operation-application-v1.md` — Form 11, Reg. 29(1)(a)
-- `applications-v1.md` index updated with official form numbers, regulation references, and attachment cross-reference table
+When Python is too heavy or slow (e.g., high-frequency data processing or low-level memory management), these languages keep your footprint tiny and your execution blazing fast.
 
----
+### Lua
 
-## [2026-05-26] — Design: Initial Module Design Commit
+* **What it is:** A ultra-lightweight, embeddable scripting language.
+* **Functionality:** Known for being incredibly fast and having a tiny footprint (the entire interpreter is only a few hundred kilobytes).
+* **Why you need it:** Excellent for writing fast execution scripts inside other tools. For instance, **Redis** natively runs Lua scripts directly on the database server, allowing you to execute complex transactional logic with zero network latency. It’s also used to script high-performance web servers like **Nginx**.
 
-### Added
-- `Modular Design/ncsms-v1-module-design.md` — core architecture, security, middleware, and shared guidance
-- `Modular Design/super-admin-v1.md` — Super Admin module design
-- `Modular Design/general-secretary-v1.md` — General Secretary application review and licence processing
-- `Modular Design/roles-v1.md` — system roles and custom role permissions
-- `Modular Design/user-profiles-v1.md` — user profile and account categories
-- `Modular Design/athletes-v1.md` — athlete registration and credentialing
-- `Modular Design/assets-v1.md` — asset and inventory management
-- `Modular Design/audit-v1.md` — audit events and compliance
-- `Modular Design/content-manager-v1.md` — website content and public pages
-- `Modular Design/applications/` folder with all application form stubs
+### Bash / Shell Scripting
+
+* **What it is:** The native command language for Unix/Linux operating systems.
+* **Functionality:** Direct interaction with the OS kernel, file systems, and processes.
+* **Why you need it:** Python is overkill for simple system maintenance. Bash is vital for writing lightweight cron jobs, managing system service restarts, handling backups, and spinning up containerized environments quickly.
+
+### C++ (Embedded/Micro-optimizations)
+
+* **What it is:** A compiled, high-performance, statically-typed language.
+* **Functionality:** Provides direct hardware access and zero-overhead memory management.
+* **Why you need it:** When targeting constrained hardware environments (like microcontrollers with minimal RAM), C++ is the industry standard to ensure your code executes instantly without the overhead of a runtime engine or garbage collector.
 
 ---
 
-## Roadmap
+## 2. CI/CD & Infrastructure as Code (IaC)
 
-### Phase 1 — Backend MVP (Current)
-- [ ] Go API server with Chi router
-- [ ] JWT auth + refresh token rotation
-- [ ] RBAC middleware (super_admin, admin, general_secretary, user)
-- [ ] User CRUD
-- [ ] Role and permission management
-- [ ] Application CRUD + status workflow
-- [ ] Admin review endpoints (approve, reject, request-info)
-- [ ] Payment proof upload
-- [ ] Audit logging
-- [ ] Dashboard stats
-- [ ] PostgreSQL migrations + seeds
+Automating deployments and managing server setups shouldn't involve complex application languages. These declarative languages are built specifically for infrastructure.
 
-### Phase 2 — Integrations
-- [ ] Payment gateway (card + mobile money)
-- [ ] Pre-filled PDF generation (statutory forms)
-- [ ] File storage (Supabase Storage)
-- [ ] Email notifications (SMTP / SendGrid)
+### YAML (Yet Another Markup Language)
 
-### Phase 3 — Frontend
-- [ ] Admin dashboard (React / Next.js)
-- [ ] Applicant portal with 6-stage wizard
-- [ ] Application tracking dashboard
-- [ ] Public website + content pages
+* **What it is:** A human-readable data serialization language.
+* **Functionality:** Strictly used for configuration files.
+* **Why you need it:** It is the universal standard for modern DevOps. You need it to define automation workflows in **GitHub Actions**, write deployment configurations for **Docker Compose**, and orchestrate container lifecycles.
 
-### Phase 4 — Production Hardening
-- [ ] SSL / TLS certificates (Let's Encrypt)
-- [ ] Redis-backed rate limiting and session management
-- [ ] Monitoring and alerting (Prometheus + Grafana)
-- [ ] Automated backups
-- [ ] CI/CD pipeline
+### HCL (HashiCorp Configuration Language)
+
+* **What it is:** A declarative language designed to build infrastructure.
+* **Functionality:** Used to describe the exact desired end-state of your cloud or server infrastructure.
+* **Why you need it:** If you use **Terraform** to spin up, modify, or tear down servers, databases, and networks automatically, HCL is required. It ensures your infrastructure is version-controlled just like application code.
+
+---
+
+## 3. Data Transformation & High-Speed Querying
+
+When handling high-frequency data streams, relational databases or standard JSON parsing can sometimes become a bottleneck.
+
+### SQL (Structured Query Language)
+
+* **What it is:** The domain-specific language for managing relational databases.
+* **Functionality:** Optimized for querying, filtering, and joining massive datasets instantly.
+* **Why you need it:** While backend languages have ORMs (like Python's SQLAlchemy), writing raw, optimized SQL queries is non-negotiable for high-frequency database operations where every millisecond counts.
+
+### AWK & sed
+
+* **What it is:** Tiny text-processing data streams utilities built into Unix.
+* **Functionality:** `sed` is a stream editor for filtering and transforming text; `awk` is a complete pattern scanning and processing language.
+* **Why you need it:** If your system generates massive text log files, parsing them with Python can eat up memory. `awk` and `sed` can search, filter, and extract data from a 10GB log file in seconds using almost zero RAM.
+
+---
+
+## 4. Testing & Behavior Verification
+
+Writing integration tests inside your main codebase can sometimes clutter the business logic. These tools separate behavior from implementation.
+
+### Gherkin
+
+* **What it is:** A business-readable, domain-specific language for behavior-driven development (BDD).
+* **Functionality:** Uses natural language statements (`Given`, `When`, `Then`) to define test cases.
+* **Why you need it:** It allows you to map out complex system logic into plain English tests. Frameworks in Python (like `Behave`) or Go can read Gherkin files to execute automated test suites, ensuring your system logic behaves exactly as planned.
+
+---
+
+## 5. System Documentation & API Contracts
+
+Documentation should live alongside your code, be version-controlled, and ideally generate interactive tools automatically.
+
+### Markdown
+
+* **What it is:** A lightweight markup language with plain-text formatting syntax.
+* **Functionality:** Converts simple text formatting into clean HTML.
+* **Why you need it:** For writing `README.md` files, internal system documentation, and architecture logs directly inside your Git repositories.
+
+### OpenAPI / Swagger (YAML/JSON based)
+
+* **What it is:** A specification standard for defining REST APIs.
+* **Functionality:** Describes your API endpoints, expected request payloads, and response structures.
+* **Why you need it:** Instead of manually writing API documentation, writing an OpenAPI spec allows you to automatically generate interactive documentation dashboards and even auto-generate client SDK code across different backend languages.
+
+---
+
+## Where do Python, PHP, and Hack fit?
+
+To round out your question regarding where these larger languages sit compared to the tiny tools above:
+
+* **Python:** Your "glue" and analytics engine. It excels at rapid development, data scraping, and mathematical computations, but relies on the tiny languages above (like SQL or YAML) to run efficiently in production.
+* **PHP / Hack:** Strictly for web-facing presentation and rapid backend API development. **Hack** (developed by Meta) introduces strict typing to PHP, making it much faster and safer for large-scale web applications. They are great if you need to serve a lightweight, dynamic web dashboard to monitor your backend engines.
+
+Would you like an example of how to combine a few of these—such as using Bash and YAML to automate a Python test suite?

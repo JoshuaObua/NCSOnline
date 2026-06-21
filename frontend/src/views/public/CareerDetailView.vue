@@ -68,10 +68,10 @@
 
                 <div class="pt-4">
                   <router-link
-                    to="/apply"
+                    to="/contact-us"
                     class="w-full flex items-center justify-center gap-2 bg-[#F48C06] hover:bg-[#d47b05] text-white font-semibold px-5 py-3 rounded-xl text-sm transition-colors"
                   >
-                    Apply Now →
+                    Contact Recruitment →
                   </router-link>
                 </div>
 

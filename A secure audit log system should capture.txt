@@ -1,0 +1,288 @@
+A secure audit log system should capture enough information to provide **traceability, accountability, forensic evidence, compliance support, anomaly detection, and security monitoring**. Below is a comprehensive list of recommended audit log fields for enterprise-grade systems.
+-Flag and block requests to the backend from IP addresses pointing to locations outside Uganda or Whether VPN/proxy detected  the system should not be accessed via vpn
+# Core Audit Log Fields
+
+| Field Name       | Description                                                      |
+| ---------------- | ---------------------------------------------------------------- |
+| `log_id`         | Unique identifier for the log entry                              |
+| `event_id`       | Unique identifier for the specific event type                    |
+| `timestamp_utc`  | Exact UTC date and time of the event                             |
+| `timezone`       | User/system timezone at event time                               |
+| `event_type`     | Category of action (LOGIN, CREATE, UPDATE, DELETE, EXPORT, etc.) |
+| `event_action`   | Specific action performed                                        |
+| `event_status`   | SUCCESS, FAILED, DENIED, ERROR                                   |
+| `severity_level` | INFO, WARNING, ERROR, CRITICAL                                   |
+| `description`    | Human-readable event description                                 |
+| `message`        | Detailed log message                                             |
+
+---
+
+# User & Identity Fields
+
+| Field Name              | Description                            |
+| ----------------------- | -------------------------------------- |
+| `user_id`               | Internal system user ID                |
+| `username`              | Username used                          |
+| `full_name`             | User full name                         |
+| `email`                 | User email                             |
+| `role_id`               | Role identifier                        |
+| `role_name`             | User role                              |
+| `permissions`           | Permissions assigned at time of action |
+| `department`            | Organizational department              |
+| `account_status`        | Active, suspended, disabled            |
+| `authentication_method` | Password, OAuth, SSO, MFA, biometrics  |
+| `mfa_used`              | Whether MFA was used                   |
+| `session_id`            | User session identifier                |
+| `impersonated_by`       | Admin impersonation info               |
+| `api_key_id`            | API key used                           |
+| `service_account_id`    | Service/system account identifier      |
+
+---
+
+# Network & Device Information
+
+| Field Name         | Description                            |
+| ------------------ | -------------------------------------- |
+| `ip_address`       | Source IP address                      |
+| `forwarded_ip`     | Original IP behind proxy/load balancer |
+| `mac_address`      | Device MAC address (if available)      |
+| `hostname`         | Client hostname                        |
+| `device_id`        | Unique device identifier               |
+| `device_type`      | Desktop, mobile, tablet, server        |
+| `operating_system` | OS name/version                        |
+| `browser`          | Browser name/version                   |
+| `user_agent`       | Full user-agent string     (Weather postman, insonmia or any other common agent named by default use other if the agent is not identified)            |
+| `geo_location`     | Country/city coordinates               |
+| `network_provider` | ISP or provider                        |
+| `vpn_detected`     | Whether VPN/proxy detected             |
+
+---
+
+# Resource & Object Information
+
+| Field Name       | Description                                |
+| ---------------- | ------------------------------------------ |
+| `resource_type`  | User, file, invoice, student, record, etc. |
+| `resource_id`    | Unique object identifier                   |
+| `resource_name`  | Human-readable object name                 |
+| `resource_owner` | Owner of resource                          |
+| `module_name`    | System module affected                     |
+| `submodule_name` | Submodule affected                         |
+| `table_name`     | Database table affected                    |
+| `record_id`      | Database record identifier                 |
+| `file_name`      | Affected filename                          |
+| `file_path`      | File path/location                         |
+| `document_id`    | Document identifier                        |
+
+---
+
+# Action Details
+
+| Field Name           | Description                 |
+| -------------------- | --------------------------- |
+| `action_performed`   | Exact action executed       |
+| `http_method`        | GET, POST, PUT, DELETE      |
+| `request_url`        | Requested endpoint          |
+| `request_parameters` | Request payload/parameters  |
+| `response_code`      | HTTP/API response code      |
+| `response_message`   | Response details            |
+| `before_state`       | Data before modification    |
+| `after_state`        | Data after modification     |
+| `changed_fields`     | Fields modified             |
+| `old_values`         | Previous values             |
+| `new_values`         | Updated values              |
+| `reason_for_change`  | User-provided reason        |
+| `approval_reference` | Approval workflow reference |
+| `transaction_id`     | Related transaction ID      |
+| `batch_id`           | Batch operation identifier  |
+
+---
+
+# Security & Threat Monitoring
+
+| Field Name                      | Description                      |
+| ------------------------------- | -------------------------------- |
+| `threat_score`                  | Security risk score              |
+| `anomaly_detected`              | Whether anomaly detected         |
+| `failed_attempt_count`          | Number of failures               |
+| `lockout_triggered`             | Whether account lockout occurred |
+| `security_policy_triggered`     | Policy violated                  |
+| `intrusion_signature`           | IDS/IPS signature                |
+| `malware_detected`              | Malware detection status         |
+| `data_classification`           | Public, confidential, secret     |
+| `sensitive_data_accessed`       | Sensitive records touched        |
+| `privilege_escalation_detected` | Elevated privilege event         |
+| `rate_limit_triggered`          | API abuse detection              |
+| `tamper_detected`               | Audit tampering detection        |
+
+---
+
+# Compliance & Legal Fields
+
+| Field Name          | Description                         |
+| ------------------- | ----------------------------------- |
+| `compliance_tag`    | GDPR, HIPAA, ISO27001, PCI-DSS      |
+| `retention_period`  | Log retention duration              |
+| `legal_hold`        | Whether under legal preservation    |
+| `consent_reference` | User consent tracking               |
+| `policy_version`    | Policy version applicable           |
+| `audit_category`    | Financial, medical, admin, security |
+
+---
+
+# System & Infrastructure Fields
+
+| Field Name            | Description                    |
+| --------------------- | ------------------------------ |
+| `system_name`         | Application/system name        |
+| `application_version` | App version                    |
+| `environment`         | DEV, TEST, STAGING, PROD       |
+| `server_name`         | Server hostname                |
+| `server_ip`           | Server IP                      |
+| `container_id`        | Docker/Kubernetes container ID |
+| `process_id`          | OS process ID                  |
+| `thread_id`           | Execution thread               |
+| `correlation_id`      | Request tracing ID             |
+| `trace_id`            | Distributed tracing identifier |
+| `job_id`              | Scheduled/background job ID    |
+
+---
+
+# Database Audit Fields
+
+| Field Name             | Description              |
+| ---------------------- | ------------------------ |
+| `query_executed`       | SQL query executed       |
+| `query_execution_time` | Query duration           |
+| `database_name`        | Database affected        |
+| `schema_name`          | Schema affected          |
+| `rows_affected`        | Number of rows impacted  |
+| `stored_procedure`     | Procedure executed       |
+| `connection_id`        | DB connection identifier |
+
+---
+
+# File & Document Audit Fields
+
+| Field Name          | Description           |
+| ------------------- | --------------------- |
+| `file_hash`         | SHA256/MD5 checksum   |
+| `file_size`         | File size             |
+| `mime_type`         | File MIME type        |
+| `downloaded`        | Whether downloaded    |
+| `printed`           | Whether printed       |
+| `shared_with`       | Sharing recipient     |
+| `encryption_status` | File encryption state |
+
+---
+
+# API & Integration Audit Fields
+
+| Field Name              | Description                |
+| ----------------------- | -------------------------- |
+| `api_endpoint`          | API endpoint called        |
+| `api_version`           | API version                |
+| `integration_name`      | Third-party integration    |
+| `webhook_id`            | Webhook reference          |
+| `external_reference_id` | External system identifier |
+| `sync_status`           | Sync success/failure       |
+
+---
+
+# Forensic Integrity Fields (Critical for Secure Systems)
+
+| Field Name                  | Description                      |
+| --------------------------- | -------------------------------- |
+| `hash_signature`            | Cryptographic hash of log        |
+| `digital_signature`         | Signed log entry                 |
+| `previous_log_hash`         | Blockchain-style chain integrity |
+| `immutable_sequence_number` | Tamper-proof sequence            |
+| `write_once_flag`           | WORM storage indicator           |
+| `log_source`                | Originating source               |
+| `collector_node`            | SIEM/log collector               |
+| `encryption_key_id`         | Encryption key reference         |
+
+---
+
+# Recommended Event Types
+
+A professional audit system should log events like:
+
+* Authentication attempts
+* Password changes
+* MFA enrollment/removal
+* Role & permission changes
+* Record creation/update/deletion
+* Financial transactions
+* Data exports/downloads
+* File uploads
+* API usage
+* Failed access attempts
+* Configuration changes
+* System errors
+* Security alerts
+* Backup/restore operations
+* User impersonation
+* Session timeout/logout
+* Device registrations
+* Policy violations
+
+---
+
+# Security Best Practices for Audit Logs
+
+## Logs Must Be
+
+* Immutable (tamper-resistant)
+* Encrypted at rest
+* Encrypted in transit
+* Time synchronized (NTP)
+* Centrally stored
+* Access controlled
+* Retained per compliance requirements
+* Digitally signed
+* Monitored in real-time
+* Backed up securely
+
+---
+
+# Recommended Enterprise Audit Log Structure (Example)
+
+```json
+{
+  "log_id": "LOG-2026-00001",
+  "timestamp_utc": "2026-05-28T10:15:22Z",
+  "event_type": "USER_LOGIN",
+  "event_status": "SUCCESS",
+  "severity_level": "INFO",
+
+  "user": {
+    "user_id": "USR-1001",
+    "username": "joshua",
+    "role_name": "Administrator",
+    "mfa_used": true
+  },
+
+  "network": {
+    "ip_address": "192.168.1.20",
+    "device_type": "Desktop",
+    "browser": "Chrome 136"
+  },
+
+  "resource": {
+    "module_name": "Authentication",
+    "resource_type": "User Account"
+  },
+
+  "security": {
+    "threat_score": 2,
+    "anomaly_detected": false
+  },
+
+  "integrity": {
+    "hash_signature": "SHA256_HASH",
+    "previous_log_hash": "PREVIOUS_HASH"
+  }
+}
+```
+

@@ -139,6 +139,22 @@ type Attachment struct {
 	UploadedAt    time.Time `json:"uploaded_at"`
 }
 
+type Organisation struct {
+	ID                 string          `json:"id"`
+	ProfileReference   string          `json:"profile_reference"`
+	OrganisationType   string          `json:"organisation_type"`
+	LegalName          string          `json:"legal_name"`
+	DisplayName        string          `json:"display_name"`
+	OfficialEmail      string          `json:"official_email"`
+	OfficialPhone      string          `json:"official_phone"`
+	RegistrationNumber string          `json:"registration_number"`
+	Status             string          `json:"status"`
+	Role               string          `json:"role,omitempty"`
+	ProfileData        json.RawMessage `json:"profile_data,omitempty"`
+	CreatedAt          time.Time       `json:"created_at"`
+	UpdatedAt          time.Time       `json:"updated_at"`
+}
+
 // ── Audit Log ─────────────────────────────────────────────────────
 
 type AuditLog struct {
@@ -163,6 +179,13 @@ type AuditLog struct {
 	ForwardedIP     string    `json:"forwarded_ip,omitempty"`
 	GeoCountry      string    `json:"geo_country,omitempty"`
 	GeoCity         string    `json:"geo_city,omitempty"`
+	GeoRegion       string    `json:"geo_region,omitempty"`
+	GeoLatitude     *float64  `json:"geo_latitude,omitempty"`
+	GeoLongitude    *float64  `json:"geo_longitude,omitempty"`
+	GeoTimezone     string    `json:"geo_timezone,omitempty"`
+	GeoSource       string    `json:"geo_source,omitempty"`
+	Platform        string    `json:"platform,omitempty"`
+	Authenticated   bool      `json:"authenticated"`
 	VPNDetected     bool      `json:"vpn_detected"`
 	Browser         string    `json:"browser,omitempty"`
 	OSName          string    `json:"os_name,omitempty"`
@@ -321,6 +344,11 @@ type CMSAssociation struct {
 	Description string    `json:"description,omitempty"`
 	LogoURL     string    `json:"logo_url,omitempty"`
 	WebsiteURL  string    `json:"website_url,omitempty"`
+	Category    string    `json:"category,omitempty"`
+	President   string    `json:"president,omitempty"`
+	Secretary   string    `json:"secretary,omitempty"`
+	Address     string    `json:"address,omitempty"`
+	Phone       string    `json:"phone,omitempty"`
 	SortOrder   int       `json:"sort_order"`
 	IsActive    bool      `json:"is_active"`
 	CreatedAt   time.Time `json:"created_at"`

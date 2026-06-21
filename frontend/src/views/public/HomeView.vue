@@ -1,663 +1,163 @@
 <template>
-  <div>
-
-    <!-- ── HERO ────────────────────────────────────────────── -->
-    <section class="bg-cream relative overflow-hidden">
-      <!-- Background decorative circles -->
-      <div class="absolute -top-24 -left-24 w-80 h-80 bg-sky-100 rounded-full opacity-50 pointer-events-none"></div>
-      <div class="absolute top-10 right-0 w-56 h-56 bg-yellow-50 rounded-full opacity-60 pointer-events-none"></div>
-
-      <div class="max-w-screen-xl px-8 mx-auto flex flex-col lg:flex-row items-center gap-10 lg:gap-6 py-14 lg:py-20">
-
-        <!-- Left: text -->
-        <div class="w-full lg:w-1/2 text-center lg:text-left">
-          <div class="hero-badge inline-flex items-center gap-2 bg-primary-700/10 border border-primary-700/20 rounded-full px-4 py-1.5 text-sm text-primary-700 font-medium mb-6">
-            <span class="w-2 h-2 rounded-full bg-primary-600 animate-pulse flex-shrink-0"></span>
-            {{ displaySlides[currentSlide]?.subtitle || 'Official Sports Regulatory Authority — Uganda' }}
-          </div>
-          <h1 class="hero-title text-4xl sm:text-5xl font-bold text-darken mb-5 leading-tight">
-            {{ currentTitle.main }}
-            <span v-if="currentTitle.accent" class="text-accent"> {{ currentTitle.accent }}</span>
-          </h1>
-          <p class="hero-desc text-gray-600 text-lg mb-8 max-w-lg mx-auto lg:mx-0 leading-relaxed">
-            {{ displaySlides[currentSlide]?.description || 'The National Council of Sports registers, licenses and regulates sports organisations, federations and clubs across Uganda.' }}
-          </p>
-          <div class="hero-btns flex flex-wrap gap-4 justify-center lg:justify-start">
-            <router-link
-              :to="displaySlides[currentSlide]?.button_url || '/apply'"
-              class="bg-accent hover:bg-yellow-600 text-white font-bold px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm"
-            >
-              {{ displaySlides[currentSlide]?.button_text || 'Apply for License' }}
-            </router-link>
-            <router-link to="/news" class="flex items-center gap-3 group">
-              <div class="w-12 h-12 bg-white rounded-full shadow-md flex items-center justify-center group-hover:shadow-lg transition-shadow flex-shrink-0">
-                <svg class="w-4 h-4 ml-0.5 text-accent" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-              </div>
-              <span class="text-sm font-semibold text-gray-700 group-hover:text-darken transition-colors">Latest News</span>
-            </router-link>
-          </div>
-
-          <!-- Slide dots -->
-          <div v-if="displaySlides.length > 1" class="flex items-center gap-2 mt-8 justify-center lg:justify-start">
-            <button
-              v-for="(_, i) in displaySlides"
-              :key="i"
-              @click="goToSlide(i)"
-              :aria-label="`Show slide ${i + 1} of ${displaySlides.length}`"
-              :aria-current="currentSlide === i ? 'true' : undefined"
-              class="transition-all rounded-full"
-              :class="currentSlide === i ? 'w-6 h-2.5 bg-accent' : 'w-2.5 h-2.5 bg-gray-300 hover:bg-gray-400'"
-            ></button>
-          </div>
-        </div>
-
-        <!-- Right: image + floating elements -->
-        <div class="w-full lg:w-1/2 relative mt-6 lg:mt-0">
-          <!-- Decorative shapes -->
-          <div class="absolute -top-5 -right-5 pub-floating-slow pointer-events-none z-0">
-            <svg class="w-20 h-20 opacity-60" viewBox="0 0 79 79" fill="none">
-              <path d="M35.26 2.24C37.6-.1 41.4-.1 43.74 2.24L76.76 35.26C79.1 37.6 79.1 41.4 76.76 43.74L43.74 76.76C41.4 79.1 37.6 79.1 35.26 76.76L2.24 43.74C-.1 41.4-.1 37.6 2.24 35.26L35.26 2.24Z" fill="#29B9E7"/>
-            </svg>
-          </div>
-          <div class="absolute bottom-16 left-2 w-8 h-8 bg-accent/25 rounded-full animate-ping pointer-events-none z-0"></div>
-          <div class="absolute top-1/2 -left-3 w-4 h-4 bg-primary-400/40 rounded-full animate-pulse pointer-events-none z-0"></div>
-
-          <!-- Slide image -->
-          <Transition name="slide-fade" mode="out-in">
-            <div :key="currentSlide" class="relative z-10">
-              <div
-                v-if="displaySlides[currentSlide]?.image_url"
-                class="w-full h-72 sm:h-80 lg:h-[420px] rounded-3xl overflow-hidden shadow-2xl"
-              >
-                <img
-                  :src="mediaUrl(displaySlides[currentSlide].image_url)"
-                  :alt="displaySlides[currentSlide].title"
-                  class="w-full h-full object-cover"
-                />
-              </div>
-              <div
-                v-else
-                class="w-full h-72 sm:h-80 lg:h-[420px] rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary-700 via-primary-800 to-primary-900 flex items-center justify-center relative"
-              >
-                <div class="absolute top-8 left-8 w-28 h-28 bg-white/5 rounded-full"></div>
-                <div class="absolute bottom-8 right-8 w-36 h-36 bg-white/5 rounded-full"></div>
-                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-white/5 rounded-full"></div>
-                <img src="/main-logo.png" alt="NCS" class="w-32 h-32 object-contain opacity-75 z-10 relative" />
-              </div>
-            </div>
-          </Transition>
-
-          <!-- Floating badge: Federations -->
-          <div class="absolute top-8 -left-6 pub-floating-slow z-20 hidden sm:block">
-            <div class="bg-white rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3">
-              <div class="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <i class="icofont-trophy text-primary-700 text-lg"></i>
-              </div>
-              <div>
-                <div class="font-bold text-darken text-sm leading-none">50+</div>
-                <div class="text-xs text-gray-500 mt-0.5">Federations</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Floating badge: Athletes -->
-          <div class="absolute bottom-10 -right-5 pub-floating z-20 hidden sm:block">
-            <div class="bg-white rounded-2xl shadow-xl px-4 py-3">
-              <div class="font-bold text-darken text-sm">10,000+</div>
-              <div class="text-xs text-gray-400 mt-0.5">Licensed Athletes</div>
-              <div class="flex gap-1 mt-2">
-                <div class="w-2 h-2 bg-green-400 rounded-full"></div>
-                <div class="w-2 h-2 bg-green-300 rounded-full"></div>
-                <div class="w-2 h-2 bg-green-200 rounded-full"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Floating chart icon -->
-          <div class="absolute top-8 right-8 pub-floating hidden md:flex pointer-events-none z-20">
-            <div class="w-14 h-14 rounded-xl bg-red-400/20 backdrop-blur-sm flex items-center justify-center">
-              <svg class="w-7 h-7 text-red-500/60" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M4 12h4v8H4v-8zm6-8h4v16h-4V4zm6 4h4v12h-4V8z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Wave separator: cream → white -->
-      <div class="text-white relative z-10 -mt-6 sm:-mt-12 pointer-events-none">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none" class="w-full h-14 sm:h-20 lg:h-24 block">
-          <path d="M600,112.77C268.63,112.77,0,65.52,0,7.23V120H1200V7.23C1200,65.52,931.37,112.77,600,112.77Z" fill="currentColor"/>
-        </svg>
-      </div>
-    </section>
-
-    <!-- ── FEATURE CARDS ────────────────────────────────────── -->
-    <section class="bg-white pb-20 px-4">
-      <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center max-w-2xl mx-auto mb-16 mt-4">
-          <span class="section-tag">What We Do</span>
-          <h2 class="text-3xl font-bold text-darken mt-2 mb-3">How We Support <span class="text-accent">Sports in Uganda</span></h2>
-          <p class="text-gray-500 text-sm leading-relaxed">A comprehensive sports management platform serving federations, clubs, coaches and athletes nationwide.</p>
-        </div>
-        <div class="grid md:grid-cols-3 gap-6 md:gap-5 mt-20">
-          <div class="quick-link bg-white shadow-xl p-6 text-center rounded-2xl hover:shadow-2xl transition-all hover:-translate-y-1">
-            <div class="bg-primary-700 rounded-full w-16 h-16 flex items-center justify-center mx-auto shadow-lg transform -translate-y-12 mb-2">
-              <i class="icofont-certificate text-white text-2xl"></i>
-            </div>
-            <h3 class="font-semibold text-darken text-base mb-3">Register Sports Organisations</h3>
-            <p class="text-gray-500 text-sm px-2 leading-relaxed">Register federations, associations, clubs and coaches to ensure legal compliance and recognition across Uganda.</p>
-          </div>
-          <div class="quick-link bg-white shadow-xl p-6 text-center rounded-2xl hover:shadow-2xl transition-all hover:-translate-y-1">
-            <div class="rounded-full w-16 h-16 flex items-center justify-center mx-auto shadow-lg transform -translate-y-12 mb-2" style="background:#F48C06;">
-              <i class="icofont-shield text-white text-2xl"></i>
-            </div>
-            <h3 class="font-semibold text-darken text-base mb-3">License &amp; Regulate</h3>
-            <p class="text-gray-500 text-sm px-2 leading-relaxed">Issue licenses, enforce standards, and ensure all sports organisations operate within the law.</p>
-          </div>
-          <div class="quick-link bg-white shadow-xl p-6 text-center rounded-2xl hover:shadow-2xl transition-all hover:-translate-y-1">
-            <div class="rounded-full w-16 h-16 flex items-center justify-center mx-auto shadow-lg transform -translate-y-12 mb-2" style="background:#29B9E7;">
-              <i class="icofont-chart-growth text-white text-2xl"></i>
-            </div>
-            <h3 class="font-semibold text-darken text-base mb-3">Develop &amp; Promote</h3>
-            <p class="text-gray-500 text-sm px-2 leading-relaxed">Invest in sports infrastructure, training programmes, and the promotion of excellence nationwide.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── ABOUT NCS ─────────────────────────────────────────── -->
-    <section class="bg-white py-4 px-4">
-      <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center max-w-3xl mx-auto mb-10">
-          <span class="section-tag">About NCS</span>
-          <h2 class="text-3xl font-bold text-darken mt-2 mb-4">What is <span class="text-accent">NCS?</span></h2>
-          <p class="text-gray-500 about-text leading-relaxed">
-            The National Council of Sports (NCS) is Uganda's national sports authority mandated by the National Council of Sports Act.
-            We oversee the registration and regulation of all sports organisations, federations, associations, and clubs across the country —
-            promoting sports development for the benefit of all Ugandans.
-          </p>
-        </div>
-        <div class="flex flex-col md:flex-row justify-center gap-6">
-          <!-- For Federations -->
-          <div class="relative md:w-5/12 h-60 rounded-2xl overflow-hidden shadow-lg group cursor-pointer">
-            <div class="absolute inset-0 bg-gradient-to-br from-primary-700 to-primary-900">
-              <div class="absolute -top-8 -left-8 w-32 h-32 bg-white/5 rounded-full"></div>
-              <div class="absolute -bottom-8 -right-8 w-40 h-40 bg-white/5 rounded-full"></div>
-            </div>
-            <div class="absolute inset-0 bg-primary-900/30 group-hover:bg-primary-900/10 transition-colors duration-300"></div>
-            <div class="absolute inset-0 flex flex-col items-center justify-center z-10 text-center px-6">
-              <h3 class="uppercase text-white font-bold text-lg mb-4 tracking-wider">FOR FEDERATIONS</h3>
-              <router-link
-                to="/apply"
-                class="rounded-full text-white border border-white/60 text-sm px-7 py-2.5 font-semibold hover:bg-white hover:text-primary-700 transition-all duration-300 focus:outline-none"
-              >Register Today</router-link>
-            </div>
-          </div>
-          <!-- For Clubs & Athletes -->
-          <div class="relative md:w-5/12 h-60 rounded-2xl overflow-hidden shadow-lg group cursor-pointer">
-            <div class="absolute inset-0" style="background: linear-gradient(135deg, #F48C06 0%, #d47000 100%);">
-              <div class="absolute -top-8 -left-8 w-32 h-32 bg-white/10 rounded-full"></div>
-              <div class="absolute -bottom-8 -right-8 w-40 h-40 bg-white/10 rounded-full"></div>
-            </div>
-            <div class="absolute inset-0 bg-black/20 group-hover:bg-black/5 transition-colors duration-300"></div>
-            <div class="absolute inset-0 flex flex-col items-center justify-center z-10 text-center px-6">
-              <h3 class="uppercase text-white font-bold text-lg mb-4 tracking-wider">FOR CLUBS &amp; ATHLETES</h3>
-              <router-link
-                to="/apply"
-                class="rounded-full text-white text-sm px-7 py-2.5 font-semibold hover:opacity-90 transition-all duration-300"
-                style="background: rgba(17,43,78,0.85)"
-              >Get Your License</router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── STATS ROW ─────────────────────────────────────────── -->
-    <section class="bg-cream py-20 px-4">
-      <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-          <span class="section-tag">By The Numbers</span>
-          <h2 class="text-3xl font-bold text-darken mt-2">Sports in Uganda at a Glance</h2>
-        </div>
-        <div class="about-stats grid grid-cols-2 md:grid-cols-4 gap-8">
-          <div v-for="(stat, i) in displayedStats" :key="stat.label || i" class="home-stat-item text-center">
-            <div class="stat-num text-4xl md:text-5xl font-bold text-darken mb-2" :data-target="parseStatValue(stat.value)">{{ stat.value }}</div>
-            <div class="w-8 h-1 bg-accent rounded-full mx-auto mb-2"></div>
-            <div class="text-sm font-medium text-gray-500">{{ stat.label }}</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── ALTERNATING FEATURE ───────────────────────────────── -->
-    <section class="bg-white py-20 px-4">
-      <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col md:flex-row items-center gap-12 md:gap-16">
-          <!-- Text -->
-          <div class="md:w-1/2 relative">
-            <div class="w-14 h-14 bg-accent/20 rounded-full absolute -top-4 -left-4 animate-pulse pointer-events-none"></div>
-            <h2 class="font-bold text-3xl text-darken relative z-10 mb-5 leading-tight">
-              Everything you need for <span class="text-accent">sports governance</span> in Uganda
-            </h2>
-            <p class="text-gray-500 mb-5 leading-relaxed">NCS's sports management platform helps sports bodies manage registration, licensing, and compliance — all in one secure cloud-based system, accessible from anywhere.</p>
-            <div class="space-y-3 mb-6">
-              <div class="flex items-start gap-3">
-                <div class="flex-shrink-0 bg-white shadow rounded-full p-2"><svg class="w-4 h-4 text-darken" fill="currentColor" viewBox="0 0 27 26"><rect width="11.8" height="11.8" rx="2" fill="#2F327D"/><rect y="14.2" width="11.8" height="11.8" rx="2" fill="#2F327D"/><rect x="14.8" width="11.8" height="11.8" rx="2" fill="#2F327D"/><rect x="14.8" y="14.2" width="11.8" height="11.8" rx="2" fill="#F48C06"/></svg></div>
-                <p class="text-gray-500 text-sm">Administrators get a clear overview of all federations and clubs.</p>
-              </div>
-              <div class="flex items-start gap-3">
-                <div class="flex-shrink-0 bg-white shadow rounded-full p-2"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 28 26"><rect x="8" y="6" width="20" height="20" rx="2" fill="#2F327D"/><rect width="21" height="21" rx="2" fill="#F48C06"/></svg></div>
-                <p class="text-gray-500 text-sm">Applications and renewals handled digitally — no paperwork.</p>
-              </div>
-              <div class="flex items-start gap-3">
-                <div class="flex-shrink-0 bg-white shadow rounded-full p-2"><i class="icofont-people text-darken text-base"></i></div>
-                <p class="text-gray-500 text-sm">Coaches and athletes can track their own license status online.</p>
-              </div>
-            </div>
-            <router-link to="/apply" class="inline-flex items-center gap-2 text-accent font-semibold text-sm hover:gap-3 transition-all">
-              Learn More
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-            </router-link>
-          </div>
-          <!-- Image -->
-          <div class="md:w-1/2 relative">
-            <div class="w-24 h-24 rounded-xl bg-sky-300/25 absolute -top-3 -left-3 pub-floating pointer-events-none"></div>
-            <div class="relative z-10 rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-primary-700 to-primary-900 h-72 flex items-center justify-center">
-              <div class="absolute top-6 left-6 w-16 h-16 bg-white/10 rounded-full"></div>
-              <div class="absolute bottom-6 right-6 w-24 h-24 bg-white/10 rounded-full"></div>
-              <div class="text-center text-white relative z-10 px-6">
-                <div class="text-5xl font-bold mb-1">112</div>
-                <div class="text-primary-200 text-sm mb-3">Districts Covered</div>
-                <div class="w-10 h-0.5 bg-accent mx-auto mb-3"></div>
-                <div class="text-primary-300 text-xs">Nationwide Sports Reach</div>
-              </div>
-            </div>
-            <div class="w-28 h-28 bg-accent/20 rounded-xl pub-floating absolute -bottom-3 -right-3 pointer-events-none"></div>
-            <button aria-label="Play video about NCS impact" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform z-20">
-              <svg class="w-5 h-5 ml-0.5 text-accent" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── FUN FACTS / STATS STRIP ──────────────────────────── -->
-    <section v-if="displayedFunFacts.length" ref="funFactsRef" class="py-16 px-4" style="background-color: #252641;">
-      <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-10">
-          <span class="section-tag" style="color: #4a7fad;">Sports in Uganda</span>
-          <h2 class="text-3xl font-bold text-white mt-2">Sports at a Glance</h2>
-        </div>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
-          <div v-for="(fact, i) in displayedFunFacts" :key="fact.id || i" class="fun-fact-card text-center">
-            <div v-if="fact.icon" class="text-accent text-4xl mb-3"><i :class="fact.icon"></i></div>
-            <div v-else class="w-10 h-0.5 bg-accent mx-auto mb-4"></div>
-            <div
-              class="fun-fact-num text-4xl md:text-5xl font-bold text-white mb-2"
-              :data-target="parseStatValue(fact.value)"
-              :data-suffix="statSuffix(fact.value)"
-            >{{ fact.value }}</div>
-            <div class="text-sm font-medium text-gray-400 uppercase tracking-wide">{{ fact.label }}</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── UPCOMING EVENTS ──────────────────────────────────── -->
-    <section ref="eventsRef" class="py-20 bg-white px-4">
-      <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-end mb-12">
-          <div>
-            <span class="section-tag">What's Happening</span>
-            <h2 class="text-3xl font-bold text-darken mt-2">Upcoming Events</h2>
-          </div>
-          <router-link to="/events" class="text-sm font-semibold text-accent hover:text-yellow-600 flex items-center gap-1 transition-colors">
-            All events
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-          </router-link>
-        </div>
-        <div class="space-y-4">
-          <router-link
-            v-for="ev in events"
-            :key="ev.id"
-            :to="`/events/${ev.slug}`"
-            class="event-card group flex items-center gap-5 p-5 rounded-2xl border border-gray-100 hover:border-primary-200 hover:shadow-md bg-white transition-all"
-          >
-            <div class="flex-shrink-0 w-16 h-16 bg-primary-700 text-white rounded-2xl flex flex-col items-center justify-center text-center shadow-md">
-              <span class="text-[10px] font-semibold uppercase leading-none tracking-wide">{{ monthShort(ev.event_date) }}</span>
-              <span class="text-2xl font-bold leading-tight">{{ new Date(ev.event_date).getDate() }}</span>
-            </div>
-            <div class="flex-1 min-w-0">
-              <h3 class="font-semibold text-darken group-hover:text-primary-700 transition-colors truncate text-base">{{ ev.title }}</h3>
-              <p v-if="ev.location" class="text-sm text-gray-400 mt-1 flex items-center gap-1">
-                <i class="icofont-location-pin text-accent text-sm"></i>
-                {{ ev.location }}
-              </p>
-            </div>
-            <div class="flex-shrink-0 w-8 h-8 rounded-full bg-gray-50 group-hover:bg-primary-50 flex items-center justify-center transition-colors">
-              <svg class="w-4 h-4 text-gray-400 group-hover:text-primary-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-            </div>
-          </router-link>
-          <div v-if="!events.length" class="text-center py-12 text-gray-400">
-            <i class="icofont-calendar text-5xl text-gray-200 block mb-3"></i>
-            <p>No upcoming events.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── LATEST NEWS ──────────────────────────────────────── -->
-    <section ref="newsRef" class="py-20 bg-gray-50 px-4">
-      <div class="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center mb-12">
-          <span class="section-tag">Stay Informed</span>
-          <h2 class="text-3xl font-bold text-darken mt-2">Latest News &amp; Resources</h2>
-          <p class="text-gray-500 mt-2 text-sm">Stay up to date with developments in Ugandan sports</p>
-        </div>
-
-        <div v-if="postsLoading" class="flex flex-col lg:flex-row gap-8">
-          <div class="lg:w-6/12 h-80 bg-gray-200 rounded-2xl animate-pulse"></div>
-          <div class="lg:w-6/12 space-y-5">
-            <div v-for="i in 3" :key="i" class="flex gap-4">
-              <div class="w-28 h-24 bg-gray-200 rounded-xl animate-pulse flex-shrink-0"></div>
-              <div class="flex-1 space-y-2">
-                <div class="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
-                <div class="h-3 bg-gray-200 rounded animate-pulse w-full"></div>
+  <div class="home-redesign">
+    <template v-for="section in visibleSections" :key="section.id">
+      <section v-if="section.id === 'hero'" id="section-hero" class="home-hero" aria-roledescription="carousel" aria-label="NCS highlights">
+        <div :key="activeSlide.id || currentSlide" class="home-hero-slide active">
+          <img v-if="activeSlide.image_url" :src="mediaUrl(activeSlide.image_url)" :alt="activeSlide.title || 'National Council of Sports Uganda'" />
+          <div v-else class="home-hero-fallback"></div>
+          <div class="home-hero-overlay"></div>
+          <div class="home-shell home-hero-content">
+            <div>
+              <span class="home-pill">{{ activeSlide.subtitle || 'National Council of Sports' }}</span>
+              <h1>{{ activeSlide.title || 'Welcome to National Council of Sports' }}</h1>
+              <p>{{ activeSlide.description }}</p>
+              <div class="home-actions">
+                <router-link :to="activeSlide.button_url || '/pages/the-mandate'" class="home-btn home-btn-gold">{{ activeSlide.button_text || 'Discover NCS' }}</router-link>
+                <router-link to="/my-portal" class="home-btn home-btn-outline-light">My Portal</router-link>
               </div>
             </div>
           </div>
         </div>
+        <button v-if="displaySlides.length > 1" type="button" class="hero-arrow hero-prev" aria-label="Previous slide" @click="moveSlide(-1)">‹</button>
+        <button v-if="displaySlides.length > 1" type="button" class="hero-arrow hero-next" aria-label="Next slide" @click="moveSlide(1)">›</button>
+        <div v-if="displaySlides.length > 1" class="hero-dots">
+          <button v-for="(_, index) in displaySlides" :key="index" type="button" :class="{ active:index===currentSlide }" :aria-label="`Show slide ${index + 1}`" @click="setSlide(index)"></button>
+        </div>
+      </section>
 
-        <div v-else-if="posts.length" class="flex flex-col lg:flex-row lg:gap-16">
-          <!-- Featured large article -->
-          <div class="lg:w-6/12 mb-10 lg:mb-0">
-            <router-link :to="`/news/${posts[0].slug}`" class="news-card group block">
-              <div class="w-full h-60 sm:h-72 rounded-2xl overflow-hidden mb-5 shadow-sm">
-                <img
-                  v-if="posts[0].cover_image_url"
-                  :src="mediaUrl(posts[0].cover_image_url)"
-                  :alt="posts[0].title"
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div v-else class="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
-                  <i class="icofont-newspaper text-primary-300 text-5xl"></i>
+      <section v-else-if="section.id === 'about'" id="section-about" class="home-section bg-white">
+        <div class="home-shell">
+          <div class="about-grid">
+            <div>
+              <span class="section-kicker">{{ home.about.eyebrow }}</span>
+              <h2>{{ home.about.title }}</h2>
+              <p class="home-lead">{{ home.about.intro }}</p>
+              <p>{{ home.about.body }}</p>
+              <router-link :to="home.about.leadership_url" class="home-btn home-btn-navy">{{ home.about.leadership_label }}</router-link>
+              <div class="milestone-grid">
+                <div v-for="item in home.milestones" :key="item.label" class="milestone">
+                  <i :class="item.icon" aria-hidden="true"></i><strong>{{ item.value }}</strong><span>{{ item.label }}</span>
                 </div>
               </div>
-              <span class="inline-block bg-yellow-300 text-darken font-semibold px-4 py-0.5 text-xs rounded-full mb-3">{{ posts[0].category || 'NEWS' }}</span>
-              <h3 class="text-gray-800 font-bold text-xl mb-2 group-hover:text-primary-700 transition-colors leading-snug line-clamp-2">{{ posts[0].title }}</h3>
-              <p v-if="posts[0].excerpt" class="text-gray-500 text-sm line-clamp-2 mb-3">{{ posts[0].excerpt }}</p>
-              <span class="text-accent text-sm font-semibold">Read more →</span>
-            </router-link>
-          </div>
-
-          <!-- Side articles -->
-          <div class="lg:w-6/12 flex flex-col justify-between gap-5">
-            <div v-for="post in posts.slice(1, 4)" :key="post.id" class="flex gap-4 news-card group">
-              <div class="w-28 h-24 rounded-xl overflow-hidden flex-shrink-0 shadow-sm">
-                <img
-                  v-if="post.cover_image_url"
-                  :src="mediaUrl(post.cover_image_url)"
-                  :alt="post.title"
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div v-else class="w-full h-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
-                  <i class="icofont-newspaper text-primary-300 text-2xl"></i>
-                </div>
-              </div>
-              <div class="flex-1 min-w-0">
-                <span class="inline-block bg-yellow-300 text-darken font-semibold px-3 py-0.5 text-[10px] rounded-full mb-1.5">{{ post.category || 'NEWS' }}</span>
-                <router-link :to="`/news/${post.slug}`">
-                  <h4 class="text-gray-800 font-semibold text-sm sm:text-base group-hover:text-primary-700 transition-colors leading-snug line-clamp-2">{{ post.title }}</h4>
-                </router-link>
-                <p class="text-gray-400 mt-1.5 text-xs line-clamp-2">{{ post.excerpt }}</p>
-              </div>
             </div>
-            <router-link to="/news" class="self-end text-sm font-semibold text-accent hover:text-yellow-600 transition-colors flex items-center gap-1 mt-2">
-              All News &amp; Resources →
-            </router-link>
+            <div class="value-grid">
+              <article v-for="item in home.values" :key="item.title" class="value-card" :class="{ featured:item.featured }">
+                <div class="value-icon"><i :class="item.icon" aria-hidden="true"></i></div>
+                <h3>{{ item.title }}</h3><p>{{ item.text }}</p>
+              </article>
+            </div>
+          </div>
+          <div class="core-functions">
+            <div class="section-heading"><h2>{{ home.about.core_title }}</h2><p>{{ home.about.core_intro }}</p></div>
+            <div class="core-grid"><div v-for="(item,index) in home.core_functions" :key="item"><span>{{ index + 1 }}</span>{{ item }}</div></div>
+            <router-link :to="home.about.mandate_url" class="home-btn home-btn-outline-navy">{{ home.about.mandate_label }}</router-link>
           </div>
         </div>
+      </section>
 
-        <div v-else class="text-center py-16 text-gray-400">
-          <i class="icofont-newspaper text-5xl text-gray-200 block mb-3"></i>
-          <p>No news articles yet.</p>
+      <section v-else-if="section.id === 'stats'" id="section-stats" class="home-section stats-section">
+        <div class="home-shell"><div class="section-heading light"><h2>{{ home.stats_title }}</h2><p>{{ home.stats_intro }}</p></div>
+          <div class="stats-grid"><div v-for="fact in displayedFacts.slice(0,4)" :key="fact.id || fact.label"><i :class="fact.icon || 'icofont-chart-growth'" aria-hidden="true"></i><strong>{{ fact.value }}</strong><span>{{ fact.label }}</span></div></div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- ── CTA BANNER ───────────────────────────────────────── -->
-    <section ref="ctaRef" class="relative overflow-hidden py-20 px-4" style="background: linear-gradient(135deg, #252641 0%, #2F327D 60%, #4B4F9E 100%);">
-      <!-- Decorative -->
-      <div class="absolute top-0 left-0 w-40 h-40 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2 animate-pulse pointer-events-none"></div>
-      <div class="absolute bottom-0 right-0 w-56 h-56 bg-white/5 rounded-full translate-x-1/3 translate-y-1/3 animate-pulse pointer-events-none"></div>
-      <div class="absolute top-1/2 right-20 w-20 h-20 bg-accent/10 rounded-full animate-ping pointer-events-none"></div>
-
-      <div class="max-w-3xl mx-auto text-center relative z-10">
-        <span class="section-tag" style="color:#4a7fad;">Get Started</span>
-        <h2 class="cta-title text-3xl md:text-4xl font-bold text-white mt-3 mb-4 leading-tight">
-          Ready to Register Your <span class="text-accent">Sports Organisation?</span>
-        </h2>
-        <p class="cta-desc text-lg text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-          Apply online for your sports license, register your federation, club or association with the National Council of Sports Uganda.
-        </p>
-        <div class="flex flex-wrap gap-4 justify-center">
-          <router-link
-            to="/apply"
-            class="bg-accent hover:bg-yellow-600 text-white font-bold px-10 py-3.5 rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 text-sm"
-          >Start Application</router-link>
-          <router-link
-            v-if="!isAuthenticated"
-            to="/login"
-            class="border border-white/40 hover:border-white text-white font-semibold px-8 py-3.5 rounded-full transition-all text-sm hover:bg-white/10"
-          >Sign In</router-link>
+      <section v-else-if="section.id === 'news'" id="section-news" class="home-section bg-soft">
+        <div class="home-shell"><div class="section-heading row-heading"><div><span class="section-kicker">Latest updates</span><h2>News from NCS</h2></div><router-link to="/news">View all news →</router-link></div>
+          <div class="card-grid card-grid-3">
+            <article v-for="post in posts.slice(0,3)" :key="post.id" class="content-card">
+              <img v-if="post.cover_image_url" :src="mediaUrl(post.cover_image_url)" :alt="post.title" /><div v-else class="card-placeholder"><i class="icofont-newspaper"></i></div>
+              <div class="content-card-body"><span>{{ post.category || 'News' }}</span><h3><router-link :to="`/news/${post.slug}`">{{ post.title }}</router-link></h3><p>{{ post.excerpt }}</p></div>
+            </article>
+            <p v-if="!posts.length" class="empty-state">News will appear here when published.</p>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
+      <section v-else-if="section.id === 'find_sport'" id="section-find_sport" class="home-section finder-section">
+        <div class="home-shell"><div class="section-heading light"><span class="section-kicker gold">{{ home.finder_eyebrow }}</span><h2>{{ home.finder_title }}</h2><p>{{ home.finder_intro }}</p></div>
+          <div class="finder-search"><i class="icofont-search-1" aria-hidden="true"></i><label for="sport-search" class="sr-only">Search for a sport or federation</label><input id="sport-search" v-model="sportQuery" type="search" placeholder='Try "rugby", "football", "tennis"' /></div>
+          <div class="filter-chips" aria-label="Sport categories"><button v-for="category in sportCategories" :key="category" type="button" :class="{ active:category===activeCategory }" @click="activeCategory=category">{{ category }}</button></div>
+          <div class="finder-meta"><span>Showing <strong>{{ filteredAssociations.length }}</strong> of {{ associations.length }} federations</span><router-link to="/associations">View directory →</router-link></div>
+          <div class="association-grid">
+            <article v-for="item in filteredAssociations.slice(0,8)" :key="item.id" class="association-card">
+              <img v-if="item.logo_url" :src="mediaUrl(item.logo_url)" :alt="`${item.name} logo`" /><div v-else class="association-logo"><i class="icofont-trophy"></i></div>
+              <div><span>{{ item.category || 'Sport Federation' }}</span><h3>{{ item.name }}</h3><p>{{ item.description }}</p>
+                <details><summary>Contact details</summary><ul><li v-if="item.president"><b>President:</b> {{ item.president }}</li><li v-if="item.secretary"><b>Secretary:</b> {{ item.secretary }}</li><li v-if="item.address"><b>Address:</b> {{ item.address }}</li><li v-if="item.phone"><b>Phone:</b> {{ item.phone }}</li></ul><a v-if="item.website_url" :href="item.website_url" target="_blank" rel="noopener">Visit website</a></details>
+              </div>
+            </article>
+            <div v-if="!filteredAssociations.length" class="finder-empty"><i class="icofont-trophy"></i><p>No federations match your search. Try a different sport name.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section v-else-if="section.id === 'get_involved'" id="section-get-involved" class="home-section bg-white">
+        <div class="home-shell involved-grid">
+          <div><span class="section-kicker">{{ home.involved_title }}</span><h2>{{ home.involved_subtitle }}</h2><p class="home-lead">{{ home.involved_text }}</p><div class="home-actions"><router-link :to="home.register_url" class="home-btn home-btn-gold">{{ home.register_label }}</router-link><router-link :to="home.contact_url" class="home-btn home-btn-outline-navy">{{ home.contact_label }}</router-link></div></div>
+          <aside class="quick-contact"><h3>Quick Contact</h3><div><i class="icofont-location-pin"></i><p><b>Visit Us</b><span>{{ contact.address }}</span><span>{{ contact.postal_address }}</span></p></div><div><i class="icofont-phone"></i><p><b>Call Us</b><span>{{ contact.phone }}</span><span v-if="contact.fax">Fax: {{ contact.fax }}</span></p></div><div><i class="icofont-email"></i><p><b>Email Us</b><a :href="`mailto:${contact.email}`">{{ contact.email }}</a></p></div></aside>
+        </div>
+      </section>
+
+      <section v-else-if="section.id === 'events'" id="section-events" class="home-section bg-soft">
+        <div class="home-shell"><div class="section-heading row-heading"><div><span class="section-kicker">Calendar</span><h2>Upcoming Events</h2></div><router-link to="/events">All events →</router-link></div><div class="card-grid card-grid-3"><article v-for="event in events.slice(0,3)" :key="event.id" class="event-card"><time :datetime="event.event_date">{{ formatDate(event.event_date) }}</time><div><h3>{{ event.title }}</h3><p><i class="icofont-location-pin"></i> {{ event.location }}</p><router-link :to="`/events/${event.slug}`">Event details →</router-link></div></article><p v-if="!events.length" class="empty-state">Upcoming events will appear here.</p></div></div>
+      </section>
+
+      <section v-else-if="section.id === 'facilities'" id="section-facilities" class="home-section bg-white">
+        <div class="home-shell"><div class="section-heading row-heading"><div><span class="section-kicker">Venues</span><h2>Sports Facilities</h2></div><router-link to="/facilities">Explore facilities →</router-link></div><div class="card-grid card-grid-3"><router-link v-for="item in facilities.slice(0,3)" :key="item.id" :to="`/facilities/${item.slug}`" class="image-card"><img v-if="item.image_url" :src="mediaUrl(item.image_url)" :alt="item.name" /><div v-else class="card-placeholder"><i class="icofont-stadium"></i></div><div><h3>{{ item.name }}</h3><p>{{ item.description }}</p></div></router-link></div></div>
+      </section>
+
+      <section v-else-if="section.id === 'associations'" id="section-associations" class="home-section associations-strip">
+        <div class="home-shell"><div class="section-heading"><span class="section-kicker">Recognised bodies</span><h2>National Sports Associations</h2></div><div class="logo-strip"><div v-for="item in associations.slice(0,10)" :key="item.id"><img v-if="item.logo_url" :src="mediaUrl(item.logo_url)" :alt="item.name" /><i v-else class="icofont-trophy"></i><span>{{ item.name }}</span></div></div></div>
+      </section>
+
+      <section v-else-if="section.id === 'help'" id="section-help" class="home-section bg-white">
+        <div class="home-shell"><div class="section-heading"><span class="section-kicker">Help & Support</span><h2>How can we help?</h2><p>Find guidance, contact NCS, or access your services.</p></div><div class="help-grid"><router-link to="/my-portal"><i class="icofont-ui-user"></i><h3>My Portal</h3><p>Sign in to manage registrations, licensing and renewals.</p></router-link><router-link to="/resource-centre"><i class="icofont-download"></i><h3>Resource Centre</h3><p>Guidelines, forms, reports and rules.</p></router-link><router-link to="/contact-us"><i class="icofont-support"></i><h3>Contact Support</h3><p>Speak with the NCS team.</p></router-link></div></div>
+      </section>
+
+      <section v-else-if="section.id === 'cta'" id="section-cta" class="home-cta"><div class="home-shell"><div><span>National Council of Sports Uganda</span><h2>Manage your NCS services in one place.</h2></div><router-link to="/my-portal" class="home-btn home-btn-gold">Open My Portal</router-link></div></section>
+
+      <section v-else-if="section.id === 'faq_facts'" id="section-faq" class="home-section bg-soft">
+        <div class="home-shell faq-facts-grid"><div><span class="section-kicker">{{ home.faq_eyebrow }}</span><h2>{{ home.faq_title }}</h2><div class="faq-list"><details v-for="faq in faqs.slice(0,10)" :key="faq.id"><summary>{{ faq.question }}</summary><p>{{ faq.answer }}</p></details></div><router-link to="/faqs" class="text-link">View All FAQs →</router-link></div><div><span class="section-kicker">{{ home.facts_eyebrow }}</span><h2>{{ home.facts_title }}</h2><div class="fact-list"><div v-for="fact in displayedFacts.slice(0,10)" :key="fact.id || fact.label"><i :class="fact.icon || 'icofont-light-bulb'"></i><p><strong>{{ fact.value }}</strong><span>{{ fact.label }}</span></p></div></div></div></div>
+      </section>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { listPosts, listEvents, listSlides, listFunFacts } from '@/api/cms.js'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { getSettings, listAssociations, listEvents, listFacilities, listFAQs, listFunFacts, listPosts, listSlides } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
-import { useAuthStore } from '@/stores/auth.js'
 
-gsap.registerPlugin(ScrollTrigger)
-
-const authStore = useAuthStore()
-const isAuthenticated = computed(() => authStore.isAuthenticated)
-
-const posts        = ref([])
-const events       = ref([])
-const slides       = ref([])
-const funFacts     = ref([])
-const postsLoading = ref(true)
-
-// ── Default data ──────────────────────────────────────────────
-const defaultStats = [
-  { label: 'Sports Federations', value: '50+'    },
-  { label: 'Registered Clubs',   value: '500+'   },
-  { label: 'Licensed Athletes',  value: '10,000+'},
-  { label: 'Districts Covered',  value: '112'    },
-]
-
-const displayedStats = computed(() =>
-  funFacts.value.length > 0
-    ? funFacts.value.slice(0, 4).map(f => ({ label: f.label, value: f.value }))
-    : defaultStats
-)
-
-const displayedFunFacts = computed(() =>
-  funFacts.value.length > 0
-    ? funFacts.value
-    : defaultStats.map((s, i) => ({ id: String(i), label: s.label, value: s.value, icon: '', is_active: true }))
-)
-
-function parseStatValue(v) {
-  if (!v) return 0
-  const n = parseInt(String(v).replace(/[^0-9]/g, ''), 10)
-  return isNaN(n) ? 0 : n
-}
-function statSuffix(v) {
-  const s = String(v || '')
-  if (s.includes('K') || s.includes('k')) return 'K+'
-  if (s.includes('+')) return '+'
-  return ''
-}
-
-// ── Slideshow ─────────────────────────────────────────────────
-const currentSlide = ref(0)
-let slideTimer = null
-
-const defaultSlide = {
-  id: 'default',
-  title: 'Building a World-Class Sports Nation',
-  subtitle: 'Official Sports Regulatory Authority — Uganda',
-  description: 'The National Council of Sports registers, licenses and regulates sports organisations, federations and clubs across Uganda. Apply online for your sports license today.',
-  button_text: 'Apply for License',
-  button_url: '/apply',
-  image_url: '',
-}
-const displaySlides = computed(() => slides.value.length > 0 ? slides.value : [defaultSlide])
-
-const currentTitle = computed(() => {
-  const t = displaySlides.value[currentSlide.value]?.title || ''
-  if (!t) return { main: 'Building a World-Class', accent: 'Sports Nation' }
-  const words = t.split(' ')
-  if (words.length <= 3) return { main: t, accent: '' }
-  return { main: words.slice(0, -2).join(' '), accent: words.slice(-2).join(' ') }
+const defaultSections = ['hero','about','stats','news','find_sport','get_involved','events','facilities','associations','help','cta','faq_facts'].map(id => ({ id, visible:true }))
+const home = reactive({
+  sections: defaultSections,
+  about:{eyebrow:'About NCS',title:'Developing Sports Excellence Since 1964',intro:'The National Council of Sports (NCS) is a statutory body established to develop, promote, and control sports in Uganda under the Ministry of Education and Sports.',body:'Established under the National Council of Sports Act (Chapter 48), assented on 22 June 1964 and commenced on 25 June 1964, NCS serves as the apex regulator for sports development in Uganda, now updated by the National Sports Act, 2023.',leadership_label:'View Current Membership',leadership_url:'/team',core_title:'Core Functions of NCS',core_intro:'As mandated by the National Sports Act, NCS performs the following key functions:',mandate_label:'Read Full Mandate',mandate_url:'/pages/the-mandate'},
+  milestones:[{value:'60+',label:'Years of Excellence',icon:'icofont-award'},{value:'54+',label:'Sports Associations',icon:'icofont-trophy'},{value:'32+',label:'Sports Facilities',icon:'icofont-stadium'}],
+  values:[{title:'Our Mission',text:'Maximizing opportunities for all Ugandans to participate and excel in Sports.',icon:'icofont-dart',featured:true},{title:'Our Vision',text:'A centre of excellence for promotion and development of Sports.',icon:'icofont-eye'},{title:'Integrity',text:'Upholding the highest standards of ethics and fair play in all sporting activities.',icon:'icofont-shield'},{title:'Inclusivity',text:'Ensuring sports opportunities are accessible to all Ugandans regardless of background.',icon:'icofont-people'},{title:'Excellence',text:'Striving for the highest standards in athlete development and sports administration.',icon:'icofont-award'},{title:'Global Recognition',text:'Positioning Uganda as a leading sports nation on the African and world stage.',icon:'icofont-globe',featured:true}],
+  core_functions:['Register and regulate national sports organisations','Develop and promote sports throughout Uganda','Advise government on sports policy and standards','Coordinate national and international sports participation','Manage and develop public sports facilities','Support athlete, coach and official development'],
+  stats_title:'Sports Excellence in Numbers',stats_intro:'Driving the development of sports across Uganda through dedicated programs and world-class facilities',finder_eyebrow:'Discover your federation',finder_title:'Find Your Sport',finder_intro:'Search across all 50+ National Sports Associations and Federations recognised by NCS. Tap any card to see the president, secretary, address, phone and website.',involved_title:'Get Involved',involved_subtitle:"Be Part of Uganda's Sports Excellence",involved_text:"Whether you're an athlete, coach, sports association, or enthusiast, the National Council of Sports welcomes you to join us in developing and promoting sports across Uganda.",register_label:'My Portal',register_url:'/my-portal',contact_label:'Contact Us',contact_url:'/contact-us',faq_eyebrow:'Got Questions?',faq_title:'Frequently Asked Questions',facts_eyebrow:'Did You Know?',facts_title:'Fun Facts'
 })
-
-function nextSlide() { currentSlide.value = (currentSlide.value + 1) % displaySlides.value.length; restartTimer() }
-function prevSlide() { currentSlide.value = (currentSlide.value - 1 + displaySlides.value.length) % displaySlides.value.length; restartTimer() }
-function goToSlide(i) { currentSlide.value = i; restartTimer() }
-function restartTimer() {
-  clearInterval(slideTimer)
-  if (displaySlides.value.length > 1) slideTimer = setInterval(nextSlide, 6000)
-}
-
-// ── Date helpers ──────────────────────────────────────────────
-function monthShort(d) {
-  if (!d) return '?'
-  return new Date(d).toLocaleDateString('en-UG', { month: 'short' })
-}
-
-// ── Section refs ──────────────────────────────────────────────
-const funFactsRef = ref(null)
-const newsRef     = ref(null)
-const eventsRef   = ref(null)
-const ctaRef      = ref(null)
-
-// ── GSAP animations ───────────────────────────────────────────
-function initAnimations() {
-  const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-  tl.fromTo('.hero-badge', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7 })
-    .fromTo('.hero-title', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.8 }, '-=0.4')
-    .fromTo('.hero-desc',  { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.5')
-    .fromTo('.hero-btns',  { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6 }, '-=0.4')
-
-  gsap.fromTo('.quick-link',
-    { opacity: 0, y: 30 },
-    { opacity: 1, y: 0, duration: 0.6, stagger: 0.15, ease: 'power2.out',
-      scrollTrigger: { trigger: '.quick-link', start: 'top 85%' } }
-  )
-
-  gsap.fromTo('.about-text',
-    { opacity: 0, y: 30 },
-    { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out',
-      scrollTrigger: { trigger: '.about-text', start: 'top 80%' } }
-  )
-
-  gsap.fromTo('.home-stat-item',
-    { opacity: 0, scale: 0.85 },
-    { opacity: 1, scale: 1, duration: 0.6, stagger: 0.12, ease: 'back.out(1.5)',
-      scrollTrigger: { trigger: '.about-stats', start: 'top 78%', onEnter: animateCounters } }
-  )
-
-  if (funFactsRef.value) {
-    gsap.fromTo('.fun-fact-card',
-      { opacity: 0, y: 30 },
-      { opacity: 1, y: 0, duration: 0.6, stagger: 0.12, ease: 'power2.out',
-        scrollTrigger: { trigger: funFactsRef.value, start: 'top 80%', onEnter: animateFunFactCounters } }
-    )
-  }
-
-  gsap.fromTo('.news-card',
-    { opacity: 0, y: 40 },
-    { opacity: 1, y: 0, duration: 0.7, stagger: 0.12, ease: 'power2.out',
-      scrollTrigger: { trigger: newsRef.value, start: 'top 78%' } }
-  )
-
-  gsap.fromTo('.event-card',
-    { opacity: 0, x: -30 },
-    { opacity: 1, x: 0, duration: 0.6, stagger: 0.1, ease: 'power2.out',
-      scrollTrigger: { trigger: eventsRef.value, start: 'top 78%' } }
-  )
-
-  gsap.fromTo('.cta-title, .cta-desc',
-    { opacity: 0, y: 30 },
-    { opacity: 1, y: 0, duration: 0.8, stagger: 0.2, ease: 'power2.out',
-      scrollTrigger: { trigger: ctaRef.value, start: 'top 80%' } }
-  )
-}
-
-function animateCounters() {
-  document.querySelectorAll('.stat-num').forEach(el => {
-    const target = parseInt(el.dataset.target || '0', 10)
-    if (!target) return
-    const suffix = target >= 10000 ? 'K+' : target >= 100 ? '+' : ''
-    const displayTarget = target >= 10000 ? target / 1000 : target
-    gsap.fromTo({ val: 0 }, { val: displayTarget, duration: 1.8, ease: 'power2.out',
-      onUpdate: function () { el.textContent = Math.floor(this.targets()[0].val) + suffix }
-    })
-  })
-}
-
-function animateFunFactCounters() {
-  document.querySelectorAll('.fun-fact-num').forEach(el => {
-    const target = parseInt(el.dataset.target || '0', 10)
-    const suffix = el.dataset.suffix || ''
-    if (!target) return
-    const displayTarget = suffix.startsWith('K') ? target / 1000 : target
-    gsap.fromTo({ val: 0 }, { val: displayTarget, duration: 2, ease: 'power2.out',
-      onUpdate: function () { el.textContent = Math.floor(this.targets()[0].val) + suffix }
-    })
-  })
-}
-
-onMounted(async () => {
-  try {
-    const [pr, er, sr, fr] = await Promise.all([
-      listPosts({ status: 'published', per_page: 4 }),
-      listEvents({ status: 'published', per_page: 4 }),
-      listSlides(),
-      listFunFacts()
-    ])
-    posts.value      = pr.data.data?.items || []
-    events.value     = er.data.data?.items || []
-    slides.value     = sr.data.data || []
-    funFacts.value   = fr.data.data || []
-  } catch { /* graceful fallback */ } finally {
-    postsLoading.value = false
-  }
-  restartTimer()
-  setTimeout(initAnimations, 100)
-})
-
-onUnmounted(() => {
-  clearInterval(slideTimer)
-  ScrollTrigger.getAll().forEach(t => t.kill())
-})
+const contact = reactive({ phone:'+256 414254477 / 343688', email:'info@ncs.go.ug', address:'Plot 2-10, Coronation Avenue', postal_address:'P.O. Box 20077, Lugogo, Kampala - UGANDA', fax:'+256 414 258350' })
+const posts=ref([]), events=ref([]), slides=ref([]), facts=ref([]), faqs=ref([]), facilities=ref([]), associations=ref([])
+const currentSlide=ref(0), sportQuery=ref(''), activeCategory=ref('All Sports')
+let slideTimer
+const visibleSections=computed(() => (home.sections?.length ? home.sections : defaultSections).filter(item=>item.visible!==false))
+const displaySlides=computed(() => slides.value.length ? slides.value : [{id:'default',title:'Welcome to National Council of Sports',subtitle:'National Council of Sports',description:'A Centre of Excellence for Promotion and Development of Sports',button_text:'Discover NCS',button_url:'/pages/the-mandate',image_url:''}])
+const activeSlide=computed(()=>displaySlides.value[currentSlide.value]||displaySlides.value[0])
+const displayedFacts=computed(() => facts.value.length ? facts.value : home.milestones)
+const sportCategories=computed(() => ['All Sports',...new Set(associations.value.map(item=>item.category).filter(Boolean))])
+const filteredAssociations=computed(() => { const q=sportQuery.value.trim().toLowerCase(); return associations.value.filter(item => (activeCategory.value==='All Sports'||item.category===activeCategory.value) && (!q||[item.name,item.category,item.description].some(value=>String(value||'').toLowerCase().includes(q)))) })
+function moveSlide(step){currentSlide.value=(currentSlide.value+step+displaySlides.value.length)%displaySlides.value.length;restartTimer()}
+function setSlide(index){currentSlide.value=index;restartTimer()}
+function restartTimer(){clearInterval(slideTimer);if(displaySlides.value.length>1)slideTimer=setInterval(()=>moveSlide(1),6500)}
+function formatDate(value){return value?new Date(value).toLocaleDateString('en-UG',{day:'numeric',month:'short',year:'numeric'}):'Date TBA'}
+function mergeHome(value){if(!value||typeof value!=='object')return;for(const [key,val] of Object.entries(value)){if(val&&typeof val==='object'&&!Array.isArray(val)&&home[key]&&typeof home[key]==='object')Object.assign(home[key],val);else home[key]=val}}
+function dataOf(result){return result.status==='fulfilled'?result.value.data?.data:null}
+onMounted(async()=>{const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),listSlides(),listFunFacts(),listFAQs(),listFacilities(),listAssociations(),getSettings('homepage'),getSettings('contact')]);posts.value=dataOf(results[0])?.items||[];events.value=dataOf(results[1])?.items||[];slides.value=dataOf(results[2])||[];facts.value=dataOf(results[3])||[];faqs.value=dataOf(results[4])||[];facilities.value=dataOf(results[5])||[];associations.value=dataOf(results[6])||[];mergeHome(dataOf(results[7])?.value);Object.assign(contact,dataOf(results[8])?.value||{});restartTimer()})
+onUnmounted(()=>clearInterval(slideTimer))
 </script>
 
 <style scoped>
-.slide-fade-enter-active, .slide-fade-leave-active { transition: opacity 0.6s ease; }
-.slide-fade-enter-from, .slide-fade-leave-to { opacity: 0; }
+.home-redesign{color:#334155}.home-shell{width:min(80rem,100%);margin:auto;padding-left:1.25rem;padding-right:1.25rem}.home-section{padding:5rem 0}.bg-soft{background:#f7f9fc}.home-section h2,.home-cta h2{color:#1a365d;font-size:clamp(2rem,4vw,3rem);font-weight:800;line-height:1.12}.home-section p{line-height:1.75}.section-kicker,.home-pill{display:inline-block;margin-bottom:1rem;border-radius:999px;background:rgb(245 166 35/.13);padding:.4rem .85rem;color:#d88700;font-size:.8rem;font-weight:800}.home-hero{position:relative;height:clamp(31rem,65vw,43rem);overflow:hidden;background:#1a365d}.home-hero-slide{position:absolute;inset:0;opacity:0;transition:opacity .7s}.home-hero-slide.active{opacity:1;z-index:1}.home-hero-slide>img,.home-hero-fallback{width:100%;height:100%;object-fit:cover}.home-hero-fallback{background:linear-gradient(120deg,#1a365d,#274d7e)}.home-hero-overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgb(15 31 61/.94),rgb(26 54 93/.68),transparent)}.home-hero-content{position:absolute;inset:0;display:flex;align-items:center;color:white}.home-hero-content>div{max-width:43rem}.home-hero h1{font-size:clamp(2.5rem,6vw,4.6rem);font-weight:850;line-height:1.05}.home-hero p{max-width:39rem;margin:1.25rem 0 2rem;font-size:clamp(1.05rem,2vw,1.3rem)}.home-actions{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:1.6rem}.home-btn{display:inline-flex;min-height:44px;align-items:center;justify-content:center;border-radius:.55rem;padding:.7rem 1.2rem;font-size:.86rem;font-weight:800;transition:.2s}.home-btn-gold{background:#f5a623;color:#172b4d}.home-btn-gold:hover{background:#ffc154}.home-btn-navy{margin-top:1rem;background:#1a365d;color:white}.home-btn-outline-light{border:1px solid rgb(255 255 255/.75);color:white}.home-btn-outline-navy{border:1px solid #1a365d;color:#1a365d}.hero-arrow{position:absolute;z-index:3;top:50%;width:2.8rem;height:2.8rem;border-radius:50%;background:rgb(255 255 255/.16);color:white;font-size:2rem}.hero-prev{left:1rem}.hero-next{right:1rem}.hero-dots{position:absolute;z-index:3;bottom:1.5rem;left:50%;display:flex;gap:.5rem;transform:translateX(-50%)}.hero-dots button{width:.65rem;height:.65rem;border-radius:50%;background:rgb(255 255 255/.5)}.hero-dots button.active{width:2rem;border-radius:1rem;background:#f5a623}.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem}.home-lead{margin:1.2rem 0;font-size:1.08rem}.milestone-grid{display:flex;flex-wrap:wrap;gap:1.5rem;margin-top:2rem}.milestone{display:grid;grid-template-columns:auto auto;align-items:center;gap:.25rem .5rem}.milestone i{color:#f5a623;font-size:1.4rem}.milestone strong{color:#1a365d;font-size:2rem}.milestone span{grid-column:1/-1;font-size:.76rem}.value-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.value-card{border:1px solid #e8edf3;border-radius:1rem;background:#f8fafc;padding:1.25rem}.value-card.featured{background:#1a365d;color:white}.value-card h3{margin:.6rem 0;color:#1a365d;font-weight:800}.value-card.featured h3{color:white}.value-card p{font-size:.82rem}.value-icon{display:flex;width:2.8rem;height:2.8rem;align-items:center;justify-content:center;border-radius:.7rem;background:rgb(26 54 93/.1);color:#1a365d;font-size:1.3rem}.featured .value-icon{background:rgb(245 166 35/.2);color:#f5a623}.core-functions{margin-top:4rem;border-top:1px solid #e8edf3;padding-top:4rem;text-align:center}.section-heading{max-width:45rem;margin:0 auto 2.5rem;text-align:center}.section-heading p{margin-top:.7rem}.row-heading{display:flex;max-width:none;align-items:end;justify-content:space-between;text-align:left}.row-heading a,.text-link{color:#d88700;font-weight:800}.core-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:2rem;text-align:left}.core-grid div{display:flex;align-items:center;gap:.7rem;border:1px solid #e5eaf0;border-radius:.7rem;padding:1rem;font-weight:650}.core-grid span{display:flex;width:2rem;height:2rem;flex:none;align-items:center;justify-content:center;border-radius:50%;background:#f5a623;color:#1a365d}.stats-section,.home-cta{background:#1a365d;color:white}.section-heading.light h2{color:white}.section-heading.light p{color:rgb(255 255 255/.7)}.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}.stats-grid div{text-align:center}.stats-grid i{display:block;color:#f5a623;font-size:1.8rem}.stats-grid strong{display:block;margin:.45rem 0;color:white;font-size:2.5rem}.stats-grid span{color:rgb(255 255 255/.72)}.card-grid{display:grid;gap:1.25rem}.card-grid-3{grid-template-columns:repeat(3,1fr)}.content-card,.image-card{overflow:hidden;border:1px solid #e5eaf0;border-radius:1rem;background:white;box-shadow:0 12px 32px rgb(15 31 61/.07)}.content-card>img,.content-card>.card-placeholder,.image-card>img,.image-card>.card-placeholder{width:100%;height:13rem;object-fit:cover}.card-placeholder{display:flex;align-items:center;justify-content:center;background:#e8eef5;color:#9aa9ba;font-size:3rem}.content-card-body,.image-card>div:last-child{padding:1.25rem}.content-card-body>span{color:#d88700;font-size:.72rem;font-weight:800;text-transform:uppercase}.content-card h3,.image-card h3{margin:.5rem 0;color:#1a365d;font-size:1.15rem;font-weight:800}.content-card p,.image-card p{display:-webkit-box;overflow:hidden;color:#64748b;font-size:.85rem;-webkit-box-orient:vertical;-webkit-line-clamp:2}.finder-section{position:relative;overflow:hidden;background:#0f1f3d;color:white}.finder-search{position:relative;max-width:42rem;margin:0 auto 1rem}.finder-search i{position:absolute;top:50%;left:1.1rem;transform:translateY(-50%);color:#94a3b8}.finder-search input{width:100%;border-radius:1rem;background:white;padding:1rem 1.2rem 1rem 3rem;color:#1a365d}.filter-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;margin:1rem 0 2rem}.filter-chips button{border-radius:999px;background:rgb(255 255 255/.1);padding:.45rem .9rem;font-size:.78rem}.filter-chips button.active{background:#f5a623;color:#1a365d}.finder-meta{display:flex;justify-content:space-between;margin-bottom:1rem;color:rgb(255 255 255/.72);font-size:.85rem}.finder-meta a{color:#f5a623}.association-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}.association-card{display:flex;gap:1rem;border:1px solid rgb(255 255 255/.12);border-radius:1rem;background:rgb(255 255 255/.07);padding:1rem}.association-card img,.association-logo{width:3.2rem;height:3.2rem;flex:none;object-fit:contain;border-radius:.7rem;background:white;padding:.25rem}.association-logo{display:flex;align-items:center;justify-content:center;color:#1a365d}.association-card>div:last-child{min-width:0}.association-card span{color:#f5a623;font-size:.68rem}.association-card h3{margin:.15rem 0;color:white;font-size:.9rem;font-weight:800}.association-card p{display:-webkit-box;overflow:hidden;color:rgb(255 255 255/.62);font-size:.72rem;-webkit-box-orient:vertical;-webkit-line-clamp:2}.association-card details{margin-top:.6rem;font-size:.72rem}.association-card summary{cursor:pointer;color:#f5a623}.association-card ul{margin:.5rem 0}.association-card a{color:#f5a623}.finder-empty{grid-column:1/-1;padding:3rem;text-align:center;background:rgb(255 255 255/.05);border-radius:1rem}.finder-empty i{font-size:2.5rem;color:rgb(255 255 255/.3)}.involved-grid{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:4rem}.quick-contact{border-radius:1rem;background:#f4f7fb;padding:2rem}.quick-contact h3{margin-bottom:1.4rem;color:#1a365d;font-size:1.4rem;font-weight:800}.quick-contact>div{display:flex;gap:1rem;margin-top:1rem}.quick-contact i{color:#f5a623;font-size:1.4rem}.quick-contact p{display:flex;flex-direction:column}.quick-contact span,.quick-contact a{color:#64748b;font-size:.85rem}.event-card{display:flex;overflow:hidden;border-radius:1rem;background:white;box-shadow:0 8px 24px rgb(15 31 61/.07)}.event-card time{display:flex;width:7rem;flex:none;align-items:center;justify-content:center;background:#1a365d;padding:1rem;color:white;text-align:center;font-weight:800}.event-card>div{padding:1.2rem}.event-card h3{color:#1a365d;font-weight:800}.event-card p{color:#64748b;font-size:.82rem}.event-card a{color:#d88700;font-size:.8rem;font-weight:800}.associations-strip{background:#f5f7fa}.logo-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem}.logo-strip>div{display:flex;min-height:8rem;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;border-radius:.8rem;background:white;padding:1rem;text-align:center;box-shadow:0 6px 20px rgb(15 31 61/.05)}.logo-strip img{width:3.5rem;height:3.5rem;object-fit:contain}.logo-strip i{font-size:2rem;color:#1a365d}.logo-strip span{font-size:.72rem;font-weight:700}.help-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.help-grid a{border:1px solid #e5eaf0;border-radius:1rem;padding:1.5rem;transition:.2s}.help-grid a:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgb(15 31 61/.08)}.help-grid i{color:#f5a623;font-size:2rem}.help-grid h3{margin:.8rem 0;color:#1a365d;font-weight:800}.help-grid p{color:#64748b;font-size:.85rem}.home-cta{padding:3rem 0}.home-cta .home-shell{display:flex;align-items:center;justify-content:space-between;gap:2rem}.home-cta h2{margin-top:.3rem;color:white;font-size:2rem}.home-cta span{color:#f5a623;font-size:.8rem;font-weight:800}.faq-facts-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem}.faq-list details{border-bottom:1px solid #dce3eb;padding:1rem 0}.faq-list summary{cursor:pointer;color:#1a365d;font-weight:750}.faq-list p{margin-top:.7rem;color:#64748b;font-size:.86rem}.fact-list{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}.fact-list>div{display:flex;align-items:center;gap:.8rem;border-radius:.8rem;background:white;padding:1rem}.fact-list i{color:#f5a623;font-size:1.5rem}.fact-list p{display:flex;flex-direction:column}.fact-list strong{color:#1a365d;font-size:1.35rem}.fact-list span{font-size:.75rem}.empty-state{grid-column:1/-1;padding:2rem;text-align:center;color:#64748b}
+@media(max-width:1024px){.about-grid,.involved-grid,.faq-facts-grid{grid-template-columns:1fr}.association-grid{grid-template-columns:repeat(2,1fr)}.logo-strip{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:720px){.home-section{padding:3.5rem 0}.home-hero-overlay{background:rgb(15 31 61/.82)}.hero-arrow{display:none}.about-grid{gap:2.5rem}.value-grid,.card-grid-3,.stats-grid,.help-grid,.core-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}.association-grid{grid-template-columns:1fr}.logo-strip{grid-template-columns:1fr 1fr}.row-heading,.home-cta .home-shell{align-items:flex-start;flex-direction:column}.milestone-grid{display:grid;grid-template-columns:1fr 1fr}.fact-list{grid-template-columns:1fr}.finder-meta{gap:1rem}.event-card{flex-direction:column}.event-card time{width:100%}}
 </style>

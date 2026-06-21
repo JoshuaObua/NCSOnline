@@ -45,7 +45,7 @@
       <div class="section-label">Main</div>
       <div class="px-2 space-y-0.5">
         <NavItem :to="'/dashboard'" label="Dashboard" icon="icofont-dashboard-web" />
-        <NavItem :to="'/apply'" label="Start Application" icon="icofont-paper-plane" :highlight="true" />
+        <NavItem :to="'/my-portal'" label="My Individual Portal" icon="icofont-ui-user" :highlight="true" />
       </div>
 
       <template v-if="authStore.canUseNSMIS">

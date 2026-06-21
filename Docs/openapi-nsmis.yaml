@@ -1,0 +1,39 @@
+openapi: 3.0.3
+info: {title: NCS National Sports Management Information System API, version: 1.0.0}
+servers: [{url: /api/v1}]
+security: [{bearerAuth: []}]
+paths:
+  /nsmis/federations:
+    get: {summary: List federations in the caller scope, responses: {'200': {$ref: '#/components/responses/Success'}}}
+    post: {summary: Create a federation, responses: {'201': {$ref: '#/components/responses/Success'}, '403': {$ref: '#/components/responses/Error'}}}
+  /nsmis/federations/{federationID}:
+    put: {summary: Optimistically update a federation, parameters: [{$ref: '#/components/parameters/FederationID'}], responses: {'200': {$ref: '#/components/responses/Success'}, '409': {$ref: '#/components/responses/Error'}}}
+  /nsmis/federations/{federationID}/documents:
+    get: {summary: List permission-scoped evidence metadata, parameters: [{$ref: '#/components/parameters/FederationID'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+    post: {summary: Upload private evidence, parameters: [{$ref: '#/components/parameters/FederationID'}], requestBody: {required: true, content: {multipart/form-data: {schema: {type: object, required: [file, document_type], properties: {file: {type: string, format: binary}, document_type: {type: string}, report_id: {type: string}, classification: {type: string}}}}}}, responses: {'201': {$ref: '#/components/responses/Success'}, '415': {$ref: '#/components/responses/Error'}}}
+  /nsmis/reporting-periods:
+    get: {summary: List reporting periods, responses: {'200': {$ref: '#/components/responses/Success'}}}
+    post: {summary: Create a reporting period, responses: {'201': {$ref: '#/components/responses/Success'}}}
+  /nsmis/report-obligations:
+    get: {summary: List scoped reporting obligations, responses: {'200': {$ref: '#/components/responses/Success'}}}
+  /nsmis/reports/{reportID}/transitions:
+    post: {summary: Apply a server-validated workflow transition, parameters: [{name: reportID, in: path, required: true, schema: {type: string}}], responses: {'200': {$ref: '#/components/responses/Success'}, '409': {$ref: '#/components/responses/Error'}}}
+  /nsmis/{resource}:
+    get: {summary: List a paginated domain registry, parameters: [{$ref: '#/components/parameters/Resource'}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+    post: {summary: Create a scoped domain record, parameters: [{$ref: '#/components/parameters/Resource'}], responses: {'201': {$ref: '#/components/responses/Success'}}}
+  /nsmis/{resource}/{id}:
+    put: {summary: Update a scoped domain record, parameters: [{$ref: '#/components/parameters/Resource'}, {name: id, in: path, required: true, schema: {type: string}}], responses: {'200': {$ref: '#/components/responses/Success'}}}
+    delete: {summary: Delete an unreferenced domain record, parameters: [{$ref: '#/components/parameters/Resource'}, {name: id, in: path, required: true, schema: {type: string}}], responses: {'204': {description: Deleted}, '409': {$ref: '#/components/responses/Error'}}}
+  /nsmis/jobs:
+    get: {summary: List background jobs, responses: {'200': {$ref: '#/components/responses/Success'}}}
+    post: {summary: Queue an idempotent operational job, responses: {'202': {$ref: '#/components/responses/Success'}}}
+components:
+  securitySchemes: {bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT}}
+  parameters:
+    FederationID: {name: federationID, in: path, required: true, schema: {type: string}}
+    Resource: {name: resource, in: path, required: true, schema: {type: string, enum: [federation-officers, federation-memberships, athletes, competitions, medals, coaches, technical-officials, talent, scholarships, safeguarding-aggregates, safeguarding-cases, disbursements, accountabilities, equipment]}}
+  responses:
+    Success: {description: Success, content: {application/json: {schema: {$ref: '#/components/schemas/Envelope'}}}}
+    Error: {description: Error, content: {application/json: {schema: {$ref: '#/components/schemas/Envelope'}}}}
+  schemas:
+    Envelope: {type: object, properties: {success: {type: boolean}, data: {}, error: {type: object, properties: {code: {type: string}, message: {type: string}, fields: {type: object}}}}}

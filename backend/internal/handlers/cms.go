@@ -1120,6 +1120,11 @@ func (h *CMSHandler) CreateAssociation(w http.ResponseWriter, r *http.Request) {
 		Description string `json:"description"`
 		LogoURL     string `json:"logo_url"`
 		WebsiteURL  string `json:"website_url"`
+		Category    string `json:"category"`
+		President   string `json:"president"`
+		Secretary   string `json:"secretary"`
+		Address     string `json:"address"`
+		Phone       string `json:"phone"`
 		SortOrder   int    `json:"sort_order"`
 		IsActive    bool   `json:"is_active"`
 	}
@@ -1138,6 +1143,7 @@ func (h *CMSHandler) CreateAssociation(w http.ResponseWriter, r *http.Request) {
 	a := &models.CMSAssociation{
 		ID: uuid.NewString(), Name: req.Name, Slug: slug,
 		Description: req.Description, LogoURL: req.LogoURL, WebsiteURL: req.WebsiteURL,
+		Category: req.Category, President: req.President, Secretary: req.Secretary, Address: req.Address, Phone: req.Phone,
 		SortOrder: req.SortOrder, IsActive: req.IsActive,
 	}
 	if err := h.repo.CreateAssociation(r.Context(), a); err != nil {
@@ -1167,6 +1173,11 @@ func (h *CMSHandler) UpdateAssociation(w http.ResponseWriter, r *http.Request) {
 		Description string `json:"description"`
 		LogoURL     string `json:"logo_url"`
 		WebsiteURL  string `json:"website_url"`
+		Category    string `json:"category"`
+		President   string `json:"president"`
+		Secretary   string `json:"secretary"`
+		Address     string `json:"address"`
+		Phone       string `json:"phone"`
 		SortOrder   int    `json:"sort_order"`
 		IsActive    bool   `json:"is_active"`
 	}
@@ -1186,6 +1197,11 @@ func (h *CMSHandler) UpdateAssociation(w http.ResponseWriter, r *http.Request) {
 	if req.WebsiteURL != "" {
 		existing.WebsiteURL = req.WebsiteURL
 	}
+	existing.Category = req.Category
+	existing.President = req.President
+	existing.Secretary = req.Secretary
+	existing.Address = req.Address
+	existing.Phone = req.Phone
 	existing.SortOrder = req.SortOrder
 	existing.IsActive = req.IsActive
 	if err := h.repo.UpdateAssociation(r.Context(), existing); err != nil {

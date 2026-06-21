@@ -12,7 +12,7 @@
           </div>
           <div class="flex items-center gap-3">
             <router-link
-              to="/apply"
+              to="/my-portal/applications/new"
               class="inline-flex items-center gap-2 bg-[#F48C06] hover:bg-[#d47b05] text-white font-bold px-5 py-2.5 rounded-full text-sm transition-colors shadow-md"
             >
               <i class="icofont-paper-plane"></i> New Application
@@ -30,6 +30,20 @@
     </div>
 
     <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+
+      <div v-if="organisations.length" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+          <h2 class="font-bold text-darken">My Organisation Profiles</h2>
+          <p class="text-xs text-gray-400 mt-1">Choose a profile to open its organisation dashboard.</p>
+        </div>
+        <div class="p-6 grid sm:grid-cols-2 gap-4">
+          <button v-for="organisation in organisations" :key="organisation.id" @click="openOrganisation(organisation)" class="text-left rounded-2xl border border-gray-100 p-5 hover:border-[#F48C06]/40 hover:shadow-md transition-all">
+            <span class="text-[11px] font-bold uppercase tracking-wider text-[#F48C06]">{{ organisation.organisation_type }} · {{ organisation.role }}</span>
+            <h3 class="font-bold text-darken mt-2">{{ organisation.display_name }}</h3>
+            <p class="text-xs text-gray-400 mt-1">{{ organisation.profile_reference }}</p>
+          </button>
+        </div>
+      </div>
 
       <!-- Stat cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -109,7 +123,7 @@
           <i class="icofont-document-folder text-5xl mb-3 opacity-30"></i>
           <p class="text-sm font-medium">No applications yet</p>
           <router-link
-            to="/apply"
+            to="/my-portal/applications/new"
             class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#F48C06] hover:text-[#d47b05]"
           >
             Start your first application →
@@ -129,7 +143,7 @@
           <router-link
             v-for="type in licenceTypes"
             :key="type.id"
-            :to="`/apply?type=${type.id}`"
+            :to="`/my-portal/applications/new?type=${type.id}`"
             class="rounded-2xl p-5 border border-gray-100 hover:shadow-md transition-all flex flex-col gap-3 group"
             :class="type.hoverBorder"
           >
@@ -170,6 +184,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const applications = ref([])
+const organisations = ref([])
 const loading = ref(true)
 const activeStatus = ref('')
 
@@ -258,10 +273,19 @@ async function handleLogout() {
   router.push('/')
 }
 
+function openOrganisation(organisation) {
+  localStorage.setItem('ncsms_active_organisation', JSON.stringify(organisation))
+  router.push('/dashboard')
+}
+
 onMounted(async () => {
   try {
-    const res = await apiClient.get('/api/v1/applications', { params: { per_page: 50 } })
-    applications.value = res.data.data?.items || res.data.data || []
+    const [appRes, contextRes] = await Promise.all([
+      apiClient.get('/api/v1/applications', { params: { per_page: 50 } }),
+      apiClient.get('/api/v1/me/contexts'),
+    ])
+    applications.value = appRes.data.data?.items || appRes.data.data || []
+    organisations.value = contextRes.data.data?.organisations || []
   } catch {
     applications.value = []
   } finally {

@@ -35,6 +35,8 @@ func main() {
 	defer db.Close()
 
 	h, repos := handlers.New(db, cfg)
+	locationClient := middleware.NewLocationClient(cfg.LocationServiceURL, cfg.LocationServiceToken, cfg.LocationTimeout)
+	middleware.ConfigureLocationService(locationClient, cfg.JWTSecret, cfg.GeoAllowedCountries, cfg.GeoFailClosed)
 
 	rl := middleware.NewRateLimiter(cfg.RateLimitReqs, cfg.RateLimitWindow)
 	authRL := middleware.NewRateLimiter(10, cfg.RateLimitWindow)
@@ -62,6 +64,7 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
 	})
+	r.Post("/ncs-ussd", h.USSD.ServeHTTP)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// ── Public auth (geo-blocked: Uganda only, no VPN) ────────────
@@ -110,6 +113,9 @@ func main() {
 			r.Post("/auth/pin/set", h.Auth.SetPIN)
 			r.Put("/auth/pin/change", h.Auth.ChangePIN)
 			r.Post("/auth/pin/verify", h.Auth.VerifyPIN)
+			r.Get("/me/contexts", h.Organisations.Contexts)
+			r.Post("/organisation-invitations/accept", h.Organisations.AcceptInvitation)
+			r.Get("/organisations/{organisationID}", h.Organisations.Get)
 
 			// ── Applicant application routes ─────────────────────────
 			r.Route("/applications", func(r chi.Router) {

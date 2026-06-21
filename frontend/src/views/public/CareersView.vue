@@ -55,7 +55,7 @@
               <span v-if="c.deadline_at" class="text-xs text-red-500 whitespace-nowrap">
                 Closes {{ formatDate(c.deadline_at) }}
               </span>
-              <span class="bg-[#F48C06] text-white text-xs font-semibold px-4 py-1.5 rounded-full whitespace-nowrap">Apply Now</span>
+              <span class="bg-[#F48C06] text-white text-xs font-semibold px-4 py-1.5 rounded-full whitespace-nowrap">View Details</span>
             </div>
           </router-link>
         </div>

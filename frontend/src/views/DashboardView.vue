@@ -24,7 +24,7 @@
             <p class="text-primary-200 mt-1 text-sm">Here's what's happening with the National Council of Sports today.</p>
           </div>
           <router-link
-            to="/apply"
+            to="/my-portal/applications/new"
             class="inline-flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-primary-900 font-semibold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex-shrink-0 text-sm"
           >
             <i class="icofont-paper-plane text-lg"></i>
@@ -216,7 +216,7 @@ const statCards = computed(() => [
 
 const quickActions = computed(() => {
   const actions = [
-    { label: 'New Application', to: '/apply',        icon: 'icofont-paper-plane', iconBg: 'bg-yellow-50',  iconColor: 'text-yellow-600' },
+    { label: 'New Application', to: '/my-portal/applications/new', icon: 'icofont-paper-plane', iconBg: 'bg-yellow-50', iconColor: 'text-yellow-600' },
     { label: 'All Applications',to: '/applications', icon: 'icofont-files-stack', iconBg: 'bg-primary-50', iconColor: 'text-primary-700' },
     { label: 'My Profile',      to: '/profile',      icon: 'icofont-user-alt-5',  iconBg: 'bg-indigo-50',  iconColor: 'text-indigo-600' },
   ]
