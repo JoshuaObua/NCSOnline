@@ -37,7 +37,7 @@
           <router-link to="/" class="flex items-center flex-shrink-0" aria-label="National Council of Sports home">
             <div class="relative flex-shrink-0">
               <div class="w-16 h-16 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-sm border border-gray-100 z-10 relative">
-                <img src="/main-logo.png" alt="NCS Logo" class="w-14 h-14 object-contain" />
+                <img :src="resolveAsset(siteIdentity.logoUrl) || '/main-logo.png'" :alt="`${siteIdentity.name || 'NCS'} logo`" class="w-14 h-14 object-contain" />
               </div>
               <!-- Diamond accent -->
               <svg class="absolute -top-1.5 -left-1.5 w-8 h-8 z-0 opacity-30" viewBox="0 0 79 79" fill="none" aria-hidden="true" focusable="false">
@@ -240,7 +240,7 @@
           <div>
             <div class="mb-5">
               <div class="w-20 h-20 rounded-xl bg-white flex items-center justify-center overflow-hidden shadow-sm border border-white/10">
-                <img src="/main-logo.png" alt="NCS Logo" class="w-18 h-18 object-contain" style="width:4.25rem;height:4.25rem" />
+                <img :src="footerLogo" :alt="`${siteIdentity.name || 'NCS'} footer logo`" class="object-contain" style="width:4.25rem;height:4.25rem" />
               </div>
             </div>
             <p class="text-gray-400 text-sm leading-relaxed mb-5">{{ footerSettings.about }}</p>
@@ -307,6 +307,7 @@ import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { getMenu, getSettings } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 import PublicAccessibilityMenu from '@/components/public/PublicAccessibilityMenu.vue'
 
 const mobileOpen = ref(false)
@@ -396,6 +397,32 @@ const headerSettings = reactive({
   ],
   webmail_url: 'https://mail.umcs.go.ug/'
 })
+// Site identity (logos + favicon + name) — backed by cms_settings.site
+const siteIdentity = reactive({
+  name: 'NCS Uganda',
+  logoUrl: '',
+  whiteLogoUrl: '',
+  footerLogoUrl: '',
+  footerWhiteLogoUrl: '',
+  faviconUrl: '',
+})
+function resolveAsset(path) {
+  if (!path) return ''
+  return mediaUrl(path)
+}
+// Footer logo: prefer white footer logo → footer logo → white logo → main logo → bundled fallback
+const footerLogo = computed(() => {
+  const chain = [siteIdentity.footerWhiteLogoUrl, siteIdentity.footerLogoUrl, siteIdentity.whiteLogoUrl, siteIdentity.logoUrl]
+  for (const p of chain) { if (p) return resolveAsset(p) }
+  return '/main-logo.png'
+})
+function applyFavicon(url) {
+  if (!url) return
+  const href = resolveAsset(url) || url
+  let link = document.querySelector('link[rel="icon"]')
+  if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link) }
+  link.href = href
+}
 const socialDefaults = {
   facebook:  'https://facebook.com/NCSUganda',
   twitter:   'https://twitter.com/NCSUganda1',
@@ -465,11 +492,28 @@ async function loadHeaderSettings() {
   } catch { /* keep defaults */ }
 }
 
+async function loadSiteIdentity() {
+  try {
+    const r = await getSettings('site')
+    const v = r.data?.data?.value
+    if (v && typeof v === 'object') {
+      if (typeof v.name === 'string')               siteIdentity.name = v.name
+      if (typeof v.logoUrl === 'string')            siteIdentity.logoUrl = v.logoUrl
+      if (typeof v.whiteLogoUrl === 'string')       siteIdentity.whiteLogoUrl = v.whiteLogoUrl
+      if (typeof v.footerLogoUrl === 'string')      siteIdentity.footerLogoUrl = v.footerLogoUrl
+      if (typeof v.footerWhiteLogoUrl === 'string') siteIdentity.footerWhiteLogoUrl = v.footerWhiteLogoUrl
+      if (typeof v.faviconUrl === 'string')         siteIdentity.faviconUrl = v.faviconUrl
+      applyFavicon(siteIdentity.faviconUrl)
+    }
+  } catch { /* first-time, no record yet */ }
+}
+
 onMounted(() => {
   loadMenu()
   loadFooterSettings()
   loadContact()
   loadHeaderSettings()
+  loadSiteIdentity()
 })
 </script>
 

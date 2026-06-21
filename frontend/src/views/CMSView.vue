@@ -676,12 +676,52 @@
               class="px-4 py-2.5 text-sm transition-colors">{{ t.label }}</button>
           </div>
           <!-- Site Identity -->
-          <div v-if="settingsTab==='identity'" class="max-w-xl bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-            <div><label class="text-xs font-medium text-gray-600 block mb-1">Site Name</label><input type="text" v-model="siteSettings.name" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
-            <div><label class="text-xs font-medium text-gray-600 block mb-1">Tagline</label><input type="text" v-model="siteSettings.tagline" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
-            <div><label class="text-xs font-medium text-gray-600 block mb-1">Logo URL</label><input type="text" v-model="siteSettings.logoUrl" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="/main-logo.png"/></div>
-            <div><label class="text-xs font-medium text-gray-600 block mb-1">Favicon URL</label><input type="text" v-model="siteSettings.faviconUrl" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="/favicon.png"/></div>
-            <button @click="saveSettings" class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">Save</button>
+          <div v-if="settingsTab==='identity'" class="max-w-3xl bg-white rounded-xl border border-gray-200 p-6 space-y-6">
+            <div class="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label class="text-xs font-medium text-gray-600 block mb-1">Site Name</label>
+                <input type="text" v-model="siteSettings.name" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/>
+              </div>
+              <div>
+                <label class="text-xs font-medium text-gray-600 block mb-1">Tagline</label>
+                <input type="text" v-model="siteSettings.tagline" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-sm font-semibold text-gray-800 mb-1">Brand assets</h3>
+              <p class="text-xs text-gray-500 mb-4">Drag &amp; drop or browse. PNG / JPG / SVG up to 5 MB. Uploads are stored server-side and apply to the public site instantly on save.</p>
+              <div class="grid md:grid-cols-2 gap-5">
+                <div>
+                  <label class="text-xs font-semibold text-gray-700 block mb-2">Main logo <span class="text-gray-400">(light backgrounds)</span></label>
+                  <DropzoneUpload v-model="siteSettings.logoUrl" accept="image/png,image/jpeg,image/svg+xml,image/webp" label="Drop main logo" hint="Transparent PNG / SVG recommended" preview-class="h-28 object-contain bg-gray-50"/>
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-gray-700 block mb-2">White / inverse logo <span class="text-gray-400">(dark backgrounds)</span></label>
+                  <DropzoneUpload v-model="siteSettings.whiteLogoUrl" accept="image/png,image/jpeg,image/svg+xml,image/webp" label="Drop white logo" hint="Used on navy headers &amp; footers" preview-class="h-28 object-contain bg-[#1a365d]"/>
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-gray-700 block mb-2">Footer logo <span class="text-gray-400">(light)</span></label>
+                  <DropzoneUpload v-model="siteSettings.footerLogoUrl" accept="image/png,image/jpeg,image/svg+xml,image/webp" label="Drop footer logo" hint="Falls back to main logo if empty" preview-class="h-24 object-contain bg-gray-50"/>
+                </div>
+                <div>
+                  <label class="text-xs font-semibold text-gray-700 block mb-2">Footer white logo <span class="text-gray-400">(dark)</span></label>
+                  <DropzoneUpload v-model="siteSettings.footerWhiteLogoUrl" accept="image/png,image/jpeg,image/svg+xml,image/webp" label="Drop footer white logo" hint="Falls back to white logo if empty" preview-class="h-24 object-contain bg-[#1a365d]"/>
+                </div>
+                <div class="md:col-span-2">
+                  <label class="text-xs font-semibold text-gray-700 block mb-2">Favicon <span class="text-gray-400">(browser tab icon)</span></label>
+                  <DropzoneUpload v-model="siteSettings.faviconUrl" accept="image/png,image/x-icon,image/svg+xml,image/vnd.microsoft.icon" label="Drop favicon" hint="32×32 or 64×64 PNG/ICO/SVG" preview-class="h-20 w-20 object-contain bg-gray-50 mx-auto"/>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2 border-t border-gray-100">
+              <button @click="saveSettings" :disabled="savingSettings" class="bg-primary-600 hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors inline-flex items-center gap-2">
+                <i v-if="savingSettings" class="icofont-spinner-alt-1 animate-spin"></i>
+                {{ savingSettings ? 'Saving…' : 'Save site identity' }}
+              </button>
+              <span v-if="settingsSavedAt" class="text-xs text-green-600">Saved {{ settingsSavedAt }}</span>
+            </div>
           </div>
           <!-- SEO -->
           <div v-else-if="settingsTab==='seo'" class="max-w-xl bg-white rounded-xl border border-gray-200 p-6 space-y-4">
@@ -1777,16 +1817,55 @@ const siteModules = [
   {key:'support',label:'Support Tickets',description:'Customer support portal'},
 ]
 const siteSettings = reactive({
-  name:'NCS Uganda', tagline:'National Council of Sports', logoUrl:'/main-logo.png', faviconUrl:'/favicon.png',
+  name:'NCS Uganda', tagline:'National Council of Sports',
+  logoUrl:'/main-logo.png', whiteLogoUrl:'', footerLogoUrl:'', footerWhiteLogoUrl:'', faviconUrl:'/favicon.png',
   titleTemplate:'%s | NCS Uganda', metaDescription:'', robots:'index,follow',
   smtpHost:'', smtpPort:587, smtpSSL:false, smtpUser:'', smtpPass:'', fromEmail:'', fromName:'',
   customCss:'', customJs:'',
   modules:{ blog:true, events:true, careers:true, testimonials:true, newsletter:false, team:false, services:false, caseStudies:true, knowledgebase:false, support:false },
 })
-function saveSettings() {
-  const s={...siteSettings}; delete s.smtpPass
-  localStorage.setItem('cms_settings',JSON.stringify(s))
-  showToast('Settings saved!')
+const savingSettings = ref(false)
+const settingsSavedAt = ref('')
+
+async function saveSettings() {
+  if (savingSettings.value) return
+  savingSettings.value = true
+  // Strip the SMTP password from the cached copy so it doesn't sit in localStorage
+  const cached = {...siteSettings}; delete cached.smtpPass
+  localStorage.setItem('cms_settings', JSON.stringify(cached))
+  try {
+    // Persist to backend so PublicLayout (and every other client) sees the changes
+    await cmsApi.adminUpdateSettings('site', { value: { ...siteSettings } })
+    settingsSavedAt.value = new Date().toLocaleTimeString()
+    // Reflect favicon immediately in this tab too
+    applyFaviconFromSettings(siteSettings.faviconUrl)
+    showToast('Settings saved!')
+  } catch (err) {
+    showToast(err?.response?.data?.error?.message || 'Failed to save settings to server', 'error')
+  } finally {
+    savingSettings.value = false
+  }
+}
+
+async function loadServerSiteSettings() {
+  try {
+    const r = await cmsApi.getSettings('site')
+    const v = r?.data?.data?.value
+    if (v && typeof v === 'object') {
+      Object.assign(siteSettings, v)
+    }
+  } catch {/* first-time, no record yet */}
+}
+
+function applyFaviconFromSettings(url) {
+  if (!url) return
+  const href = /^(https?:|data:|blob:)/i.test(url) ? url : (url.startsWith('/') ? url : `/${url}`)
+  const finalHref = href.startsWith('http') || href.startsWith('data:') || href.startsWith('blob:')
+    ? href
+    : (import.meta.env?.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}${href}` : href)
+  let link = document.querySelector('link[rel="icon"]')
+  if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link) }
+  link.href = finalHref
 }
 
 // ── Modal ─────────────────────────────────────────────────────────
@@ -1936,12 +2015,14 @@ function loadLocalSettings() {
   } catch {}
 }
 
-onMounted(() => {
+onMounted(async () => {
   breadcrumbStore.set('Content Management', [{ label: 'Website Content' }, { label: 'Content Management' }])
   loadLocalSettings()
   loadPostCategories()
   loadPosts()
   loadHomeSettings()
+  // Pull server-backed site settings so logo/favicon dropzones reflect what the public site is using
+  await loadServerSiteSettings()
 })
 </script>
 
