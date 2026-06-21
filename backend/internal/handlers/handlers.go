@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/config"
+	"github.com/atenimedia-llc/ncs-online/backend/internal/maintenance"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/services"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,11 +20,18 @@ type Handlers struct {
 	NSMIS         *NSMISHandler
 	USSD          *USSDHandler
 	Organisations *OrganisationsHandler
+	Operator      *OperatorHandler
+	SystemState   *maintenance.State
 }
 
 // New constructs all handlers and returns them alongside the repos (needed by main for audit middleware).
 func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 	repos := repository.New(db)
+	initial, err := repos.Operator.LoadState(context.Background())
+	if err != nil {
+		initial = maintenance.Snapshot{}
+	}
+	state := maintenance.New(initial)
 
 	authSvc := services.NewAuthService(repos.Users, repos.Tokens, cfg)
 	userSvc := services.NewUserService(repos.Users, repos.Roles, repos.Tokens)
@@ -40,5 +49,7 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 		NSMIS:         &NSMISHandler{repo: repos.NSMIS, cfg: cfg},
 		USSD:          &USSDHandler{service: ussdSvc, callbackSecret: cfg.USSDCallbackSecret},
 		Organisations: &OrganisationsHandler{repo: repos.Organisations},
+		Operator:      NewOperatorHandler(repos.Operator, state),
+		SystemState:   state,
 	}, repos
 }

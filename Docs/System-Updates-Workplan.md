@@ -5,6 +5,49 @@
 **Status:** Draft v1 — awaiting kickoff
 **Last updated:** 2026-06-21
 
+> Execution status: active. This document is the delivery authority for `System Updates Plan.md`. Production rollout is gated: code completion does not waive backup, staging, rollback, security-review, or soak requirements.
+
+### Current-State Baseline
+
+| Capability | Current evidence | Implementation decision |
+| --- | --- | --- |
+| Go API, PostgreSQL, Vue and Compose | Present in repository | Extend in place; avoid framework replacement. |
+| Audit request capture | Middleware and migrations 005/009/021 | Replace per-request goroutines with a bounded writer; add chaining and immutability. |
+| Geo/location lookup | `services/location_service/` | Move to GeoLite2-first operation; provider fallback must be explicitly enabled. |
+| Session revocation | Per-user `auth_invalid_before` exists | Add global revocation and active-session management. |
+| Background jobs and email | Job tables and SMTP worker exist | Add operator controls, delivery channels, preferences and DLQ operations. |
+| `/my-portal` | Applications and organisation contexts exist | Add portal shell, security, sessions, audit, preferences and data controls. |
+| CMS | Content modules and homepage settings exist | Add RBAC navigation, branding, SEO overrides and sitemap. |
+
+### Environment and Promotion Matrix
+
+| Environment | Purpose | Database | Promotion gate |
+| --- | --- | --- | --- |
+| Local | Unit/build verification | Disposable | Tests and static checks pass. |
+| Staging | Integration, rollback and restore drills | Separate persistent volume | Acceptance evidence and rollback drill. |
+| Production | Public service | Existing persistent volume, never recreated | Staging sign-off, verified backup and approved window. |
+
+### Responsibility Matrix
+
+| Work | Responsible | Accountable | Verification |
+| --- | --- | --- | --- |
+| Application implementation | Lead engineer | Project owner | CI and requirement checklist |
+| VPS/Nginx promotion | Lead engineer | Project owner | Health/readiness and route smoke tests |
+| Backup/restore evidence | Lead engineer | Project owner | Checksum and isolated restore report |
+| Security review | Security reviewer | Project owner | No unresolved high-severity findings |
+| Production sign-off | Project owner | Project owner | Approval after staging soak |
+
+### External Prerequisites
+
+- GeoLite2 download credentials and approved database update schedule.
+- Off-site backup target and credentials.
+- Telegram, Firebase, Africa's Talking, hCaptcha and SMTP/DNS credentials.
+- GitHub branch protection, package permissions and image-signing identity.
+- A staging hostname or approved port allocation.
+- Named alert recipients, maintenance window and RPO/RTO owner.
+
+Missing credentials disable only their feature through explicit flags; insecure defaults are forbidden.
+
 ---
 
 ## 1. Executive Summary

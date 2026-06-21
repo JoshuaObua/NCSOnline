@@ -26,6 +26,8 @@ type Repos struct {
 	USSD          *USSDRepo
 	Organisations *OrganisationRepo
 	Notifications *NotificationRepo
+	Operator      *OperatorRepo
+	Backups       *BackupRepo
 }
 
 func New(db *pgxpool.Pool) *Repos {
@@ -40,6 +42,8 @@ func New(db *pgxpool.Pool) *Repos {
 		USSD:          &USSDRepo{db: db},
 		Organisations: &OrganisationRepo{db: db},
 		Notifications: &NotificationRepo{db: db},
+		Operator:      &OperatorRepo{db: db},
+		Backups:       &BackupRepo{db: db},
 	}
 }
 
@@ -705,18 +709,18 @@ func (r *ApplicationRepo) DeleteAttachment(ctx context.Context, id, applicationI
 
 type AuditRepo struct{ db *pgxpool.Pool }
 
-func (r *AuditRepo) Log(ctx context.Context, a *models.AuditLog) error {
-	const q = `INSERT INTO audit_logs
+const auditInsertSQL = `INSERT INTO audit_logs
 	           (id, user_id, action, resource, resource_id, old_values, new_values,
 	            ip_address, user_agent, method, endpoint, response_code, response_time_ms, device_info,
 	            event_type, event_status, severity_level, forwarded_ip,
 	            geo_country, geo_city, geo_region, geo_latitude, geo_longitude, geo_timezone, geo_source,
 	            platform, authenticated, vpn_detected,
 	            browser, os_name, client_type,
-	            threat_score, anomaly_detected, session_id, username)
+	            threat_score, anomaly_detected, session_id, username, payload_excerpt)
 	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
-	                   $15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35)
-	           RETURNING created_at`
+	                   $15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36)`
+
+func auditValues(a *models.AuditLog) []any {
 	var responseCode *int
 	if a.ResponseCode != 0 {
 		responseCode = &a.ResponseCode
@@ -725,7 +729,7 @@ func (r *AuditRepo) Log(ctx context.Context, a *models.AuditLog) error {
 	if a.ResponseTimeMs != 0 {
 		responseTimeMs = &a.ResponseTimeMs
 	}
-	return r.db.QueryRow(ctx, q,
+	return []any{
 		a.ID, a.UserID, a.Action, a.Resource,
 		nullableStr(a.ResourceID), a.OldValues, a.NewValues,
 		nullableStr(a.IPAddress), nullableStr(a.UserAgent),
@@ -737,8 +741,29 @@ func (r *AuditRepo) Log(ctx context.Context, a *models.AuditLog) error {
 		nullableStr(a.GeoCountry), nullableStr(a.GeoCity), nullableStr(a.GeoRegion), a.GeoLatitude, a.GeoLongitude,
 		nullableStr(a.GeoTimezone), nullableStr(a.GeoSource), nullableStr(a.Platform), a.Authenticated, a.VPNDetected,
 		nullableStr(a.Browser), nullableStr(a.OSName), nullableStr(a.ClientType),
-		a.ThreatScore, a.AnomalyDetected, nullableStr(a.SessionID), nullableStr(a.Username),
-	).Scan(&a.CreatedAt)
+		a.ThreatScore, a.AnomalyDetected, nullableStr(a.SessionID), nullableStr(a.Username), a.PayloadExcerpt,
+	}
+}
+
+func (r *AuditRepo) Log(ctx context.Context, a *models.AuditLog) error {
+	return r.db.QueryRow(ctx, auditInsertSQL+` RETURNING created_at`, auditValues(a)...).Scan(&a.CreatedAt)
+}
+
+func (r *AuditRepo) LogBatch(ctx context.Context, entries []*models.AuditLog) error {
+	if len(entries) == 0 {
+		return nil
+	}
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	for _, entry := range entries {
+		if _, err = tx.Exec(ctx, auditInsertSQL, auditValues(entry)...); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*models.AuditLog, int64, error) {
@@ -760,6 +785,7 @@ func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mo
 	                  COALESCE(al.client_type,''), COALESCE(al.threat_score,0),
 	                  COALESCE(al.anomaly_detected,false), COALESCE(al.session_id,''),
 	                  COALESCE(al.username,''),
+	                  COALESCE(al.previous_hash,''), COALESCE(al.entry_hash,''), COALESCE(al.chain_sequence,0),
 	                  COALESCE(u.first_name,''), COALESCE(u.last_name,''),
 	                  al.created_at
 	           FROM audit_logs al
@@ -796,6 +822,7 @@ func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mo
 			&l.VPNDetected, &l.Browser, &l.OSName,
 			&l.ClientType, &l.ThreatScore,
 			&l.AnomalyDetected, &l.SessionID, &l.Username,
+			&l.PreviousHash, &l.EntryHash, &l.ChainSequence,
 			&l.FirstName, &l.LastName,
 			&l.CreatedAt,
 		); err != nil {
@@ -820,6 +847,7 @@ func (r *AuditRepo) GetByID(ctx context.Context, id string) (*models.AuditLog, e
 	                  COALESCE(al.client_type,''), COALESCE(al.threat_score,0),
 	                  COALESCE(al.anomaly_detected,false), COALESCE(al.session_id,''),
 	                  COALESCE(al.username,''),
+	                  al.payload_excerpt, COALESCE(al.previous_hash,''), COALESCE(al.entry_hash,''), COALESCE(al.chain_sequence,0),
 	                  COALESCE(u.first_name,''), COALESCE(u.last_name,''),
 	                  al.created_at
 	           FROM audit_logs al
@@ -838,6 +866,7 @@ func (r *AuditRepo) GetByID(ctx context.Context, id string) (*models.AuditLog, e
 		&l.VPNDetected, &l.Browser, &l.OSName,
 		&l.ClientType, &l.ThreatScore,
 		&l.AnomalyDetected, &l.SessionID, &l.Username,
+		&l.PayloadExcerpt, &l.PreviousHash, &l.EntryHash, &l.ChainSequence,
 		&l.FirstName, &l.LastName,
 		&l.CreatedAt,
 	)

@@ -39,6 +39,7 @@ services:
     volumes:
       - uploads_data:/app/uploads
       - private_data:/app/private-data
+      - app_logs:/var/log/app
     expose:
       - "8080"
     networks:
@@ -52,7 +53,16 @@ services:
     env_file: [.env]
     environment:
       LOCATION_PROVIDER_URL: ${LOCATION_PROVIDER_URL:-https://ipwho.is/{ip}}
+      LOCATION_PROVIDER_FALLBACK: ${LOCATION_PROVIDER_FALLBACK:-false}
       LOCATION_CACHE_TTL_SECONDS: ${LOCATION_CACHE_TTL_SECONDS:-86400}
+      GEOIP_DB_PATH: /data/GeoLite2-City.mmdb
+      GEO_WHITELIST_PATH: /config/geo-whitelist.json
+      GEO_ALLOWED_COUNTRIES: ${GEO_ALLOWED_COUNTRIES:-UG}
+      GEO_FAIL_CLOSED: ${GEO_FAIL_CLOSED:-false}
+      GEO_UPSTREAM_URL: http://backend:8080
+    volumes:
+      - geoip_data:/data
+      - ./services/location_service/config:/config:ro
     expose: ["8090"]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/health')"]
@@ -76,6 +86,55 @@ services:
       PRIVATE_STORAGE_PATH: /app/private-data
     volumes:
       - private_data:/app/private-data
+      - app_logs:/var/log/app
+    networks: [ncsms_net]
+
+  backup:
+    build:
+      context: .
+      dockerfile: ops/backup/Dockerfile
+    restart: unless-stopped
+    profiles: ["operations"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-ncsms_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ncsms}?sslmode=disable
+      BACKUP_DIR: /var/backups/ncs
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      RCLONE_REMOTE: ${RCLONE_REMOTE:-}
+    volumes:
+      - backups_data:/var/backups/ncs
+      - ${RCLONE_CONFIG_PATH:-./ops/backup/rclone.empty.conf}:/root/.config/rclone/rclone.conf:ro
+    networks: [ncsms_net]
+
+  prometheus:
+    image: prom/prometheus:v3.4.1
+    restart: unless-stopped
+    profiles: ["observability"]
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=14d"]
+    volumes:
+      - ./ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    expose: ["9090"]
+    networks: [ncsms_net]
+
+  grafana:
+    image: grafana/grafana:12.0.1
+    restart: unless-stopped
+    profiles: ["observability"]
+    depends_on: [prometheus]
+    entrypoint: ["/bin/sh", "-ec"]
+    command: ["test -n \"$$GF_SECURITY_ADMIN_PASSWORD\" || { echo 'GRAFANA_ADMIN_PASSWORD is required' >&2; exit 1; }; exec /run.sh"]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    expose: ["3000"]
     networks: [ncsms_net]
 
   # ── Nginx Reverse Proxy ────────────────────────────────────────
@@ -141,6 +200,11 @@ volumes:
   pgadmin_data:
   uploads_data:
   private_data:
+  geoip_data:
+  app_logs:
+  backups_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   ncsms_net:

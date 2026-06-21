@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +13,8 @@ import (
 	"github.com/atenimedia-llc/ncs-online/backend/internal/config"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/database"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/handlers"
+	appLogging "github.com/atenimedia-llc/ncs-online/backend/internal/logging"
+	appMetrics "github.com/atenimedia-llc/ncs-online/backend/internal/metrics"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/middleware"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
 	"github.com/go-chi/chi/v5"
@@ -27,6 +30,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("config: %v", err)
 	}
+	logCloser, err := appLogging.Configure(cfg.LogLevel, cfg.LogDir)
+	if err != nil {
+		log.Fatalf("logging: %v", err)
+	}
+	defer logCloser.Close()
 
 	db, err := database.Connect(cfg.DatabaseURL)
 	if err != nil {
@@ -37,18 +45,28 @@ func main() {
 	h, repos := handlers.New(db, cfg)
 	locationClient := middleware.NewLocationClient(cfg.LocationServiceURL, cfg.LocationServiceToken, cfg.LocationTimeout)
 	middleware.ConfigureLocationService(locationClient, cfg.JWTSecret, cfg.GeoAllowedCountries, cfg.GeoFailClosed)
+	auditWriter := middleware.NewAuditWriter(repos.Audit, 4096)
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = auditWriter.Close(ctx)
+	}()
 
 	rl := middleware.NewRateLimiter(cfg.RateLimitReqs, cfg.RateLimitWindow)
 	authRL := middleware.NewRateLimiter(10, cfg.RateLimitWindow)
 
 	r := chi.NewRouter()
+	metricRegistry := appMetrics.New()
 
 	r.Use(chimiddleware.RequestID)
+	r.Use(metricRegistry.Middleware)
 	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.RejectAmbiguousPaths)
 	r.Use(middleware.LimitRequestBody(25 << 20))
 	r.Use(middleware.Logger)
-	r.Use(middleware.AuditLogger(repos.Audit))
+	r.Use(middleware.AuditLogger(auditWriter))
+	r.Use(middleware.HoneypotScanner)
+	r.Use(middleware.MaintenanceMode(h.SystemState, cfg.MaintenanceEnabled))
 	r.Use(rl.Middleware)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.AllowedOrigins,
@@ -60,10 +78,25 @@ func main() {
 	}))
 	r.Use(chimiddleware.Recoverer)
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	healthHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}
+	r.Get("/health", healthHandler)
+	r.Get("/healthz", healthHandler)
+	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := db.Ping(ctx); err != nil {
+			response.Err(w, http.StatusServiceUnavailable, "NOT_READY", "Database is unavailable")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ready"}`))
 	})
+	r.Handle("/metrics", metricRegistry)
 	r.Post("/ncs-ussd", h.USSD.ServeHTTP)
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -102,6 +135,7 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.GeoBlocker)
 			r.Use(middleware.Authenticate(cfg.JWTSecret))
+			r.Use(middleware.ValidateGlobalSession(h.SystemState))
 			r.Use(middleware.ValidateAuthenticatedUser(repos.Users))
 
 			// Self-service auth
@@ -116,6 +150,8 @@ func main() {
 			r.Get("/me/contexts", h.Organisations.Contexts)
 			r.Post("/organisation-invitations/accept", h.Organisations.AcceptInvitation)
 			r.Get("/organisations/{organisationID}", h.Organisations.Get)
+			r.Get("/me/sessions", h.Operator.Sessions)
+			r.Post("/me/sessions/revoke", h.Operator.RevokeSession)
 
 			// ── Applicant application routes ─────────────────────────
 			r.Route("/applications", func(r chi.Router) {
@@ -177,6 +213,9 @@ func main() {
 				r.Use(middleware.RequireRoles("super_admin", "admin"))
 
 				r.Get("/admin/dashboard", h.Dashboard.Stats)
+				r.Get("/admin/system/status", h.Operator.Status)
+				r.Get("/admin/system/resources", h.Operator.Resources)
+				r.Get("/admin/system/resources/ws", h.Operator.ResourceStream)
 
 				r.Route("/admin/users", func(r chi.Router) {
 					r.Get("/", h.Users.List)
@@ -199,6 +238,13 @@ func main() {
 
 				// Admin needs read access to roles list (for assignment UI)
 				r.Get("/admin/roles-list", h.Roles.List)
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireRoles("super_admin"))
+				r.Put("/admin/system/maintenance", h.Operator.SetMaintenance)
+				r.Post("/admin/system/cache/flush", h.Operator.FlushCache)
+				r.Post("/admin/system/sessions/revoke-all", h.Operator.RevokeAll)
 			})
 
 			// ── Admin: application review ─────────────────────────────
@@ -344,14 +390,14 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("server listening on :%s (env=%s)", cfg.Port, cfg.AppEnv)
+		slog.Info("server listening", "port", cfg.Port, "environment", cfg.AppEnv)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %v", err)
 		}
 	}()
 
 	<-quit
-	log.Println("shutting down...")
+	slog.Info("server shutting down")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -359,5 +405,5 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("forced shutdown: %v", err)
 	}
-	log.Println("server stopped")
+	slog.Info("server stopped")
 }

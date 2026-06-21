@@ -42,6 +42,7 @@ const GovernanceDashboardView = () => import('@/views/GovernanceDashboardView.vu
 const ReportingWorkspaceView = () => import('@/views/ReportingWorkspaceView.vue')
 const InsightsDashboardView = () => import('@/views/InsightsDashboardView.vue')
 const NSMISRegistryView = () => import('@/views/NSMISRegistryView.vue')
+const MaintenanceView = () => import('@/views/MaintenanceView.vue')
 
 const routes = [
   // ── Public website (uses PublicLayout) ────────────────────────
@@ -161,6 +162,10 @@ const routes = [
     meta: { requiresAuth: true, roles: ['super_admin', 'admin'] }
   },
   {
+    path: '/maintenance', name: 'Maintenance', component: MaintenanceView,
+    meta: { requiresAuth: true, roles: ['super_admin', 'admin'] }
+  },
+  {
     path: '/roles',
     name: 'Roles',
     component: RolesView,
@@ -246,7 +251,7 @@ router.beforeEach((to, from, next) => {
   const isApplicantUser = !userRoles.length || userRoles.some(r => r === 'applicant' || r === 'user')
 
   // Applicant/user role — only allowed on portal and profile; block all staff routes
-  const staffRoutes = ['Dashboard', 'Users', 'Applications', 'AuditLogs', 'Roles', 'CMS']
+  const staffRoutes = ['Dashboard', 'Users', 'Applications', 'AuditLogs', 'Roles', 'CMS', 'Maintenance']
   const hasActiveOrganisation = !!localStorage.getItem('ncsms_active_organisation')
   if (isApplicantUser && staffRoutes.includes(to.name) && !(to.name === 'Dashboard' && hasActiveOrganisation)) {
     return next('/my-portal')

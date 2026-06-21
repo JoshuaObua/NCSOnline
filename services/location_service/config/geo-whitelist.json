@@ -1,0 +1,6 @@
+[
+  {"cidr":"127.0.0.0/8","label":"loopback"},
+  {"cidr":"10.0.0.0/8","label":"private network"},
+  {"cidr":"172.16.0.0/12","label":"docker private network"},
+  {"cidr":"192.168.0.0/16","label":"private network"}
+]

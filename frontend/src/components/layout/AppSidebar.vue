@@ -97,6 +97,11 @@
         </div>
       </template>
 
+      <template v-if="isAdminPlus">
+        <div class="section-label">Operations</div>
+        <div class="px-2 space-y-0.5"><NavItem :to="'/maintenance'" label="Maintenance Core" icon="icofont-tools-alt-2" /></div>
+      </template>
+
       <!-- ACCOUNT -->
       <div class="section-label">Account</div>
       <div class="px-2 space-y-0.5">

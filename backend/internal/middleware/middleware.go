@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
-	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -283,6 +282,8 @@ type responseWriter struct {
 	status int
 }
 
+func (rw *responseWriter) Unwrap() http.ResponseWriter { return rw.ResponseWriter }
+
 func (rw *responseWriter) WriteHeader(code int) {
 	if rw.status != http.StatusOK {
 		return
@@ -355,6 +356,9 @@ func (rl *RateLimiter) cleanup() {
 }
 
 func realIP(r *http.Request) string {
+	if ip := r.Header.Get("X-Sentinel-Client-IP"); ip != "" {
+		return strings.TrimSpace(ip)
+	}
 	if ip := r.Header.Get("X-Real-IP"); ip != "" {
 		return strings.TrimSpace(ip)
 	}
@@ -505,16 +509,17 @@ func GeoBlocker(next http.Handler) http.Handler {
 // Logs every HTTP request with comprehensive security context.
 // Fire-and-forget goroutine — never blocks the HTTP response.
 
-func AuditLogger(repo *repository.AuditRepo) func(http.Handler) http.Handler {
+func AuditLogger(writer *AuditWriter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/health" {
+			if r.URL.Path == "/health" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/metrics" {
 				next.ServeHTTP(w, r)
 				return
 			}
 
 			start := time.Now()
 			ww := &responseWriter{ResponseWriter: w, status: http.StatusOK}
+			payloadExcerpt := scrubPayload(r)
 
 			// Install shared audit context so downstream middlewares
 			// (Authenticate) can populate user details on it.
@@ -543,83 +548,41 @@ func AuditLogger(repo *repository.AuditRepo) func(http.Handler) http.Handler {
 			forwardedFor := r.Header.Get("X-Forwarded-For")
 			ua := r.UserAgent()
 			statusCode := ww.status
-
-			go func() {
-				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-
-				geoCountry, geoCity, _, vpnDetected := lookupGeo(ip)
-				var location *LocationResult
-				if locationService != nil {
-					location, _ = locationService.Locate(ctx, ip, ua, userID)
-					if location != nil {
-						geoCountry, geoCity = location.Country, location.City
-						vpnDetected = location.IsProxy || location.IsVPN || location.IsTor || location.IsHosting
-					}
-				}
-
-				// Classify the request
-				eventType := classifyEventType(method, endpoint)
-				eventStatus := classifyEventStatus(statusCode)
-				threatScore := computeThreatScore(geoCountry, vpnDetected, statusCode)
-				severityLevel := classifySeverity(eventStatus, threatScore, vpnDetected)
-				anomaly := threatScore >= 60
-
-				browser, osName := parseBrowserOS(ua)
-				clientType := parseClientType(ua)
-				deviceInfo := osName + " / " + browser
-
-				var uid *string
-				if userID != "" {
-					uid = &userID
-				}
-
-				entry := &models.AuditLog{
-					ID:              uuid.NewString(),
-					UserID:          uid,
-					Username:        userEmail,
-					SessionID:       sessionID,
-					Action:          method + " " + endpoint,
-					Resource:        extractResource(endpoint),
-					Method:          method,
-					Endpoint:        endpoint,
-					IPAddress:       ip,
-					ForwardedIP:     forwardedFor,
-					UserAgent:       ua,
-					Browser:         browser,
-					OSName:          osName,
-					ClientType:      clientType,
-					DeviceInfo:      deviceInfo,
-					ResponseCode:    statusCode,
-					ResponseTimeMs:  elapsed,
-					EventType:       eventType,
-					EventStatus:     eventStatus,
-					SeverityLevel:   severityLevel,
-					GeoCountry:      geoCountry,
-					GeoCity:         geoCity,
-					VPNDetected:     vpnDetected,
-					ThreatScore:     threatScore,
-					AnomalyDetected: anomaly,
-				}
-				if location != nil {
-					entry.GeoRegion = location.Region
-					entry.GeoLatitude = location.Latitude
-					entry.GeoLongitude = location.Longitude
-					entry.GeoTimezone = location.Timezone
-					entry.GeoSource = location.Source
-					entry.Platform = location.Platform
-					entry.Authenticated = userID != ""
-					if location.Browser != "" {
-						entry.Browser = location.Browser
-					}
-					if location.DeviceType != "" {
-						entry.ClientType = location.DeviceType
-					}
-				}
-				if err := repo.Log(ctx, entry); err != nil {
-					log.Printf("[audit] failed to log request: %v", err)
-				}
-			}()
+			browser, osName := parseBrowserOS(ua)
+			clientType := parseClientType(ua)
+			eventType := classifyEventType(method, endpoint)
+			fingerprintEvent, anomaly := fingerprintRequest(r)
+			if fingerprintEvent != "" {
+				eventType = fingerprintEvent
+			}
+			var uid *string
+			if userID != "" {
+				uid = &userID
+			}
+			entry := &models.AuditLog{
+				ID:              uuid.NewString(),
+				UserID:          uid,
+				Username:        userEmail,
+				SessionID:       sessionID,
+				Action:          method + " " + endpoint,
+				Resource:        extractResource(endpoint),
+				Method:          method,
+				Endpoint:        endpoint,
+				IPAddress:       ip,
+				ForwardedIP:     forwardedFor,
+				UserAgent:       ua,
+				Browser:         browser,
+				OSName:          osName,
+				ClientType:      clientType,
+				DeviceInfo:      osName + " / " + browser,
+				ResponseCode:    statusCode,
+				ResponseTimeMs:  elapsed,
+				EventType:       eventType,
+				EventStatus:     classifyEventStatus(statusCode),
+				AnomalyDetected: anomaly,
+				PayloadExcerpt:  payloadExcerpt,
+			}
+			writer.Enqueue(entry, userID)
 		})
 	}
 }

@@ -96,6 +96,14 @@ type RefreshToken struct {
 	UserAgent string     `json:"user_agent,omitempty"`
 }
 
+type ActiveSession struct {
+	ID        string    `json:"id"`
+	IPAddress string    `json:"ip_address"`
+	UserAgent string    `json:"user_agent"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
 // ── Application ───────────────────────────────────────────────────
 
 type Application struct {
@@ -173,30 +181,34 @@ type AuditLog struct {
 	ResponseTimeMs int64           `json:"response_time_ms"`
 	DeviceInfo     string          `json:"device_info,omitempty"`
 	// Enhanced audit fields
-	EventType       string    `json:"event_type,omitempty"`
-	EventStatus     string    `json:"event_status,omitempty"`
-	SeverityLevel   string    `json:"severity_level,omitempty"`
-	ForwardedIP     string    `json:"forwarded_ip,omitempty"`
-	GeoCountry      string    `json:"geo_country,omitempty"`
-	GeoCity         string    `json:"geo_city,omitempty"`
-	GeoRegion       string    `json:"geo_region,omitempty"`
-	GeoLatitude     *float64  `json:"geo_latitude,omitempty"`
-	GeoLongitude    *float64  `json:"geo_longitude,omitempty"`
-	GeoTimezone     string    `json:"geo_timezone,omitempty"`
-	GeoSource       string    `json:"geo_source,omitempty"`
-	Platform        string    `json:"platform,omitempty"`
-	Authenticated   bool      `json:"authenticated"`
-	VPNDetected     bool      `json:"vpn_detected"`
-	Browser         string    `json:"browser,omitempty"`
-	OSName          string    `json:"os_name,omitempty"`
-	ClientType      string    `json:"client_type,omitempty"`
-	ThreatScore     int       `json:"threat_score"`
-	AnomalyDetected bool      `json:"anomaly_detected"`
-	SessionID       string    `json:"session_id,omitempty"`
-	Username        string    `json:"username,omitempty"`
-	FirstName       string    `json:"first_name,omitempty"`
-	LastName        string    `json:"last_name,omitempty"`
-	CreatedAt       time.Time `json:"created_at"`
+	EventType       string          `json:"event_type,omitempty"`
+	EventStatus     string          `json:"event_status,omitempty"`
+	SeverityLevel   string          `json:"severity_level,omitempty"`
+	ForwardedIP     string          `json:"forwarded_ip,omitempty"`
+	GeoCountry      string          `json:"geo_country,omitempty"`
+	GeoCity         string          `json:"geo_city,omitempty"`
+	GeoRegion       string          `json:"geo_region,omitempty"`
+	GeoLatitude     *float64        `json:"geo_latitude,omitempty"`
+	GeoLongitude    *float64        `json:"geo_longitude,omitempty"`
+	GeoTimezone     string          `json:"geo_timezone,omitempty"`
+	GeoSource       string          `json:"geo_source,omitempty"`
+	Platform        string          `json:"platform,omitempty"`
+	Authenticated   bool            `json:"authenticated"`
+	PayloadExcerpt  json.RawMessage `json:"payload_excerpt,omitempty"`
+	PreviousHash    string          `json:"previous_hash,omitempty"`
+	EntryHash       string          `json:"entry_hash,omitempty"`
+	ChainSequence   int64           `json:"chain_sequence,omitempty"`
+	VPNDetected     bool            `json:"vpn_detected"`
+	Browser         string          `json:"browser,omitempty"`
+	OSName          string          `json:"os_name,omitempty"`
+	ClientType      string          `json:"client_type,omitempty"`
+	ThreatScore     int             `json:"threat_score"`
+	AnomalyDetected bool            `json:"anomaly_detected"`
+	SessionID       string          `json:"session_id,omitempty"`
+	Username        string          `json:"username,omitempty"`
+	FirstName       string          `json:"first_name,omitempty"`
+	LastName        string          `json:"last_name,omitempty"`
+	CreatedAt       time.Time       `json:"created_at"`
 }
 
 // ── CMS ───────────────────────────────────────────────────────────
