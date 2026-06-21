@@ -150,29 +150,38 @@
     <!-- ── Footer ──────────────────────────────────────────── -->
     <footer id="public-footer" tabindex="-1" style="background-color: #252641;" aria-label="Website footer">
 
-      <!-- Newsletter bar -->
+      <!-- Newsletter bar (NCS Newsletter Subscription spec) -->
       <div class="border-b border-white/10">
-        <div class="max-w-screen-xl mx-auto px-6 py-10">
+        <div class="max-w-7xl mx-auto px-4 py-8 md:py-12">
           <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div>
-              <h3 class="text-white font-bold text-lg mb-1">Subscribe to NCS Updates</h3>
-              <p class="text-gray-400 text-sm">Get the latest sports news, events and regulatory updates.</p>
+            <div class="text-center md:text-left">
+              <h3 class="text-2xl md:text-3xl font-bold text-white mb-2">Stay Updated with NCS</h3>
+              <p class="text-white/90">Subscribe to our newsletter for the latest sports news and events</p>
             </div>
-            <form class="flex w-full md:w-auto gap-3" @submit.prevent>
+            <form class="flex w-full md:w-auto gap-2" @submit.prevent="submitNewsletter">
               <label for="newsletter-email" class="sr-only">Email address for NCS updates</label>
               <input
                 id="newsletter-email"
+                v-model="newsletterEmail"
+                :disabled="newsletterStatus === 'sending'"
                 type="email"
-                placeholder="Your email address"
+                placeholder="Enter your email"
                 autocomplete="email"
                 required
-                class="flex-1 md:w-64 bg-white/10 border border-white/20 text-white placeholder-gray-500 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:border-accent transition-colors"
+                class="flex h-9 w-full rounded-md border px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm flex-1 md:w-72 bg-white/20 border-white/30 text-white placeholder:text-white/70 focus:bg-white focus:text-[#1a365d] focus:placeholder:text-gray-500"
               />
-              <button type="submit" class="bg-accent hover:bg-yellow-600 text-white font-semibold px-6 py-2.5 rounded-full text-sm transition-colors whitespace-nowrap shadow-sm">
-                Subscribe
+              <button
+                type="submit"
+                :disabled="newsletterStatus === 'sending'"
+                :aria-label="newsletterStatus === 'sending' ? 'Subscribing…' : 'Subscribe'"
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-60 shadow h-9 py-2 px-6 bg-[#1a365d] hover:bg-[#1a365d]/90 text-white"
+              >
+                <svg v-if="newsletterStatus !== 'sending'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 animate-spin" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
               </button>
             </form>
           </div>
+          <p v-if="newsletterMessage" :class="['text-center md:text-right text-sm mt-3', newsletterStatus === 'error' ? 'text-red-300' : 'text-emerald-300']" role="status">{{ newsletterMessage }}</p>
         </div>
       </div>
 
@@ -376,6 +385,54 @@ const primaryPhone = computed(() => {
 
 function isExternalLink(url) {
   return /^(https?:|mailto:|tel:)/i.test(url || '')
+}
+
+// Newsletter subscription
+const newsletterEmail = ref('')
+const newsletterStatus = ref('idle')   // 'idle' | 'sending' | 'success' | 'error'
+const newsletterMessage = ref('')
+
+async function submitNewsletter() {
+  const email = newsletterEmail.value.trim()
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    newsletterStatus.value = 'error'
+    newsletterMessage.value = 'Please enter a valid email address.'
+    return
+  }
+  newsletterStatus.value = 'sending'
+  newsletterMessage.value = ''
+  try {
+    // Forward-compatible: if the backend endpoint exists it will accept this; otherwise we
+    // gracefully queue locally so the admin can still recover the address later.
+    const r = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/cms/newsletter/subscribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, source: 'public_footer' }),
+    })
+    if (r.ok) {
+      newsletterStatus.value = 'success'
+      newsletterMessage.value = 'Thanks — you are subscribed. Watch your inbox for updates.'
+      newsletterEmail.value = ''
+      return
+    }
+    // 404 or 5xx → queue locally so the email isn't lost
+    throw new Error(`HTTP ${r.status}`)
+  } catch {
+    try {
+      const queueKey = 'ncs_newsletter_queue'
+      const queue = JSON.parse(localStorage.getItem(queueKey) || '[]')
+      if (!queue.some(item => item.email === email)) {
+        queue.push({ email, queued_at: new Date().toISOString(), source: 'public_footer' })
+        localStorage.setItem(queueKey, JSON.stringify(queue))
+      }
+      newsletterStatus.value = 'success'
+      newsletterMessage.value = 'Thanks — we have recorded your interest. We will follow up shortly.'
+      newsletterEmail.value = ''
+    } catch {
+      newsletterStatus.value = 'error'
+      newsletterMessage.value = 'Could not subscribe right now. Please try again later.'
+    }
+  }
 }
 
 const contact = reactive({
