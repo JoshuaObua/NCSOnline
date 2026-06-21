@@ -3,8 +3,15 @@
     <template v-for="section in visibleSections" :key="section.id">
       <section v-if="section.id === 'hero'" id="section-hero" class="relative h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden -mt-28" aria-roledescription="carousel" aria-label="NCS highlights">
         <div :key="activeSlide.id || currentSlide" class="absolute inset-0 transition-all duration-700 ease-in-out opacity-100 scale-100 z-10">
-          <img v-if="activeSlide.image_url" :src="mediaUrl(activeSlide.image_url)" :alt="activeSlide.title || 'National Council of Sports Uganda'" class="absolute inset-0 w-full h-full object-cover" />
-          <div v-else class="absolute inset-0 bg-gradient-to-br from-[#1a365d] to-[#274d7e]"></div>
+          <!-- Dynamic background: image from CMS via bg-cover, or gradient fallback -->
+          <div
+            class="absolute inset-0 bg-cover bg-center transition-opacity duration-700"
+            :style="activeSlide.image_url ? { backgroundImage: `url('${mediaUrl(activeSlide.image_url)}')` } : null"
+            :class="!activeSlide.image_url ? 'bg-gradient-to-br from-[#1a365d] to-[#274d7e]' : ''"
+            role="img"
+            :aria-label="activeSlide.title || 'National Council of Sports Uganda'"
+          ></div>
+          <!-- Readability overlay -->
           <div class="absolute inset-0 bg-gradient-to-r from-[#1a365d]/90 via-[#1a365d]/70 to-transparent pointer-events-none"></div>
           <div class="relative z-20 h-full max-w-7xl mx-auto px-4 flex items-center">
             <div class="max-w-2xl transition-all duration-700 delay-200 translate-y-0 opacity-100">
@@ -13,9 +20,9 @@
               <p class="text-lg md:text-xl text-white/90 mb-8">{{ activeSlide.description || 'A Centre of Excellence for Promotion and Development of Sports' }}</p>
               <div class="flex flex-wrap gap-4">
                 <router-link :to="activeSlide.button_url || '/pages/the-mandate'" class="inline-flex items-center justify-center bg-[#f5a623] hover:bg-[#e09612] text-white px-8 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">{{ activeSlide.button_text || 'Learn More' }}</router-link>
-                <router-link to="/news" class="inline-flex items-center justify-center gap-2 border-2 border-white text-white hover:bg-white hover:text-[#1a365d] px-8 py-3 text-lg font-semibold rounded-lg transition-all duration-300 hover:-translate-y-1 bg-transparent">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
-                  Watch Video
+                <router-link to="/my-portal" class="inline-flex items-center justify-center gap-2 border-2 border-white text-white hover:bg-white hover:text-[#1a365d] px-8 py-3 text-lg font-semibold rounded-lg transition-all duration-300 hover:-translate-y-1 bg-transparent">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+                  My Portal
                 </router-link>
               </div>
             </div>
