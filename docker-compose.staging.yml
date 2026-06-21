@@ -1,0 +1,15 @@
+services:
+  postgres:
+    ports: ["55434:5432"]
+  frontend:
+    ports: ["127.0.0.1:3100:80"]
+    build:
+      args:
+        VITE_API_BASE_URL: http://104.219.248.160:9180
+  nginx:
+    ports: ["9180:80", "9543:443"]
+  pgadmin:
+    ports: ["5151:80"]
+  backup:
+    environment:
+      BACKUP_DIR: /var/backups/ncs-staging

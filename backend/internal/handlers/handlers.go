@@ -22,6 +22,7 @@ type Handlers struct {
 	Organisations *OrganisationsHandler
 	Operator      *OperatorHandler
 	SystemState   *maintenance.State
+	Backups       *BackupsHandler
 }
 
 // New constructs all handlers and returns them alongside the repos (needed by main for audit middleware).
@@ -51,5 +52,6 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 		Organisations: &OrganisationsHandler{repo: repos.Organisations},
 		Operator:      NewOperatorHandler(repos.Operator, state),
 		SystemState:   state,
+		Backups:       &BackupsHandler{repo: repos.Backups},
 	}, repos
 }

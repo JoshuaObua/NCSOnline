@@ -99,7 +99,7 @@
 
       <template v-if="isAdminPlus">
         <div class="section-label">Operations</div>
-        <div class="px-2 space-y-0.5"><NavItem :to="'/maintenance'" label="Maintenance Core" icon="icofont-tools-alt-2" /></div>
+        <div class="px-2 space-y-0.5"><NavItem :to="'/maintenance'" label="Maintenance Core" icon="icofont-tools-alt-2" /><NavItem v-if="authStore.isSuperAdmin" :to="'/maintenance/backups'" label="Backup & Restore" icon="icofont-database" /></div>
       </template>
 
       <!-- ACCOUNT -->

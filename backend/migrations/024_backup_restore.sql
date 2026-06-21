@@ -1,0 +1,28 @@
+BEGIN;
+SET LOCAL lock_timeout = '5s';
+CREATE TABLE IF NOT EXISTS system_backups (
+ id TEXT PRIMARY KEY,
+ file_name TEXT NOT NULL UNIQUE,
+ size_bytes BIGINT NOT NULL,
+ checksum CHAR(64) NOT NULL,
+ status TEXT NOT NULL CHECK(status IN('CREATED','VERIFIED','FAILED','ARCHIVED')),
+ verified_at TIMESTAMPTZ,
+ verification_result JSONB NOT NULL DEFAULT '{}'::JSONB,
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS backup_jobs (
+ id TEXT PRIMARY KEY,
+ job_type TEXT NOT NULL CHECK(job_type IN('BACKUP','VERIFY','RESTORE')),
+ backup_id TEXT REFERENCES system_backups(id) ON DELETE RESTRICT,
+ status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN('PENDING','RUNNING','SUCCEEDED','FAILED','CANCELLED')),
+ progress INTEGER NOT NULL DEFAULT 0 CHECK(progress BETWEEN 0 AND 100),
+ message TEXT NOT NULL DEFAULT '',
+ result JSONB NOT NULL DEFAULT '{}'::JSONB,
+ requested_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+ worker_id TEXT NOT NULL DEFAULT '',
+ created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+ started_at TIMESTAMPTZ,
+ finished_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_backup_jobs_claim ON backup_jobs(status,created_at);
+COMMIT;

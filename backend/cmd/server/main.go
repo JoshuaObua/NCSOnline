@@ -234,6 +234,7 @@ func main() {
 				r.Route("/admin/audit-logs", func(r chi.Router) {
 					r.Get("/", h.Audit.List)
 					r.Get("/{id}", h.Audit.Get)
+					r.Get("/export", h.Audit.Export)
 				})
 
 				// Admin needs read access to roles list (for assignment UI)
@@ -245,6 +246,8 @@ func main() {
 				r.Put("/admin/system/maintenance", h.Operator.SetMaintenance)
 				r.Post("/admin/system/cache/flush", h.Operator.FlushCache)
 				r.Post("/admin/system/sessions/revoke-all", h.Operator.RevokeAll)
+				r.Get("/admin/system/backups", h.Backups.List)
+				r.Post("/admin/system/backups/jobs", h.Backups.Queue)
 			})
 
 			// ── Admin: application review ─────────────────────────────

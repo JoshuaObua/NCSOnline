@@ -57,6 +57,7 @@ FAIL_CLOSED = os.getenv("GEO_FAIL_CLOSED", "false").lower() == "true"
 PROVIDER_FALLBACK = os.getenv("LOCATION_PROVIDER_FALLBACK", "false").lower() == "true"
 PROVIDER_URL = os.getenv("LOCATION_PROVIDER_URL", "https://ipwho.is/{ip}")
 UPSTREAM_URL = os.getenv("GEO_UPSTREAM_URL", "http://backend:8080").rstrip("/")
+FRONTEND_URL = os.getenv("GEO_FRONTEND_URL", "http://frontend:80").rstrip("/")
 TRUSTED_PROXIES = [ipaddress.ip_network(v.strip()) for v in os.getenv("GEO_TRUSTED_PROXIES", "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.0/8").split(",") if v.strip()]
 CACHE_TTL = int(os.getenv("LOCATION_CACHE_TTL_SECONDS", "86400"))
 
@@ -233,7 +234,8 @@ async def gate(path: str, request: Request) -> Response:
     body = await request.body()
     headers = {k: v for k, v in request.headers.items() if k.lower() not in HOP_HEADERS}
     headers["x-sentinel-client-ip"] = ip
+    target = UPSTREAM_URL if original_path.startswith("/api/") or original_path == "/ncs-ussd" else FRONTEND_URL
     async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
-        upstream = await client.request(request.method, UPSTREAM_URL + original_path, params=request.query_params, content=body, headers=headers)
+        upstream = await client.request(request.method, target + original_path, params=request.query_params, content=body, headers=headers)
     response_headers = {k: v for k, v in upstream.headers.items() if k.lower() not in HOP_HEADERS}
     return Response(content=upstream.content, status_code=upstream.status_code, headers=response_headers)

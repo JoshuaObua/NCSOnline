@@ -709,6 +709,17 @@ func (r *ApplicationRepo) DeleteAttachment(ctx context.Context, id, applicationI
 
 type AuditRepo struct{ db *pgxpool.Pool }
 
+type AuditExportFilter struct {
+	From           *time.Time
+	To             *time.Time
+	Severity       string
+	UserID         string
+	IP             string
+	EventType      string
+	FailedAuthOnly bool
+	Limit          int
+}
+
 const auditInsertSQL = `INSERT INTO audit_logs
 	           (id, user_id, action, resource, resource_id, old_values, new_values,
 	            ip_address, user_agent, method, endpoint, response_code, response_time_ms, device_info,
@@ -874,6 +885,27 @@ func (r *AuditRepo) GetByID(ctx context.Context, id string) (*models.AuditLog, e
 		return nil, ErrNotFound
 	}
 	return l, err
+}
+
+func (r *AuditRepo) Export(ctx context.Context, f AuditExportFilter) ([]*models.AuditLog, error) {
+	if f.Limit < 1 || f.Limit > 10000 {
+		f.Limit = 5000
+	}
+	const q = `SELECT id,user_id,action,resource,COALESCE(ip_address,''),COALESCE(method,''),COALESCE(endpoint,''),COALESCE(response_code,0),COALESCE(event_type,''),COALESCE(event_status,''),COALESCE(severity_level,''),COALESCE(geo_country,''),COALESCE(device_info,''),COALESCE(username,''),COALESCE(entry_hash,''),created_at FROM audit_logs WHERE ($1::timestamptz IS NULL OR created_at >= $1) AND ($2::timestamptz IS NULL OR created_at <= $2) AND ($3='' OR severity_level=$3) AND ($4='' OR user_id=$4) AND ($5='' OR ip_address=$5) AND ($6='' OR event_type=$6) AND ($7=FALSE OR (event_type LIKE 'AUTH_%' AND event_status='FAILURE')) ORDER BY created_at DESC LIMIT $8`
+	rows, err := r.db.Query(ctx, q, f.From, f.To, f.Severity, f.UserID, f.IP, f.EventType, f.FailedAuthOnly, f.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*models.AuditLog{}
+	for rows.Next() {
+		l := &models.AuditLog{}
+		if err := rows.Scan(&l.ID, &l.UserID, &l.Action, &l.Resource, &l.IPAddress, &l.Method, &l.Endpoint, &l.ResponseCode, &l.EventType, &l.EventStatus, &l.SeverityLevel, &l.GeoCountry, &l.DeviceInfo, &l.Username, &l.EntryHash, &l.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, l)
+	}
+	return items, rows.Err()
 }
 
 // ── CMS Repository ────────────────────────────────────────────────
