@@ -4,198 +4,142 @@
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <a href="#public-footer" class="skip-link skip-link-secondary">Skip to footer</a>
 
-    <!-- ── Navbar ──────────────────────────────────────────── -->
-    <header
-      :class="[
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
-        scrolled
-          ? 'bg-white/95 backdrop-blur-md shadow-lg'
-          : 'bg-white/90 backdrop-blur-sm shadow-sm'
-      ]"
-    >
-      <div class="public-topbar">
-        <div class="max-w-screen-xl mx-auto px-4 flex items-center gap-4">
-          <div class="public-marquee" aria-label="NCS highlights">
-            <div class="public-marquee-track">
-              <template v-for="copy in 2" :key="copy">
-                <span v-for="(message, index) in headerSettings.marquee" :key="`${copy}-${index}`" class="public-marquee-item">
-                  {{ message }} <span aria-hidden="true">•</span>
+    <!-- ── Header (NCS Header spec) ─────────────────────────── -->
+    <header :class="['fixed top-0 left-0 right-0 z-50 transition-all duration-500', scrolled ? 'bg-white shadow-lg' : 'bg-white']">
+
+      <!-- Topbar (navy strip) -->
+      <div class="bg-[#1a365d] text-white py-2 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center">
+          <div class="flex-1 overflow-hidden mr-4" aria-label="NCS highlights">
+            <div class="public-marquee-container">
+              <div class="public-marquee-content">
+                <span class="inline-flex items-center gap-8 text-sm">
+                  <template v-for="copy in 2" :key="copy">
+                    <template v-for="(msg, idx) in headerSettings.marquee" :key="`${copy}-${idx}`">
+                      <span>{{ msg }}</span>
+                      <span class="text-[#f5a623]" aria-hidden="true">•</span>
+                    </template>
+                  </template>
                 </span>
-              </template>
+              </div>
             </div>
           </div>
-          <div class="public-topbar-social" aria-label="Social media links">
-            <a v-for="network in socialNetworks" :key="network.key" v-show="network.url" :href="network.url" target="_blank" rel="noopener" :aria-label="network.label"><i :class="network.icon" aria-hidden="true"></i></a>
-            <a v-if="headerSettings.webmail_url" :href="headerSettings.webmail_url" target="_blank" rel="noopener" aria-label="Webmail"><i class="icofont-email" aria-hidden="true"></i></a>
+          <div class="hidden sm:flex items-center gap-3 flex-shrink-0">
+            <a v-for="net in topbarSocialLinks" :key="net.key" :href="net.url" target="_blank" rel="noopener noreferrer" :aria-label="net.label" class="hover:text-[#f5a623] transition-colors duration-300">
+              <svg v-if="net.key==='facebook'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+              <svg v-else-if="net.key==='twitter'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
+              <svg v-else-if="net.key==='linkedin'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
+              <svg v-else-if="net.key==='youtube'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/></svg>
+              <svg v-else-if="net.key==='webmail'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+            </a>
           </div>
         </div>
       </div>
-      <div class="max-w-screen-xl px-6 mx-auto">
-        <div class="flex items-center justify-between h-20">
 
-          <!-- Logo -->
-          <router-link to="/" class="flex items-center flex-shrink-0" aria-label="National Council of Sports home">
-            <div class="relative flex-shrink-0">
-              <div class="w-16 h-16 bg-white rounded-xl flex items-center justify-center overflow-hidden shadow-sm border border-gray-100 z-10 relative">
-                <img :src="resolveAsset(siteIdentity.logoUrl) || '/main-logo.png'" :alt="`${siteIdentity.name || 'NCS'} logo`" class="w-14 h-14 object-contain" />
-              </div>
-              <!-- Diamond accent -->
-              <svg class="absolute -top-1.5 -left-1.5 w-8 h-8 z-0 opacity-30" viewBox="0 0 79 79" fill="none" aria-hidden="true" focusable="false">
-                <path d="M35.26 2.24C37.6-.1 41.4-.1 43.74 2.24L76.76 35.26C79.1 37.6 79.1 41.4 76.76 43.74L43.74 76.76C41.4 79.1 37.6 79.1 35.26 76.76L2.24 43.74C-.1 41.4-.1 37.6 2.24 35.26L35.26 2.24Z" fill="#2F327D"/>
-              </svg>
-            </div>
+      <!-- Main bar -->
+      <div class="max-w-7xl mx-auto px-4 py-3">
+        <div class="flex items-center justify-between">
+
+          <!-- Logo (bare image, no container) -->
+          <router-link to="/" class="flex items-center gap-3 group flex-shrink-0" :aria-label="`${siteIdentity.name || 'NCS'} home`">
+            <img :src="resolveAsset(siteIdentity.logoUrl) || '/main-logo.png'" :alt="`${siteIdentity.name || 'NCS'} - National Council of Sports`" class="h-14 md:h-16 w-auto object-contain" />
           </router-link>
 
           <!-- Desktop nav -->
-          <nav class="hidden lg:flex items-center gap-1 text-sm font-medium" aria-label="Primary navigation">
+          <nav class="hidden lg:flex items-center gap-1" aria-label="Primary navigation">
             <template v-for="item in menuItems" :key="item.id || item.label">
               <div v-if="(item.children?.length) || item.mega" class="relative group">
-                <button :class="['flex items-center gap-1 px-3 py-2 font-medium transition-colors duration-300 text-sm', isActiveTopLevel(item) ? 'text-[#f5a623]' : 'text-[#1a365d] hover:text-[#f5a623]']" aria-haspopup="true">
+                <button type="button" :class="['flex items-center gap-1 px-3 py-2 font-medium transition-colors duration-300 text-sm', isActiveTopLevel(item) ? 'text-[#f5a623]' : 'text-[#1a365d] hover:text-[#f5a623]']" aria-haspopup="menu" aria-expanded="false">
                   {{ item.label }}
-                  <svg class="w-4 h-4 group-hover:rotate-180 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="m6 9 6 6 6-6"/>
-                  </svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 group-hover:rotate-180 transition-transform duration-200" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                 </button>
                 <div class="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 min-w-[220px] z-50">
                   <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2 overflow-hidden">
-                    <router-link
-                      v-for="sub in (item.children || item.megaItems || [])"
-                      :key="sub.id || sub.label"
-                      :to="sub.url || '/'"
-                      class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors"
-                    >
+                    <router-link v-for="sub in (item.children || item.megaItems || [])" :key="sub.id || sub.label" :to="sub.url || '/'" class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors">
                       <span v-if="sub.icon" class="text-base">{{ sub.icon }}</span>
                       {{ sub.label }}
                     </router-link>
                   </div>
                 </div>
               </div>
-              <router-link
-                v-else
-                :to="item.url || '/'"
-                :class="['px-3 py-2 font-medium transition-colors duration-300 text-sm', isActiveLink(item) ? 'text-[#f5a623]' : 'text-[#1a365d] hover:text-[#f5a623]']"
-              >{{ item.label }}</router-link>
+              <router-link v-else :to="item.url || '/'" :class="['px-3 py-2 font-medium transition-colors duration-300 text-sm', isActiveLink(item) ? 'text-[#f5a623]' : 'text-[#1a365d] hover:text-[#f5a623]']">{{ item.label }}</router-link>
             </template>
           </nav>
 
-          <!-- Desktop CTAs -->
-          <div class="hidden lg:flex items-center gap-2">
-            <form class="public-header-search" :class="{ 'is-open': searchOpen }" @submit.prevent="submitSearch">
+          <!-- Right controls -->
+          <div class="flex items-center gap-2">
+            <form class="relative transition-all duration-300" :class="searchOpen ? 'w-44 md:w-52' : 'w-0'" @submit.prevent="submitSearch">
               <label for="public-site-search" class="sr-only">Search NCS website</label>
-              <input id="public-site-search" v-model="siteSearch" type="search" placeholder="Search..." />
+              <input id="public-site-search" v-model="siteSearch" type="search" placeholder="Search..."
+                :class="['flex h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all duration-300 border-[#1a365d]/20 focus:border-[#f5a623] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623]', searchOpen ? 'w-full opacity-100' : 'w-0 opacity-0 pointer-events-none']" />
             </form>
-            <button type="button" class="public-header-icon" :aria-expanded="searchOpen" aria-controls="public-site-search" aria-label="Search website" @click="searchOpen = !searchOpen">
-              <i class="icofont-search-1" aria-hidden="true"></i>
+            <button type="button" class="inline-flex items-center justify-center h-9 w-9 rounded-md text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors" :aria-expanded="searchOpen" aria-controls="public-site-search" aria-label="Search website" @click="searchOpen = !searchOpen">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
             </button>
-            <button type="button" class="public-header-icon" aria-label="Open accessibility tools" title="Accessibility tools" @click="openAccessibility">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-5 h-5"><circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-6 1"/><path d="m5 8 3-3 5.5 3-2.36 3.5"/><path d="M4.24 14.5a5 5 0 0 0 6.88 6"/><path d="M13.76 17.5a5 5 0 0 0-6.88-6"/></svg>
+            <button type="button" aria-pressed="false" aria-label="Accessibility tools" title="Accessibility tools" class="inline-flex items-center justify-center w-10 h-10 rounded-md text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors" @click="openAccessibility">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-6 1"/><path d="m5 8 3-3 5.5 3-2.36 3.5"/><path d="M4.24 14.5a5 5 0 0 0 6.88 6"/><path d="M13.76 17.5a5 5 0 0 0-6.88-6"/></svg>
             </button>
-            <!-- Login button (unauthenticated) -->
-            <router-link
-              v-if="!isAuthenticated"
-              to="/login"
-              class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors"
-              aria-label="Login"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+
+            <!-- Login (unauthenticated, desktop+) -->
+            <router-link v-if="!isAuthenticated" to="/login" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
               Login
             </router-link>
-            <!-- Register icon (unauthenticated, mobile compact) -->
-            <router-link
-              v-if="!isAuthenticated"
-              to="/register"
-              title="Create Account"
-              aria-label="Create an account"
-              class="md:hidden w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-[#1a365d] hover:border-[#f5a623] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-all"
-            ><i class="icofont-ui-user-group text-xl leading-none" aria-hidden="true"></i></router-link>
-            <!-- Portal icon (authenticated applicant) -->
-            <router-link
-              v-if="isAuthenticated && isApplicant"
-              to="/my-portal"
-              title="My Portal"
-              aria-label="Open my portal"
-              class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-[#112b4e] hover:text-[#112b4e] hover:bg-gray-50 transition-all"
-            ><i class="icofont-ui-home text-xl leading-none" aria-hidden="true"></i></router-link>
-            <!-- Dashboard icon (authenticated admin/staff) -->
-            <router-link
-              v-if="isAuthenticated && !isApplicant"
-              to="/dashboard"
-              title="Dashboard"
-              aria-label="Open dashboard"
-              class="w-10 h-10 flex items-center justify-center rounded-full border border-gray-300 text-gray-600 hover:border-[#112b4e] hover:text-[#112b4e] hover:bg-gray-50 transition-all"
-            ><i class="icofont-dashboard-web text-xl leading-none" aria-hidden="true"></i></router-link>
-          </div>
+            <!-- Portal (authenticated applicant) -->
+            <router-link v-if="isAuthenticated && isApplicant" to="/my-portal" title="My Portal" aria-label="Open my portal" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
+              <i class="icofont-ui-home" aria-hidden="true"></i> My Portal
+            </router-link>
+            <!-- Dashboard (authenticated staff/admin) -->
+            <router-link v-if="isAuthenticated && !isApplicant" to="/dashboard" title="Dashboard" aria-label="Open dashboard" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
+              <i class="icofont-dashboard-web" aria-hidden="true"></i> Dashboard
+            </router-link>
 
-          <!-- Mobile toggle -->
-          <button
-            class="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
-            @click="mobileOpen = !mobileOpen"
-            :aria-label="mobileOpen ? 'Close navigation menu' : 'Open navigation menu'"
-            :aria-expanded="mobileOpen"
-            aria-controls="mobile-navigation"
-          >
-            <svg v-if="!mobileOpen" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12"/>
-            </svg>
-            <svg v-else class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
+            <!-- Mobile menu toggle -->
+            <button type="button" class="inline-flex items-center justify-center h-9 w-9 lg:hidden rounded-md text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors" @click="mobileOpen = !mobileOpen" :aria-label="mobileOpen ? 'Close navigation menu' : 'Open navigation menu'" :aria-expanded="mobileOpen" aria-controls="mobile-navigation">
+              <svg v-if="!mobileOpen" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6" aria-hidden="true"><path d="M4 12h16"/><path d="M4 18h16"/><path d="M4 6h16"/></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6" aria-hidden="true"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Mobile menu -->
-      <Transition name="mobile-drop">
-        <nav v-if="mobileOpen" id="mobile-navigation" class="lg:hidden bg-white border-t border-gray-100 shadow-lg" aria-label="Mobile navigation">
-          <div class="max-w-screen-xl px-6 mx-auto py-4 flex flex-col gap-0.5">
-            <template v-for="item in menuItems" :key="item.id || item.label">
-              <router-link
-                :to="item.url || '/'"
-                class="px-4 py-2.5 text-sm font-medium text-gray-700 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
-                @click="mobileOpen = false"
-              >{{ item.label }}</router-link>
-              <router-link
-                v-for="sub in (item.children || item.megaItems || [])"
-                :key="sub.id || sub.label"
-                :to="sub.url || '/'"
-                class="pl-8 py-2 text-sm text-gray-500 hover:text-primary-700 rounded-lg transition-colors"
-                @click="mobileOpen = false"
-              >↳ {{ sub.label }}</router-link>
-            </template>
-            <div class="flex gap-3 mt-4 pt-4 border-t border-gray-100">
-              <router-link
-                v-if="!isAuthenticated"
-                to="/login"
-                class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-full text-gray-700 flex items-center justify-center gap-1.5"
-                @click="mobileOpen = false"
-              ><i class="icofont-sign-in"></i> Sign In</router-link>
-              <router-link
-                v-if="!isAuthenticated"
-                to="/register"
-                class="flex-1 py-2.5 text-sm font-semibold text-center border border-[#F48C06] text-[#F48C06] rounded-full flex items-center justify-center gap-1.5"
-                @click="mobileOpen = false"
-              ><i class="icofont-ui-user-group"></i> Register</router-link>
-              <router-link
-                v-if="isAuthenticated && isApplicant"
-                to="/my-portal"
-                class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-full text-gray-700 flex items-center justify-center gap-1.5"
-                @click="mobileOpen = false"
-              ><i class="icofont-ui-home"></i> My Portal</router-link>
-              <router-link
-                v-if="isAuthenticated && !isApplicant"
-                to="/dashboard"
-                class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-full text-gray-700 flex items-center justify-center gap-1.5"
-                @click="mobileOpen = false"
-              ><i class="icofont-dashboard-web"></i> Dashboard</router-link>
-              <router-link
-                to="/my-portal"
-                class="flex-1 py-2.5 text-sm font-semibold text-center bg-accent text-white rounded-full"
-                @click="mobileOpen = false"
-              >My Portal</router-link>
+      <!-- Mobile menu (native details/summary per spec) -->
+      <div :class="['lg:hidden absolute top-full left-0 right-0 bg-white shadow-xl transition-all duration-500 overflow-hidden', mobileOpen ? 'max-h-[80vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none']">
+        <nav id="mobile-navigation" class="p-4 space-y-2 max-h-[70vh] overflow-y-auto" aria-label="Mobile navigation">
+          <template v-for="item in menuItems" :key="item.id || item.label">
+            <div v-if="(item.children?.length) || item.mega">
+              <details class="group">
+                <summary class="flex items-center justify-between px-4 py-3 text-[#1a365d] font-medium cursor-pointer hover:bg-[#f5a623]/10 rounded-lg transition-colors">
+                  {{ item.label }}
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 group-open:rotate-180 transition-transform" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </summary>
+                <div class="pl-4 mt-1 space-y-1">
+                  <router-link v-for="sub in (item.children || item.megaItems || [])" :key="sub.id || sub.label" :to="sub.url || '/'" class="block px-4 py-2 text-[#1a365d]/80 hover:text-[#f5a623] transition-colors text-sm" @click="mobileOpen = false">{{ sub.label }}</router-link>
+                </div>
+              </details>
             </div>
+            <div v-else>
+              <router-link :to="item.url || '/'" class="block px-4 py-3 text-[#1a365d] font-medium hover:bg-[#f5a623]/10 rounded-lg transition-colors" @click="mobileOpen = false">{{ item.label }}</router-link>
+            </div>
+          </template>
+
+          <div class="flex gap-3 mt-4 pt-4 border-t border-gray-100">
+            <router-link v-if="!isAuthenticated" to="/login" class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-lg text-[#1a365d] hover:border-[#f5a623] hover:text-[#f5a623] flex items-center justify-center gap-1.5" @click="mobileOpen = false">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+              Login
+            </router-link>
+            <router-link v-if="!isAuthenticated" to="/register" class="flex-1 py-2.5 text-sm font-semibold text-center border border-[#f5a623] text-[#f5a623] hover:bg-[#f5a623]/10 rounded-lg flex items-center justify-center gap-1.5" @click="mobileOpen = false">
+              <i class="icofont-ui-user-group"></i> Register
+            </router-link>
+            <router-link v-if="isAuthenticated && isApplicant" to="/my-portal" class="flex-1 py-2.5 text-sm font-semibold text-center bg-[#1a365d] text-white rounded-lg flex items-center justify-center gap-1.5" @click="mobileOpen = false">
+              <i class="icofont-ui-home"></i> My Portal
+            </router-link>
+            <router-link v-if="isAuthenticated && !isApplicant" to="/dashboard" class="flex-1 py-2.5 text-sm font-semibold text-center bg-[#1a365d] text-white rounded-lg flex items-center justify-center gap-1.5" @click="mobileOpen = false">
+              <i class="icofont-dashboard-web"></i> Dashboard
+            </router-link>
           </div>
         </nav>
-      </Transition>
+      </div>
     </header>
 
     <!-- Page content -->
@@ -493,6 +437,20 @@ const socialNetworks = computed(() => [
   { key:'instagram', label:'Instagram',    icon:'icofont-instagram', url:contact.social.instagram || socialDefaults.instagram },
   { key:'youtube',   label:'YouTube',      icon:'icofont-youtube',   url:contact.social.youtube   || socialDefaults.youtube },
 ])
+// Topbar social row (Header spec): plain icons w/ hover gold — FB, X, LinkedIn, YouTube, Webmail
+const topbarSocialLinks = computed(() => {
+  const rows = [
+    { key:'facebook',  label:'Facebook',  url: contact.social.facebook  || socialDefaults.facebook },
+    { key:'twitter',   label:'Twitter',   url: contact.social.twitter   || socialDefaults.twitter },
+    { key:'linkedin',  label:'LinkedIn',  url: contact.social.linkedin  || socialDefaults.linkedin },
+    { key:'youtube',   label:'YouTube',   url: contact.social.youtube   || socialDefaults.youtube },
+  ]
+  if (headerSettings.webmail_url) {
+    rows.push({ key:'webmail', label:'Webmail', url: headerSettings.webmail_url })
+  }
+  return rows.filter(r => r.url)
+})
+
 // Footer-spec social row: FB, X, LinkedIn, YouTube, Webmail (Instagram dropped to match the design)
 const footerSocialLinks = computed(() => {
   const rows = [
@@ -586,24 +544,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.mobile-drop-enter-active, .mobile-drop-leave-active { transition: opacity 0.2s, transform 0.2s; transform-origin: top; }
-.mobile-drop-enter-from, .mobile-drop-leave-to { opacity: 0; transform: scaleY(0.95); }
 .public-site > main { padding-top: 7rem; }
-.public-topbar { overflow: hidden; background: #1a365d; color: white; padding: .45rem 0; }
-.public-marquee { min-width: 0; flex: 1; overflow: hidden; white-space: nowrap; }
-.public-marquee-track { display: inline-flex; width: max-content; animation: public-marquee 34s linear infinite; }
-.public-marquee-item { display: inline-flex; gap: 2rem; margin-right: 2rem; font-size: .78rem; }
-.public-marquee-item span { color: #f5a623; }
-.public-topbar-social { display: flex; flex-shrink: 0; gap: .65rem; }
-.public-topbar-social a { color: white; transition: color .2s; }
-.public-topbar-social a:hover { color: #f5a623; }
-.public-header-icon { display: inline-flex; width: 2.5rem; height: 2.5rem; align-items: center; justify-content: center; border-radius: .55rem; color: #1a365d; font-size: 1.15rem; }
-.public-header-icon svg { width:1.25rem; height:1.25rem; }
-.public-header-icon:hover { color: #f5a623; background: rgb(245 166 35 / .1); }
-.public-header-search { width: 0; overflow: hidden; transition: width .25s ease; }
-.public-header-search.is-open { width: 11rem; }
-.public-header-search input { width: 11rem; border: 1px solid #d1d5db; border-radius: .5rem; padding: .5rem .75rem; font-size: .82rem; }
-@keyframes public-marquee { to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .public-marquee-track { animation-play-state: paused; } }
-@media (max-width: 640px) { .public-topbar-social { display: none; } }
+
+/* Marquee — single continuous track, replicates the Header spec's CSS animation */
+.public-marquee-container { display: block; min-width: 0; }
+.public-marquee-content { display: inline-block; white-space: nowrap; animation: public-marquee-scroll 34s linear infinite; }
+@keyframes public-marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .public-marquee-content { animation: none; } }
 </style>
