@@ -74,18 +74,15 @@ const routes = [
     ]
   },
 
-  // ── Auth ──────────────────────────────────────────────────────
+  // ── Auth (rendered inside PublicLayout so they share the header/footer) ──
   {
-    path: '/login',
-    name: 'Login',
-    component: LoginView,
-    meta: { requiresAuth: false }
-  },
-  {
-    path: '/register',
-    name: 'Register',
-    component: RegisterView,
-    meta: { requiresAuth: false }
+    path: '/',
+    component: PublicLayout,
+    meta: { requiresAuth: false },
+    children: [
+      { path: 'login',    name: 'Login',    component: LoginView },
+      { path: 'register', name: 'Register', component: RegisterView },
+    ],
   },
 
   // ── Applicant self-service portal (uses PublicLayout) ─────────

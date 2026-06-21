@@ -17,9 +17,12 @@
       @focus="openPanel"
       @click="openPanel"
     >
-      <svg class="accessibility-trigger-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
-        <circle cx="12" cy="4" r="2" />
-        <path stroke-linecap="round" stroke-linejoin="round" d="M5 8.5c4.6-1.7 9.4-1.7 14 0M12 7v13m0-7-4 7m4-7 4 7" />
+      <svg class="accessibility-trigger-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <circle cx="16" cy="4" r="1" />
+        <path d="m18 19 1-7-6 1" />
+        <path d="m5 8 3-3 5.5 3-2.36 3.5" />
+        <path d="M4.24 14.5a5 5 0 0 0 6.88 6" />
+        <path d="M13.76 17.5a5 5 0 0 0-6.88-6" />
       </svg>
     </button>
 
@@ -196,7 +199,16 @@ function defineSelectedWord() {
   window.open(`https://www.merriam-webster.com/dictionary/${encodeURIComponent(word)}`, '_blank', 'noopener')
   announcement.value = `Opening the definition of ${word}`
 }
-function onOpenRequest() { open.value = true }
+function onOpenRequest() {
+  cancelScheduledClose()
+  open.value = true
+  // The menu lives at bottom-left; if triggered from elsewhere on the page (e.g. the
+  // header button), bring it into view so the user actually sees the panel.
+  nextTick(() => {
+    menuRoot.value?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    panel.value?.querySelector('button')?.focus()
+  })
+}
 
 watch(preferences, applyPreferences, { deep: true })
 onMounted(() => {
