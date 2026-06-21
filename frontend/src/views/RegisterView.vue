@@ -1,193 +1,175 @@
 <template>
-  <div class="min-h-screen flex">
+  <div class="min-h-screen bg-gray-50 flex flex-col">
+    <div class="min-h-[calc(100vh-120px)] flex items-center justify-center py-12 px-4">
+      <div class="w-full max-w-md">
 
-    <!-- Left panel — brand -->
-    <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-800 via-primary-700 to-primary-600 flex-col items-center justify-center p-12 relative overflow-hidden">
-      <div class="absolute -top-24 -left-24 w-72 h-72 bg-white/5 rounded-full pointer-events-none"></div>
-      <div class="absolute -bottom-20 -right-20 w-96 h-96 bg-white/5 rounded-full pointer-events-none"></div>
-      <div class="absolute top-1/2 left-1/4 w-32 h-32 bg-white/5 rounded-full pointer-events-none"></div>
-
-      <div class="relative text-center max-w-sm">
-        <div class="inline-flex items-center justify-center w-24 h-24 bg-white rounded-2xl shadow-xl mb-6 p-2">
-          <img src="/main-logo.png" alt="NCS Logo" class="w-full h-full object-contain" />
-        </div>
-        <h1 class="text-3xl font-bold text-white mb-3">Create Your<br>NCS Account</h1>
-        <p class="text-primary-200 text-base leading-relaxed">
-          Register to apply for sports licences, track your applications, and manage renewals online.
-        </p>
-
-        <div class="mt-8 space-y-3 text-left">
-          <div class="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3">
-            <i class="icofont-check-circled text-yellow-300 text-xl flex-shrink-0"></i>
-            <span class="text-white/80 text-sm">Apply for sports licences online</span>
-          </div>
-          <div class="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3">
-            <i class="icofont-check-circled text-yellow-300 text-xl flex-shrink-0"></i>
-            <span class="text-white/80 text-sm">Track application status in real time</span>
-          </div>
-          <div class="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3">
-            <i class="icofont-check-circled text-yellow-300 text-xl flex-shrink-0"></i>
-            <span class="text-white/80 text-sm">Renew licences before they expire</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Right panel — registration form -->
-    <div class="flex-1 flex flex-col items-center justify-center bg-gray-50 px-6 py-12 overflow-y-auto">
-      <div class="w-full max-w-sm">
-
-        <!-- Mobile logo -->
-        <div class="flex items-center justify-center gap-3 mb-8 lg:hidden">
-          <div class="w-12 h-12 bg-primary-700 rounded-xl flex items-center justify-center overflow-hidden p-1">
-            <img src="/main-logo.png" alt="NCS Logo" class="w-full h-full object-contain" />
-          </div>
-          <div>
-            <div class="text-lg font-bold text-gray-900">NCSMS Portal</div>
-            <div class="text-xs text-gray-500">National Council of Sports</div>
-          </div>
+        <!-- Logo + heading -->
+        <div class="text-center mb-8">
+          <router-link to="/" class="inline-block">
+            <img
+              :src="logoSrc"
+              alt="NCS"
+              class="h-16 mx-auto mb-4 object-contain"
+            />
+          </router-link>
+          <h1 class="text-2xl font-bold text-[#1a365d]">Create Your Account</h1>
+          <p class="text-gray-600 mt-1">Register to manage your NCS services</p>
         </div>
 
-        <!-- Heading -->
-        <div class="mb-7">
-          <h2 class="text-2xl font-bold text-gray-900">Create account</h2>
-          <p class="text-gray-500 text-sm mt-1">Register to manage your sports licence applications</p>
-        </div>
-
-        <!-- Success -->
-        <div v-if="success" class="mb-5 flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
-          <i class="icofont-check-circled text-green-500 text-lg flex-shrink-0 mt-0.5"></i>
-          <div>
-            <p class="text-green-800 text-sm font-semibold">Account created!</p>
-            <p class="text-green-700 text-sm mt-0.5">Redirecting to your portal…</p>
-          </div>
-        </div>
-
-        <!-- Error -->
-        <div v-if="errorMessage" class="mb-5 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
-          <i class="icofont-warning-alt text-red-500 text-lg flex-shrink-0 mt-0.5"></i>
-          <p class="text-red-700 text-sm">{{ errorMessage }}</p>
-        </div>
-
-        <!-- Form -->
-        <form @submit.prevent="handleRegister" class="space-y-4">
-          <!-- Name row -->
-          <div class="grid grid-cols-2 gap-3">
+        <!-- Card -->
+        <div class="bg-white rounded-2xl shadow-lg p-8">
+          <!-- Success -->
+          <div v-if="success" class="mb-5 flex items-start gap-3 p-4 bg-green-50 border border-green-200 rounded-xl">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <div>
-              <label class="form-label">First Name</label>
-              <input
-                v-model="firstName"
-                type="text"
-                autocomplete="given-name"
-                required
-                placeholder="John"
-                class="form-input"
-              />
+              <p class="text-green-800 text-sm font-semibold">Account created!</p>
+              <p class="text-green-700 text-sm mt-0.5">Redirecting to your portal…</p>
             </div>
+          </div>
+
+          <!-- Error -->
+          <div v-if="errorMessage" class="mb-5 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+            <p class="text-red-700 text-sm">{{ errorMessage }}</p>
+          </div>
+
+          <form @submit.prevent="handleRegister" class="space-y-5">
+            <!-- Name row -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="first-name" class="text-sm font-medium leading-none text-[#1a365d]">First Name</label>
+                <input
+                  id="first-name"
+                  v-model="firstName"
+                  name="first_name"
+                  type="text"
+                  autocomplete="given-name"
+                  required
+                  placeholder="John"
+                  class="flex h-9 w-full rounded-md border border-gray-300 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1"
+                />
+              </div>
+              <div>
+                <label for="last-name" class="text-sm font-medium leading-none text-[#1a365d]">Last Name</label>
+                <input
+                  id="last-name"
+                  v-model="lastName"
+                  name="last_name"
+                  type="text"
+                  autocomplete="family-name"
+                  required
+                  placeholder="Doe"
+                  class="flex h-9 w-full rounded-md border border-gray-300 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm mt-1"
+                />
+              </div>
+            </div>
+
+            <!-- Email -->
             <div>
-              <label class="form-label">Last Name</label>
-              <input
-                v-model="lastName"
-                type="text"
-                autocomplete="family-name"
-                required
-                placeholder="Doe"
-                class="form-input"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label class="form-label">Email Address</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <i class="icofont-email text-gray-400 text-base leading-none"></i>
+              <label for="email" class="text-sm font-medium leading-none text-[#1a365d]">Email Address</label>
+              <div class="relative mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+                <input
+                  id="email"
+                  v-model="email"
+                  name="email"
+                  type="email"
+                  autocomplete="email"
+                  required
+                  placeholder="your@email.com"
+                  class="flex h-9 w-full rounded-md border border-gray-300 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-10"
+                />
               </div>
-              <input
-                v-model="email"
-                type="email"
-                autocomplete="email"
-                required
-                placeholder="your@email.com"
-                class="form-input pl-10"
-              />
             </div>
-          </div>
 
-          <div>
-            <label class="form-label">Password</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <i class="icofont-lock text-gray-400 text-base leading-none"></i>
+            <!-- Password -->
+            <div>
+              <label for="password" class="text-sm font-medium leading-none text-[#1a365d]">Password</label>
+              <div class="relative mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <input
+                  id="password"
+                  v-model="password"
+                  name="password"
+                  :type="showPass ? 'text' : 'password'"
+                  autocomplete="new-password"
+                  required
+                  minlength="8"
+                  placeholder="Min. 8 characters"
+                  class="flex h-9 w-full rounded-md border border-gray-300 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-10 pr-10"
+                />
+                <button
+                  type="button"
+                  @click="showPass = !showPass"
+                  :aria-label="showPass ? 'Hide password' : 'Show password'"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg v-if="!showPass" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                </button>
               </div>
-              <input
-                v-model="password"
-                :type="showPass ? 'text' : 'password'"
-                autocomplete="new-password"
-                required
-                minlength="8"
-                placeholder="Min. 8 characters"
-                class="form-input pl-10 pr-10"
-              />
-              <button type="button" @click="showPass = !showPass"
-                class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600">
-                <i :class="showPass ? 'icofont-eye-blocked' : 'icofont-eye'" class="text-base leading-none"></i>
-              </button>
             </div>
-          </div>
 
-          <div>
-            <label class="form-label">Confirm Password</label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                <i class="icofont-lock text-gray-400 text-base leading-none"></i>
+            <!-- Confirm password -->
+            <div>
+              <label for="confirm-password" class="text-sm font-medium leading-none text-[#1a365d]">Confirm Password</label>
+              <div class="relative mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <input
+                  id="confirm-password"
+                  v-model="confirmPassword"
+                  name="confirm_password"
+                  :type="showPass ? 'text' : 'password'"
+                  autocomplete="new-password"
+                  required
+                  placeholder="Repeat password"
+                  :class="[
+                    'flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-1 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm pl-10',
+                    confirmPassword && password !== confirmPassword ? 'border-red-300 focus-visible:ring-red-400' : 'border-gray-300 focus-visible:ring-[#f5a623]'
+                  ]"
+                />
               </div>
-              <input
-                v-model="confirmPassword"
-                :type="showPass ? 'text' : 'password'"
-                autocomplete="new-password"
-                required
-                placeholder="Repeat password"
-                class="form-input pl-10"
-                :class="confirmPassword && password !== confirmPassword ? 'border-red-300 focus:ring-red-400' : ''"
-              />
+              <p v-if="confirmPassword && password !== confirmPassword" class="text-xs text-red-500 mt-1">Passwords do not match</p>
             </div>
-            <p v-if="confirmPassword && password !== confirmPassword" class="text-xs text-red-500 mt-1">
-              Passwords do not match
+
+            <!-- Submit -->
+            <button
+              type="submit"
+              :disabled="loading || (confirmPassword && password !== confirmPassword)"
+              class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623] disabled:pointer-events-none disabled:opacity-60 shadow w-full bg-[#f5a623] hover:bg-[#e09612] text-white py-3 text-lg font-semibold"
+            >
+              <svg v-if="loading" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 animate-spin" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+              {{ loading ? 'Creating Account…' : 'Create Account' }}
+            </button>
+          </form>
+
+          <div class="mt-6 text-center">
+            <p class="text-gray-600">
+              Already have an account?
+              <router-link to="/login" class="text-[#f5a623] font-semibold hover:underline">Sign In</router-link>
             </p>
           </div>
+        </div>
 
-          <button
-            type="submit"
-            :disabled="loading || (confirmPassword && password !== confirmPassword)"
-            class="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[#F48C06] hover:bg-[#d47b05] text-white font-semibold rounded-xl shadow-sm hover:shadow-md transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <svg v-if="loading" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-            </svg>
-            <i v-else class="icofont-ui-user-group text-base leading-none"></i>
-            {{ loading ? 'Creating account…' : 'Create Account' }}
-          </button>
-        </form>
-
-        <p class="text-center text-sm text-gray-500 mt-6">
-          Already have an account?
-          <router-link to="/login" class="text-[#F48C06] font-semibold hover:text-[#d47b05]">Sign in</router-link>
-        </p>
-
-        <p class="text-center text-xs text-gray-400 mt-6">
-          &copy; {{ year }} National Council of Sports — Uganda
-        </p>
+        <!-- Back to home -->
+        <div class="text-center mt-6">
+          <router-link to="/" class="text-gray-500 hover:text-[#1a365d] text-sm inline-flex items-center justify-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 rotate-180" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            Back to Home
+          </router-link>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
+import { getSettings } from '@/api/cms.js'
+import { mediaUrl } from '@/api/client.js'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -201,7 +183,17 @@ const showPass = ref(false)
 const errorMessage = ref('')
 const loading = ref(false)
 const success = ref(false)
-const year = new Date().getFullYear()
+const siteLogoUrl = ref('')
+
+const logoSrc = computed(() => siteLogoUrl.value ? mediaUrl(siteLogoUrl.value) : '/main-logo.png')
+
+async function loadLogo() {
+  try {
+    const r = await getSettings('site')
+    const v = r.data?.data?.value
+    if (v?.logoUrl) siteLogoUrl.value = v.logoUrl
+  } catch { /* keep bundled fallback */ }
+}
 
 async function handleRegister() {
   if (password.value !== confirmPassword.value) return
@@ -216,4 +208,6 @@ async function handleRegister() {
     errorMessage.value = result.message || 'Registration failed. Please try again.'
   }
 }
+
+onMounted(loadLogo)
 </script>
