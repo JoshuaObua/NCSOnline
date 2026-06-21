@@ -350,3 +350,97 @@ body { font-family: 'Poppins', sans-serif; min-width: 320px; }
   .public-site main > div > .bg-cream:first-child p:not(.section-tag) { font-size: 1rem; }
   .accessibility-toggle-grid { grid-template-columns: 1fr; }
 }
+
+/* ──────────────────────────────────────────────────────────────────
+   Public accessibility toolbar — visual effects per toggle.
+   Classes are added/removed on .public-site by PublicAccessibilityMenu.
+   Text size is handled separately via documentElement.style.fontSize.
+   ────────────────────────────────────────────────────────────────── */
+.public-site.a11y-high-contrast {
+  background: #000 !important;
+  color: #fff !important;
+}
+.public-site.a11y-high-contrast *:not(svg):not(path):not(rect):not(circle):not(line):not(polyline):not(polygon) {
+  background-color: transparent !important;
+  color: #fff !important;
+  border-color: #fff !important;
+}
+.public-site.a11y-high-contrast a,
+.public-site.a11y-high-contrast button,
+.public-site.a11y-high-contrast [role="link"] { color: #ffd54a !important; }
+.public-site.a11y-high-contrast img,
+.public-site.a11y-high-contrast video { filter: contrast(1.2); }
+
+.public-site.a11y-grayscale { filter: grayscale(100%); }
+
+.public-site.a11y-readable-font,
+.public-site.a11y-readable-font * {
+  font-family: Verdana, 'Open Sans', Tahoma, Arial, sans-serif !important;
+  letter-spacing: 0.01em;
+}
+
+.public-site.a11y-text-spacing,
+.public-site.a11y-text-spacing * {
+  line-height: 1.8 !important;
+  letter-spacing: 0.08em !important;
+  word-spacing: 0.12em !important;
+}
+.public-site.a11y-text-spacing p,
+.public-site.a11y-text-spacing li { margin-bottom: 1em !important; }
+
+.public-site.a11y-underline-links a,
+.public-site.a11y-underline-links [role="link"] {
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 2px;
+}
+
+.public-site.a11y-highlight-focus :focus,
+.public-site.a11y-highlight-focus :focus-visible {
+  outline: 3px solid #f5a623 !important;
+  outline-offset: 3px !important;
+  border-radius: 2px;
+}
+
+.public-site.a11y-large-cursor,
+.public-site.a11y-large-cursor *,
+.public-site.a11y-large-cursor a,
+.public-site.a11y-large-cursor button {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24' fill='%23000' stroke='%23fff' stroke-width='1.5'><path d='M3 2l7 18 2-8 8-2z'/></svg>") 4 4, auto !important;
+}
+
+.public-site.a11y-hide-images img,
+.public-site.a11y-hide-images video,
+.public-site.a11y-hide-images picture,
+.public-site.a11y-hide-images svg.lucide-image,
+.public-site.a11y-hide-images [style*="background-image"] {
+  visibility: hidden !important;
+}
+.public-site.a11y-hide-images [style*="background-image"] {
+  background-image: none !important;
+  background-color: #e5e7eb !important;
+}
+
+.public-site.a11y-reduce-motion,
+.public-site.a11y-reduce-motion *,
+.public-site.a11y-reduce-motion *::before,
+.public-site.a11y-reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Reading guide — horizontal bar that follows the pointer (rendered by the menu) */
+.a11y-reading-guide {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 2.5rem;
+  background: rgba(245, 166, 35, 0.18);
+  border-top: 2px solid rgba(245, 166, 35, 0.85);
+  border-bottom: 2px solid rgba(245, 166, 35, 0.85);
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 60;
+}
