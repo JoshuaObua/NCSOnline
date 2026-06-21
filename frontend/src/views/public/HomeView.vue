@@ -1,63 +1,128 @@
 <template>
   <div class="home-redesign">
     <template v-for="section in visibleSections" :key="section.id">
-      <section v-if="section.id === 'hero'" id="section-hero" class="home-hero" aria-roledescription="carousel" aria-label="NCS highlights">
-        <div :key="activeSlide.id || currentSlide" class="home-hero-slide active">
-          <img v-if="activeSlide.image_url" :src="mediaUrl(activeSlide.image_url)" :alt="activeSlide.title || 'National Council of Sports Uganda'" />
-          <div v-else class="home-hero-fallback"></div>
-          <div class="home-hero-overlay"></div>
-          <div class="home-shell home-hero-content">
-            <div>
-              <span class="home-pill">{{ activeSlide.subtitle || 'National Council of Sports' }}</span>
-              <h1>{{ activeSlide.title || 'Welcome to National Council of Sports' }}</h1>
-              <p>{{ activeSlide.description }}</p>
-              <div class="home-actions">
-                <router-link :to="activeSlide.button_url || '/pages/the-mandate'" class="home-btn home-btn-gold">{{ activeSlide.button_text || 'Discover NCS' }}</router-link>
-                <router-link to="/my-portal" class="home-btn home-btn-outline-light">My Portal</router-link>
+      <section v-if="section.id === 'hero'" id="section-hero" class="relative h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden -mt-28" aria-roledescription="carousel" aria-label="NCS highlights">
+        <div :key="activeSlide.id || currentSlide" class="absolute inset-0 transition-all duration-700 ease-in-out opacity-100 scale-100 z-10">
+          <img v-if="activeSlide.image_url" :src="mediaUrl(activeSlide.image_url)" :alt="activeSlide.title || 'National Council of Sports Uganda'" class="absolute inset-0 w-full h-full object-cover" />
+          <div v-else class="absolute inset-0 bg-gradient-to-br from-[#1a365d] to-[#274d7e]"></div>
+          <div class="absolute inset-0 bg-gradient-to-r from-[#1a365d]/90 via-[#1a365d]/70 to-transparent pointer-events-none"></div>
+          <div class="relative z-20 h-full max-w-7xl mx-auto px-4 flex items-center">
+            <div class="max-w-2xl transition-all duration-700 delay-200 translate-y-0 opacity-100">
+              <span class="inline-block px-4 py-1.5 bg-[#f5a623] text-white text-sm font-semibold rounded-full mb-4">{{ activeSlide.subtitle || 'National Council of Sports' }}</span>
+              <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">{{ activeSlide.title || 'Welcome to National Council of Sports' }}</h1>
+              <p class="text-lg md:text-xl text-white/90 mb-8">{{ activeSlide.description || 'A Centre of Excellence for Promotion and Development of Sports' }}</p>
+              <div class="flex flex-wrap gap-4">
+                <router-link :to="activeSlide.button_url || '/pages/the-mandate'" class="inline-flex items-center justify-center bg-[#f5a623] hover:bg-[#e09612] text-white px-8 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">{{ activeSlide.button_text || 'Learn More' }}</router-link>
+                <router-link to="/news" class="inline-flex items-center justify-center gap-2 border-2 border-white text-white hover:bg-white hover:text-[#1a365d] px-8 py-3 text-lg font-semibold rounded-lg transition-all duration-300 hover:-translate-y-1 bg-transparent">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"></polygon></svg>
+                  Watch Video
+                </router-link>
               </div>
             </div>
           </div>
         </div>
-        <button v-if="displaySlides.length > 1" type="button" class="hero-arrow hero-prev" aria-label="Previous slide" @click="moveSlide(-1)">‹</button>
-        <button v-if="displaySlides.length > 1" type="button" class="hero-arrow hero-next" aria-label="Next slide" @click="moveSlide(1)">›</button>
-        <div v-if="displaySlides.length > 1" class="hero-dots">
-          <button v-for="(_, index) in displaySlides" :key="index" type="button" :class="{ active:index===currentSlide }" :aria-label="`Show slide ${index + 1}`" @click="setSlide(index)"></button>
+        <button v-if="displaySlides.length > 1" type="button" class="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white hover:bg-[#f5a623] hover:border-[#f5a623] transition-all duration-300 group" aria-label="Previous slide" @click="moveSlide(-1)">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 group-hover:scale-110 transition-transform" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+        </button>
+        <button v-if="displaySlides.length > 1" type="button" class="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white hover:bg-[#f5a623] hover:border-[#f5a623] transition-all duration-300 group" aria-label="Next slide" @click="moveSlide(1)">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 group-hover:scale-110 transition-transform" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+        </button>
+        <div v-if="displaySlides.length > 1" class="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-3">
+          <button v-for="(_, index) in displaySlides" :key="index" type="button" :class="['transition-all duration-300 rounded-full h-3', index===currentSlide ? 'w-10 bg-[#f5a623]' : 'w-3 bg-white/50 hover:bg-white/80']" :aria-label="`Show slide ${index + 1}`" @click="setSlide(index)"></button>
         </div>
+        <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent z-20 pointer-events-none"></div>
       </section>
 
-      <section v-else-if="section.id === 'about'" id="section-about" class="home-section bg-white">
-        <div class="home-shell">
-          <div class="about-grid">
+      <section v-else-if="section.id === 'about'" id="section-about" class="py-16 md:py-24 bg-white overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4">
+          <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+
+            <!-- LEFT 50% -->
             <div>
-              <span class="section-kicker">{{ home.about.eyebrow }}</span>
-              <h2>{{ home.about.title }}</h2>
-              <p class="home-lead">{{ home.about.intro }}</p>
-              <p>{{ home.about.body }}</p>
-              <router-link :to="home.about.leadership_url" class="home-btn home-btn-navy">{{ home.about.leadership_label }}</router-link>
-              <div class="milestone-grid">
-                <div v-for="item in home.milestones" :key="item.label" class="milestone">
-                  <i :class="item.icon" aria-hidden="true"></i><strong>{{ item.value }}</strong><span>{{ item.label }}</span>
+              <span class="inline-block px-4 py-1.5 bg-[#f5a623]/10 text-[#f5a623] text-sm font-semibold rounded-full mb-4">{{ home.about.eyebrow }}</span>
+              <h2 class="text-3xl md:text-4xl font-bold text-[#1a365d] mb-6">{{ home.about.title }}</h2>
+              <p class="text-gray-600 text-lg leading-relaxed mb-6">{{ home.about.intro }}</p>
+              <p class="text-gray-600 leading-relaxed mb-6" v-html="home.about.body"></p>
+
+              <!-- Leadership card -->
+              <div class="bg-gray-50 rounded-xl p-6 mb-8">
+                <h3 class="font-semibold text-[#1a365d] mb-4 flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#f5a623]" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
+                  Current Leadership
+                </h3>
+                <div class="grid gap-4 md:grid-cols-[auto,1fr] md:items-center">
+                  <img v-if="home.leadership.chairperson_image" :src="mediaUrl(home.leadership.chairperson_image)" :alt="home.leadership.chairperson_name" class="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md" />
+                  <div v-else class="w-20 h-20 rounded-full bg-[#1a365d]/10 flex items-center justify-center text-[#1a365d] border-2 border-white shadow-md"><i class="icofont-user-alt-3 text-2xl" aria-hidden="true"></i></div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><p class="text-sm text-gray-500">Chairperson</p><p class="font-medium text-[#1a365d]">{{ home.leadership.chairperson_name }}</p></div>
+                    <div><p class="text-sm text-gray-500">General Secretary</p><p class="font-medium text-[#1a365d]">{{ home.leadership.secretary_name }}</p></div>
+                  </div>
+                </div>
+                <div class="mt-4">
+                  <router-link :to="home.about.leadership_url" class="inline-flex items-center gap-1 text-sm font-semibold text-[#f5a623] hover:text-[#e09612] transition-colors">
+                    {{ home.about.leadership_label }}
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                  </router-link>
+                </div>
+              </div>
+
+              <!-- Milestones -->
+              <div class="flex flex-wrap gap-8">
+                <div v-for="item in home.milestones" :key="item.label">
+                  <div class="text-4xl font-bold text-[#1a365d]">{{ stripPlus(item.value) }}<span class="text-[#f5a623]">+</span></div>
+                  <div class="text-gray-500 text-sm">{{ item.label }}</div>
                 </div>
               </div>
             </div>
-            <div class="value-grid">
-              <article v-for="item in home.values" :key="item.title" class="value-card" :class="{ featured:item.featured }">
-                <div class="value-icon"><i :class="item.icon" aria-hidden="true"></i></div>
-                <h3>{{ item.title }}</h3><p>{{ item.text }}</p>
+
+            <!-- RIGHT 50% — value cards 2x3 -->
+            <div class="grid grid-cols-2 gap-4">
+              <article v-for="item in home.values" :key="item.title" :class="['group p-5 rounded-xl border border-gray-100 hover:border-[#f5a623]/30 hover:shadow-lg transition-all duration-300 cursor-pointer', item.featured ? 'bg-[#1a365d] text-white' : 'bg-gray-50 hover:bg-white']">
+                <div :class="['w-12 h-12 rounded-lg flex items-center justify-center mb-4 transition-colors', item.featured ? 'bg-[#f5a623]/20 text-[#f5a623]' : 'bg-[#1a365d]/10 text-[#1a365d] group-hover:bg-[#f5a623]/10 group-hover:text-[#f5a623]']">
+                  <i :class="[item.icon, 'text-xl']" aria-hidden="true"></i>
+                </div>
+                <h3 :class="['font-semibold mb-2', item.featured ? 'text-white' : 'text-[#1a365d]']">{{ item.title }}</h3>
+                <p :class="['text-sm', item.featured ? 'text-white/70' : 'text-gray-500']">{{ item.text }}</p>
               </article>
             </div>
           </div>
-          <div class="core-functions">
-            <div class="section-heading"><h2>{{ home.about.core_title }}</h2><p>{{ home.about.core_intro }}</p></div>
-            <div class="core-grid"><div v-for="(item,index) in home.core_functions" :key="item"><span>{{ index + 1 }}</span>{{ item }}</div></div>
-            <router-link :to="home.about.mandate_url" class="home-btn home-btn-outline-navy">{{ home.about.mandate_label }}</router-link>
+
+          <!-- Core Functions -->
+          <div class="mt-16 pt-16 border-t border-gray-100">
+            <div class="text-center mb-10">
+              <h3 class="text-2xl md:text-3xl font-bold text-[#1a365d] mb-4">{{ home.about.core_title }}</h3>
+              <p class="text-gray-600 max-w-2xl mx-auto">{{ home.about.core_intro }}</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div v-for="(item, index) in home.core_functions" :key="item" class="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-white hover:border-[#f5a623]/30 hover:shadow-md transition-all">
+                <span class="flex-none w-8 h-8 rounded-full bg-[#f5a623] text-[#1a365d] font-bold flex items-center justify-center text-sm">{{ index + 1 }}</span>
+                <span class="text-sm text-gray-700 leading-snug">{{ item }}</span>
+              </div>
+            </div>
+            <div class="text-center mt-8">
+              <router-link :to="home.about.mandate_url" class="inline-flex items-center justify-center gap-2 border shadow-sm px-4 py-2 rounded-md text-sm font-medium border-[#1a365d] text-[#1a365d] hover:bg-[#1a365d] hover:text-white transition-colors">
+                {{ home.about.mandate_label }}
+              </router-link>
+            </div>
           </div>
         </div>
       </section>
 
-      <section v-else-if="section.id === 'stats'" id="section-stats" class="home-section stats-section">
-        <div class="home-shell"><div class="section-heading light"><h2>{{ home.stats_title }}</h2><p>{{ home.stats_intro }}</p></div>
-          <div class="stats-grid"><div v-for="fact in displayedFacts.slice(0,4)" :key="fact.id || fact.label"><i :class="fact.icon || 'icofont-chart-growth'" aria-hidden="true"></i><strong>{{ fact.value }}</strong><span>{{ fact.label }}</span></div></div>
+      <section v-else-if="section.id === 'stats'" id="section-stats" class="py-16 md:py-20 bg-[#1a365d] text-white">
+        <div class="max-w-7xl mx-auto px-4">
+          <div class="text-center max-w-2xl mx-auto mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">{{ home.stats_title }}</h2>
+            <p class="text-white/70 leading-relaxed">{{ home.stats_intro }}</p>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div v-for="fact in displayedFacts.slice(0,4)" :key="fact.id || fact.label" class="text-center p-6 rounded-xl bg-white/5 backdrop-blur border border-white/10 hover:border-[#f5a623]/40 hover:bg-white/10 transition-all">
+              <div class="w-14 h-14 rounded-xl bg-[#f5a623]/20 text-[#f5a623] flex items-center justify-center mx-auto mb-4">
+                <i :class="[fact.icon || 'icofont-chart-growth', 'text-2xl']" aria-hidden="true"></i>
+              </div>
+              <div class="text-3xl md:text-4xl font-bold text-white mb-1">{{ fact.value }}</div>
+              <div class="text-sm text-white/70">{{ fact.label }}</div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -130,7 +195,8 @@ import { mediaUrl } from '@/api/client.js'
 const defaultSections = ['hero','about','stats','news','find_sport','get_involved','events','facilities','associations','help','cta','faq_facts'].map(id => ({ id, visible:true }))
 const home = reactive({
   sections: defaultSections,
-  about:{eyebrow:'About NCS',title:'Developing Sports Excellence Since 1964',intro:'The National Council of Sports (NCS) is a statutory body established to develop, promote, and control sports in Uganda under the Ministry of Education and Sports.',body:'Established under the National Council of Sports Act (Chapter 48), assented on 22 June 1964 and commenced on 25 June 1964, NCS serves as the apex regulator for sports development in Uganda, now updated by the National Sports Act, 2023.',leadership_label:'View Current Membership',leadership_url:'/team',core_title:'Core Functions of NCS',core_intro:'As mandated by the National Sports Act, NCS performs the following key functions:',mandate_label:'Read Full Mandate',mandate_url:'/pages/the-mandate'},
+  about:{eyebrow:'About NCS',title:'Developing Sports Excellence Since 1964',intro:'The National Council of Sports (NCS) is a statutory body established to develop, promote, and control sports in Uganda under the Ministry of Education and Sports.',body:'Established under the <strong>National Council of Sports Act (Chapter 48)</strong>, assented on 22 June 1964 and commenced on 25 June 1964, NCS serves as the apex regulator for sports development in Uganda, now updated by the <strong>National Sports Act, 2023</strong>.',leadership_label:'View Current Membership',leadership_url:'/team',core_title:'Core Functions of NCS',core_intro:'As mandated by the National Sports Act, NCS performs the following key functions:',mandate_label:'Read Full Mandate',mandate_url:'/pages/the-mandate'},
+  leadership:{chairperson_name:'Mr. Ambrose Tashobya',chairperson_image:'',secretary_name:'Dr. Bernard Patrick Ogwel'},
   milestones:[{value:'60+',label:'Years of Excellence',icon:'icofont-award'},{value:'54+',label:'Sports Associations',icon:'icofont-trophy'},{value:'32+',label:'Sports Facilities',icon:'icofont-stadium'}],
   values:[{title:'Our Mission',text:'Maximizing opportunities for all Ugandans to participate and excel in Sports.',icon:'icofont-dart',featured:true},{title:'Our Vision',text:'A centre of excellence for promotion and development of Sports.',icon:'icofont-eye'},{title:'Integrity',text:'Upholding the highest standards of ethics and fair play in all sporting activities.',icon:'icofont-shield'},{title:'Inclusivity',text:'Ensuring sports opportunities are accessible to all Ugandans regardless of background.',icon:'icofont-people'},{title:'Excellence',text:'Striving for the highest standards in athlete development and sports administration.',icon:'icofont-award'},{title:'Global Recognition',text:'Positioning Uganda as a leading sports nation on the African and world stage.',icon:'icofont-globe',featured:true}],
   core_functions:['Register and regulate national sports organisations','Develop and promote sports throughout Uganda','Advise government on sports policy and standards','Coordinate national and international sports participation','Manage and develop public sports facilities','Support athlete, coach and official development'],
@@ -150,6 +216,7 @@ function moveSlide(step){currentSlide.value=(currentSlide.value+step+displaySlid
 function setSlide(index){currentSlide.value=index;restartTimer()}
 function restartTimer(){clearInterval(slideTimer);if(displaySlides.value.length>1)slideTimer=setInterval(()=>moveSlide(1),6500)}
 function formatDate(value){return value?new Date(value).toLocaleDateString('en-UG',{day:'numeric',month:'short',year:'numeric'}):'Date TBA'}
+function stripPlus(value){return String(value||'').replace(/\+\s*$/,'')}
 function mergeHome(value){if(!value||typeof value!=='object')return;for(const [key,val] of Object.entries(value)){if(val&&typeof val==='object'&&!Array.isArray(val)&&home[key]&&typeof home[key]==='object')Object.assign(home[key],val);else home[key]=val}}
 function dataOf(result){return result.status==='fulfilled'?result.value.data?.data:null}
 onMounted(async()=>{const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),listSlides(),listFunFacts(),listFAQs(),listFacilities(),listAssociations(),getSettings('homepage'),getSettings('contact')]);posts.value=dataOf(results[0])?.items||[];events.value=dataOf(results[1])?.items||[];slides.value=dataOf(results[2])||[];facts.value=dataOf(results[3])||[];faqs.value=dataOf(results[4])||[];facilities.value=dataOf(results[5])||[];associations.value=dataOf(results[6])||[];mergeHome(dataOf(results[7])?.value);Object.assign(contact,dataOf(results[8])?.value||{});restartTimer()})
