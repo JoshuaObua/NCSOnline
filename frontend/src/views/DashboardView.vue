@@ -23,13 +23,6 @@
             <h2 class="text-xl font-bold">{{ welcomeName }}!</h2>
             <p class="text-primary-200 mt-1 text-sm">Here's what's happening with the National Council of Sports today.</p>
           </div>
-          <router-link
-            to="/my-portal/applications/new"
-            class="inline-flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-primary-900 font-semibold px-5 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all flex-shrink-0 text-sm"
-          >
-            <i class="icofont-paper-plane text-lg"></i>
-            Start Application
-          </router-link>
         </div>
       </div>
 
@@ -38,6 +31,54 @@
         <i class="icofont-warning-alt text-xl text-red-500 flex-shrink-0"></i>
         <p class="text-red-700 text-sm">{{ error }}</p>
       </div>
+
+      <!-- Website Analytics (preview — telemetry pipeline coming soon) -->
+      <section class="admin-card">
+        <div class="admin-card-header flex items-center justify-between">
+          <span class="text-sm font-semibold text-gray-800">Website Analytics</span>
+          <span class="text-[10px] uppercase tracking-wider font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Preview</span>
+        </div>
+        <div class="admin-card-body">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+            <div v-for="m in analyticsMetrics" :key="m.label" class="bg-gray-50 rounded-lg p-3">
+              <div class="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">{{ m.label }}</div>
+              <div class="text-xl font-bold text-gray-900 mt-1">{{ m.value }}</div>
+              <div class="text-[10px] text-gray-400 mt-0.5">{{ m.hint }}</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Devices</span>
+                <span class="text-[10px] text-gray-400">Mobile · Desktop · Tablet</span>
+              </div>
+              <div v-for="d in deviceBreakdown" :key="d.label" class="mb-2">
+                <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                  <span>{{ d.label }}</span><span>{{ d.pct }}%</span>
+                </div>
+                <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div :style="{ width: d.pct + '%' }" :class="d.color" class="h-full rounded-full"/>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Platforms</span>
+                <span class="text-[10px] text-gray-400">OS distribution</span>
+              </div>
+              <div v-for="p in platformBreakdown" :key="p.label" class="mb-2">
+                <div class="flex items-center justify-between text-xs text-gray-600 mb-1">
+                  <span>{{ p.label }}</span><span>{{ p.pct }}%</span>
+                </div>
+                <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div :style="{ width: p.pct + '%' }" :class="p.color" class="h-full rounded-full"/>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="text-[11px] text-gray-400 mt-4">Telemetry pipeline is being instrumented. Numbers shown are placeholders.</p>
+        </div>
+      </section>
 
       <!-- Stat tiles -->
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
@@ -214,9 +255,27 @@ const statCards = computed(() => [
   }
 ])
 
+const analyticsMetrics = ref([
+  { label: 'Unique Visitors',  value: '—', hint: 'last 30 days' },
+  { label: 'Page Views',       value: '—', hint: 'last 30 days' },
+  { label: 'Avg. Session',     value: '—', hint: 'minutes' },
+  { label: 'Bounce Rate',      value: '—', hint: 'home + landing' },
+])
+const deviceBreakdown = ref([
+  { label: 'Mobile',  pct: 0, color: 'bg-primary-500' },
+  { label: 'Desktop', pct: 0, color: 'bg-indigo-500' },
+  { label: 'Tablet',  pct: 0, color: 'bg-amber-500' },
+])
+const platformBreakdown = ref([
+  { label: 'Android', pct: 0, color: 'bg-green-500' },
+  { label: 'iOS',     pct: 0, color: 'bg-gray-700' },
+  { label: 'Windows', pct: 0, color: 'bg-blue-500' },
+  { label: 'macOS',   pct: 0, color: 'bg-gray-500' },
+  { label: 'Linux',   pct: 0, color: 'bg-orange-500' },
+])
+
 const quickActions = computed(() => {
   const actions = [
-    { label: 'New Application', to: '/my-portal/applications/new', icon: 'icofont-paper-plane', iconBg: 'bg-yellow-50', iconColor: 'text-yellow-600' },
     { label: 'All Applications',to: '/applications', icon: 'icofont-files-stack', iconBg: 'bg-primary-50', iconColor: 'text-primary-700' },
     { label: 'My Profile',      to: '/profile',      icon: 'icofont-user-alt-5',  iconBg: 'bg-indigo-50',  iconColor: 'text-indigo-600' },
   ]

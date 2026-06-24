@@ -250,18 +250,20 @@ type CMSEvent struct {
 type CMSCareer struct {
 	ID           string     `json:"id"`
 	Title        string     `json:"title"`
-	Department   string     `json:"department,omitempty"`
-	Location     string     `json:"location,omitempty"`
-	JobType      string     `json:"job_type"`
-	Category     string     `json:"category"`
-	Description  string     `json:"description"`
-	Requirements string     `json:"requirements,omitempty"`
-	SalaryRange  string     `json:"salary_range,omitempty"`
-	Status       string     `json:"status"`
-	DeadlineAt   *time.Time `json:"deadline_at,omitempty"`
-	AuthorID     *string    `json:"author_id,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	Department     string     `json:"department,omitempty"`
+	DepartmentID   *string    `json:"department_id,omitempty"`
+	DepartmentName string     `json:"department_name,omitempty"`
+	Location       string     `json:"location,omitempty"`
+	JobType        string     `json:"job_type"`
+	Category       string     `json:"category"`
+	Description    string     `json:"description"`
+	Requirements   string     `json:"requirements,omitempty"`
+	SalaryRange    string     `json:"salary_range,omitempty"`
+	Status         string     `json:"status"`
+	DeadlineAt     *time.Time `json:"deadline_at,omitempty"`
+	AuthorID       *string    `json:"author_id,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
 type CMSSlide struct {
@@ -380,15 +382,17 @@ type CMSInvest struct {
 }
 
 type CMSTeamMember struct {
-	ID          string    `json:"id"`
-	FullName    string    `json:"full_name"`
-	Designation string    `json:"designation,omitempty"`
-	ImageURL    string    `json:"image_url,omitempty"`
-	Bio         string    `json:"bio,omitempty"`
-	SortOrder   int       `json:"sort_order"`
-	IsActive    bool      `json:"is_active"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID             string    `json:"id"`
+	FullName       string    `json:"full_name"`
+	Designation    string    `json:"designation,omitempty"`
+	ImageURL       string    `json:"image_url,omitempty"`
+	Bio            string    `json:"bio,omitempty"`
+	SortOrder      int       `json:"sort_order"`
+	IsActive       bool      `json:"is_active"`
+	DepartmentID   *string   `json:"department_id,omitempty"`
+	DepartmentName string    `json:"department_name,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // ── NSMIS federation reporting ───────────────────────────────────

@@ -45,7 +45,6 @@
       <div class="section-label">Main</div>
       <div class="px-2 space-y-0.5">
         <NavItem :to="'/dashboard'" label="Dashboard" icon="icofont-dashboard-web" />
-        <NavItem :to="'/my-portal'" label="My Individual Portal" icon="icofont-ui-user" :highlight="true" />
       </div>
 
       <template v-if="authStore.canUseNSMIS">
@@ -71,14 +70,10 @@
       <div v-if="canManage" class="section-label">Management</div>
       <div v-if="canManage" class="px-2 space-y-0.5">
         <NavItem :to="'/applications'" label="Applications" icon="icofont-files-stack" />
+        <NavItem :to="'/admin/forms'" label="Form Builder" icon="icofont-edit" />
+        <NavItem :to="'/admin/forms/submissions'" label="Form Submissions" icon="icofont-inbox" />
         <NavItem v-if="isAdminPlus" :to="'/users'" label="Users" icon="icofont-people" />
         <NavItem v-if="authStore.isSuperAdmin" :to="'/roles'" label="Roles & Permissions" icon="icofont-safety" />
-      </div>
-
-      <!-- Only non-admins see Applications under main context -->
-      <div v-if="!canManage" class="section-label">Applications</div>
-      <div v-if="!canManage" class="px-2 space-y-0.5">
-        <NavItem :to="'/applications'" label="My Applications" icon="icofont-files-stack" />
       </div>
 
       <!-- WEBSITE CONTENT -->
@@ -99,13 +94,15 @@
 
       <template v-if="isAdminPlus">
         <div class="section-label">Operations</div>
-        <div class="px-2 space-y-0.5"><NavItem :to="'/maintenance'" label="Maintenance Core" icon="icofont-tools-alt-2" /><NavItem v-if="authStore.isSuperAdmin" :to="'/maintenance/backups'" label="Backup & Restore" icon="icofont-database" /></div>
+        <div class="px-2 space-y-0.5"><NavItem :to="'/maintenance'" label="Maintenance Core" icon="icofont-tools-alt-2" /><NavItem v-if="authStore.isSuperAdmin" :to="'/maintenance/backups'" label="Backup & Restore" icon="icofont-database" /><NavItem v-if="authStore.isSuperAdmin" :to="'/maintenance/updates'" label="Smart Updates" icon="icofont-download-alt" /></div>
       </template>
 
       <!-- ACCOUNT -->
       <div class="section-label">Account</div>
       <div class="px-2 space-y-0.5">
         <NavItem :to="'/profile'" label="My Profile" icon="icofont-user-alt-5" />
+        <NavItem :to="'/me/activities'" label="My Activities" icon="icofont-history" />
+        <NavItem :to="'/me/security'" label="Security Settings" icon="icofont-shield-alt" />
       </div>
     </nav>
 

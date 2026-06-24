@@ -13,17 +13,52 @@ import (
 
 type OperatorRepo struct{ db *pgxpool.Pool }
 
+const maintReturning = `RETURNING maintenance_mode,maintenance_reason,maintenance_scheduled_start,maintenance_expected_end,changed_at,COALESCE(changed_by,''),global_auth_invalid_before,cache_generation`
+
+func scanSnapshot(row pgx.Row, s *maintenance.Snapshot) error {
+	return row.Scan(&s.Enabled, &s.Reason, &s.ScheduledStart, &s.ExpectedEnd,
+		&s.ChangedAt, &s.ChangedBy, &s.GlobalAuthInvalidBefore, &s.CacheGeneration)
+}
+
 func (r *OperatorRepo) LoadState(ctx context.Context) (maintenance.Snapshot, error) {
 	var s maintenance.Snapshot
-	err := r.db.QueryRow(ctx, `SELECT maintenance_mode,maintenance_reason,maintenance_expected_end,changed_at,COALESCE(changed_by,''),global_auth_invalid_before,cache_generation FROM system_control WHERE singleton=TRUE`).Scan(&s.Enabled, &s.Reason, &s.ExpectedEnd, &s.ChangedAt, &s.ChangedBy, &s.GlobalAuthInvalidBefore, &s.CacheGeneration)
+	err := scanSnapshot(r.db.QueryRow(ctx,
+		`SELECT maintenance_mode,maintenance_reason,maintenance_scheduled_start,maintenance_expected_end,
+		         changed_at,COALESCE(changed_by,''),global_auth_invalid_before,cache_generation
+		 FROM system_control WHERE singleton=TRUE`), &s)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return maintenance.Snapshot{ChangedAt: time.Now().UTC()}, nil
 	}
 	return s, err
 }
-func (r *OperatorRepo) SaveMaintenance(ctx context.Context, enabled bool, reason string, expectedEnd *time.Time, actor string) (maintenance.Snapshot, error) {
+
+func (r *OperatorRepo) SaveMaintenance(ctx context.Context, enabled bool, reason string, scheduledStart, expectedEnd *time.Time, actor string) (maintenance.Snapshot, error) {
 	var s maintenance.Snapshot
-	err := r.db.QueryRow(ctx, `INSERT INTO system_control(singleton,maintenance_mode,maintenance_reason,maintenance_expected_end,changed_by,changed_at) VALUES(TRUE,$1,$2,$3,$4,NOW()) ON CONFLICT(singleton) DO UPDATE SET maintenance_mode=EXCLUDED.maintenance_mode,maintenance_reason=EXCLUDED.maintenance_reason,maintenance_expected_end=EXCLUDED.maintenance_expected_end,changed_by=EXCLUDED.changed_by,changed_at=NOW() RETURNING maintenance_mode,maintenance_reason,maintenance_expected_end,changed_at,COALESCE(changed_by,''),global_auth_invalid_before,cache_generation`, enabled, reason, expectedEnd, actor).Scan(&s.Enabled, &s.Reason, &s.ExpectedEnd, &s.ChangedAt, &s.ChangedBy, &s.GlobalAuthInvalidBefore, &s.CacheGeneration)
+	row := r.db.QueryRow(ctx, `
+		INSERT INTO system_control
+		  (singleton, maintenance_mode, maintenance_reason, maintenance_scheduled_start, maintenance_expected_end, changed_by, changed_at)
+		VALUES (TRUE, $1, $2, $3, $4, $5, NOW())
+		ON CONFLICT(singleton) DO UPDATE
+		  SET maintenance_mode = EXCLUDED.maintenance_mode,
+		      maintenance_reason = EXCLUDED.maintenance_reason,
+		      maintenance_scheduled_start = EXCLUDED.maintenance_scheduled_start,
+		      maintenance_expected_end = EXCLUDED.maintenance_expected_end,
+		      changed_by = EXCLUDED.changed_by,
+		      changed_at = NOW()
+		` + maintReturning, enabled, reason, scheduledStart, expectedEnd, actor)
+	err := scanSnapshot(row, &s)
+	return s, err
+}
+
+// SetEnabled flips just the maintenance_mode bit (used by the schedule
+// sentinel when start/end times cross). Preserves the reason and window.
+func (r *OperatorRepo) SetEnabled(ctx context.Context, enabled bool, actor string) (maintenance.Snapshot, error) {
+	var s maintenance.Snapshot
+	err := scanSnapshot(r.db.QueryRow(ctx, `
+		UPDATE system_control
+		   SET maintenance_mode = $1, changed_by = $2, changed_at = NOW()
+		 WHERE singleton = TRUE
+		 ` + maintReturning, enabled, actor), &s)
 	return s, err
 }
 func (r *OperatorRepo) RevokeAllSessions(ctx context.Context, actor string) (maintenance.Snapshot, error) {
@@ -36,7 +71,14 @@ func (r *OperatorRepo) RevokeAllSessions(ctx context.Context, actor string) (mai
 		return maintenance.Snapshot{}, err
 	}
 	var s maintenance.Snapshot
-	err = tx.QueryRow(ctx, `INSERT INTO system_control(singleton,global_auth_invalid_before,changed_by,changed_at) VALUES(TRUE,date_trunc('second',NOW()),$1,NOW()) ON CONFLICT(singleton) DO UPDATE SET global_auth_invalid_before=date_trunc('second',NOW()),changed_by=$1,changed_at=NOW() RETURNING maintenance_mode,maintenance_reason,maintenance_expected_end,changed_at,COALESCE(changed_by,''),global_auth_invalid_before,cache_generation`, actor).Scan(&s.Enabled, &s.Reason, &s.ExpectedEnd, &s.ChangedAt, &s.ChangedBy, &s.GlobalAuthInvalidBefore, &s.CacheGeneration)
+	err = scanSnapshot(tx.QueryRow(ctx, `
+		INSERT INTO system_control(singleton, global_auth_invalid_before, changed_by, changed_at)
+		VALUES (TRUE, date_trunc('second',NOW()), $1, NOW())
+		ON CONFLICT(singleton) DO UPDATE
+		  SET global_auth_invalid_before = date_trunc('second',NOW()),
+		      changed_by = $1,
+		      changed_at = NOW()
+		` + maintReturning, actor), &s)
 	if err != nil {
 		return maintenance.Snapshot{}, err
 	}

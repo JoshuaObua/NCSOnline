@@ -34,10 +34,21 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-ncsms_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ncsms}?sslmode=disable
       PORT: 8080
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-ncs-online}
+      # GITHUB_REPO_SLUG: owner/repo — defaults to atenimedia-llc/ncs-online.
+      # GITHUB_TOKEN: optional, only needed if you hit the unauthenticated
+      # 60 req/hour rate limit on api.github.com.
     volumes:
       - uploads_data:/app/uploads
       - private_data:/app/private-data
       - app_logs:/var/log/app
+      # ── Smart-updates deploy executor ────────────────────────────
+      # Uncomment to let the Admin "Smart Updates" page run
+      # `docker compose pull && up -d` against the host daemon.
+      # Security note: mounting the docker socket grants the backend
+      # container effective root on the host. Only enable on trusted
+      # operator hosts where admins are already trusted to deploy.
+      # - /var/run/docker.sock:/var/run/docker.sock
     expose:
       - "8080"
     networks:

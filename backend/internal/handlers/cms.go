@@ -22,6 +22,32 @@ import (
 
 type CMSHandler struct{ repo *repository.CMSRepo }
 
+// nullableID returns nil for "" / nil / whitespace, otherwise the trimmed value.
+// Used so that "" coming from the JSON payload clears the FK instead of
+// triggering a 23503 fkey violation on insert.
+func nullableID(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	v := strings.TrimSpace(*s)
+	if v == "" {
+		return nil
+	}
+	return &v
+}
+
+// GET /api/v1/cms/departments — institutional departments with staff counts.
+// Drives the dropdowns in the careers + team editors and the team
+// directory's department grouping.
+func (h *CMSHandler) ListInstitutionalDepartments(w http.ResponseWriter, r *http.Request) {
+	out, err := h.repo.ListDepartmentsWithStaffCount(r.Context())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+	response.JSON(w, http.StatusOK, out)
+}
+
 var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
 
 func toSlug(s string) string {
@@ -410,6 +436,7 @@ func (h *CMSHandler) CreateCareer(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Title        string     `json:"title"`
 		Department   string     `json:"department"`
+		DepartmentID *string    `json:"department_id"`
 		Location     string     `json:"location"`
 		JobType      string     `json:"job_type"`
 		Category     string     `json:"category"`
@@ -447,6 +474,7 @@ func (h *CMSHandler) CreateCareer(w http.ResponseWriter, r *http.Request) {
 		ID:           uuid.NewString(),
 		Title:        req.Title,
 		Department:   req.Department,
+		DepartmentID: nullableID(req.DepartmentID),
 		Location:     req.Location,
 		JobType:      req.JobType,
 		Category:     req.Category,
@@ -479,6 +507,7 @@ func (h *CMSHandler) UpdateCareer(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Title        string     `json:"title"`
 		Department   string     `json:"department"`
+		DepartmentID *string    `json:"department_id"`
 		Location     string     `json:"location"`
 		JobType      string     `json:"job_type"`
 		Category     string     `json:"category"`
@@ -497,6 +526,9 @@ func (h *CMSHandler) UpdateCareer(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Department != "" {
 		career.Department = req.Department
+	}
+	if req.DepartmentID != nil {
+		career.DepartmentID = nullableID(req.DepartmentID)
 	}
 	if req.Location != "" {
 		career.Location = req.Location
@@ -1331,12 +1363,13 @@ func (h *CMSHandler) ListTeam(w http.ResponseWriter, r *http.Request) {
 
 func (h *CMSHandler) CreateTeamMember(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		FullName    string `json:"full_name"`
-		Designation string `json:"designation"`
-		ImageURL    string `json:"image_url"`
-		Bio         string `json:"bio"`
-		SortOrder   int    `json:"sort_order"`
-		IsActive    bool   `json:"is_active"`
+		FullName     string  `json:"full_name"`
+		Designation  string  `json:"designation"`
+		ImageURL     string  `json:"image_url"`
+		Bio          string  `json:"bio"`
+		SortOrder    int     `json:"sort_order"`
+		IsActive     bool    `json:"is_active"`
+		DepartmentID *string `json:"department_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
@@ -1349,6 +1382,7 @@ func (h *CMSHandler) CreateTeamMember(w http.ResponseWriter, r *http.Request) {
 	m := &models.CMSTeamMember{
 		ID: uuid.NewString(), FullName: req.FullName, Designation: req.Designation,
 		ImageURL: req.ImageURL, Bio: req.Bio, SortOrder: req.SortOrder, IsActive: req.IsActive,
+		DepartmentID: nullableID(req.DepartmentID),
 	}
 	if err := h.repo.CreateTeamMember(r.Context(), m); err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create team member")
@@ -1369,16 +1403,20 @@ func (h *CMSHandler) UpdateTeamMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		FullName    string `json:"full_name"`
-		Designation string `json:"designation"`
-		ImageURL    string `json:"image_url"`
-		Bio         string `json:"bio"`
-		SortOrder   int    `json:"sort_order"`
-		IsActive    bool   `json:"is_active"`
+		FullName     string  `json:"full_name"`
+		Designation  string  `json:"designation"`
+		ImageURL     string  `json:"image_url"`
+		Bio          string  `json:"bio"`
+		SortOrder    int     `json:"sort_order"`
+		IsActive     bool    `json:"is_active"`
+		DepartmentID *string `json:"department_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
 		return
+	}
+	if req.DepartmentID != nil {
+		existing.DepartmentID = nullableID(req.DepartmentID)
 	}
 	if req.FullName != "" {
 		existing.FullName = req.FullName

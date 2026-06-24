@@ -123,7 +123,7 @@ export function adminUpdateSettings(key, value) {
 export function uploadMedia(file) {
   const fd = new FormData()
   fd.append('file', file)
-  return apiClient.post('/api/v1/admin/media/upload', fd, {
+  return apiClient.post('/api/v1/media/upload', fd, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/atenimedia-llc/ncs-online/backend/internal/database"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/handlers"
 	appLogging "github.com/atenimedia-llc/ncs-online/backend/internal/logging"
+	"github.com/atenimedia-llc/ncs-online/backend/internal/maintenance"
 	appMetrics "github.com/atenimedia-llc/ncs-online/backend/internal/metrics"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/middleware"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
@@ -43,6 +44,12 @@ func main() {
 	defer db.Close()
 
 	h, repos := handlers.New(db, cfg)
+	// Start the GitHub-release sentinel so the admin "Smart Updates" page
+	// can show update availability without an explicit user click.
+	h.UpdatesSvc.StartSentinel(context.Background())
+	// Auto-clear an expired maintenance window so the UI flips back to
+	// "operational" without the operator returning to the page.
+	maintenance.StartScheduleSentinel(context.Background(), h.SystemState, repos.Operator)
 	locationClient := middleware.NewLocationClient(cfg.LocationServiceURL, cfg.LocationServiceToken, cfg.LocationTimeout)
 	middleware.ConfigureLocationService(locationClient, cfg.JWTSecret, cfg.GeoAllowedCountries, cfg.GeoFailClosed)
 	auditWriter := middleware.NewAuditWriter(repos.Audit, 4096)
@@ -129,6 +136,7 @@ func main() {
 			r.Get("/associations", h.CMS.ListAssociations)
 			r.Get("/invest", h.CMS.ListInvest)
 			r.Get("/team", h.CMS.ListTeam)
+			r.Get("/departments", h.CMS.ListInstitutionalDepartments)
 		})
 
 		// ── Authenticated routes (geo-blocked: Uganda only, no VPN) ─────
@@ -137,6 +145,7 @@ func main() {
 			r.Use(middleware.Authenticate(cfg.JWTSecret))
 			r.Use(middleware.ValidateGlobalSession(h.SystemState))
 			r.Use(middleware.ValidateAuthenticatedUser(repos.Users))
+			r.Use(middleware.EnforceIPAllowlist(repos.Security))
 
 			// Self-service auth
 			r.Post("/auth/logout", h.Auth.Logout)
@@ -178,6 +187,36 @@ func main() {
 
 			r.Get("/transactions", h.Applications.ListTransactions)
 			r.Get("/transactions/{id}", h.Applications.GetTransaction)
+
+			// ── Departments (read-only directory) ─────────────────────
+			r.Get("/departments", h.Forms.ListDepartments)
+
+			// ── Dynamic application portal (applicant) ────────────────
+			r.Route("/portal/forms", func(r chi.Router) {
+				r.Get("/open", h.Forms.PortalListOpen)
+				r.Get("/{slug}", h.Forms.PortalGetForm)
+				r.Post("/{templateID}/draft", h.Forms.PortalSaveDraft)
+			})
+			r.Route("/portal/submissions", func(r chi.Router) {
+				r.Get("/{id}", h.Forms.PortalGetSubmission)
+				r.Post("/{id}/submit", h.Forms.PortalSubmit)
+				r.Post("/{id}/payment-proof", h.Forms.PortalUploadPaymentProof)
+			})
+
+			// Generic authenticated file upload (used by the dynamic form
+			// dropzone for both applicants and admins).
+			r.Post("/media/upload", h.CMS.UploadMedia)
+
+			// ── Self-service activity log + security settings ─────────
+			r.Get("/me/activities", h.Security.MyActivities)
+			r.Route("/me/security", func(r chi.Router) {
+				r.Get("/", h.Security.GetMySecurity)
+				r.Post("/ip-whitelist", h.Security.AddIPWhitelist)
+				r.Delete("/ip-whitelist/{id}", h.Security.RemoveIPWhitelist)
+				r.Post("/2fa/enroll", h.Security.Enroll2FA)
+				r.Post("/2fa/verify", h.Security.Verify2FA)
+				r.Post("/2fa/disable", h.Security.Disable2FA)
+			})
 
 			r.Route("/nsmis", func(r chi.Router) {
 				r.Get("/federations", h.NSMIS.ListFederations)
@@ -248,6 +287,15 @@ func main() {
 				r.Post("/admin/system/sessions/revoke-all", h.Operator.RevokeAll)
 				r.Get("/admin/system/backups", h.Backups.List)
 				r.Post("/admin/system/backups/jobs", h.Backups.Queue)
+
+				// Smart updates (GitHub release sentinel + in-place deploy).
+				// Deploy/rollback require the Docker socket to be mounted into
+				// the backend container — see Docs/runbooks/smart-updates.md.
+				r.Get("/admin/system/updates", h.Updates.Status)
+				r.Post("/admin/system/updates/check", h.Updates.Check)
+				r.Get("/admin/system/updates/deploy", h.Updates.DeployStatus)
+				r.Post("/admin/system/updates/deploy", h.Updates.Deploy)
+				r.Post("/admin/system/updates/rollback", h.Updates.Rollback)
 			})
 
 			// ── Admin: application review ─────────────────────────────
@@ -265,6 +313,19 @@ func main() {
 				})
 
 				r.Get("/admin/transactions", h.Applications.ListTransactions)
+
+				// ── Admin: dynamic form templates (department-scoped) ──
+				r.Route("/admin/forms", func(r chi.Router) {
+					r.Get("/", h.Forms.AdminListTemplates)
+					r.Post("/", h.Forms.AdminCreateTemplate)
+					r.Get("/submissions", h.Forms.AdminListSubmissions)
+					r.Get("/submissions/{id}", h.Forms.AdminGetSubmission)
+					r.Post("/submissions/{id}/review", h.Forms.AdminReviewSubmission)
+					r.Post("/submissions/{id}/verify-payment", h.Forms.AdminVerifySubmissionPayment)
+					r.Get("/{id}", h.Forms.AdminGetTemplate)
+					r.Put("/{id}", h.Forms.AdminUpdateTemplate)
+					r.Delete("/{id}", h.Forms.AdminDeleteTemplate)
+				})
 			})
 
 			// ── Admin: CMS management ─────────────────────────────────

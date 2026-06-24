@@ -45,6 +45,32 @@
         </div>
       </div>
 
+      <!-- Available application forms (dynamic templates) -->
+      <div v-if="availableForms.length" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 class="font-bold text-darken">Available Application Forms</h2>
+            <p class="text-xs text-gray-400 mt-1">Pick a form to start a new application.</p>
+          </div>
+        </div>
+        <div class="p-6 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <router-link
+            v-for="f in availableForms"
+            :key="f.id"
+            :to="`/my-portal/forms/${f.slug}`"
+            class="text-left rounded-2xl border border-gray-100 p-4 hover:border-[#F48C06]/40 hover:shadow-md transition-all flex flex-col"
+          >
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#F48C06]">{{ f.department_name || 'NCS' }}</span>
+            <h3 class="font-bold text-darken mt-1.5">{{ f.title }}</h3>
+            <p class="text-xs text-gray-500 mt-1 line-clamp-2 flex-1">{{ f.description || ' ' }}</p>
+            <div class="mt-3 flex items-center justify-between text-xs">
+              <span class="text-gray-500">{{ f.price_ugx > 0 ? `UGX ${new Intl.NumberFormat().format(f.price_ugx)}` : 'Free' }}</span>
+              <span class="text-[#F48C06] font-semibold">Open form →</span>
+            </div>
+          </router-link>
+        </div>
+      </div>
+
       <!-- Stat cards -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div
@@ -179,12 +205,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import apiClient from '@/api/client.js'
+import { portalListOpenForms } from '@/api/forms.js'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
 const applications = ref([])
 const organisations = ref([])
+const availableForms = ref([])
 const loading = ref(true)
 const activeStatus = ref('')
 
@@ -280,12 +308,14 @@ function openOrganisation(organisation) {
 
 onMounted(async () => {
   try {
-    const [appRes, contextRes] = await Promise.all([
+    const [appRes, contextRes, formsRes] = await Promise.all([
       apiClient.get('/api/v1/applications', { params: { per_page: 50 } }),
       apiClient.get('/api/v1/me/contexts'),
+      portalListOpenForms().catch(() => []),
     ])
     applications.value = appRes.data.data?.items || appRes.data.data || []
     organisations.value = contextRes.data.data?.organisations || []
+    availableForms.value = Array.isArray(formsRes) ? formsRes : []
   } catch {
     applications.value = []
   } finally {

@@ -373,23 +373,39 @@
         <!-- ═══ TEAM MEMBERS ══════════════════════════════════════ -->
         <div v-else-if="activeSection==='team'">
           <div v-if="teamLoading" class="space-y-2"><div v-for="i in 4" :key="i" class="h-16 bg-gray-100 rounded-xl animate-pulse"/></div>
-          <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <div v-for="member in team" :key="member.id"
-              class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div class="h-40 bg-gray-100 overflow-hidden">
-                <img v-if="member.image_url" :src="mediaUrl(member.image_url)" class="w-full h-full object-cover"/>
-                <div v-else class="w-full h-full flex items-center justify-center text-4xl text-gray-300">👤</div>
-              </div>
-              <div class="p-3">
-                <div class="font-semibold text-gray-900 text-sm">{{ member.full_name }}</div>
-                <div class="text-xs text-gray-500 mt-0.5">{{ member.designation }}</div>
-                <div class="flex gap-1 mt-3">
-                  <button @click="editTeam(member)" class="flex-1 text-xs text-center py-1 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600 transition-colors">Edit</button>
-                  <button @click="confirmDelete('team',member.id)" class="flex-1 text-xs text-center py-1 border border-red-200 rounded-lg hover:bg-red-50 text-red-500 transition-colors">Delete</button>
+          <div v-else class="space-y-6">
+            <!-- 10-tier department directory: one block per institutional unit. -->
+            <section v-for="group in teamByDepartment" :key="group.department.id"
+              class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <header class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                <div>
+                  <h3 class="font-semibold text-gray-900 text-sm">{{ group.department.name }}</h3>
+                  <p v-if="group.department.description" class="text-xs text-gray-500 mt-0.5 max-w-3xl">{{ group.department.description }}</p>
+                </div>
+                <span class="text-[10px] uppercase tracking-wider font-bold bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                  {{ group.members.length }} staff member{{ group.members.length === 1 ? '' : 's' }}
+                </span>
+              </header>
+              <div v-if="!group.members.length" class="p-6 text-center text-xs text-gray-400 italic">No staff assigned yet</div>
+              <div v-else class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div v-for="member in group.members" :key="member.id"
+                  class="bg-gray-50 rounded-lg border border-gray-100 overflow-hidden">
+                  <div class="h-28 bg-white overflow-hidden">
+                    <img v-if="member.image_url" :src="mediaUrl(member.image_url)" class="w-full h-full object-cover"/>
+                    <div v-else class="w-full h-full flex items-center justify-center text-3xl text-gray-300">👤</div>
+                  </div>
+                  <div class="p-3">
+                    <div class="font-semibold text-gray-900 text-sm">{{ member.full_name }}</div>
+                    <div class="text-xs text-gray-500 mt-0.5">{{ member.designation }}</div>
+                    <div class="flex gap-1 mt-2">
+                      <button @click="editTeam(member)" class="flex-1 text-xs text-center py-1 border border-gray-200 rounded hover:bg-white text-gray-600 transition-colors">Edit</button>
+                      <button @click="confirmDelete('team',member.id)" class="flex-1 text-xs text-center py-1 border border-red-200 rounded hover:bg-red-50 text-red-500 transition-colors">Delete</button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div v-if="team.length===0" class="col-span-full text-center py-16 text-gray-400 bg-white rounded-xl border border-gray-200">No team members yet</div>
+            </section>
+            <div v-if="team.length===0" class="text-center py-16 text-gray-400 bg-white rounded-xl border border-gray-200">No team members yet</div>
           </div>
         </div>
 
@@ -824,7 +840,9 @@
                 <label class="text-xs font-medium text-gray-600 block mb-1">Video URL (optional)</label>
                 <input v-model="form.video_url" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400" placeholder="https://youtube.com/..."/>
               </div>
-              <div>
+              <!-- Cover image dropzone is sticky so it doesn't scroll
+                   away while you're editing long body content. -->
+              <div class="sticky top-0 z-10 bg-white pb-3 -mt-1 border-b border-gray-100">
                 <label class="text-xs font-medium text-gray-600 block mb-1">Cover Image <span class="text-gray-400 font-normal">(1920×1280 recommended)</span></label>
                 <DropzoneUpload v-model="form.cover_image_url" label="Drop cover image or click to upload" hint="JPG/PNG recommended" preview-class="h-32"/>
               </div>
@@ -859,7 +877,13 @@
             <template v-else-if="activeSection==='careers'">
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Job Title *</label><input v-model="form.title" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
               <div class="grid grid-cols-2 gap-4">
-                <div><label class="text-xs font-medium text-gray-600 block mb-1">Department</label><input v-model="form.department" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
+                <div>
+                  <label class="text-xs font-medium text-gray-600 block mb-1">Department</label>
+                  <select v-model="form.department_id" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white">
+                    <option :value="null">— Select department —</option>
+                    <option v-for="d in institutionalDepartments" :key="d.id" :value="d.id">{{ d.name }}</option>
+                  </select>
+                </div>
                 <div><label class="text-xs font-medium text-gray-600 block mb-1">Location</label><input v-model="form.location" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
                 <div><label class="text-xs font-medium text-gray-600 block mb-1">Category</label><select v-model="form.category" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"><option value="jobs">Jobs</option><option value="tenders">Tenders</option><option value="internships">Internship Opportunity</option></select></div>
                 <div><label class="text-xs font-medium text-gray-600 block mb-1">Job Type</label><select v-model="form.job_type" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2"><option value="full_time">Full Time</option><option value="part_time">Part Time</option><option value="contract">Contract</option><option value="internship">Internship</option></select></div>
@@ -895,7 +919,16 @@
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Photo URL <span class="text-gray-400 font-normal">(1:1 ratio recommended)</span></label><input v-model="form.image_url" type="text" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/>
                 <img v-if="form.image_url" :src="mediaUrl(form.image_url)" class="mt-2 w-20 h-20 object-cover rounded-full border-2 border-gray-200"/></div>
               <div><label class="text-xs font-medium text-gray-600 block mb-1">Bio</label><textarea v-model="form.bio" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 resize-none" rows="3"/></div>
-              <div><label class="text-xs font-medium text-gray-600 block mb-1">Sort Order</label><input v-model.number="form.sort_order" type="number" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="text-xs font-medium text-gray-600 block mb-1">Department</label>
+                  <select v-model="form.department_id" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white">
+                    <option :value="null">— Select department —</option>
+                    <option v-for="d in institutionalDepartments" :key="d.id" :value="d.id">{{ d.name }}</option>
+                  </select>
+                </div>
+                <div><label class="text-xs font-medium text-gray-600 block mb-1">Sort Order</label><input v-model.number="form.sort_order" type="number" class="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400"/></div>
+              </div>
             </template>
 
             <!-- Services form -->
@@ -1072,7 +1105,7 @@ const breadcrumbStore = useBreadcrumbStore()
 import DropzoneUpload from '@/components/ui/DropzoneUpload.vue'
 import RichTextEditor from '@/components/ui/RichTextEditor.vue'
 import * as cmsApi from '@/api/cms.js'
-import { mediaUrl } from '@/api/client.js'
+import apiClient, { mediaUrl } from '@/api/client.js'
 
 // ── ContentTable render component ─────────────────────────────────
 const ContentTable = defineComponent({
@@ -1250,7 +1283,22 @@ async function loadPosts() {
   } finally { postsLoading.value = false }
 }
 
-function editPost(p) { editingId.value=p.id; form.value={...p, visibility:p.visibility||'public'}; formError.value=''; showModal.value=true }
+async function editPost(p) {
+  // The list endpoint omits heavy fields (content, meta_*) for speed.
+  // Fetch the full record by slug so the editor hydrates the title and
+  // rich-text body instead of opening a blank form.
+  editingId.value = p.id
+  formError.value = ''
+  // Optimistic hydrate with what we have so the modal opens instantly,
+  // then patch in full content as soon as the GET resolves.
+  form.value = { ...p, visibility: p.visibility || 'public' }
+  showModal.value = true
+  try {
+    const r = await cmsApi.getPost(p.slug)
+    const full = r.data?.data || r.data
+    if (full) form.value = { ...full, visibility: full.visibility || 'public' }
+  } catch { /* leave the optimistic copy */ }
+}
 
 // ── Blog Categories ───────────────────────────────────────────────
 const postCategories = ref([
@@ -1292,10 +1340,22 @@ const careers = ref([])
 const careersLoading = ref(false)
 async function loadCareers() {
   careersLoading.value = true
-  try { const r = await cmsApi.adminListCareers({ per_page:100 }); careers.value = r.data.data?.items||[] }
-  finally { careersLoading.value = false }
+  try {
+    const [r] = await Promise.all([cmsApi.adminListCareers({ per_page:100 }), ensureInstitutionalDepartments()])
+    careers.value = r.data.data?.items || []
+  } finally { careersLoading.value = false }
 }
-function editCareer(c) { editingId.value=c.id; form.value={...c, deadline_str:c.deadline_at?.slice(0,10)||''}; formError.value=''; showModal.value=true }
+async function editCareer(c) {
+  editingId.value = c.id
+  formError.value = ''
+  form.value = { ...c, deadline_str: c.deadline_at?.slice(0,10) || '' }
+  showModal.value = true
+  try {
+    const r = await cmsApi.getCareer(c.id)
+    const full = r.data?.data || r.data
+    if (full) form.value = { ...full, deadline_str: full.deadline_at?.slice(0,10) || '' }
+  } catch { /* keep optimistic copy */ }
+}
 
 // ── Slides ────────────────────────────────────────────────────────
 const slides = ref([])
@@ -1470,12 +1530,44 @@ async function saveHomeSettings() {
 // ── Team ──────────────────────────────────────────────────────────
 const team = ref([])
 const teamLoading = ref(false)
-async function loadTeam() {
-  teamLoading.value=true
-  try { const r=await cmsApi.adminListTeam({per_page:50}); team.value=r.data||[] }
-  catch { team.value=[] } finally { teamLoading.value=false }
+const institutionalDepartments = ref([])
+
+async function loadInstitutionalDepartments() {
+  try {
+    const r = await apiClient.get('/api/v1/cms/departments')
+    institutionalDepartments.value = r.data?.data || r.data || []
+  } catch { institutionalDepartments.value = [] }
 }
+
+async function loadTeam() {
+  teamLoading.value = true
+  try {
+    const [r] = await Promise.all([cmsApi.adminListTeam({ per_page: 50 }), loadInstitutionalDepartments()])
+    team.value = r.data || []
+  } catch { team.value = [] }
+  finally { teamLoading.value = false }
+}
+
+// Group active team members by department for the directory rendering.
+const teamByDepartment = computed(() => {
+  const groups = {}
+  for (const d of institutionalDepartments.value) {
+    groups[d.id] = { department: d, members: [] }
+  }
+  groups['_unassigned'] = { department: { id: '_unassigned', name: 'Unassigned', staff_count: 0 }, members: [] }
+  for (const m of team.value) {
+    const key = m.department_id || '_unassigned'
+    if (!groups[key]) groups[key] = { department: { id: key, name: m.department_name || 'Other' }, members: [] }
+    groups[key].members.push(m)
+  }
+  return Object.values(groups).filter(g => g.members.length || g.department.id !== '_unassigned')
+})
+
 function editTeam(m) { editingId.value=m.id; form.value={...m}; formError.value=''; showModal.value=true }
+
+async function ensureInstitutionalDepartments() {
+  if (!institutionalDepartments.value.length) await loadInstitutionalDepartments()
+}
 
 // ── Services ──────────────────────────────────────────────────────
 const services = ref([])

@@ -28,6 +28,9 @@ type Repos struct {
 	Notifications *NotificationRepo
 	Operator      *OperatorRepo
 	Backups       *BackupRepo
+	Forms         *FormRepo
+	Departments   *DepartmentRepo
+	Security      *SecurityRepo
 }
 
 func New(db *pgxpool.Pool) *Repos {
@@ -44,6 +47,9 @@ func New(db *pgxpool.Pool) *Repos {
 		Notifications: &NotificationRepo{db: db},
 		Operator:      &OperatorRepo{db: db},
 		Backups:       &BackupRepo{db: db},
+		Forms:         &FormRepo{db: db},
+		Departments:   &DepartmentRepo{db: db},
+		Security:      &SecurityRepo{db: db},
 	}
 }
 
@@ -777,6 +783,47 @@ func (r *AuditRepo) LogBatch(ctx context.Context, entries []*models.AuditLog) er
 	return tx.Commit(ctx)
 }
 
+func (r *AuditRepo) ListByUser(ctx context.Context, userID string, p *models.PaginationParams) ([]*models.AuditLog, int64, error) {
+	const countQ = `SELECT COUNT(*) FROM audit_logs WHERE user_id=$1`
+	const q = `SELECT al.id, al.user_id, al.action, al.resource, COALESCE(al.resource_id,''),
+	                  COALESCE(al.ip_address,''), COALESCE(al.method,''), COALESCE(al.endpoint,''),
+	                  COALESCE(al.response_code,0), COALESCE(al.response_time_ms,0),
+	                  COALESCE(al.device_info,''),
+	                  COALESCE(al.event_type,''), COALESCE(al.event_status,''), COALESCE(al.severity_level,''),
+	                  COALESCE(al.geo_city,''), COALESCE(al.geo_country,''),
+	                  COALESCE(al.browser,''), COALESCE(al.os_name,''),
+	                  al.created_at
+	           FROM audit_logs al
+	           WHERE al.user_id=$1
+	           ORDER BY al.created_at DESC LIMIT $2 OFFSET $3`
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, userID).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.db.Query(ctx, q, userID, p.PerPage, p.Offset())
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	var logs []*models.AuditLog
+	for rows.Next() {
+		l := &models.AuditLog{}
+		if err := rows.Scan(
+			&l.ID, &l.UserID, &l.Action, &l.Resource, &l.ResourceID,
+			&l.IPAddress, &l.Method, &l.Endpoint, &l.ResponseCode, &l.ResponseTimeMs,
+			&l.DeviceInfo,
+			&l.EventType, &l.EventStatus, &l.SeverityLevel,
+			&l.GeoCity, &l.GeoCountry,
+			&l.Browser, &l.OSName,
+			&l.CreatedAt,
+		); err != nil {
+			return nil, 0, err
+		}
+		logs = append(logs, l)
+	}
+	return logs, total, rows.Err()
+}
+
 func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*models.AuditLog, int64, error) {
 	const countQ = `SELECT COUNT(*) FROM audit_logs al
 	               LEFT JOIN users u ON al.user_id = u.id
@@ -1097,22 +1144,26 @@ func (r *CMSRepo) DeleteEvent(ctx context.Context, id string) error {
 // Careers
 
 func (r *CMSRepo) CreateCareer(ctx context.Context, c *models.CMSCareer) error {
-	const q = `INSERT INTO cms_careers (id, title, department, location, job_type, category, description, requirements, salary_range, status, deadline_at, author_id)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING created_at, updated_at`
+	const q = `INSERT INTO cms_careers (id, title, department, department_id, location, job_type, category, description, requirements, salary_range, status, deadline_at, author_id)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING created_at, updated_at`
 	return r.db.QueryRow(ctx, q,
-		c.ID, c.Title, c.Department, c.Location, c.JobType, c.Category, c.Description,
+		c.ID, c.Title, c.Department, c.DepartmentID, c.Location, c.JobType, c.Category, c.Description,
 		c.Requirements, c.SalaryRange, c.Status, c.DeadlineAt, c.AuthorID,
 	).Scan(&c.CreatedAt, &c.UpdatedAt)
 }
 
 func (r *CMSRepo) GetCareerByID(ctx context.Context, id string) (*models.CMSCareer, error) {
-	const q = `SELECT id, title, COALESCE(department,''), COALESCE(location,''), job_type,
-	                  COALESCE(category,'jobs'), description, COALESCE(requirements,''), COALESCE(salary_range,''),
-	                  status, deadline_at, author_id, created_at, updated_at
-	           FROM cms_careers WHERE id=$1`
+	const q = `SELECT c.id, c.title, COALESCE(c.department,''), c.department_id, COALESCE(d.name,''),
+	                  COALESCE(c.location,''), c.job_type,
+	                  COALESCE(c.category,'jobs'), c.description, COALESCE(c.requirements,''), COALESCE(c.salary_range,''),
+	                  c.status, c.deadline_at, c.author_id, c.created_at, c.updated_at
+	           FROM cms_careers c
+	           LEFT JOIN departments d ON d.id = c.department_id
+	           WHERE c.id=$1`
 	c := &models.CMSCareer{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
-		&c.ID, &c.Title, &c.Department, &c.Location, &c.JobType, &c.Category, &c.Description,
+		&c.ID, &c.Title, &c.Department, &c.DepartmentID, &c.DepartmentName,
+		&c.Location, &c.JobType, &c.Category, &c.Description,
 		&c.Requirements, &c.SalaryRange, &c.Status, &c.DeadlineAt, &c.AuthorID,
 		&c.CreatedAt, &c.UpdatedAt,
 	)
@@ -1124,10 +1175,13 @@ func (r *CMSRepo) GetCareerByID(ctx context.Context, id string) (*models.CMSCare
 
 func (r *CMSRepo) ListCareers(ctx context.Context, status, category string, limit, offset int) ([]*models.CMSCareer, int64, error) {
 	const countQ = `SELECT COUNT(*) FROM cms_careers WHERE ($1='' OR status=$1) AND ($2='' OR COALESCE(category,'jobs')=$2)`
-	const q = `SELECT id, title, COALESCE(department,''), COALESCE(location,''), job_type,
-	                  COALESCE(category,'jobs'), COALESCE(salary_range,''), status, deadline_at, author_id, created_at, updated_at
-	           FROM cms_careers WHERE ($1='' OR status=$1) AND ($2='' OR COALESCE(category,'jobs')=$2)
-	           ORDER BY created_at DESC LIMIT $3 OFFSET $4`
+	const q = `SELECT c.id, c.title, COALESCE(c.department,''), c.department_id, COALESCE(d.name,''),
+	                  COALESCE(c.location,''), c.job_type,
+	                  COALESCE(c.category,'jobs'), COALESCE(c.salary_range,''), c.status, c.deadline_at, c.author_id, c.created_at, c.updated_at
+	           FROM cms_careers c
+	           LEFT JOIN departments d ON d.id = c.department_id
+	           WHERE ($1='' OR c.status=$1) AND ($2='' OR COALESCE(c.category,'jobs')=$2)
+	           ORDER BY c.created_at DESC LIMIT $3 OFFSET $4`
 	var total int64
 	if err := r.db.QueryRow(ctx, countQ, status, category).Scan(&total); err != nil {
 		return nil, 0, err
@@ -1140,8 +1194,8 @@ func (r *CMSRepo) ListCareers(ctx context.Context, status, category string, limi
 	var careers []*models.CMSCareer
 	for rows.Next() {
 		c := &models.CMSCareer{}
-		if err := rows.Scan(&c.ID, &c.Title, &c.Department, &c.Location, &c.JobType,
-			&c.Category, &c.SalaryRange, &c.Status, &c.DeadlineAt, &c.AuthorID, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Title, &c.Department, &c.DepartmentID, &c.DepartmentName,
+			&c.Location, &c.JobType, &c.Category, &c.SalaryRange, &c.Status, &c.DeadlineAt, &c.AuthorID, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		careers = append(careers, c)
@@ -1150,10 +1204,10 @@ func (r *CMSRepo) ListCareers(ctx context.Context, status, category string, limi
 }
 
 func (r *CMSRepo) UpdateCareer(ctx context.Context, c *models.CMSCareer) error {
-	const q = `UPDATE cms_careers SET title=$2, department=$3, location=$4, job_type=$5,
-	           category=$6, description=$7, requirements=$8, salary_range=$9, status=$10,
-	           deadline_at=$11, updated_at=NOW() WHERE id=$1`
-	_, err := r.db.Exec(ctx, q, c.ID, c.Title, c.Department, c.Location, c.JobType,
+	const q = `UPDATE cms_careers SET title=$2, department=$3, department_id=$4, location=$5, job_type=$6,
+	           category=$7, description=$8, requirements=$9, salary_range=$10, status=$11,
+	           deadline_at=$12, updated_at=NOW() WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, c.ID, c.Title, c.Department, c.DepartmentID, c.Location, c.JobType,
 		c.Category, c.Description, c.Requirements, c.SalaryRange, c.Status, c.DeadlineAt)
 	return err
 }
@@ -1588,13 +1642,15 @@ func (r *CMSRepo) DeleteInvest(ctx context.Context, id string) error {
 // ── Team Members ─────────────────────────────────────────────────
 
 func (r *CMSRepo) ListTeamMembers(ctx context.Context, activeOnly bool) ([]*models.CMSTeamMember, error) {
-	q := `SELECT id, full_name, COALESCE(designation,''), COALESCE(image_url,''), COALESCE(bio,''),
-	             sort_order, is_active, created_at, updated_at
-	      FROM cms_team_members`
+	q := `SELECT m.id, m.full_name, COALESCE(m.designation,''), COALESCE(m.image_url,''), COALESCE(m.bio,''),
+	             m.sort_order, m.is_active, m.department_id, COALESCE(d.name,''),
+	             m.created_at, m.updated_at
+	      FROM cms_team_members m
+	      LEFT JOIN departments d ON d.id = m.department_id`
 	if activeOnly {
-		q += ` WHERE is_active=TRUE`
+		q += ` WHERE m.is_active=TRUE`
 	}
-	q += ` ORDER BY sort_order ASC, created_at ASC`
+	q += ` ORDER BY m.sort_order ASC, m.created_at ASC`
 	rows, err := r.db.Query(ctx, q)
 	if err != nil {
 		return nil, err
@@ -1604,7 +1660,8 @@ func (r *CMSRepo) ListTeamMembers(ctx context.Context, activeOnly bool) ([]*mode
 	for rows.Next() {
 		m := &models.CMSTeamMember{}
 		if err := rows.Scan(&m.ID, &m.FullName, &m.Designation, &m.ImageURL, &m.Bio,
-			&m.SortOrder, &m.IsActive, &m.CreatedAt, &m.UpdatedAt); err != nil {
+			&m.SortOrder, &m.IsActive, &m.DepartmentID, &m.DepartmentName,
+			&m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, m)
@@ -1614,11 +1671,15 @@ func (r *CMSRepo) ListTeamMembers(ctx context.Context, activeOnly bool) ([]*mode
 
 func (r *CMSRepo) GetTeamMemberByID(ctx context.Context, id string) (*models.CMSTeamMember, error) {
 	m := &models.CMSTeamMember{}
-	err := r.db.QueryRow(ctx, `SELECT id, full_name, COALESCE(designation,''), COALESCE(image_url,''), COALESCE(bio,''),
-	                                  sort_order, is_active, created_at, updated_at
-	                           FROM cms_team_members WHERE id=$1`, id).
+	err := r.db.QueryRow(ctx, `SELECT m.id, m.full_name, COALESCE(m.designation,''), COALESCE(m.image_url,''), COALESCE(m.bio,''),
+	                                  m.sort_order, m.is_active, m.department_id, COALESCE(d.name,''),
+	                                  m.created_at, m.updated_at
+	                           FROM cms_team_members m
+	                           LEFT JOIN departments d ON d.id = m.department_id
+	                           WHERE m.id=$1`, id).
 		Scan(&m.ID, &m.FullName, &m.Designation, &m.ImageURL, &m.Bio,
-			&m.SortOrder, &m.IsActive, &m.CreatedAt, &m.UpdatedAt)
+			&m.SortOrder, &m.IsActive, &m.DepartmentID, &m.DepartmentName,
+			&m.CreatedAt, &m.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -1627,18 +1688,54 @@ func (r *CMSRepo) GetTeamMemberByID(ctx context.Context, id string) (*models.CMS
 
 func (r *CMSRepo) CreateTeamMember(ctx context.Context, m *models.CMSTeamMember) error {
 	return r.db.QueryRow(ctx,
-		`INSERT INTO cms_team_members (id, full_name, designation, image_url, bio, sort_order, is_active)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING created_at, updated_at`,
-		m.ID, m.FullName, m.Designation, m.ImageURL, m.Bio, m.SortOrder, m.IsActive,
+		`INSERT INTO cms_team_members (id, full_name, designation, image_url, bio, sort_order, is_active, department_id)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING created_at, updated_at`,
+		m.ID, m.FullName, m.Designation, m.ImageURL, m.Bio, m.SortOrder, m.IsActive, m.DepartmentID,
 	).Scan(&m.CreatedAt, &m.UpdatedAt)
 }
 
 func (r *CMSRepo) UpdateTeamMember(ctx context.Context, m *models.CMSTeamMember) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE cms_team_members SET full_name=$2, designation=$3, image_url=$4, bio=$5,
-		 sort_order=$6, is_active=$7, updated_at=NOW() WHERE id=$1`,
-		m.ID, m.FullName, m.Designation, m.ImageURL, m.Bio, m.SortOrder, m.IsActive)
+		 sort_order=$6, is_active=$7, department_id=$8, updated_at=NOW() WHERE id=$1`,
+		m.ID, m.FullName, m.Designation, m.ImageURL, m.Bio, m.SortOrder, m.IsActive, m.DepartmentID)
 	return err
+}
+
+// ListDepartmentsWithStaffCount returns the 10-tier institutional units
+// along with how many active team members are assigned to each.
+type DepartmentWithCount struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Code        string `json:"code"`
+	Description string `json:"description"`
+	StaffCount  int    `json:"staff_count"`
+}
+
+func (r *CMSRepo) ListDepartmentsWithStaffCount(ctx context.Context) ([]*DepartmentWithCount, error) {
+	const q = `SELECT d.id, d.name, d.code, COALESCE(d.description,''),
+	                  COALESCE(c.cnt, 0)
+	           FROM departments d
+	           LEFT JOIN (
+	             SELECT department_id, COUNT(*) AS cnt
+	             FROM cms_team_members WHERE is_active=TRUE AND department_id IS NOT NULL
+	             GROUP BY department_id
+	           ) c ON c.department_id = d.id
+	           ORDER BY d.name`
+	rows, err := r.db.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []*DepartmentWithCount{}
+	for rows.Next() {
+		d := &DepartmentWithCount{}
+		if err := rows.Scan(&d.ID, &d.Name, &d.Code, &d.Description, &d.StaffCount); err != nil {
+			return nil, err
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
 }
 
 func (r *CMSRepo) DeleteTeamMember(ctx context.Context, id string) error {

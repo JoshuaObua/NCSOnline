@@ -32,17 +32,43 @@ func (h *OperatorHandler) Status(w http.ResponseWriter, r *http.Request) {
 func (h *OperatorHandler) SetMaintenance(w http.ResponseWriter, r *http.Request) {
 	actor, _ := r.Context().Value(models.CtxUserID).(string)
 	var input struct {
-		Enabled     bool       `json:"enabled"`
-		Reason      string     `json:"reason"`
-		ExpectedEnd *time.Time `json:"expected_end"`
+		Enabled        bool       `json:"enabled"`
+		Reason         string     `json:"reason"`
+		ScheduledStart *time.Time `json:"scheduled_start"`
+		ExpectedEnd    *time.Time `json:"expected_end"`
 	}
-	if json.NewDecoder(r.Body).Decode(&input) != nil || (input.Enabled && len(input.Reason) < 5) {
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if input.Enabled && len(input.Reason) < 5 {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "A maintenance reason is required")
 		return
 	}
-	s, err := h.repo.SaveMaintenance(r.Context(), input.Enabled, input.Reason, input.ExpectedEnd, actor)
+	if input.ScheduledStart != nil && input.ExpectedEnd != nil && !input.ExpectedEnd.After(*input.ScheduledStart) {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Expected end must be after the scheduled start time")
+		return
+	}
+	// If the caller is disabling, clear the window so the sentinel
+	// doesn't immediately re-enable us.
+	scheduledStart := input.ScheduledStart
+	expectedEnd := input.ExpectedEnd
+	if !input.Enabled {
+		scheduledStart, expectedEnd = nil, nil
+	}
+	// Resolve the live-active bit: if there's a future start time we
+	// persist Enabled=true but the IsActiveAt check (and the schedule
+	// sentinel) keep traffic flowing until that start passes.
+	now := time.Now()
+	persistEnabled := input.Enabled
+	if input.Enabled && scheduledStart != nil && scheduledStart.After(now) {
+		// Future-scheduled window. We persist Enabled so the sentinel
+		// flips us automatically when the start time hits.
+		persistEnabled = true
+	}
+	s, err := h.repo.SaveMaintenance(r.Context(), persistEnabled, input.Reason, scheduledStart, expectedEnd, actor)
 	if err != nil {
-		response.Err(w, 500, "SERVER_ERROR", "Could not update maintenance mode")
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update maintenance mode")
 		return
 	}
 	h.state.Set(s)

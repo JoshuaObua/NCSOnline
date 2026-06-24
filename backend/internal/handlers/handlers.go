@@ -23,6 +23,10 @@ type Handlers struct {
 	Operator      *OperatorHandler
 	SystemState   *maintenance.State
 	Backups       *BackupsHandler
+	Forms         *FormsHandler
+	Security      *SecurityHandler
+	Updates       *UpdatesHandler
+	UpdatesSvc    *services.UpdatesService
 }
 
 // New constructs all handlers and returns them alongside the repos (needed by main for audit middleware).
@@ -38,6 +42,10 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 	userSvc := services.NewUserService(repos.Users, repos.Roles, repos.Tokens)
 	appSvc := services.NewApplicationService(repos.Applications, repos.Audit, repos.Organisations)
 	ussdSvc := services.NewUSSDService(repos.USSD, repos.Applications)
+	formSvc := services.NewFormService(repos.Forms, repos.Departments, repos.Audit)
+	secSvc := services.NewSecurityService(repos.Security, repos.Users)
+	updSvc := services.NewUpdatesService(db)
+	deployer := services.NewDeployer()
 
 	return &Handlers{
 		Auth:          &AuthHandler{svc: authSvc, users: repos.Users, cfg: cfg},
@@ -53,5 +61,9 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 		Operator:      NewOperatorHandler(repos.Operator, state),
 		SystemState:   state,
 		Backups:       &BackupsHandler{repo: repos.Backups},
+		Forms:         &FormsHandler{svc: formSvc},
+		Security:      &SecurityHandler{svc: secSvc, users: repos.Users, audit: repos.Audit},
+		Updates:       &UpdatesHandler{svc: updSvc, deployer: deployer},
+		UpdatesSvc:    updSvc,
 	}, repos
 }

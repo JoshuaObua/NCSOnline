@@ -44,6 +44,12 @@ const InsightsDashboardView = () => import('@/views/InsightsDashboardView.vue')
 const NSMISRegistryView = () => import('@/views/NSMISRegistryView.vue')
 const MaintenanceView = () => import('@/views/MaintenanceView.vue')
 const BackupsView = () => import('@/views/BackupsView.vue')
+const AdminFormsView = () => import('@/views/AdminFormsView.vue')
+const AdminFormSubmissionsView = () => import('@/views/AdminFormSubmissionsView.vue')
+const DynamicFormView = () => import('@/views/public/DynamicFormView.vue')
+const SecuritySettingsView = () => import('@/views/SecuritySettingsView.vue')
+const MyActivitiesView = () => import('@/views/MyActivitiesView.vue')
+const SmartUpdatesView = () => import('@/views/SmartUpdatesView.vue')
 
 const routes = [
   // ── Public website (uses PublicLayout) ────────────────────────
@@ -100,6 +106,12 @@ const routes = [
         path: 'my-portal/applications/new',
         name: 'NewOrganisationApplication',
         component: LicensePortalView,
+        meta: { requiresAuth: true }
+      },
+      {
+        path: 'my-portal/forms/:slug',
+        name: 'DynamicForm',
+        component: DynamicFormView,
         meta: { requiresAuth: true }
       },
       {
@@ -168,6 +180,10 @@ const routes = [
     meta: { requiresAuth: true, roles: ['super_admin'] }
   },
   {
+    path: '/maintenance/updates', name: 'SmartUpdates', component: SmartUpdatesView,
+    meta: { requiresAuth: true, roles: ['super_admin'] }
+  },
+  {
     path: '/roles',
     name: 'Roles',
     component: RolesView,
@@ -180,10 +196,34 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/me/activities',
+    name: 'MyActivities',
+    component: MyActivitiesView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/me/security',
+    name: 'SecuritySettings',
+    component: SecuritySettingsView,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/cms',
     name: 'CMS',
     component: CMSView,
     meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'content_manager'] }
+  },
+  {
+    path: '/admin/forms',
+    name: 'AdminForms',
+    component: AdminFormsView,
+    meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'general_secretary'] }
+  },
+  {
+    path: '/admin/forms/submissions',
+    name: 'AdminFormSubmissions',
+    component: AdminFormSubmissionsView,
+    meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'general_secretary'] }
   },
 
   // Catch-all — redirect to home
@@ -253,7 +293,7 @@ router.beforeEach((to, from, next) => {
   const isApplicantUser = !userRoles.length || userRoles.some(r => r === 'applicant' || r === 'user')
 
   // Applicant/user role — only allowed on portal and profile; block all staff routes
-  const staffRoutes = ['Dashboard', 'Users', 'Applications', 'AuditLogs', 'Roles', 'CMS', 'Maintenance', 'Backups']
+  const staffRoutes = ['Dashboard', 'Users', 'Applications', 'AuditLogs', 'Roles', 'CMS', 'Maintenance', 'Backups', 'SmartUpdates', 'AdminForms', 'AdminFormSubmissions']
   const hasActiveOrganisation = !!localStorage.getItem('ncsms_active_organisation')
   if (isApplicantUser && staffRoutes.includes(to.name) && !(to.name === 'Dashboard' && hasActiveOrganisation)) {
     return next('/my-portal')
