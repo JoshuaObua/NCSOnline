@@ -63,7 +63,7 @@
     </div>
 
     <!-- ───────── Scheduler modal ───────── -->
-    <Modal :open="modalOpen" :title="modalTitle" @close="modalOpen = false">
+    <Modal :show="modalOpen" :title="modalTitle" size="lg" @close="modalOpen = false">
       <div v-if="status.is_active" class="space-y-3">
         <p class="text-sm text-gray-700">End the active maintenance window now? Traffic will resume as soon as you confirm.</p>
         <label class="block text-sm font-semibold">Closing note
