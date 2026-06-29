@@ -63,6 +63,17 @@ func isMaintenanceAlwaysAllowed(path string) bool {
 	switch path {
 	case "/health", "/healthz", "/readyz", "/metrics", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/system/maintenance-status":
 		return true
+	case "/favicon.ico", "/favicon.png", "/robots.txt", "/manifest.json", "/manifest.webmanifest", "/sw.js":
+		return true
+	}
+	// Static SPA bundles must never be gated — without them the SPA cannot
+	// boot to read the bypass param/cookie for authorised users.
+	if strings.HasPrefix(path, "/assets/") ||
+		strings.HasPrefix(path, "/static/") ||
+		strings.HasPrefix(path, "/fonts/") ||
+		strings.HasPrefix(path, "/img/") ||
+		strings.HasPrefix(path, "/images/") {
+		return true
 	}
 	return false
 }

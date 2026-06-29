@@ -325,7 +325,27 @@ async def gate(path: str, request: Request) -> Response:
     allowed = whitelisted or code in ALLOWED or (not code and not FAIL_CLOSED)
     _counters[(code or "UNKNOWN", "allow" if allowed else "block")] += 1
     original_path = "/" + path
-    if request.method in {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"} and original_path not in {"/api/v1/auth/login", "/api/v1/auth/refresh", "/health", "/healthz", "/readyz", "/login", "/register"}:
+    # Static SPA assets must always pass — otherwise the maintenance page itself
+    # can never load the SPA, and authorised users with the bypass cookie/role
+    # still see a white screen because chunks 503.
+    _is_static_asset = (
+        original_path.startswith("/assets/")
+        or original_path.startswith("/static/")
+        or original_path.startswith("/fonts/")
+        or original_path.startswith("/img/")
+        or original_path.startswith("/images/")
+        or original_path == "/favicon.ico"
+        or original_path == "/favicon.png"
+        or original_path == "/robots.txt"
+        or original_path == "/manifest.json"
+        or original_path == "/manifest.webmanifest"
+        or original_path == "/sw.js"
+    )
+    if (
+        not _is_static_asset
+        and request.method in {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"}
+        and original_path not in {"/api/v1/auth/login", "/api/v1/auth/refresh", "/health", "/healthz", "/readyz", "/login", "/register"}
+    ):
         status = await _maintenance_status()
         scope = status.get(_maintenance_scope(original_path)) or {}
         if _scope_active(scope) and not _has_bypass(request, scope):
