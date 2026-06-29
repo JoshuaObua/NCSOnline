@@ -285,6 +285,8 @@ func main() {
 				r.Put("/admin/system/maintenance", h.Operator.SetMaintenance)
 				r.Post("/admin/system/cache/flush", h.Operator.FlushCache)
 				r.Post("/admin/system/sessions/revoke-all", h.Operator.RevokeAll)
+				r.Get("/admin/storage-settings", h.CMS.GetStorageSettings)
+				r.Put("/admin/storage-settings", h.CMS.UpdateStorageSettings)
 				r.Get("/admin/system/backups", h.Backups.List)
 				r.Post("/admin/system/backups/jobs", h.Backups.Queue)
 

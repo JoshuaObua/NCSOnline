@@ -1,12 +1,11 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
+	"github.com/atenimedia-llc/ncs-online/backend/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
@@ -727,6 +727,53 @@ func (h *CMSHandler) UpdateSetting(w http.ResponseWriter, r *http.Request) {
 
 // ── Media Upload ──────────────────────────────────────────────────
 
+// GET /api/v1/admin/storage-settings
+func (h *CMSHandler) GetStorageSettings(w http.ResponseWriter, r *http.Request) {
+	settings, err := h.storageSettings(r.Context())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load storage settings")
+		return
+	}
+	response.JSON(w, http.StatusOK, settings.Redacted())
+}
+
+// PUT /api/v1/admin/storage-settings
+func (h *CMSHandler) UpdateStorageSettings(w http.ResponseWriter, r *http.Request) {
+	existing, err := h.storageSettings(r.Context())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load existing storage settings")
+		return
+	}
+	var req storage.Settings
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	req = req.MergeSecrets(existing)
+	req.Normalize()
+	raw, err := json.Marshal(req)
+	if err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid storage settings")
+		return
+	}
+	if err := h.repo.UpdateSetting(r.Context(), storage.SettingsKey, raw); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save storage settings")
+		return
+	}
+	response.JSON(w, http.StatusOK, req.Redacted())
+}
+
+func (h *CMSHandler) storageSettings(ctx context.Context) (storage.Settings, error) {
+	s, err := h.repo.GetSetting(ctx, storage.SettingsKey)
+	if errors.Is(err, repository.ErrNotFound) {
+		return storage.DefaultSettings(), nil
+	}
+	if err != nil {
+		return storage.Settings{}, err
+	}
+	return storage.ParseSettings(s.Value)
+}
+
 // POST /api/v1/admin/media/upload
 func (h *CMSHandler) UploadMedia(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
@@ -755,29 +802,24 @@ func (h *CMSHandler) UploadMedia(w http.ResponseWriter, r *http.Request) {
 		subDir = "documents"
 	}
 
-	uploadDir := fmt.Sprintf("/app/uploads/%s", subDir)
-	if err := os.MkdirAll(uploadDir, 0755); err != nil {
-		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create upload directory")
-		return
-	}
-
-	filename := uuid.NewString() + ext
-	filePath := filepath.Join(uploadDir, filename)
-
-	out, err := os.Create(filePath)
+	settings, err := h.storageSettings(r.Context())
 	if err != nil {
-		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save file")
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load storage settings")
 		return
 	}
-	defer out.Close()
-
-	if _, err := io.Copy(out, file); err != nil {
-		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not write file")
+	result, err := storage.NewUploader(settings).Upload(r.Context(), storage.UploadInput{
+		Scope:       storage.ScopePublic,
+		Reader:      file,
+		Filename:    header.Filename,
+		ContentType: header.Header.Get("Content-Type"),
+		Size:        header.Size,
+		Subdir:      subDir,
+	})
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "UPLOAD_FAILED", err.Error())
 		return
 	}
-
-	url := fmt.Sprintf("/uploads/%s/%s", subDir, filename)
-	response.JSON(w, http.StatusOK, map[string]string{"url": url, "filename": filename})
+	response.JSON(w, http.StatusOK, result)
 }
 
 // ── Fun Facts ─────────────────────────────────────────────────────

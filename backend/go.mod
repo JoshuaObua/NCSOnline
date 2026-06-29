@@ -12,9 +12,12 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/shirou/gopsutil/v4 v4.26.5
 	golang.org/x/crypto v0.24.0
+	golang.org/x/oauth2 v0.36.0
+	golang.org/x/sys v0.41.0
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/ebitengine/purego v0.10.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -26,6 +29,5 @@ require (
 	github.com/tklauser/numcpus v0.11.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 )

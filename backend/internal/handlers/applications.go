@@ -1,21 +1,42 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/services"
+	"github.com/atenimedia-llc/ncs-online/backend/internal/storage"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type ApplicationsHandler struct {
-	svc   *services.ApplicationService
-	audit *repository.AuditRepo
+	svc     *services.ApplicationService
+	audit   *repository.AuditRepo
+	storage *repository.CMSRepo
+}
+
+func (h *ApplicationsHandler) storageSettings(ctx context.Context) (storage.Settings, error) {
+	if h.storage == nil {
+		return storage.DefaultSettings(), nil
+	}
+	s, err := h.storage.GetSetting(ctx, storage.SettingsKey)
+	if errors.Is(err, repository.ErrNotFound) {
+		return storage.DefaultSettings(), nil
+	}
+	if err != nil {
+		return storage.Settings{}, err
+	}
+	return storage.ParseSettings(s.Value)
 }
 
 // POST /api/v1/applications/{formType}/draft
@@ -256,7 +277,69 @@ func (h *ApplicationsHandler) Respond(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/applications/{id}/attachments
 func (h *ApplicationsHandler) UploadAttachment(w http.ResponseWriter, r *http.Request) {
-	response.Err(w, http.StatusNotImplemented, "NOT_IMPLEMENTED", "Secure attachment storage is not yet configured")
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	id := chi.URLParam(r, "id")
+	if _, err := h.svc.GetByID(r.Context(), id, userID, false); err != nil {
+		if errors.Is(err, services.ErrNotOwner) {
+			response.Err(w, http.StatusForbidden, "FORBIDDEN", "Not your application")
+			return
+		}
+		response.Err(w, http.StatusNotFound, "NOT_FOUND", "Application not found")
+		return
+	}
+	if err := r.ParseMultipartForm(24 << 20); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Could not parse form (max 24MB)")
+		return
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "No file uploaded (field: 'file')")
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	allowed := map[string]bool{
+		".pdf": true, ".jpg": true, ".jpeg": true, ".png": true, ".webp": true,
+		".doc": true, ".docx": true, ".xls": true, ".xlsx": true,
+	}
+	if !allowed[ext] {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "File type not allowed")
+		return
+	}
+	cfg, err := h.storageSettings(r.Context())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load storage settings")
+		return
+	}
+	result, err := storage.NewUploader(cfg).Upload(r.Context(), storage.UploadInput{
+		Scope:       storage.ScopeApplication,
+		Reader:      io.LimitReader(file, 24<<20),
+		Filename:    header.Filename,
+		ContentType: header.Header.Get("Content-Type"),
+		Size:        header.Size,
+		Subdir:      id,
+	})
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "UPLOAD_FAILED", err.Error())
+		return
+	}
+	att := &models.Attachment{
+		ID:        uuid.NewString(),
+		FieldName: strings.TrimSpace(r.FormValue("field_name")),
+		FileName:  filepath.Base(header.Filename),
+		FileURL:   result.URL,
+		FileSize:  header.Size,
+		MimeType:  header.Header.Get("Content-Type"),
+	}
+	if att.FieldName == "" {
+		att.FieldName = "attachment"
+	}
+	if err := h.svc.AddAttachment(r.Context(), id, userID, att); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save attachment record")
+		return
+	}
+	response.JSON(w, http.StatusCreated, att)
 }
 
 // GET /api/v1/applications/{id}/attachments

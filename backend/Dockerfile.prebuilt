@@ -1,0 +1,8 @@
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates tzdata postgresql16-client rclone
+COPY bin/ncsms-backend /ncsms-backend
+COPY bin/nsmis-worker /nsmis-worker
+COPY bin/ncs-ops-agent /ncs-ops-agent
+RUN chmod 0555 /ncsms-backend /nsmis-worker /ncs-ops-agent
+EXPOSE 8080
+ENTRYPOINT ["/ncsms-backend"]

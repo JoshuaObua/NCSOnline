@@ -50,6 +50,7 @@ const DynamicFormView = () => import('@/views/public/DynamicFormView.vue')
 const SecuritySettingsView = () => import('@/views/SecuritySettingsView.vue')
 const MyActivitiesView = () => import('@/views/MyActivitiesView.vue')
 const SmartUpdatesView = () => import('@/views/SmartUpdatesView.vue')
+const StorageSettingsView = () => import('@/views/StorageSettingsView.vue')
 
 const routes = [
   // ── Public website (uses PublicLayout) ────────────────────────
@@ -184,6 +185,10 @@ const routes = [
     meta: { requiresAuth: true, roles: ['super_admin'] }
   },
   {
+    path: '/settings/storage', name: 'StorageSettings', component: StorageSettingsView,
+    meta: { requiresAuth: true, roles: ['super_admin'] }
+  },
+  {
     path: '/roles',
     name: 'Roles',
     component: RolesView,
@@ -293,7 +298,7 @@ router.beforeEach((to, from, next) => {
   const isApplicantUser = !userRoles.length || userRoles.some(r => r === 'applicant' || r === 'user')
 
   // Applicant/user role — only allowed on portal and profile; block all staff routes
-  const staffRoutes = ['Dashboard', 'Users', 'Applications', 'AuditLogs', 'Roles', 'CMS', 'Maintenance', 'Backups', 'SmartUpdates', 'AdminForms', 'AdminFormSubmissions']
+  const staffRoutes = ['Dashboard', 'Users', 'Applications', 'AuditLogs', 'Roles', 'CMS', 'Maintenance', 'Backups', 'SmartUpdates', 'StorageSettings', 'AdminForms', 'AdminFormSubmissions']
   const hasActiveOrganisation = !!localStorage.getItem('ncsms_active_organisation')
   if (isApplicantUser && staffRoutes.includes(to.name) && !(to.name === 'Dashboard' && hasActiveOrganisation)) {
     return next('/my-portal')

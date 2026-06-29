@@ -164,6 +164,18 @@ func (s *ApplicationService) UploadPaymentProof(ctx context.Context, id, userID 
 	return s.apps.SetPaymentProof(ctx, id, in.Method, in.Reference, in.Amount)
 }
 
+func (s *ApplicationService) AddAttachment(ctx context.Context, id, userID string, att *models.Attachment) error {
+	app, err := s.apps.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if app.UserID != userID {
+		return ErrNotOwner
+	}
+	att.ApplicationID = id
+	return s.apps.AddAttachment(ctx, att)
+}
+
 func (s *ApplicationService) Submit(ctx context.Context, id, userID string) (*models.Application, error) {
 	app, err := s.apps.GetByID(ctx, id)
 	if err != nil {
