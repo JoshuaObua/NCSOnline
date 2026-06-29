@@ -243,6 +243,9 @@ const routes = [
     meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'general_secretary'] }
   },
 
+  // /admin is a natural URL admins type — send them to the dashboard
+  { path: '/admin', redirect: '/dashboard' },
+
   // Catch-all — redirect to home
   {
     path: '/:pathMatch(.*)*',
