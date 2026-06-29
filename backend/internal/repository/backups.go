@@ -132,6 +132,16 @@ func (r *BackupRepo) MarkVerified(ctx context.Context, id string, result json.Ra
 	_, err := r.db.Exec(ctx, `UPDATE system_backups SET status='VERIFIED',verified_at=NOW(),verification_result=$2 WHERE id=$1`, id, result)
 	return err
 }
+func (r *BackupRepo) Delete(ctx context.Context, id string) error {
+	result, err := r.db.Exec(ctx, `DELETE FROM system_backups WHERE id=$1`)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
 func (r *BackupRepo) MaintenanceEnabled(ctx context.Context) (bool, error) {
 	var enabled bool
 	err := r.db.QueryRow(ctx, `SELECT maintenance_mode FROM system_control WHERE singleton=TRUE`).Scan(&enabled)

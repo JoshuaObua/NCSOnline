@@ -3,15 +3,27 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"mime"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/atenimedia-llc/ncs-online/backend/internal/config"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
+	"github.com/go-chi/chi/v5"
 )
 
-type BackupsHandler struct{ repo *repository.BackupRepo }
+type BackupsHandler struct {
+	repo *repository.BackupRepo
+	cfg  *config.Config
+}
 
 func (h *BackupsHandler) List(w http.ResponseWriter, r *http.Request) {
 	items, err := h.repo.List(r.Context())
@@ -64,7 +76,125 @@ func (h *BackupsHandler) Queue(w http.ResponseWriter, r *http.Request) {
 	}
 	response.JSON(w, http.StatusAccepted, job)
 }
+func (h *BackupsHandler) Download(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	record, err := h.repo.Get(r.Context(), id)
+	if err != nil {
+		response.Err(w, 404, "NOT_FOUND", "Backup not found")
+		return
+	}
+	path := h.backupPath(record.FileName)
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": filepath.Base(record.FileName)}))
+	http.ServeFile(w, r, path)
+}
+func (h *BackupsHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	record, err := h.repo.Get(r.Context(), id)
+	if err != nil {
+		response.Err(w, 404, "NOT_FOUND", "Backup not found")
+		return
+	}
+	if err := h.repo.Delete(r.Context(), id); err != nil {
+		response.Err(w, 500, "SERVER_ERROR", "Could not delete backup record")
+		return
+	}
+	_ = os.Remove(h.backupPath(record.FileName))
+	_ = os.Remove(h.backupPath(record.FileName) + ".sha256")
+	response.JSONMsg(w, http.StatusOK, "Backup deleted")
+}
+func (h *BackupsHandler) DownloadSchema(w http.ResponseWriter, r *http.Request) {
+	name := fmt.Sprintf("ncs-schema-%s.sql", time.Now().UTC().Format("20060102-150405"))
+	cmd := exec.CommandContext(r.Context(), "pg_dump", "--dbname", h.cfg.DatabaseURL, "--schema-only", "--no-owner", "--no-privileges")
+	out, err := cmd.Output()
+	if err != nil {
+		response.Err(w, 500, "SCHEMA_EXPORT_FAILED", "Could not export database schema")
+		return
+	}
+	w.Header().Set("Content-Type", "application/sql")
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": name}))
+	_, _ = w.Write(out)
+}
+func (h *BackupsHandler) ImportSchema(w http.ResponseWriter, r *http.Request) {
+	if !h.stateEnabled() {
+		response.Err(w, 409, "MAINTENANCE_REQUIRED", "Enable maintenance mode before importing a schema")
+		return
+	}
+	if err := r.ParseMultipartForm(8 << 20); err != nil {
+		response.Err(w, 400, "BAD_REQUEST", "Could not parse schema file")
+		return
+	}
+	if r.FormValue("confirmation") != "IMPORT SCHEMA" {
+		response.Err(w, 400, "CONFIRMATION_REQUIRED", "Type IMPORT SCHEMA to confirm")
+		return
+	}
+	file, header, err := r.FormFile("schema")
+	if err != nil {
+		response.Err(w, 400, "BAD_REQUEST", "schema file is required")
+		return
+	}
+	defer file.Close()
+	if strings.ToLower(filepath.Ext(header.Filename)) != ".sql" {
+		response.Err(w, 400, "BAD_REQUEST", "Only .sql schema files are accepted")
+		return
+	}
+	tmp, err := os.CreateTemp("", "ncs-schema-*.sql")
+	if err != nil {
+		response.Err(w, 500, "SERVER_ERROR", "Could not stage schema file")
+		return
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := io.Copy(tmp, io.LimitReader(file, 8<<20)); err != nil {
+		tmp.Close()
+		response.Err(w, 500, "SERVER_ERROR", "Could not read schema file")
+		return
+	}
+	_ = tmp.Close()
+	out, err := exec.CommandContext(r.Context(), "psql", h.cfg.DatabaseURL, "-v", "ON_ERROR_STOP=1", "--single-transaction", "-f", tmp.Name()).CombinedOutput()
+	if err != nil {
+		response.Err(w, 500, "SCHEMA_IMPORT_FAILED", safeCommandOutput(out))
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Schema imported")
+}
+func (h *BackupsHandler) DeleteSchema(w http.ResponseWriter, r *http.Request) {
+	if !h.stateEnabled() {
+		response.Err(w, 409, "MAINTENANCE_REQUIRED", "Enable maintenance mode before deleting the database schema")
+		return
+	}
+	var input struct {
+		Confirmation string `json:"confirmation"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&input)
+	if input.Confirmation != "DELETE DATABASE SCHEMA" {
+		response.Err(w, 400, "CONFIRMATION_REQUIRED", "Type DELETE DATABASE SCHEMA to confirm")
+		return
+	}
+	sql := `DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO public;`
+	out, err := exec.CommandContext(r.Context(), "psql", h.cfg.DatabaseURL, "-v", "ON_ERROR_STOP=1", "-c", sql).CombinedOutput()
+	if err != nil {
+		response.Err(w, 500, "SCHEMA_DELETE_FAILED", safeCommandOutput(out))
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Database schema deleted and recreated")
+}
 func (h *BackupsHandler) stateEnabled() bool {
 	enabled, _ := h.repo.MaintenanceEnabled(context.Background())
 	return enabled
+}
+func (h *BackupsHandler) backupPath(name string) string {
+	dir := os.Getenv("BACKUP_DIR")
+	if dir == "" {
+		dir = "/var/backups/ncs"
+	}
+	return filepath.Join(dir, filepath.Base(name))
+}
+func safeCommandOutput(out []byte) string {
+	msg := strings.TrimSpace(string(out))
+	if msg == "" {
+		return "Command failed"
+	}
+	if len(msg) > 1000 {
+		msg = msg[:1000]
+	}
+	return msg
 }

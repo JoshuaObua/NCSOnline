@@ -1,15 +1,196 @@
-<template><LayoutDefault title="Database Backup & Restore"><div class="space-y-6">
-  <section class="bg-white border border-gray-100 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div><h1 class="text-xl font-bold text-primary-800">Verified recovery points</h1><p class="text-sm text-gray-500 mt-1">Backups are checksummed and must pass an isolated restore before production recovery.</p></div><button @click="queue('BACKUP')" class="rounded-xl bg-primary-700 px-5 py-3 text-white font-bold">Create backup now</button></section>
-  <section v-if="activeJob" class="rounded-2xl border border-blue-100 bg-blue-50 p-5"><div class="flex justify-between text-sm"><strong>{{ activeJob.job_type }} in progress</strong><span>{{ activeJob.progress }}%</span></div><div class="h-2 bg-white rounded-full mt-3"><div class="h-full bg-blue-600 rounded-full transition-all" :style="{width:activeJob.progress+'%'}"></div></div><p class="text-xs text-blue-800 mt-2">{{ activeJob.message }}</p></section>
-  <section class="bg-white border border-gray-100 rounded-2xl overflow-hidden"><div class="overflow-x-auto"><table class="min-w-full text-sm"><thead class="bg-gray-50 text-gray-500"><tr><th class="text-left p-4">Backup</th><th class="text-left p-4">Created</th><th class="text-left p-4">Size</th><th class="text-left p-4">Integrity</th><th class="text-right p-4">Actions</th></tr></thead><tbody class="divide-y divide-gray-100"><tr v-for="backup in backups" :key="backup.id"><td class="p-4"><strong class="text-primary-800">{{ backup.file_name }}</strong><p class="font-mono text-[10px] text-gray-400 mt-1">{{ backup.checksum }}</p></td><td class="p-4 text-gray-500">{{ date(backup.created_at) }}</td><td class="p-4">{{ bytes(backup.size_bytes) }}</td><td class="p-4"><span class="rounded-full px-2.5 py-1 text-xs font-bold" :class="backup.status==='VERIFIED'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'">{{ backup.status }}</span></td><td class="p-4 text-right space-x-2"><button @click="queue('VERIFY',backup.id)" class="rounded-lg border px-3 py-2 font-semibold">Verify</button><button :disabled="backup.status!=='VERIFIED'" @click="restore(backup.id)" class="rounded-lg bg-red-700 px-3 py-2 text-white font-semibold disabled:opacity-30">Restore</button></td></tr><tr v-if="!backups.length"><td colspan="5" class="p-10 text-center text-gray-400">No backup records yet.</td></tr></tbody></table></div></section>
-  <section class="bg-white border border-gray-100 rounded-2xl p-6"><h2 class="font-bold text-primary-800">Recent jobs</h2><div class="mt-4 space-y-2"><div v-for="job in jobs.slice(0,10)" :key="job.id" class="flex items-center justify-between rounded-xl bg-gray-50 p-3 text-sm"><span><strong>{{ job.job_type }}</strong> · {{ job.message }}</span><span class="font-bold" :class="job.status==='FAILED'?'text-red-600':job.status==='SUCCEEDED'?'text-green-600':'text-blue-600'">{{ job.status }}</span></div></div></section>
-</div></LayoutDefault></template>
+<template>
+  <LayoutDefault title="Database Backup & Restore">
+    <div class="space-y-6">
+      <section class="bg-white border border-gray-100 rounded-xl p-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-wider text-primary-700">PostgreSQL recovery centre</p>
+          <h1 class="text-xl font-bold text-primary-800 mt-1">Backups, schema tools, and restore jobs</h1>
+          <p class="text-sm text-gray-500 mt-1">Create verified recovery points, export schema SQL, and perform guarded recovery operations.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button @click="queue('BACKUP')" class="btn-primary"><i class="icofont-database-add"></i>Create backup</button>
+          <button @click="downloadSchema" class="btn-light"><i class="icofont-download"></i>Download schema</button>
+        </div>
+      </section>
+
+      <section v-if="activeJob" class="rounded-xl border border-blue-100 bg-blue-50 p-5">
+        <div class="flex justify-between text-sm"><strong>{{ activeJob.job_type }} in progress</strong><span>{{ activeJob.progress }}%</span></div>
+        <div class="h-2 bg-white rounded-full mt-3"><div class="h-full bg-blue-600 rounded-full transition-all" :style="{width:activeJob.progress+'%'}"></div></div>
+        <p class="text-xs text-blue-800 mt-2">{{ activeJob.message }}</p>
+      </section>
+
+      <section class="grid gap-4 lg:grid-cols-3">
+        <article class="tool-card">
+          <h2>Schema Import</h2>
+          <p>Apply a plain SQL schema file while maintenance mode is active.</p>
+          <input ref="schemaInput" type="file" accept=".sql,application/sql,text/plain" class="hidden" @change="importSchema" />
+          <button @click="schemaInput?.click()" class="btn-light mt-4"><i class="icofont-upload"></i>Import schema</button>
+        </article>
+        <article class="tool-card border-red-100">
+          <h2 class="text-red-800">Delete Schema</h2>
+          <p>Drop and recreate the public schema. Use only before importing a clean schema or restoring data.</p>
+          <button @click="deleteSchema" class="btn-danger mt-4"><i class="icofont-warning-alt"></i>Delete schema</button>
+        </article>
+        <article class="tool-card">
+          <h2>Recovery Guardrails</h2>
+          <ul class="mt-3 space-y-2 text-sm text-gray-600">
+            <li><i class="icofont-check text-green-600 mr-1"></i>Restore requires a verified dump.</li>
+            <li><i class="icofont-check text-green-600 mr-1"></i>Restore/import/delete require maintenance mode.</li>
+            <li><i class="icofont-check text-green-600 mr-1"></i>Restore creates a pre-restore safety dump.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="bg-white border border-gray-100 rounded-xl overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 class="font-bold text-primary-800">Recovery points</h2>
+          <button @click="load" class="btn-light"><i class="icofont-refresh"></i>Refresh</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 text-gray-500">
+              <tr><th class="text-left p-4">Backup</th><th class="text-left p-4">Created</th><th class="text-left p-4">Size</th><th class="text-left p-4">Integrity</th><th class="text-right p-4">Actions</th></tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="backup in backups" :key="backup.id">
+                <td class="p-4 max-w-md">
+                  <strong class="text-primary-800 break-all">{{ backup.file_name }}</strong>
+                  <p class="font-mono text-[10px] text-gray-400 mt-1 break-all">{{ backup.checksum }}</p>
+                </td>
+                <td class="p-4 text-gray-500">{{ date(backup.created_at) }}</td>
+                <td class="p-4">{{ bytes(backup.size_bytes) }}</td>
+                <td class="p-4"><span class="status-pill" :class="backup.status==='VERIFIED'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'">{{ backup.status }}</span></td>
+                <td class="p-4 text-right">
+                  <div class="inline-flex flex-wrap justify-end gap-2">
+                    <button @click="downloadBackup(backup.id)" class="btn-icon" title="Download backup"><i class="icofont-download"></i></button>
+                    <button @click="queue('VERIFY',backup.id)" class="btn-icon" title="Verify backup"><i class="icofont-check-circled"></i></button>
+                    <button :disabled="backup.status!=='VERIFIED'" @click="restore(backup.id)" class="btn-icon text-red-700 disabled:opacity-30" title="Restore backup"><i class="icofont-history"></i></button>
+                    <button @click="deleteBackup(backup.id)" class="btn-icon text-red-700" title="Delete backup"><i class="icofont-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="!backups.length"><td colspan="5" class="p-10 text-center text-gray-400">No backup records yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="bg-white border border-gray-100 rounded-xl p-5">
+        <h2 class="font-bold text-primary-800">Recent jobs</h2>
+        <div class="mt-4 grid gap-2">
+          <div v-for="job in jobs.slice(0,12)" :key="job.id" class="flex flex-col gap-1 rounded-lg bg-gray-50 p-3 text-sm md:flex-row md:items-center md:justify-between">
+            <span><strong>{{ job.job_type }}</strong> · {{ job.message }}</span>
+            <span class="font-bold" :class="job.status==='FAILED'?'text-red-600':job.status==='SUCCEEDED'?'text-green-600':'text-blue-600'">{{ job.status }}</span>
+          </div>
+          <p v-if="!jobs.length" class="text-sm text-gray-400">No jobs yet.</p>
+        </div>
+      </section>
+
+      <p v-if="message" class="rounded-lg border px-4 py-3 text-sm" :class="error ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'">{{ message }}</p>
+    </div>
+  </LayoutDefault>
+</template>
+
 <script setup>
-import { computed,onBeforeUnmount,onMounted,ref } from 'vue';import LayoutDefault from '@/components/layout/LayoutDefault.vue';import apiClient from '@/api/client.js'
-const backups=ref([]),jobs=ref([]);let timer;const activeJob=computed(()=>jobs.value.find(j=>j.status==='RUNNING'||j.status==='PENDING'))
-async function load(){const r=await apiClient.get('/api/v1/admin/system/backups');backups.value=r.data.data?.backups||[];jobs.value=r.data.data?.jobs||[]}
-async function queue(action,backup_id=null,confirmation=''){await apiClient.post('/api/v1/admin/system/backups/jobs',{action,backup_id,confirmation});await load()}
-async function restore(id){if(prompt('Enable maintenance mode first, then type RESTORE VERIFIED BACKUP')!=='RESTORE VERIFIED BACKUP')return;await queue('RESTORE',id,'RESTORE VERIFIED BACKUP')}
-const date=v=>new Date(v).toLocaleString(),bytes=v=>{let n=v||0,i=0,u=['B','KB','MB','GB'];while(n>=1024&&i<u.length-1){n/=1024;i++}return `${n.toFixed(1)} ${u[i]}`}
-onMounted(()=>{load();timer=setInterval(load,3000)});onBeforeUnmount(()=>clearInterval(timer))
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import LayoutDefault from '@/components/layout/LayoutDefault.vue'
+import apiClient, { API_BASE_URL } from '@/api/client.js'
+
+const backups = ref([])
+const jobs = ref([])
+const schemaInput = ref(null)
+const message = ref('')
+const error = ref(false)
+let timer
+
+const activeJob = computed(() => jobs.value.find(j => j.status === 'RUNNING' || j.status === 'PENDING'))
+
+async function load() {
+  const r = await apiClient.get('/api/v1/admin/system/backups')
+  backups.value = r.data.data?.backups || []
+  jobs.value = r.data.data?.jobs || []
+}
+async function queue(action, backup_id = null, confirmation = '') {
+  await apiClient.post('/api/v1/admin/system/backups/jobs', { action, backup_id, confirmation })
+  show(`${action} job queued`)
+  await load()
+}
+async function restore(id) {
+  if (prompt('Enable maintenance mode first, then type RESTORE VERIFIED BACKUP') !== 'RESTORE VERIFIED BACKUP') return
+  await queue('RESTORE', id, 'RESTORE VERIFIED BACKUP')
+}
+async function downloadSchema() {
+  await download('/api/v1/admin/system/backups/schema', `ncs-schema-${Date.now()}.sql`)
+}
+async function downloadBackup(id) {
+  await download(`/api/v1/admin/system/backups/${id}/download`, `backup-${id}.dump`)
+}
+async function deleteBackup(id) {
+  if (!confirm('Delete this backup record and local backup file?')) return
+  await apiClient.delete(`/api/v1/admin/system/backups/${id}`)
+  show('Backup deleted')
+  await load()
+}
+async function importSchema(e) {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  if (!file) return
+  if (prompt('Enable maintenance mode first, then type IMPORT SCHEMA') !== 'IMPORT SCHEMA') return
+  const fd = new FormData()
+  fd.append('schema', file)
+  fd.append('confirmation', 'IMPORT SCHEMA')
+  try {
+    await apiClient.post('/api/v1/admin/system/backups/schema/import', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+    show('Schema imported')
+  } catch (err) {
+    show(err.response?.data?.error?.message || 'Schema import failed', true)
+  }
+}
+async function deleteSchema() {
+  if (prompt('Enable maintenance mode first, then type DELETE DATABASE SCHEMA') !== 'DELETE DATABASE SCHEMA') return
+  try {
+    await apiClient.delete('/api/v1/admin/system/backups/schema', { data: { confirmation: 'DELETE DATABASE SCHEMA' } })
+    show('Database schema deleted and recreated')
+  } catch (err) {
+    show(err.response?.data?.error?.message || 'Schema delete failed', true)
+  }
+}
+async function download(path, fallbackName) {
+  const token = localStorage.getItem('ncsms_access_token')
+  const res = await fetch(`${API_BASE_URL}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+  if (!res.ok) {
+    show('Download failed', true)
+    return
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filenameFromDisposition(res.headers.get('content-disposition')) || fallbackName
+  a.click()
+  URL.revokeObjectURL(url)
+}
+function filenameFromDisposition(value) {
+  return value?.match(/filename="?([^"]+)"?/)?.[1]
+}
+function show(text, isError = false) {
+  message.value = text
+  error.value = isError
+}
+const date = v => new Date(v).toLocaleString()
+const bytes = v => { let n = v || 0, i = 0, u = ['B','KB','MB','GB','TB']; while (n >= 1024 && i < u.length - 1) { n /= 1024; i++ } return `${n.toFixed(1)} ${u[i]}` }
+
+onMounted(() => { load(); timer = setInterval(load, 3000) })
+onBeforeUnmount(() => clearInterval(timer))
 </script>
+
+<style scoped>
+.btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 0.75rem; background: #1f4f82; padding: 0.75rem 1rem; color: white; font-weight: 700; }
+.btn-light { display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 0.75rem; border: 1px solid #e5e7eb; background: white; padding: 0.65rem 0.9rem; color: #374151; font-weight: 700; }
+.btn-danger { display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 0.75rem; background: #b91c1c; padding: 0.65rem 0.9rem; color: white; font-weight: 700; }
+.btn-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; border: 1px solid #e5e7eb; background: white; }
+.tool-card { border: 1px solid #f3f4f6; background: white; border-radius: 0.75rem; padding: 1.25rem; }
+.tool-card h2 { font-weight: 700; color: #1f2937; }
+.tool-card p { margin-top: 0.35rem; font-size: 0.875rem; color: #6b7280; }
+.status-pill { border-radius: 999px; padding: 0.25rem 0.65rem; font-size: 0.75rem; font-weight: 700; }
+</style>

@@ -60,7 +60,7 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 		Organisations: &OrganisationsHandler{repo: repos.Organisations},
 		Operator:      NewOperatorHandler(repos.Operator, state),
 		SystemState:   state,
-		Backups:       &BackupsHandler{repo: repos.Backups},
+		Backups:       &BackupsHandler{repo: repos.Backups, cfg: cfg},
 		Forms:         &FormsHandler{svc: formSvc},
 		Security:      &SecurityHandler{svc: secSvc, users: repos.Users, audit: repos.Audit},
 		Updates:       &UpdatesHandler{svc: updSvc, deployer: deployer},

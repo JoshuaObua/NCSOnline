@@ -81,6 +81,7 @@
         <div class="section-label">Website Content</div>
         <div class="px-2 space-y-0.5">
           <NavItem :to="'/cms'" label="Content Manager" icon="icofont-newspaper" />
+          <NavItem :to="'/cms/page-builder'" label="Page Builder" icon="icofont-layout" />
         </div>
       </template>
 
@@ -94,7 +95,7 @@
 
       <template v-if="isAdminPlus">
         <div class="section-label">Operations</div>
-        <div class="px-2 space-y-0.5"><NavItem :to="'/maintenance'" label="Maintenance Core" icon="icofont-tools-alt-2" /><NavItem v-if="authStore.isSuperAdmin" :to="'/settings/storage'" label="File Storage" icon="icofont-cloud-upload" /><NavItem v-if="authStore.isSuperAdmin" :to="'/maintenance/backups'" label="Backup & Restore" icon="icofont-database" /><NavItem v-if="authStore.isSuperAdmin" :to="'/maintenance/updates'" label="Smart Updates" icon="icofont-download-alt" /></div>
+        <div class="px-2 space-y-0.5"><NavItem :to="'/maintenance/command-center'" label="Command Center" icon="icofont-dashboard" /><NavItem :to="'/maintenance'" label="Maintenance Core" icon="icofont-tools-alt-2" /><NavItem v-if="authStore.isSuperAdmin" :to="'/settings/storage'" label="File Storage" icon="icofont-cloud-upload" /><NavItem v-if="authStore.isSuperAdmin" :to="'/maintenance/backups'" label="Backup & Restore" icon="icofont-database" /><NavItem v-if="authStore.isSuperAdmin" :to="'/maintenance/updates'" label="Smart Updates" icon="icofont-download-alt" /></div>
       </template>
 
       <!-- ACCOUNT -->

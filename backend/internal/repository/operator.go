@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -13,18 +14,31 @@ import (
 
 type OperatorRepo struct{ db *pgxpool.Pool }
 
-const maintReturning = `RETURNING maintenance_mode,maintenance_reason,maintenance_scheduled_start,maintenance_expected_end,changed_at,COALESCE(changed_by,''),global_auth_invalid_before,cache_generation`
+const maintReturning = `RETURNING maintenance_mode,maintenance_reason,maintenance_scheduled_start,maintenance_expected_end,changed_at,COALESCE(changed_by,''),global_auth_invalid_before,cache_generation,public_cms_maintenance,admin_dashboard_maintenance`
 
 func scanSnapshot(row pgx.Row, s *maintenance.Snapshot) error {
-	return row.Scan(&s.Enabled, &s.Reason, &s.ScheduledStart, &s.ExpectedEnd,
-		&s.ChangedAt, &s.ChangedBy, &s.GlobalAuthInvalidBefore, &s.CacheGeneration)
+	var publicRaw, adminRaw []byte
+	err := row.Scan(&s.Enabled, &s.Reason, &s.ScheduledStart, &s.ExpectedEnd,
+		&s.ChangedAt, &s.ChangedBy, &s.GlobalAuthInvalidBefore, &s.CacheGeneration, &publicRaw, &adminRaw)
+	if err != nil {
+		return err
+	}
+	if len(publicRaw) > 0 {
+		_ = json.Unmarshal(publicRaw, &s.PublicCMS)
+	}
+	if len(adminRaw) > 0 {
+		_ = json.Unmarshal(adminRaw, &s.AdminDashboard)
+	}
+	s.Normalize()
+	return nil
 }
 
 func (r *OperatorRepo) LoadState(ctx context.Context) (maintenance.Snapshot, error) {
 	var s maintenance.Snapshot
 	err := scanSnapshot(r.db.QueryRow(ctx,
 		`SELECT maintenance_mode,maintenance_reason,maintenance_scheduled_start,maintenance_expected_end,
-		         changed_at,COALESCE(changed_by,''),global_auth_invalid_before,cache_generation
+		         changed_at,COALESCE(changed_by,''),global_auth_invalid_before,cache_generation,
+		         public_cms_maintenance,admin_dashboard_maintenance
 		 FROM system_control WHERE singleton=TRUE`), &s)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return maintenance.Snapshot{ChangedAt: time.Now().UTC()}, nil
@@ -33,34 +47,78 @@ func (r *OperatorRepo) LoadState(ctx context.Context) (maintenance.Snapshot, err
 }
 
 func (r *OperatorRepo) SaveMaintenance(ctx context.Context, enabled bool, reason string, scheduledStart, expectedEnd *time.Time, actor string) (maintenance.Snapshot, error) {
+	current, err := r.LoadState(ctx)
+	if err != nil {
+		return maintenance.Snapshot{}, err
+	}
+	scoped := current.Scoped(maintenance.ScopePublicCMS)
+	scoped.Enabled = enabled
+	scoped.Reason = reason
+	scoped.ScheduledStart = scheduledStart
+	scoped.ExpectedEnd = expectedEnd
+	scoped.ChangedAt = time.Now().UTC()
+	scoped.ChangedBy = actor
+	return r.SaveMaintenanceScope(ctx, maintenance.ScopePublicCMS, scoped, actor)
+}
+
+func (r *OperatorRepo) SaveMaintenanceScope(ctx context.Context, scope string, scoped maintenance.ScopedSnapshot, actor string) (maintenance.Snapshot, error) {
+	current, err := r.LoadState(ctx)
+	if err != nil {
+		return maintenance.Snapshot{}, err
+	}
+	if scope != maintenance.ScopeAdminDashboard {
+		scope = maintenance.ScopePublicCMS
+	}
+	scoped.ChangedAt = time.Now().UTC()
+	scoped.ChangedBy = actor
+	next := current.WithScoped(scope, scoped)
+	publicJSON, err := json.Marshal(next.PublicCMS)
+	if err != nil {
+		return maintenance.Snapshot{}, err
+	}
+	adminJSON, err := json.Marshal(next.AdminDashboard)
+	if err != nil {
+		return maintenance.Snapshot{}, err
+	}
 	var s maintenance.Snapshot
 	row := r.db.QueryRow(ctx, `
 		INSERT INTO system_control
-		  (singleton, maintenance_mode, maintenance_reason, maintenance_scheduled_start, maintenance_expected_end, changed_by, changed_at)
-		VALUES (TRUE, $1, $2, $3, $4, $5, NOW())
+		  (singleton, maintenance_mode, maintenance_reason, maintenance_scheduled_start, maintenance_expected_end, changed_by, changed_at, public_cms_maintenance, admin_dashboard_maintenance)
+		VALUES (TRUE, $1, $2, $3, $4, $5, NOW(), $6::jsonb, $7::jsonb)
 		ON CONFLICT(singleton) DO UPDATE
 		  SET maintenance_mode = EXCLUDED.maintenance_mode,
 		      maintenance_reason = EXCLUDED.maintenance_reason,
 		      maintenance_scheduled_start = EXCLUDED.maintenance_scheduled_start,
 		      maintenance_expected_end = EXCLUDED.maintenance_expected_end,
 		      changed_by = EXCLUDED.changed_by,
-		      changed_at = NOW()
-		` + maintReturning, enabled, reason, scheduledStart, expectedEnd, actor)
-	err := scanSnapshot(row, &s)
+		      changed_at = NOW(),
+		      public_cms_maintenance = EXCLUDED.public_cms_maintenance,
+		      admin_dashboard_maintenance = EXCLUDED.admin_dashboard_maintenance
+		`+maintReturning,
+		next.PublicCMS.Enabled, next.PublicCMS.Reason, next.PublicCMS.ScheduledStart, next.PublicCMS.ExpectedEnd, actor,
+		string(publicJSON), string(adminJSON))
+	err = scanSnapshot(row, &s)
 	return s, err
 }
 
 // SetEnabled flips just the maintenance_mode bit (used by the schedule
 // sentinel when start/end times cross). Preserves the reason and window.
 func (r *OperatorRepo) SetEnabled(ctx context.Context, enabled bool, actor string) (maintenance.Snapshot, error) {
-	var s maintenance.Snapshot
-	err := scanSnapshot(r.db.QueryRow(ctx, `
-		UPDATE system_control
-		   SET maintenance_mode = $1, changed_by = $2, changed_at = NOW()
-		 WHERE singleton = TRUE
-		 ` + maintReturning, enabled, actor), &s)
-	return s, err
+	return r.SetScopeEnabled(ctx, maintenance.ScopePublicCMS, enabled, actor)
 }
+
+func (r *OperatorRepo) SetScopeEnabled(ctx context.Context, scope string, enabled bool, actor string) (maintenance.Snapshot, error) {
+	current, err := r.LoadState(ctx)
+	if err != nil {
+		return maintenance.Snapshot{}, err
+	}
+	scoped := current.Scoped(scope)
+	scoped.Enabled = enabled
+	scoped.ChangedAt = time.Now().UTC()
+	scoped.ChangedBy = actor
+	return r.SaveMaintenanceScope(ctx, scope, scoped, actor)
+}
+
 func (r *OperatorRepo) RevokeAllSessions(ctx context.Context, actor string) (maintenance.Snapshot, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -78,7 +136,7 @@ func (r *OperatorRepo) RevokeAllSessions(ctx context.Context, actor string) (mai
 		  SET global_auth_invalid_before = date_trunc('second',NOW()),
 		      changed_by = $1,
 		      changed_at = NOW()
-		` + maintReturning, actor), &s)
+		`+maintReturning, actor), &s)
 	if err != nil {
 		return maintenance.Snapshot{}, err
 	}

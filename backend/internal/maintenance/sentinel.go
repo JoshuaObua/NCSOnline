@@ -10,6 +10,7 @@ import (
 // without disturbing the scheduling window.
 type EnabledFlipper interface {
 	SetEnabled(ctx context.Context, enabled bool, actor string) (Snapshot, error)
+	SetScopeEnabled(ctx context.Context, scope string, enabled bool, actor string) (Snapshot, error)
 }
 
 // StartScheduleSentinel watches the in-memory state on a 30-second ticker
@@ -37,16 +38,21 @@ func StartScheduleSentinel(ctx context.Context, state *State, flipper EnabledFli
 
 func reconcile(ctx context.Context, state *State, flipper EnabledFlipper) {
 	s := state.Get()
+	s.Normalize()
 	now := time.Now()
 	// Only the "active window expired" transition is automatic. We
 	// deliberately don't auto-disable when scheduled_start is in the
 	// future — IsActiveAt handles that without mutating storage so
 	// admins still see their planned window in the UI.
-	if s.Enabled && s.ExpectedEnd != nil && now.After(*s.ExpectedEnd) {
-		updated, err := flipper.SetEnabled(ctx, false, "schedule-sentinel")
-		if err != nil {
-			return
+	for _, scope := range []string{ScopePublicCMS, ScopeAdminDashboard} {
+		scoped := s.Scoped(scope)
+		if scoped.Enabled && scoped.ExpectedEnd != nil && now.After(*scoped.ExpectedEnd) {
+			updated, err := flipper.SetScopeEnabled(ctx, scope, false, "schedule-sentinel")
+			if err != nil {
+				return
+			}
+			state.Set(updated)
+			s = updated
 		}
-		state.Set(updated)
 	}
 }

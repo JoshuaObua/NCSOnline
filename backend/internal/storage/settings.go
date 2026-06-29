@@ -18,6 +18,9 @@ type Settings struct {
 
 	GoogleDriveFolderID        string `json:"google_drive_folder_id"`
 	GoogleDriveCredentialsJSON string `json:"google_drive_credentials_json,omitempty"`
+	GoogleDriveClientID        string `json:"google_drive_client_id,omitempty"`
+	GoogleDriveClientSecret    string `json:"google_drive_client_secret,omitempty"`
+	GoogleDriveRefreshToken    string `json:"google_drive_refresh_token,omitempty"`
 	GoogleDriveMakePublic      bool   `json:"google_drive_make_public"`
 
 	S3Bucket          string `json:"s3_bucket"`
@@ -89,6 +92,8 @@ func normalizeProvider(value, fallback string, allowed map[string]bool) string {
 
 func (s Settings) Redacted() Settings {
 	s.GoogleDriveCredentialsJSON = ""
+	s.GoogleDriveClientSecret = ""
+	s.GoogleDriveRefreshToken = ""
 	s.S3AccessKeyID = redact(s.S3AccessKeyID)
 	s.S3SecretAccessKey = ""
 	return s
@@ -97,6 +102,12 @@ func (s Settings) Redacted() Settings {
 func (s Settings) MergeSecrets(existing Settings) Settings {
 	if strings.TrimSpace(s.GoogleDriveCredentialsJSON) == "" {
 		s.GoogleDriveCredentialsJSON = existing.GoogleDriveCredentialsJSON
+	}
+	if strings.TrimSpace(s.GoogleDriveClientSecret) == "" {
+		s.GoogleDriveClientSecret = existing.GoogleDriveClientSecret
+	}
+	if strings.TrimSpace(s.GoogleDriveRefreshToken) == "" {
+		s.GoogleDriveRefreshToken = existing.GoogleDriveRefreshToken
 	}
 	if strings.TrimSpace(s.S3AccessKeyID) == "" || strings.HasPrefix(s.S3AccessKeyID, "********") {
 		s.S3AccessKeyID = existing.S3AccessKeyID

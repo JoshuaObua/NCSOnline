@@ -85,6 +85,17 @@
             <Field label="Folder ID">
               <input v-model="form.google_drive_folder_id" class="input" placeholder="Drive folder ID" />
             </Field>
+            <div class="grid gap-4 md:grid-cols-2">
+              <Field label="OAuth client ID">
+                <input v-model="form.google_drive_client_id" class="input" placeholder="Google API client ID" />
+              </Field>
+              <Field label="OAuth client secret">
+                <input v-model="form.google_drive_client_secret" type="password" class="input" placeholder="Leave blank to keep current value" />
+              </Field>
+            </div>
+            <Field label="OAuth refresh token">
+              <input v-model="form.google_drive_refresh_token" type="password" class="input" placeholder="Leave blank to keep current value" />
+            </Field>
             <Field label="Service account JSON">
               <textarea v-model="form.google_drive_credentials_json" rows="5" class="input font-mono text-xs" placeholder="Paste JSON only when setting or replacing credentials"></textarea>
             </Field>
@@ -155,6 +166,9 @@ const form = reactive({
   local_app_url_prefix: '/uploads/applications',
   google_drive_folder_id: '',
   google_drive_credentials_json: '',
+  google_drive_client_id: '',
+  google_drive_client_secret: '',
+  google_drive_refresh_token: '',
   google_drive_make_public: true,
   s3_bucket: '',
   s3_region: 'us-east-1',
@@ -182,6 +196,8 @@ async function save() {
   try {
     Object.assign(form, await updateStorageSettings({ ...form }))
     form.google_drive_credentials_json = ''
+    form.google_drive_client_secret = ''
+    form.google_drive_refresh_token = ''
     form.s3_secret_access_key = ''
     show('Storage settings saved')
   } catch (e) {

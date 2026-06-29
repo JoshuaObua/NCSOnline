@@ -11,7 +11,7 @@ import (
 
 func TestMaintenanceResponsesByChannel(t *testing.T) {
 	state := maintenance.New(maintenance.Snapshot{Enabled: true})
-	h := MaintenanceMode(state, true)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { t.Fatal("request bypassed maintenance") }))
+	h := MaintenanceMode(state, true, "test-secret")(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { t.Fatal("request bypassed maintenance") }))
 	for _, tc := range []struct {
 		path     string
 		status   int
@@ -28,7 +28,7 @@ func TestMaintenanceResponsesByChannel(t *testing.T) {
 func TestMaintenanceAllowsHealthAndAdmin(t *testing.T) {
 	state := maintenance.New(maintenance.Snapshot{Enabled: true})
 	called := 0
-	h := MaintenanceMode(state, true)(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { called++ }))
+	h := MaintenanceMode(state, true, "test-secret")(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { called++ }))
 	for _, path := range []string{"/healthz", "/readyz", "/api/v1/admin/system/status", "/api/v1/auth/login"} {
 		h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", path, nil))
 	}

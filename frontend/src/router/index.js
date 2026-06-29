@@ -38,11 +38,13 @@ const AuditLogsView = () => import('@/views/AuditLogsView.vue')
 const RolesView = () => import('@/views/RolesView.vue')
 const ProfileView = () => import('@/views/ProfileView.vue')
 const CMSView = () => import('@/views/CMSView.vue')
+const PageBuilderView = () => import('@/views/PageBuilderView.vue')
 const GovernanceDashboardView = () => import('@/views/GovernanceDashboardView.vue')
 const ReportingWorkspaceView = () => import('@/views/ReportingWorkspaceView.vue')
 const InsightsDashboardView = () => import('@/views/InsightsDashboardView.vue')
 const NSMISRegistryView = () => import('@/views/NSMISRegistryView.vue')
 const MaintenanceView = () => import('@/views/MaintenanceView.vue')
+const InfrastructureCommandCenterView = () => import('@/views/InfrastructureCommandCenterView.vue')
 const BackupsView = () => import('@/views/BackupsView.vue')
 const AdminFormsView = () => import('@/views/AdminFormsView.vue')
 const AdminFormSubmissionsView = () => import('@/views/AdminFormSubmissionsView.vue')
@@ -177,6 +179,10 @@ const routes = [
     meta: { requiresAuth: true, roles: ['super_admin', 'admin'] }
   },
   {
+    path: '/maintenance/command-center', name: 'InfrastructureCommandCenter', component: InfrastructureCommandCenterView,
+    meta: { requiresAuth: true, roles: ['super_admin', 'admin'] }
+  },
+  {
     path: '/maintenance/backups', name: 'Backups', component: BackupsView,
     meta: { requiresAuth: true, roles: ['super_admin'] }
   },
@@ -216,6 +222,12 @@ const routes = [
     path: '/cms',
     name: 'CMS',
     component: CMSView,
+    meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'content_manager'] }
+  },
+  {
+    path: '/cms/page-builder',
+    name: 'PageBuilder',
+    component: PageBuilderView,
     meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'content_manager'] }
   },
   {
@@ -298,7 +310,7 @@ router.beforeEach((to, from, next) => {
   const isApplicantUser = !userRoles.length || userRoles.some(r => r === 'applicant' || r === 'user')
 
   // Applicant/user role — only allowed on portal and profile; block all staff routes
-  const staffRoutes = ['Dashboard', 'Users', 'Applications', 'AuditLogs', 'Roles', 'CMS', 'Maintenance', 'Backups', 'SmartUpdates', 'StorageSettings', 'AdminForms', 'AdminFormSubmissions']
+  const staffRoutes = ['Dashboard', 'Users', 'Applications', 'AuditLogs', 'Roles', 'CMS', 'PageBuilder', 'Maintenance', 'InfrastructureCommandCenter', 'Backups', 'SmartUpdates', 'StorageSettings', 'AdminForms', 'AdminFormSubmissions']
   const hasActiveOrganisation = !!localStorage.getItem('ncsms_active_organisation')
   if (isApplicantUser && staffRoutes.includes(to.name) && !(to.name === 'Dashboard' && hasActiveOrganisation)) {
     return next('/my-portal')

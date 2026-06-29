@@ -73,7 +73,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.AuditLogger(auditWriter))
 	r.Use(middleware.HoneypotScanner)
-	r.Use(middleware.MaintenanceMode(h.SystemState, cfg.MaintenanceEnabled))
+	r.Use(middleware.MaintenanceMode(h.SystemState, cfg.MaintenanceEnabled, cfg.JWTSecret))
 	r.Use(rl.Middleware)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.AllowedOrigins,
@@ -255,6 +255,7 @@ func main() {
 				r.Get("/admin/system/status", h.Operator.Status)
 				r.Get("/admin/system/resources", h.Operator.Resources)
 				r.Get("/admin/system/resources/ws", h.Operator.ResourceStream)
+				r.Get("/admin/system/service-logs", h.Operator.ServiceLogs)
 
 				r.Route("/admin/users", func(r chi.Router) {
 					r.Get("/", h.Users.List)
@@ -283,11 +284,18 @@ func main() {
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireRoles("super_admin"))
 				r.Put("/admin/system/maintenance", h.Operator.SetMaintenance)
+				r.Post("/admin/system/actions", h.Operator.MaintenanceAction)
+				r.Post("/admin/system/services/action", h.Operator.ServiceAction)
 				r.Post("/admin/system/cache/flush", h.Operator.FlushCache)
 				r.Post("/admin/system/sessions/revoke-all", h.Operator.RevokeAll)
 				r.Get("/admin/storage-settings", h.CMS.GetStorageSettings)
 				r.Put("/admin/storage-settings", h.CMS.UpdateStorageSettings)
 				r.Get("/admin/system/backups", h.Backups.List)
+				r.Get("/admin/system/backups/schema", h.Backups.DownloadSchema)
+				r.Post("/admin/system/backups/schema/import", h.Backups.ImportSchema)
+				r.Delete("/admin/system/backups/schema", h.Backups.DeleteSchema)
+				r.Get("/admin/system/backups/{id}/download", h.Backups.Download)
+				r.Delete("/admin/system/backups/{id}", h.Backups.Delete)
 				r.Post("/admin/system/backups/jobs", h.Backups.Queue)
 
 				// Smart updates (GitHub release sentinel + in-place deploy).

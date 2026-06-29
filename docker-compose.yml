@@ -48,7 +48,7 @@ services:
       # Security note: mounting the docker socket grants the backend
       # container effective root on the host. Only enable on trusted
       # operator hosts where admins are already trusted to deploy.
-      # - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock
     expose:
       - "8080"
     networks:

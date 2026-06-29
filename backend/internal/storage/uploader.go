@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
@@ -113,14 +114,10 @@ func (u *Uploader) uploadLocal(in UploadInput) (*UploadResult, error) {
 }
 
 func (u *Uploader) uploadGoogleDrive(ctx context.Context, in UploadInput) (*UploadResult, error) {
-	if strings.TrimSpace(u.settings.GoogleDriveCredentialsJSON) == "" {
-		return nil, errors.New("google drive credentials are not configured")
-	}
-	cfg, err := google.JWTConfigFromJSON([]byte(u.settings.GoogleDriveCredentialsJSON), "https://www.googleapis.com/auth/drive.file")
+	client, err := u.googleDriveClient(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("google drive credentials: %w", err)
+		return nil, err
 	}
-	client := cfg.Client(ctx)
 	content, err := io.ReadAll(in.Reader)
 	if err != nil {
 		return nil, err
@@ -183,6 +180,27 @@ func (u *Uploader) uploadGoogleDrive(ctx context.Context, in UploadInput) (*Uplo
 		Provider: "google_drive",
 		Key:      created.ID,
 	}, nil
+}
+
+func (u *Uploader) googleDriveClient(ctx context.Context) (*http.Client, error) {
+	if strings.TrimSpace(u.settings.GoogleDriveCredentialsJSON) != "" {
+		cfg, err := google.JWTConfigFromJSON([]byte(u.settings.GoogleDriveCredentialsJSON), "https://www.googleapis.com/auth/drive.file")
+		if err != nil {
+			return nil, fmt.Errorf("google drive service account credentials: %w", err)
+		}
+		return cfg.Client(ctx), nil
+	}
+	if u.settings.GoogleDriveClientID == "" || u.settings.GoogleDriveClientSecret == "" || u.settings.GoogleDriveRefreshToken == "" {
+		return nil, errors.New("google drive oauth client id, client secret and refresh token are not configured")
+	}
+	cfg := &oauth2.Config{
+		ClientID:     u.settings.GoogleDriveClientID,
+		ClientSecret: u.settings.GoogleDriveClientSecret,
+		Endpoint:     google.Endpoint,
+		Scopes:       []string{"https://www.googleapis.com/auth/drive.file"},
+	}
+	token := &oauth2.Token{RefreshToken: u.settings.GoogleDriveRefreshToken}
+	return cfg.Client(ctx, token), nil
 }
 
 func makeDriveFilePublic(ctx context.Context, client *http.Client, fileID string) error {
