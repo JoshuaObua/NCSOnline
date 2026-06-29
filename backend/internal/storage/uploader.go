@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -24,6 +25,18 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
+
+// googleDriveScope must be the full Drive scope (not drive.file): the admin
+// supplies the ID of a folder that already exists in their own Drive rather
+// than one created or opened by this app, and drive.file only grants access
+// to files/folders the app itself created or that were explicitly opened via
+// the Drive picker. Without the broader scope, uploads into a pre-existing
+// folder fail with a 403 even though the OAuth credentials are valid.
+const googleDriveScope = "https://www.googleapis.com/auth/drive"
+
+// googleDriveHTTPTimeout bounds how long a single Drive API call (token
+// refresh, file upload, or permission change) may take before failing.
+const googleDriveHTTPTimeout = 60 * time.Second
 
 type Scope string
 
@@ -55,7 +68,7 @@ type Uploader struct {
 
 func NewUploader(settings Settings) *Uploader {
 	settings.Normalize()
-	return &Uploader{settings: settings, client: http.DefaultClient}
+	return &Uploader{settings: settings, client: &http.Client{Timeout: googleDriveHTTPTimeout}}
 }
 
 func (u *Uploader) Upload(ctx context.Context, in UploadInput) (*UploadResult, error) {
@@ -114,6 +127,8 @@ func (u *Uploader) uploadLocal(in UploadInput) (*UploadResult, error) {
 }
 
 func (u *Uploader) uploadGoogleDrive(ctx context.Context, in UploadInput) (*UploadResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, googleDriveHTTPTimeout)
+	defer cancel()
 	client, err := u.googleDriveClient(ctx)
 	if err != nil {
 		return nil, err
@@ -149,7 +164,7 @@ func (u *Uploader) uploadGoogleDrive(ctx context.Context, in UploadInput) (*Uplo
 	if err := writer.Close(); err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink", &body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,webViewLink", &body)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +187,9 @@ func (u *Uploader) uploadGoogleDrive(ctx context.Context, in UploadInput) (*Uplo
 		return nil, err
 	}
 	if u.settings.GoogleDriveMakePublic {
-		_ = makeDriveFilePublic(ctx, client, created.ID)
+		if err := makeDriveFilePublic(ctx, client, created.ID); err != nil {
+			slog.Warn("google drive: could not make uploaded file public", "file_id", created.ID, "error", err)
+		}
 	}
 	return &UploadResult{
 		URL:      "https://drive.google.com/uc?id=" + url.QueryEscape(created.ID),
@@ -182,30 +199,57 @@ func (u *Uploader) uploadGoogleDrive(ctx context.Context, in UploadInput) (*Uplo
 	}, nil
 }
 
-func (u *Uploader) googleDriveClient(ctx context.Context) (*http.Client, error) {
-	if strings.TrimSpace(u.settings.GoogleDriveCredentialsJSON) != "" {
-		cfg, err := google.JWTConfigFromJSON([]byte(u.settings.GoogleDriveCredentialsJSON), "https://www.googleapis.com/auth/drive.file")
-		if err != nil {
-			return nil, fmt.Errorf("google drive service account credentials: %w", err)
-		}
-		return cfg.Client(ctx), nil
-	}
-	if u.settings.GoogleDriveClientID == "" || u.settings.GoogleDriveClientSecret == "" || u.settings.GoogleDriveRefreshToken == "" {
-		return nil, errors.New("google drive oauth client id, client secret and refresh token are not configured")
-	}
-	cfg := &oauth2.Config{
-		ClientID:     u.settings.GoogleDriveClientID,
-		ClientSecret: u.settings.GoogleDriveClientSecret,
+// googleDriveOAuthConfig builds the OAuth2 config shared by the connect,
+// exchange, and authenticated-client code paths so the client ID/secret,
+// endpoint, and scope can never drift between them.
+func googleDriveOAuthConfig(clientID, clientSecret, redirectURI string) *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
 		Endpoint:     google.Endpoint,
-		Scopes:       []string{"https://www.googleapis.com/auth/drive.file"},
+		RedirectURL:  redirectURI,
+		Scopes:       []string{googleDriveScope},
 	}
+}
+
+// GoogleDriveAuthURL builds the Google consent-screen URL for the admin to
+// authorize this app against their Drive account. access_type=offline plus
+// prompt=consent guarantees a refresh token comes back even on a reconnect.
+func GoogleDriveAuthURL(clientID, redirectURI, state string) string {
+	cfg := googleDriveOAuthConfig(clientID, "", redirectURI)
+	return cfg.AuthCodeURL(state, oauth2.AccessTypeOffline, oauth2.SetAuthURLParam("prompt", "consent"))
+}
+
+// ExchangeGoogleDriveCode trades the one-time authorization code from the
+// OAuth callback for a refresh token, which is what authenticates every
+// subsequent upload — the admin never has to see or paste this value.
+func ExchangeGoogleDriveCode(ctx context.Context, clientID, clientSecret, redirectURI, code string) (string, error) {
+	cfg := googleDriveOAuthConfig(clientID, clientSecret, redirectURI)
+	token, err := cfg.Exchange(ctx, code)
+	if err != nil {
+		return "", fmt.Errorf("google drive token exchange failed: %w", err)
+	}
+	if strings.TrimSpace(token.RefreshToken) == "" {
+		return "", errors.New("google did not return a refresh token; remove this app's access in your Google account's third-party access settings and connect again")
+	}
+	return token.RefreshToken, nil
+}
+
+func (u *Uploader) googleDriveClient(ctx context.Context) (*http.Client, error) {
+	if u.settings.GoogleDriveClientID == "" || u.settings.GoogleDriveClientSecret == "" {
+		return nil, errors.New("google drive client id and client secret are not configured")
+	}
+	if u.settings.GoogleDriveRefreshToken == "" {
+		return nil, errors.New("google drive is not connected: save the client id, client secret and folder id, then connect your Google account")
+	}
+	cfg := googleDriveOAuthConfig(u.settings.GoogleDriveClientID, u.settings.GoogleDriveClientSecret, "")
 	token := &oauth2.Token{RefreshToken: u.settings.GoogleDriveRefreshToken}
 	return cfg.Client(ctx, token), nil
 }
 
 func makeDriveFilePublic(ctx context.Context, client *http.Client, fileID string) error {
 	body := strings.NewReader(`{"role":"reader","type":"anyone"}`)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://www.googleapis.com/drive/v3/files/"+url.PathEscape(fileID)+"/permissions", body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://www.googleapis.com/drive/v3/files/"+url.PathEscape(fileID)+"/permissions?supportsAllDrives=true", body)
 	if err != nil {
 		return err
 	}

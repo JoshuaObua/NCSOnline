@@ -11,6 +11,8 @@ INSERT INTO cms_settings (key, value) VALUES
     "local_app_url_prefix": "/uploads/applications",
     "google_drive_folder_id": "",
     "google_drive_client_id": "",
+    "google_drive_client_secret": "",
+    "google_drive_refresh_token": "",
     "google_drive_make_public": true,
     "s3_bucket": "",
     "s3_region": "us-east-1",

@@ -82,23 +82,38 @@
             <h2 class="font-semibold text-gray-900">Google Drive API</h2>
           </div>
           <div class="p-5 grid gap-4">
+            <div class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
+                 :class="googleDriveConnected ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'">
+              <span class="inline-flex items-center gap-2 text-sm font-semibold" :class="googleDriveConnected ? 'text-emerald-700' : 'text-amber-700'">
+                <i :class="googleDriveConnected ? 'icofont-check-circled' : 'icofont-warning-alt'"></i>
+                {{ googleDriveConnected ? 'Connected to Google Drive' : 'Not connected' }}
+              </span>
+              <div class="flex gap-2">
+                <button type="button" @click="connectDrive" :disabled="connecting || saving || loading"
+                        class="rounded-lg bg-primary-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-800 disabled:opacity-60">
+                  {{ connecting ? 'Connecting…' : (googleDriveConnected ? 'Reconnect' : 'Connect') }}
+                </button>
+                <button v-if="googleDriveConnected" type="button" @click="disconnectDrive" :disabled="connecting || saving || loading"
+                        class="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-60">
+                  Disconnect
+                </button>
+              </div>
+            </div>
             <Field label="Folder ID">
               <input v-model="form.google_drive_folder_id" class="input" placeholder="Drive folder ID" />
             </Field>
             <div class="grid gap-4 md:grid-cols-2">
-              <Field label="OAuth client ID">
-                <input v-model="form.google_drive_client_id" class="input" placeholder="Google API client ID" />
+              <Field label="Client ID">
+                <input v-model="form.google_drive_client_id" class="input" placeholder="Google OAuth client ID" />
               </Field>
-              <Field label="OAuth client secret">
+              <Field label="Client secret">
                 <input v-model="form.google_drive_client_secret" type="password" class="input" placeholder="Leave blank to keep current value" />
               </Field>
             </div>
-            <Field label="OAuth refresh token">
-              <input v-model="form.google_drive_refresh_token" type="password" class="input" placeholder="Leave blank to keep current value" />
-            </Field>
-            <Field label="Service account JSON">
-              <textarea v-model="form.google_drive_credentials_json" rows="5" class="input font-mono text-xs" placeholder="Paste JSON only when setting or replacing credentials"></textarea>
-            </Field>
+            <p class="text-xs text-gray-500">
+              Save the folder ID, client ID and client secret, then click Connect to authorize this app
+              against your Google account — no refresh token or service account file needed.
+            </p>
             <label class="flex items-center gap-2 text-sm font-medium text-gray-700">
               <input v-model="form.google_drive_make_public" type="checkbox" class="rounded text-primary-700" />
               Make uploaded public files readable by link
@@ -147,15 +162,31 @@
 
 <script setup>
 import { defineComponent, h, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
 import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
-import { getStorageSettings, updateStorageSettings } from '@/api/storageSettings.js'
+import {
+  getStorageSettings,
+  updateStorageSettings,
+  connectGoogleDrive,
+  exchangeGoogleDriveCode,
+  disconnectGoogleDrive,
+} from '@/api/storageSettings.js'
 
 const breadcrumbStore = useBreadcrumbStore()
+const route = useRoute()
+const router = useRouter()
 const loading = ref(true)
 const saving = ref(false)
+const connecting = ref(false)
 const message = ref('')
 const error = ref(false)
+const googleDriveConnected = ref(false)
+
+// Google redirects back to this exact page after the admin approves access,
+// so the OAuth redirect_uri is just this route's own URL — no separate
+// callback route or backend-side public-URL guess needed.
+const driveRedirectUri = `${window.location.origin}${router.resolve({ name: 'StorageSettings' }).href}`
 
 const form = reactive({
   public_provider: 'google_drive',
@@ -165,10 +196,8 @@ const form = reactive({
   local_app_path: '/app/uploads/applications',
   local_app_url_prefix: '/uploads/applications',
   google_drive_folder_id: '',
-  google_drive_credentials_json: '',
   google_drive_client_id: '',
   google_drive_client_secret: '',
-  google_drive_refresh_token: '',
   google_drive_make_public: true,
   s3_bucket: '',
   s3_region: 'us-east-1',
@@ -180,10 +209,15 @@ const form = reactive({
   s3_secret_access_key: '',
 })
 
+function applySettings(data) {
+  Object.assign(form, data)
+  googleDriveConnected.value = !!data.google_drive_connected
+}
+
 async function load() {
   loading.value = true
   try {
-    Object.assign(form, await getStorageSettings())
+    applySettings(await getStorageSettings())
   } catch (e) {
     show(e.response?.data?.error?.message || 'Could not load settings', true)
   } finally {
@@ -194,16 +228,54 @@ async function load() {
 async function save() {
   saving.value = true
   try {
-    Object.assign(form, await updateStorageSettings({ ...form }))
-    form.google_drive_credentials_json = ''
+    applySettings(await updateStorageSettings({ ...form }))
     form.google_drive_client_secret = ''
-    form.google_drive_refresh_token = ''
     form.s3_secret_access_key = ''
     show('Storage settings saved')
   } catch (e) {
     show(e.response?.data?.error?.message || 'Could not save settings', true)
   } finally {
     saving.value = false
+  }
+}
+
+async function connectDrive() {
+  connecting.value = true
+  try {
+    await save()
+    const { auth_url } = await connectGoogleDrive(driveRedirectUri)
+    window.location.href = auth_url
+  } catch (e) {
+    show(e.response?.data?.error?.message || 'Could not start Google Drive connection', true)
+    connecting.value = false
+  }
+}
+
+async function disconnectDrive() {
+  connecting.value = true
+  try {
+    applySettings(await disconnectGoogleDrive())
+    show('Google Drive disconnected')
+  } catch (e) {
+    show(e.response?.data?.error?.message || 'Could not disconnect Google Drive', true)
+  } finally {
+    connecting.value = false
+  }
+}
+
+async function completeOAuthCallback() {
+  const { code, state, error: oauthError } = route.query
+  if (!code && !oauthError) return
+  connecting.value = true
+  try {
+    if (oauthError) throw new Error(String(oauthError))
+    applySettings(await exchangeGoogleDriveCode({ code, state, redirectUri: driveRedirectUri }))
+    show('Google Drive connected')
+  } catch (e) {
+    show(e.response?.data?.error?.message || e.message || 'Could not finish connecting Google Drive', true)
+  } finally {
+    connecting.value = false
+    router.replace({ name: 'StorageSettings' })
   }
 }
 
@@ -222,9 +294,10 @@ const Field = defineComponent({
   },
 })
 
-onMounted(() => {
+onMounted(async () => {
   breadcrumbStore.set('File Storage', [{ label: 'Operations' }, { label: 'File Storage' }])
-  load()
+  await load()
+  await completeOAuthCallback()
 })
 </script>
 

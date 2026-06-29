@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -9,9 +11,11 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
+	"github.com/atenimedia-llc/ncs-online/backend/internal/config"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
@@ -20,7 +24,16 @@ import (
 	"github.com/google/uuid"
 )
 
-type CMSHandler struct{ repo *repository.CMSRepo }
+type CMSHandler struct {
+	repo *repository.CMSRepo
+	cfg  *config.Config
+
+	// In-memory, single-use state tokens for the Google Drive OAuth connect
+	// flow. They only need to survive the few seconds between redirecting the
+	// admin to Google and them coming back, so a DB table would be overkill.
+	oauthStateMu sync.Mutex
+	oauthStates  map[string]time.Time
+}
 
 // nullableID returns nil for "" / nil / whitespace, otherwise the trimmed value.
 // Used so that "" coming from the JSON payload clears the FK instead of
@@ -734,7 +747,7 @@ func (h *CMSHandler) GetStorageSettings(w http.ResponseWriter, r *http.Request) 
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load storage settings")
 		return
 	}
-	response.JSON(w, http.StatusOK, settings.Redacted())
+	response.JSON(w, http.StatusOK, storageSettingsView(settings))
 }
 
 // PUT /api/v1/admin/storage-settings
@@ -760,7 +773,7 @@ func (h *CMSHandler) UpdateStorageSettings(w http.ResponseWriter, r *http.Reques
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save storage settings")
 		return
 	}
-	response.JSON(w, http.StatusOK, req.Redacted())
+	response.JSON(w, http.StatusOK, storageSettingsView(req))
 }
 
 func (h *CMSHandler) storageSettings(ctx context.Context) (storage.Settings, error) {
@@ -772,6 +785,164 @@ func (h *CMSHandler) storageSettings(ctx context.Context) (storage.Settings, err
 		return storage.Settings{}, err
 	}
 	return storage.ParseSettings(s.Value)
+}
+
+type storageSettingsResponse struct {
+	storage.Settings
+	GoogleDriveConnected bool `json:"google_drive_connected"`
+}
+
+func storageSettingsView(s storage.Settings) storageSettingsResponse {
+	return storageSettingsResponse{Settings: s.Redacted(), GoogleDriveConnected: s.GoogleDriveConnected()}
+}
+
+// ── Google Drive OAuth connect flow ──────────────────────────────────────
+//
+// The admin only ever provides three things: the folder ID, the OAuth
+// client ID, and the OAuth client secret. Google Drive uploads still need a
+// refresh token under the hood, but instead of asking the admin to obtain
+// one manually (e.g. via the OAuth playground), this flow gets it for them:
+// they click "Connect", approve access on Google's consent screen, and
+// Google redirects back into the SPA with a one-time code. The frontend
+// posts that code (and the state we handed it) to the exchange endpoint
+// below, which trades it for a refresh token and stores it server-side —
+// it's never shown to or re-entered by the admin.
+
+const googleDriveOAuthStateTTL = 10 * time.Minute
+
+// POST /api/v1/admin/storage-settings/google-drive/connect
+func (h *CMSHandler) ConnectGoogleDrive(w http.ResponseWriter, r *http.Request) {
+	settings, err := h.storageSettings(r.Context())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load storage settings")
+		return
+	}
+	if strings.TrimSpace(settings.GoogleDriveClientID) == "" || strings.TrimSpace(settings.GoogleDriveClientSecret) == "" {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Save the Google Drive client ID and client secret first")
+		return
+	}
+	if strings.TrimSpace(settings.GoogleDriveFolderID) == "" {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Save the Google Drive folder ID first")
+		return
+	}
+	var body struct {
+		RedirectURI string `json:"redirect_uri"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	if strings.TrimSpace(body.RedirectURI) == "" {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Missing redirect_uri")
+		return
+	}
+	state, err := h.newOAuthState()
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not start Google Drive connection")
+		return
+	}
+	authURL := storage.GoogleDriveAuthURL(settings.GoogleDriveClientID, body.RedirectURI, state)
+	response.JSON(w, http.StatusOK, map[string]string{"auth_url": authURL})
+}
+
+// POST /api/v1/admin/storage-settings/google-drive/exchange
+// Called by the SPA after Google redirects the admin back with ?code=&state=.
+func (h *CMSHandler) ExchangeGoogleDriveCode(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Code        string `json:"code"`
+		State       string `json:"state"`
+		RedirectURI string `json:"redirect_uri"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if !h.consumeOAuthState(body.State) {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Connection request expired or already used, please try connecting again")
+		return
+	}
+	if strings.TrimSpace(body.Code) == "" || strings.TrimSpace(body.RedirectURI) == "" {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Missing code or redirect_uri")
+		return
+	}
+	existing, err := h.storageSettings(r.Context())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load storage settings")
+		return
+	}
+	if strings.TrimSpace(existing.GoogleDriveClientID) == "" || strings.TrimSpace(existing.GoogleDriveClientSecret) == "" {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Google Drive client ID and client secret are not configured")
+		return
+	}
+	refreshToken, err := storage.ExchangeGoogleDriveCode(r.Context(), existing.GoogleDriveClientID, existing.GoogleDriveClientSecret, body.RedirectURI, body.Code)
+	if err != nil {
+		response.Err(w, http.StatusBadGateway, "GOOGLE_DRIVE_EXCHANGE_FAILED", err.Error())
+		return
+	}
+	existing.GoogleDriveRefreshToken = refreshToken
+	raw, err := json.Marshal(existing)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save storage settings")
+		return
+	}
+	if err := h.repo.UpdateSetting(r.Context(), storage.SettingsKey, raw); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save storage settings")
+		return
+	}
+	response.JSON(w, http.StatusOK, storageSettingsView(existing))
+}
+
+// POST /api/v1/admin/storage-settings/google-drive/disconnect
+func (h *CMSHandler) DisconnectGoogleDrive(w http.ResponseWriter, r *http.Request) {
+	existing, err := h.storageSettings(r.Context())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load storage settings")
+		return
+	}
+	existing.GoogleDriveRefreshToken = ""
+	raw, err := json.Marshal(existing)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save storage settings")
+		return
+	}
+	if err := h.repo.UpdateSetting(r.Context(), storage.SettingsKey, raw); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save storage settings")
+		return
+	}
+	response.JSON(w, http.StatusOK, storageSettingsView(existing))
+}
+
+func (h *CMSHandler) newOAuthState() (string, error) {
+	b := make([]byte, 24)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	state := hex.EncodeToString(b)
+	h.oauthStateMu.Lock()
+	defer h.oauthStateMu.Unlock()
+	if h.oauthStates == nil {
+		h.oauthStates = map[string]time.Time{}
+	}
+	h.pruneOAuthStatesLocked()
+	h.oauthStates[state] = time.Now().Add(googleDriveOAuthStateTTL)
+	return state, nil
+}
+
+func (h *CMSHandler) consumeOAuthState(state string) bool {
+	if state == "" {
+		return false
+	}
+	h.oauthStateMu.Lock()
+	defer h.oauthStateMu.Unlock()
+	expiry, ok := h.oauthStates[state]
+	delete(h.oauthStates, state)
+	return ok && time.Now().Before(expiry)
+}
+
+func (h *CMSHandler) pruneOAuthStatesLocked() {
+	now := time.Now()
+	for k, v := range h.oauthStates {
+		if now.After(v) {
+			delete(h.oauthStates, k)
+		}
+	}
 }
 
 // POST /api/v1/admin/media/upload

@@ -16,12 +16,11 @@ type Settings struct {
 	LocalAppPath         string `json:"local_app_path"`
 	LocalAppURLPrefix    string `json:"local_app_url_prefix"`
 
-	GoogleDriveFolderID        string `json:"google_drive_folder_id"`
-	GoogleDriveCredentialsJSON string `json:"google_drive_credentials_json,omitempty"`
-	GoogleDriveClientID        string `json:"google_drive_client_id,omitempty"`
-	GoogleDriveClientSecret    string `json:"google_drive_client_secret,omitempty"`
-	GoogleDriveRefreshToken    string `json:"google_drive_refresh_token,omitempty"`
-	GoogleDriveMakePublic      bool   `json:"google_drive_make_public"`
+	GoogleDriveFolderID     string `json:"google_drive_folder_id"`
+	GoogleDriveClientID     string `json:"google_drive_client_id,omitempty"`
+	GoogleDriveClientSecret string `json:"google_drive_client_secret,omitempty"`
+	GoogleDriveRefreshToken string `json:"google_drive_refresh_token,omitempty"`
+	GoogleDriveMakePublic   bool   `json:"google_drive_make_public"`
 
 	S3Bucket          string `json:"s3_bucket"`
 	S3Region          string `json:"s3_region"`
@@ -91,7 +90,6 @@ func normalizeProvider(value, fallback string, allowed map[string]bool) string {
 }
 
 func (s Settings) Redacted() Settings {
-	s.GoogleDriveCredentialsJSON = ""
 	s.GoogleDriveClientSecret = ""
 	s.GoogleDriveRefreshToken = ""
 	s.S3AccessKeyID = redact(s.S3AccessKeyID)
@@ -99,14 +97,21 @@ func (s Settings) Redacted() Settings {
 	return s
 }
 
+// GoogleDriveConnected reports whether a refresh token has been obtained via
+// the OAuth connect flow, i.e. uploads can actually authenticate.
+func (s Settings) GoogleDriveConnected() bool {
+	return strings.TrimSpace(s.GoogleDriveRefreshToken) != ""
+}
+
 func (s Settings) MergeSecrets(existing Settings) Settings {
-	if strings.TrimSpace(s.GoogleDriveCredentialsJSON) == "" {
-		s.GoogleDriveCredentialsJSON = existing.GoogleDriveCredentialsJSON
-	}
 	if strings.TrimSpace(s.GoogleDriveClientSecret) == "" {
 		s.GoogleDriveClientSecret = existing.GoogleDriveClientSecret
 	}
-	if strings.TrimSpace(s.GoogleDriveRefreshToken) == "" {
+	// The refresh token is only ever set internally by the OAuth connect
+	// callback, never by the settings form, so preserve it here — unless the
+	// client ID/secret changed, in which case the old token belongs to a
+	// different OAuth app and can no longer be used; force a reconnect.
+	if s.GoogleDriveClientID == existing.GoogleDriveClientID && s.GoogleDriveClientSecret == existing.GoogleDriveClientSecret {
 		s.GoogleDriveRefreshToken = existing.GoogleDriveRefreshToken
 	}
 	if strings.TrimSpace(s.S3AccessKeyID) == "" || strings.HasPrefix(s.S3AccessKeyID, "********") {
