@@ -54,7 +54,7 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 		Applications:  &ApplicationsHandler{svc: appSvc, audit: repos.Audit, storage: repos.CMS},
 		Dashboard:     &DashboardHandler{users: repos.Users, apps: repos.Applications},
 		Audit:         &AuditHandler{repo: repos.Audit},
-		CMS:           &CMSHandler{repo: repos.CMS, cfg: cfg},
+		CMS:           &CMSHandler{repo: repos.CMS},
 		NSMIS:         &NSMISHandler{repo: repos.NSMIS, cfg: cfg},
 		USSD:          &USSDHandler{service: ussdSvc, callbackSecret: cfg.USSDCallbackSecret},
 		Organisations: &OrganisationsHandler{repo: repos.Organisations},

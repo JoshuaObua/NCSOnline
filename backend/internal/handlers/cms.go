@@ -15,7 +15,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/atenimedia-llc/ncs-online/backend/internal/config"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
@@ -26,7 +25,6 @@ import (
 
 type CMSHandler struct {
 	repo *repository.CMSRepo
-	cfg  *config.Config
 
 	// In-memory, single-use state tokens for the Google Drive OAuth connect
 	// flow. They only need to survive the few seconds between redirecting the
