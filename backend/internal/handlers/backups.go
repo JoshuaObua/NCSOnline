@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -102,6 +103,51 @@ func (h *BackupsHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	_ = os.Remove(h.backupPath(record.FileName) + ".sha256")
 	response.JSONMsg(w, http.StatusOK, "Backup deleted")
 }
+
+func (h *BackupsHandler) ExportJobs(w http.ResponseWriter, r *http.Request) {
+	jobs, err := h.repo.ListJobs(r.Context())
+	if err != nil {
+		response.Err(w, 500, "SERVER_ERROR", "Could not export job logs")
+		return
+	}
+	name := fmt.Sprintf("backup-jobs-%s.csv", time.Now().UTC().Format("20060102-150405"))
+	w.Header().Set("Content-Type", "text/csv")
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": name}))
+	cw := csv.NewWriter(w)
+	_ = cw.Write([]string{"id", "job_type", "backup_id", "status", "progress", "message", "requested_by", "created_at", "started_at", "finished_at"})
+	for _, job := range jobs {
+		_ = cw.Write([]string{
+			job.ID, job.JobType, strPtr(job.BackupID), job.Status, fmt.Sprint(job.Progress), job.Message,
+			strPtr(job.RequestedBy), formatTime(job.CreatedAt), formatTimePtr(job.StartedAt), formatTimePtr(job.FinishedAt),
+		})
+	}
+	cw.Flush()
+}
+
+func (h *BackupsHandler) DeleteJob(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "jobID")
+	if err := h.repo.DeleteJob(r.Context(), id); err != nil {
+		response.Err(w, 404, "NOT_FOUND", "Job log not found")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Job log deleted")
+}
+
+func (h *BackupsHandler) ClearJobs(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Confirmation string `json:"confirmation"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&input)
+	if input.Confirmation != "CLEAR BACKUP JOB LOGS" {
+		response.Err(w, 400, "CONFIRMATION_REQUIRED", "Type CLEAR BACKUP JOB LOGS to confirm")
+		return
+	}
+	if err := h.repo.ClearJobs(r.Context()); err != nil {
+		response.Err(w, 500, "SERVER_ERROR", "Could not clear job logs")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Finished backup job logs cleared")
+}
 func (h *BackupsHandler) DownloadSchema(w http.ResponseWriter, r *http.Request) {
 	name := fmt.Sprintf("ncs-schema-%s.sql", time.Now().UTC().Format("20060102-150405"))
 	cmd := exec.CommandContext(r.Context(), "pg_dump", "--dbname", h.cfg.DatabaseURL, "--schema-only", "--no-owner", "--no-privileges")
@@ -197,4 +243,22 @@ func safeCommandOutput(out []byte) string {
 		msg = msg[:1000]
 	}
 	return msg
+}
+
+func strPtr(v *string) string {
+	if v == nil {
+		return ""
+	}
+	return *v
+}
+
+func formatTime(v time.Time) string {
+	return v.UTC().Format(time.RFC3339)
+}
+
+func formatTimePtr(v *time.Time) string {
+	if v == nil {
+		return ""
+	}
+	return formatTime(*v)
 }

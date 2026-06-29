@@ -105,6 +105,13 @@ func main() {
 	})
 	r.Handle("/metrics", metricRegistry)
 	r.Post("/ncs-ussd", h.USSD.ServeHTTP)
+	r.Get("/api/v1/system/maintenance-status", func(w http.ResponseWriter, r *http.Request) {
+		s := h.SystemState.Get()
+		response.JSON(w, http.StatusOK, map[string]any{
+			"public_cms":      s.Scoped(maintenance.ScopePublicCMS),
+			"admin_dashboard": s.Scoped(maintenance.ScopeAdminDashboard),
+		})
+	})
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// ── Public auth (geo-blocked: Uganda only, no VPN) ────────────
@@ -294,6 +301,9 @@ func main() {
 				r.Get("/admin/system/backups/schema", h.Backups.DownloadSchema)
 				r.Post("/admin/system/backups/schema/import", h.Backups.ImportSchema)
 				r.Delete("/admin/system/backups/schema", h.Backups.DeleteSchema)
+				r.Get("/admin/system/backups/jobs/export", h.Backups.ExportJobs)
+				r.Delete("/admin/system/backups/jobs", h.Backups.ClearJobs)
+				r.Delete("/admin/system/backups/jobs/{jobID}", h.Backups.DeleteJob)
 				r.Get("/admin/system/backups/{id}/download", h.Backups.Download)
 				r.Delete("/admin/system/backups/{id}", h.Backups.Delete)
 				r.Post("/admin/system/backups/jobs", h.Backups.Queue)
@@ -302,6 +312,8 @@ func main() {
 				// Deploy/rollback require the Docker socket to be mounted into
 				// the backend container — see Docs/runbooks/smart-updates.md.
 				r.Get("/admin/system/updates", h.Updates.Status)
+				r.Get("/admin/system/updates/settings", h.Updates.Settings)
+				r.Put("/admin/system/updates/settings", h.Updates.SaveSettings)
 				r.Post("/admin/system/updates/check", h.Updates.Check)
 				r.Get("/admin/system/updates/deploy", h.Updates.DeployStatus)
 				r.Post("/admin/system/updates/deploy", h.Updates.Deploy)

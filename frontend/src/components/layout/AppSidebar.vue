@@ -1,8 +1,8 @@
 <template>
   <aside
     :class="[
-      'fixed inset-y-0 left-0 z-40 w-64 flex flex-col bg-primary-700 shadow-xl transition-transform duration-300',
-      open ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      'fixed inset-y-0 left-0 z-40 flex flex-col bg-primary-700 shadow-xl transition-all duration-300',
+      open ? 'w-64 translate-x-0' : 'sidebar-collapsed w-64 -translate-x-full md:w-20 md:translate-x-0'
     ]"
   >
     <!-- Brand -->
@@ -10,7 +10,7 @@
       <div class="flex-shrink-0 w-11 h-11 bg-white rounded-xl flex items-center justify-center overflow-hidden p-1">
         <img src="/main-logo.png" alt="NCS Logo" class="w-full h-full object-contain" />
       </div>
-      <div class="min-w-0">
+      <div class="min-w-0" :class="!open ? 'md:hidden' : ''">
         <div class="text-white font-bold text-sm leading-tight">National Council</div>
         <div class="text-primary-300 text-xs mt-0.5 leading-tight">of Sports · NCSMS</div>
       </div>
@@ -29,8 +29,8 @@
           <span class="text-white text-sm font-bold">{{ userInitials }}</span>
         </div>
         <div class="min-w-0 flex-1">
-          <div class="text-white text-sm font-semibold truncate leading-tight">{{ userName }}</div>
-          <div class="text-primary-300 text-xs truncate mt-0.5">{{ userRole }}</div>
+          <div class="text-white text-sm font-semibold truncate leading-tight" :class="!open ? 'md:hidden' : ''">{{ userName }}</div>
+          <div class="text-primary-300 text-xs truncate mt-0.5" :class="!open ? 'md:hidden' : ''">{{ userRole }}</div>
         </div>
         <router-link to="/profile" class="flex-shrink-0 text-primary-300 hover:text-white transition-colors" title="My Profile">
           <i class="icofont-settings text-base leading-none"></i>
@@ -44,44 +44,44 @@
       <!-- MAIN -->
       <div class="section-label">Main</div>
       <div class="px-2 space-y-0.5">
-        <NavItem :to="'/dashboard'" label="Dashboard" icon="icofont-dashboard-web" />
+        <NavItem :collapsed="!open" :to="'/dashboard'" label="Dashboard" icon="icofont-dashboard-web" />
       </div>
 
       <template v-if="authStore.canUseNSMIS">
         <div class="section-label">NSMIS Reporting</div>
         <div class="px-2 space-y-0.5">
-          <NavItem v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department','federation_president','federation_general_secretary','auditor')" :to="'/nsmis/governance'" label="Governance" icon="icofont-chart-histogram" />
-          <NavItem :to="'/nsmis/reports'" label="Federation Reports" icon="icofont-file-document" />
-          <NavItem v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department')" :to="'/nsmis/insights/athletes'" label="Athletes" icon="icofont-runner-alt-1" />
-          <NavItem v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department')" :to="'/nsmis/insights/performance'" label="Performance" icon="icofont-medal" />
-          <NavItem v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','finance_department')" :to="'/nsmis/insights/finance'" label="Finance" icon="icofont-money" />
-          <NavItem v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department')" :to="'/nsmis/insights/talent'" label="Talent" icon="icofont-search-user" />
-          <NavItem :to="'/nsmis/data/federation-officers'" label="Federation Profiles" icon="icofont-building-alt" />
-          <NavItem :to="'/nsmis/data/athletes'" label="Athlete Registry" icon="icofont-users-alt-4" />
-          <NavItem :to="'/nsmis/data/competitions'" label="Competitions" icon="icofont-trophy" />
-          <NavItem :to="'/nsmis/data/medals'" label="Medal Records" icon="icofont-medal-sport" />
-          <NavItem :to="'/nsmis/data/coaches'" label="Coaches" icon="icofont-teacher" />
-          <NavItem :to="'/nsmis/data/technical-officials'" label="Technical Officials" icon="icofont-judge" />
-          <NavItem :to="'/nsmis/data/equipment'" label="Equipment" icon="icofont-box" />
+          <NavItem :collapsed="!open" v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department','federation_president','federation_general_secretary','auditor')" :to="'/nsmis/governance'" label="Governance" icon="icofont-chart-histogram" />
+          <NavItem :collapsed="!open" :to="'/nsmis/reports'" label="Federation Reports" icon="icofont-file-document" />
+          <NavItem :collapsed="!open" v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department')" :to="'/nsmis/insights/athletes'" label="Athletes" icon="icofont-runner-alt-1" />
+          <NavItem :collapsed="!open" v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department')" :to="'/nsmis/insights/performance'" label="Performance" icon="icofont-medal" />
+          <NavItem :collapsed="!open" v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','finance_department')" :to="'/nsmis/insights/finance'" label="Finance" icon="icofont-money" />
+          <NavItem :collapsed="!open" v-if="authStore.hasAnyRole('super_admin','admin','ncs_general_secretary','general_secretary','technical_department')" :to="'/nsmis/insights/talent'" label="Talent" icon="icofont-search-user" />
+          <NavItem :collapsed="!open" :to="'/nsmis/data/federation-officers'" label="Federation Profiles" icon="icofont-building-alt" />
+          <NavItem :collapsed="!open" :to="'/nsmis/data/athletes'" label="Athlete Registry" icon="icofont-users-alt-4" />
+          <NavItem :collapsed="!open" :to="'/nsmis/data/competitions'" label="Competitions" icon="icofont-trophy" />
+          <NavItem :collapsed="!open" :to="'/nsmis/data/medals'" label="Medal Records" icon="icofont-medal-sport" />
+          <NavItem :collapsed="!open" :to="'/nsmis/data/coaches'" label="Coaches" icon="icofont-teacher" />
+          <NavItem :collapsed="!open" :to="'/nsmis/data/technical-officials'" label="Technical Officials" icon="icofont-judge" />
+          <NavItem :collapsed="!open" :to="'/nsmis/data/equipment'" label="Equipment" icon="icofont-box" />
         </div>
       </template>
 
       <!-- MANAGEMENT -->
       <div v-if="canManage" class="section-label">Management</div>
       <div v-if="canManage" class="px-2 space-y-0.5">
-        <NavItem :to="'/applications'" label="Applications" icon="icofont-files-stack" />
-        <NavItem :to="'/admin/forms'" label="Form Builder" icon="icofont-edit" />
-        <NavItem :to="'/admin/forms/submissions'" label="Form Submissions" icon="icofont-inbox" />
-        <NavItem v-if="isAdminPlus" :to="'/users'" label="Users" icon="icofont-people" />
-        <NavItem v-if="authStore.isSuperAdmin" :to="'/roles'" label="Roles & Permissions" icon="icofont-safety" />
+        <NavItem :collapsed="!open" :to="'/applications'" label="Applications" icon="icofont-files-stack" />
+        <NavItem :collapsed="!open" :to="'/admin/forms'" label="Form Builder" icon="icofont-edit" />
+        <NavItem :collapsed="!open" :to="'/admin/forms/submissions'" label="Form Submissions" icon="icofont-inbox" />
+        <NavItem :collapsed="!open" v-if="isAdminPlus" :to="'/users'" label="Users" icon="icofont-people" />
+        <NavItem :collapsed="!open" v-if="authStore.isSuperAdmin" :to="'/roles'" label="Roles & Permissions" icon="icofont-safety" />
       </div>
 
       <!-- WEBSITE CONTENT -->
       <template v-if="isContentManager">
         <div class="section-label">Website Content</div>
         <div class="px-2 space-y-0.5">
-          <NavItem :to="'/cms'" label="Content Manager" icon="icofont-newspaper" />
-          <NavItem :to="'/cms/page-builder'" label="Page Builder" icon="icofont-layout" />
+          <NavItem :collapsed="!open" :to="'/cms'" label="Content Manager" icon="icofont-newspaper" />
+          <NavItem :collapsed="!open" :to="'/cms/page-builder'" label="Page Builder" icon="icofont-layout" />
         </div>
       </template>
 
@@ -89,21 +89,21 @@
       <template v-if="isAdminPlus">
         <div class="section-label">Security</div>
         <div class="px-2 space-y-0.5">
-          <NavItem :to="'/audit-logs'" label="Audit Logs" icon="icofont-history" />
+          <NavItem :collapsed="!open" :to="'/audit-logs'" label="Audit Logs" icon="icofont-history" />
         </div>
       </template>
 
       <template v-if="isAdminPlus">
         <div class="section-label">Operations</div>
-        <div class="px-2 space-y-0.5"><NavItem :to="'/maintenance/command-center'" label="Command Center" icon="icofont-dashboard" /><NavItem :to="'/maintenance'" label="Maintenance Core" icon="icofont-tools-alt-2" /><NavItem v-if="authStore.isSuperAdmin" :to="'/settings/storage'" label="File Storage" icon="icofont-cloud-upload" /><NavItem v-if="authStore.isSuperAdmin" :to="'/maintenance/backups'" label="Backup & Restore" icon="icofont-database" /><NavItem v-if="authStore.isSuperAdmin" :to="'/maintenance/updates'" label="Smart Updates" icon="icofont-download-alt" /></div>
+        <div class="px-2 space-y-0.5"><NavItem :collapsed="!open" :to="'/maintenance/command-center'" label="Command Center" icon="icofont-dashboard" /><NavItem :collapsed="!open" :to="'/maintenance'" label="Maintenance Core" icon="icofont-tools-alt-2" /><NavItem :collapsed="!open" v-if="authStore.isSuperAdmin" :to="'/settings/storage'" label="File Storage" icon="icofont-cloud-upload" /><NavItem :collapsed="!open" v-if="authStore.isSuperAdmin" :to="'/maintenance/backups'" label="Backup & Restore" icon="icofont-database" /><NavItem :collapsed="!open" v-if="authStore.isSuperAdmin" :to="'/maintenance/updates'" label="Smart Updates" icon="icofont-download-alt" /></div>
       </template>
 
       <!-- ACCOUNT -->
       <div class="section-label">Account</div>
       <div class="px-2 space-y-0.5">
-        <NavItem :to="'/profile'" label="My Profile" icon="icofont-user-alt-5" />
-        <NavItem :to="'/me/activities'" label="My Activities" icon="icofont-history" />
-        <NavItem :to="'/me/security'" label="Security Settings" icon="icofont-shield-alt" />
+        <NavItem :collapsed="!open" :to="'/profile'" label="My Profile" icon="icofont-user-alt-5" />
+        <NavItem :collapsed="!open" :to="'/me/activities'" label="My Activities" icon="icofont-history" />
+        <NavItem :collapsed="!open" :to="'/me/security'" label="Security Settings" icon="icofont-shield-alt" />
       </div>
     </nav>
 
@@ -171,26 +171,49 @@ const NavItem = defineComponent({
     to: String,
     label: String,
     icon: String,
-    highlight: { type: Boolean, default: false }
+    highlight: { type: Boolean, default: false },
+    collapsed: { type: Boolean, default: false }
   },
   render() {
     return h(RouterLink, { to: this.to, custom: true }, {
       default: ({ href, navigate, isActive }) => h('a', {
         href,
         onClick: navigate,
+        title: this.collapsed ? this.label : undefined,
         class: [
           this.highlight
             ? (isActive ? 'bg-yellow-400 text-primary-900' : 'bg-yellow-500/90 hover:bg-yellow-400 text-primary-900')
             : (isActive
                 ? 'bg-primary-600 text-white border-l-2 border-white/70 pl-[10px]'
                 : 'text-primary-200 hover:bg-primary-600/50 hover:text-white'),
+          this.collapsed ? 'md:justify-center md:gap-0' : '',
           'group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150'
         ].flat().filter(Boolean).join(' ')
       }, [
         h('i', { class: `text-base leading-none flex-shrink-0 ${this.icon}` }),
-        this.label
+        h('span', { class: this.collapsed ? 'md:hidden' : '' }, this.label)
       ])
     })
   }
 })
 </script>
+
+<style scoped>
+@media (min-width: 768px) {
+  .sidebar-collapsed :deep(.section-label) {
+    font-size: 0;
+    padding-left: 0;
+    padding-right: 0;
+    text-align: center;
+  }
+  .sidebar-collapsed :deep(.section-label)::after {
+    content: "";
+    display: block;
+    width: 1.75rem;
+    height: 1px;
+    margin: 0.75rem auto 0.35rem;
+    background: rgba(255,255,255,0.25);
+  }
+}
+</style>
+

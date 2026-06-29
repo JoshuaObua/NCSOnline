@@ -21,13 +21,22 @@ type AuthHandler struct {
 	cfg   *config.Config
 }
 
-const refreshCookieName = "ncsms_refresh"
+const (
+	refreshCookieName = "ncsms_refresh"
+	accessCookieName  = "ncsms_access"
+)
 
 func (h *AuthHandler) setRefreshCookie(w http.ResponseWriter, token string) {
 	http.SetCookie(w, &http.Cookie{Name: refreshCookieName, Value: token, Path: "/api/v1/auth", HttpOnly: true, Secure: h.cfg.IsProduction(), SameSite: http.SameSiteStrictMode, MaxAge: int(h.cfg.RefreshTokenTTL.Seconds()), Expires: time.Now().Add(h.cfg.RefreshTokenTTL)})
 }
+func (h *AuthHandler) setAccessCookie(w http.ResponseWriter, token string) {
+	http.SetCookie(w, &http.Cookie{Name: accessCookieName, Value: token, Path: "/", HttpOnly: true, Secure: h.cfg.IsProduction(), SameSite: http.SameSiteLaxMode, MaxAge: int(h.cfg.AccessTokenTTL.Seconds()), Expires: time.Now().Add(h.cfg.AccessTokenTTL)})
+}
 func (h *AuthHandler) clearRefreshCookie(w http.ResponseWriter) {
 	http.SetCookie(w, &http.Cookie{Name: refreshCookieName, Value: "", Path: "/api/v1/auth", HttpOnly: true, Secure: h.cfg.IsProduction(), SameSite: http.SameSiteStrictMode, MaxAge: -1, Expires: time.Unix(1, 0)})
+}
+func (h *AuthHandler) clearAccessCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{Name: accessCookieName, Value: "", Path: "/", HttpOnly: true, Secure: h.cfg.IsProduction(), SameSite: http.SameSiteLaxMode, MaxAge: -1, Expires: time.Unix(1, 0)})
 }
 func refreshFromRequest(r *http.Request) string {
 	if c, e := r.Cookie(refreshCookieName); e == nil && c.Value != "" {
@@ -41,6 +50,7 @@ func refreshFromRequest(r *http.Request) string {
 }
 func (h *AuthHandler) secureResult(w http.ResponseWriter, result *services.LoginResult) {
 	h.setRefreshCookie(w, result.RefreshToken)
+	h.setAccessCookie(w, result.AccessToken)
 }
 
 // POST /api/v1/auth/register
@@ -151,6 +161,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	raw := refreshFromRequest(r)
 	_ = h.svc.Logout(r.Context(), raw)
 	h.clearRefreshCookie(w)
+	h.clearAccessCookie(w)
 	response.JSONMsg(w, http.StatusOK, "Logged out successfully")
 }
 

@@ -13,8 +13,8 @@
 
     <AppSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 
-    <div class="flex-1 flex flex-col min-h-screen md:ml-64">
-      <AppHeader :page-title="pageTitle" @toggle-sidebar="sidebarOpen = !sidebarOpen" />
+    <div class="flex-1 flex flex-col min-h-screen transition-all duration-300" :class="sidebarOpen ? 'md:ml-64' : 'md:ml-20'">
+      <AppHeader :page-title="pageTitle" @toggle-sidebar="toggleSidebar" />
 
       <!-- Breadcrumb row -->
       <div class="bg-white border-b border-gray-100 px-6 py-2.5 flex items-center gap-1.5 text-xs flex-shrink-0">
@@ -76,6 +76,12 @@ const isMobile = ref(false)
 function checkMobile() {
   isMobile.value = window.innerWidth < 768
   if (isMobile.value) sidebarOpen.value = false
+  else sidebarOpen.value = localStorage.getItem('ncsms_sidebar_collapsed') !== '1'
+}
+
+function toggleSidebar() {
+  sidebarOpen.value = !sidebarOpen.value
+  if (!isMobile.value) localStorage.setItem('ncsms_sidebar_collapsed', sidebarOpen.value ? '0' : '1')
 }
 
 onMounted(() => {

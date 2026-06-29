@@ -67,6 +67,22 @@ func (r *BackupRepo) ListJobs(ctx context.Context) ([]BackupJob, error) {
 	}
 	return items, rows.Err()
 }
+
+func (r *BackupRepo) DeleteJob(ctx context.Context, id string) error {
+	result, err := r.db.Exec(ctx, `DELETE FROM backup_jobs WHERE id=$1`, id)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *BackupRepo) ClearJobs(ctx context.Context) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM backup_jobs WHERE status NOT IN ('PENDING','RUNNING')`)
+	return err
+}
 func (r *BackupRepo) Queue(ctx context.Context, kind string, backupID *string, actor string) (BackupJob, error) {
 	j := BackupJob{ID: uuid.NewString(), JobType: kind, BackupID: backupID, Status: "PENDING"}
 	if actor != "" {
@@ -144,6 +160,11 @@ func (r *BackupRepo) Delete(ctx context.Context, id string) error {
 }
 func (r *BackupRepo) MaintenanceEnabled(ctx context.Context) (bool, error) {
 	var enabled bool
-	err := r.db.QueryRow(ctx, `SELECT maintenance_mode FROM system_control WHERE singleton=TRUE`).Scan(&enabled)
+	err := r.db.QueryRow(ctx, `
+		SELECT maintenance_mode
+		    OR COALESCE((public_cms_maintenance->>'maintenance_mode')::boolean, false)
+		    OR COALESCE((admin_dashboard_maintenance->>'maintenance_mode')::boolean, false)
+		  FROM system_control
+		 WHERE singleton=TRUE`).Scan(&enabled)
 	return enabled, err
 }

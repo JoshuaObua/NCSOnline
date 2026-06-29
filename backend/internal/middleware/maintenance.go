@@ -61,7 +61,7 @@ func MaintenanceMode(state *maintenance.State, enabled bool, jwtSecret string) f
 
 func isMaintenanceAlwaysAllowed(path string) bool {
 	switch path {
-	case "/health", "/healthz", "/readyz", "/metrics", "/api/v1/auth/login", "/api/v1/auth/refresh":
+	case "/health", "/healthz", "/readyz", "/metrics", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/system/maintenance-status":
 		return true
 	}
 	return false

@@ -69,7 +69,7 @@ func DefaultScopedSnapshot(scope string) ScopedSnapshot {
 	case ScopeAdminDashboard:
 		s.DisplayMeta.CustomTitle = "Admin Dashboard Maintenance"
 		s.DisplayMeta.CustomMessage = "Back-office tools are temporarily unavailable while maintenance is in progress."
-		s.BypassRules.AllowedRoles = []string{"super_admin"}
+		s.BypassRules.AllowedRoles = []string{"super_admin", "admin", "content_manager"}
 		s.BypassRules.SecretQueryParam = "admin_maintenance_bypass"
 	default:
 		s.Scope = ScopePublicCMS
@@ -103,11 +103,26 @@ func (s ScopedSnapshot) Normalize(scope string) ScopedSnapshot {
 	}
 	if len(s.BypassRules.AllowedRoles) == 0 {
 		s.BypassRules.AllowedRoles = defaults.BypassRules.AllowedRoles
+	} else if scope == ScopeAdminDashboard {
+		s.BypassRules.AllowedRoles = ensureRoles(s.BypassRules.AllowedRoles, "super_admin", "admin", "content_manager")
 	}
 	if s.BypassRules.SecretQueryParam == "" {
 		s.BypassRules.SecretQueryParam = defaults.BypassRules.SecretQueryParam
 	}
 	return s
+}
+
+func ensureRoles(current []string, required ...string) []string {
+	seen := map[string]bool{}
+	for _, role := range current {
+		seen[role] = true
+	}
+	for _, role := range required {
+		if !seen[role] {
+			current = append(current, role)
+		}
+	}
+	return current
 }
 
 func (s ScopedSnapshot) IsActiveAt(now time.Time) bool {

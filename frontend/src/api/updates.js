@@ -8,6 +8,12 @@ export const getUpdateStatus = () =>
 export const checkForUpdates = () =>
   apiClient.post('/api/v1/admin/system/updates/check').then(r => r.data?.data ?? r.data)
 
+export const getUpdateSettings = () =>
+  apiClient.get('/api/v1/admin/system/updates/settings').then(r => r.data?.data ?? r.data)
+
+export const saveUpdateSettings = (payload) =>
+  apiClient.put('/api/v1/admin/system/updates/settings', payload).then(r => r.data?.data ?? r.data)
+
 export const getDeployStatus = () =>
   apiClient.get('/api/v1/admin/system/updates/deploy').then(r => r.data?.data ?? r.data)
 

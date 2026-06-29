@@ -59,15 +59,27 @@ type DiskInfo struct {
 }
 
 type Preflight struct {
-	CurrentVersion string         `json:"current_version"`
-	Latest         *GithubRelease `json:"latest,omitempty"`
-	UpdateAvailable bool          `json:"update_available"`
-	Disk           DiskInfo       `json:"disk"`
-	DBReachable    bool           `json:"db_reachable"`
-	DBLatencyMs    int64          `json:"db_latency_ms"`
-	LastCheckedAt  *time.Time     `json:"last_checked_at,omitempty"`
-	LastError      string         `json:"last_error,omitempty"`
-	RepoSlug       string         `json:"repo_slug"`
+	CurrentVersion  string              `json:"current_version"`
+	Latest          *GithubRelease      `json:"latest,omitempty"`
+	UpdateAvailable bool                `json:"update_available"`
+	Disk            DiskInfo            `json:"disk"`
+	DBReachable     bool                `json:"db_reachable"`
+	DBLatencyMs     int64               `json:"db_latency_ms"`
+	LastCheckedAt   *time.Time          `json:"last_checked_at,omitempty"`
+	LastError       string              `json:"last_error,omitempty"`
+	RepoSlug        string              `json:"repo_slug"`
+	Settings        SmartUpdateSettings `json:"settings"`
+}
+
+type SmartUpdateSettings struct {
+	RepoSlug       string     `json:"repo_slug"`
+	GithubToken    string     `json:"github_token,omitempty"`
+	ComposeProject string     `json:"compose_project"`
+	DeployServices []string   `json:"deploy_services"`
+	DeployScript   string     `json:"deploy_script"`
+	PreservePaths  []string   `json:"preserve_paths"`
+	UpdatedAt      *time.Time `json:"updated_at,omitempty"`
+	UpdatedBy      string     `json:"updated_by,omitempty"`
 }
 
 type UpdatesService struct {
@@ -157,13 +169,20 @@ func (s *UpdatesService) refresh(ctx context.Context) error {
 }
 
 func (s *UpdatesService) fetchLatestRelease(ctx context.Context) (*GithubRelease, error) {
-	url := fmt.Sprintf(githubReleasesURL, s.repoSlug)
+	settings := s.Settings(ctx)
+	repoSlug := strings.TrimSpace(settings.RepoSlug)
+	if repoSlug == "" {
+		repoSlug = s.repoSlug
+	}
+	url := fmt.Sprintf(githubReleasesURL, repoSlug)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	if tok := strings.TrimSpace(os.Getenv("GITHUB_TOKEN")); tok != "" {
+	if tok := strings.TrimSpace(settings.GithubToken); tok != "" {
+		req.Header.Set("Authorization", "Bearer "+tok)
+	} else if tok := strings.TrimSpace(os.Getenv("GITHUB_TOKEN")); tok != "" {
 		req.Header.Set("Authorization", "Bearer "+tok)
 	}
 	resp, err := s.http.Do(req)
@@ -193,6 +212,7 @@ func (s *UpdatesService) fetchLatestRelease(ctx context.Context) (*GithubRelease
 // Preflight aggregates the cached release + live system signals.
 func (s *UpdatesService) Preflight(ctx context.Context) (*Preflight, error) {
 	current := strings.TrimSpace(s.readVersionFile())
+	settings := s.Settings(ctx)
 
 	s.mu.RLock()
 	latest := s.latest
@@ -204,8 +224,9 @@ func (s *UpdatesService) Preflight(ctx context.Context) (*Preflight, error) {
 		CurrentVersion: current,
 		Latest:         latest,
 		Disk:           diskInfo(),
-		RepoSlug:       s.repoSlug,
+		RepoSlug:       firstNonEmpty(settings.RepoSlug, s.repoSlug),
 		LastError:      lastErr,
+		Settings:       settings.Redacted(),
 	}
 	if !last.IsZero() {
 		pf.LastCheckedAt = &last
@@ -223,6 +244,66 @@ func (s *UpdatesService) Preflight(ctx context.Context) (*Preflight, error) {
 		pf.DBLatencyMs = time.Since(start).Milliseconds()
 	}
 	return pf, nil
+}
+
+func (s *UpdatesService) Settings(ctx context.Context) SmartUpdateSettings {
+	settings := SmartUpdateSettings{
+		RepoSlug:       s.repoSlug,
+		ComposeProject: firstNonEmpty(os.Getenv("COMPOSE_PROJECT_NAME"), "ncs-online"),
+		DeployServices: []string{"backend", "frontend", "nsmis-worker", "backup"},
+		PreservePaths:  []string{"uploads_data", "private_data", "app_logs", "backups_data", "postgres_data"},
+	}
+	row := s.db.QueryRow(ctx, `SELECT repo_slug,github_token,compose_project,deploy_services,deploy_script,preserve_paths,updated_at,updated_by FROM smart_update_settings WHERE singleton=TRUE`)
+	_ = row.Scan(&settings.RepoSlug, &settings.GithubToken, &settings.ComposeProject, &settings.DeployServices, &settings.DeployScript, &settings.PreservePaths, &settings.UpdatedAt, &settings.UpdatedBy)
+	return settings
+}
+
+func (s *UpdatesService) SaveSettings(ctx context.Context, settings SmartUpdateSettings, actor string) (SmartUpdateSettings, error) {
+	if strings.TrimSpace(settings.RepoSlug) == "" {
+		settings.RepoSlug = defaultRepo
+	}
+	if strings.TrimSpace(settings.ComposeProject) == "" {
+		settings.ComposeProject = "ncs-online"
+	}
+	if len(settings.DeployServices) == 0 {
+		settings.DeployServices = []string{"backend", "frontend", "nsmis-worker", "backup"}
+	}
+	if len(settings.PreservePaths) == 0 {
+		settings.PreservePaths = []string{"uploads_data", "private_data", "app_logs", "backups_data", "postgres_data"}
+	}
+	var saved SmartUpdateSettings
+	err := s.db.QueryRow(ctx, `
+		INSERT INTO smart_update_settings(singleton,repo_slug,github_token,compose_project,deploy_services,deploy_script,preserve_paths,updated_by,updated_at)
+		VALUES(TRUE,$1,$2,$3,$4,$5,$6,$7,NOW())
+		ON CONFLICT(singleton) DO UPDATE SET
+		  repo_slug=EXCLUDED.repo_slug,
+		  github_token=EXCLUDED.github_token,
+		  compose_project=EXCLUDED.compose_project,
+		  deploy_services=EXCLUDED.deploy_services,
+		  deploy_script=EXCLUDED.deploy_script,
+		  preserve_paths=EXCLUDED.preserve_paths,
+		  updated_by=EXCLUDED.updated_by,
+		  updated_at=NOW()
+		RETURNING repo_slug,github_token,compose_project,deploy_services,deploy_script,preserve_paths,updated_at,updated_by`,
+		settings.RepoSlug, settings.GithubToken, settings.ComposeProject, settings.DeployServices, settings.DeployScript, settings.PreservePaths, actor,
+	).Scan(&saved.RepoSlug, &saved.GithubToken, &saved.ComposeProject, &saved.DeployServices, &saved.DeployScript, &saved.PreservePaths, &saved.UpdatedAt, &saved.UpdatedBy)
+	return saved.Redacted(), err
+}
+
+func (s SmartUpdateSettings) Redacted() SmartUpdateSettings {
+	if s.GithubToken != "" {
+		s.GithubToken = "********"
+	}
+	return s
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func (s *UpdatesService) readVersionFile() string {

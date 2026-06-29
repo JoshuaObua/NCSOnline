@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
+	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/services"
 )
@@ -33,6 +36,29 @@ func (h *UpdatesHandler) Check(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, pf)
 }
 
+func (h *UpdatesHandler) Settings(w http.ResponseWriter, r *http.Request) {
+	response.JSON(w, http.StatusOK, h.svc.Settings(r.Context()).Redacted())
+}
+
+func (h *UpdatesHandler) SaveSettings(w http.ResponseWriter, r *http.Request) {
+	actor, _ := r.Context().Value(models.CtxUserID).(string)
+	var input services.SmartUpdateSettings
+	if json.NewDecoder(r.Body).Decode(&input) != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request")
+		return
+	}
+	if strings.TrimSpace(input.GithubToken) == "********" {
+		current := h.svc.Settings(r.Context())
+		input.GithubToken = current.GithubToken
+	}
+	settings, err := h.svc.SaveSettings(r.Context(), input, actor)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save update settings")
+		return
+	}
+	response.JSON(w, http.StatusOK, settings)
+}
+
 // GET /api/v1/admin/system/updates/deploy — last/current deploy progress.
 func (h *UpdatesHandler) DeployStatus(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, h.deployer.Status())
@@ -40,7 +66,8 @@ func (h *UpdatesHandler) DeployStatus(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/admin/system/updates/deploy — kick off `docker compose pull && up -d`.
 func (h *UpdatesHandler) Deploy(w http.ResponseWriter, r *http.Request) {
-	if err := h.deployer.Start(r.Context()); err != nil {
+	settings := h.svc.Settings(r.Context())
+	if err := h.deployer.StartWithOptions(r.Context(), services.DeployOptions{ComposeProject: settings.ComposeProject, Services: settings.DeployServices, Script: settings.DeployScript}); err != nil {
 		h.writeDeployErr(w, err)
 		return
 	}

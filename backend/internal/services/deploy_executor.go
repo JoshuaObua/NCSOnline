@@ -36,6 +36,12 @@ type Deployer struct {
 	curr DeployStatus
 }
 
+type DeployOptions struct {
+	ComposeProject string
+	Services       []string
+	Script         string
+}
+
 func NewDeployer() *Deployer {
 	proj := strings.TrimSpace(os.Getenv("COMPOSE_PROJECT_NAME"))
 	if proj == "" {
@@ -74,6 +80,10 @@ func (d *Deployer) dockerAvailable(ctx context.Context) bool {
 // share the project's source. Skips postgres / nginx / pgadmin to avoid
 // disrupting persistent state and edge routing during the swap.
 func (d *Deployer) Start(parent context.Context) error {
+	return d.StartWithOptions(parent, DeployOptions{})
+}
+
+func (d *Deployer) StartWithOptions(parent context.Context, opts DeployOptions) error {
 	d.mu.Lock()
 	if d.curr.State == "running" {
 		d.mu.Unlock()
@@ -86,13 +96,31 @@ func (d *Deployer) Start(parent context.Context) error {
 	d.curr = DeployStatus{State: "running", StartedAt: time.Now(), Lines: []string{}}
 	d.mu.Unlock()
 
-	go d.run(parent)
+	go d.run(parent, opts)
 	return nil
 }
 
-func (d *Deployer) run(parent context.Context) {
+func (d *Deployer) run(parent context.Context, opts DeployOptions) {
 	ctx, cancel := context.WithTimeout(parent, 15*time.Minute)
 	defer cancel()
+	project := strings.TrimSpace(opts.ComposeProject)
+	if project == "" {
+		project = d.composeProject
+	}
+	services := opts.Services
+	if len(services) == 0 {
+		services = []string{"backend", "frontend", "nsmis-worker", "backup"}
+	}
+	if script := strings.TrimSpace(opts.Script); script != "" {
+		d.append("Custom deploy script started. Upload/config volumes are preserved by docker-compose volume bindings.")
+		if err := d.runCmdWithProject(ctx, []string{"sh", "-lc", script}, project); err != nil {
+			d.finish("failed", 1, err.Error())
+			return
+		}
+		d.append("Custom deploy script complete.")
+		d.finish("success", 0, "")
+		return
+	}
 
 	steps := [][]string{
 		// Snapshot the current images by re-tagging :latest -> :previous so a
@@ -104,14 +132,14 @@ func (d *Deployer) run(parent context.Context) {
 		    fi
 		  done
 		`},
-		{"docker", "compose", "-p", d.composeProject, "pull", "backend", "frontend", "nsmis-worker", "backup"},
-		{"docker", "compose", "-p", d.composeProject, "up", "-d", "--no-deps", "backend", "frontend", "nsmis-worker", "backup"},
+		append([]string{"docker", "compose", "-p", project, "pull"}, services...),
+		append([]string{"docker", "compose", "-p", project, "up", "-d", "--no-deps"}, services...),
 	}
 
 	exitCode := 0
 	for i, step := range steps {
 		d.append(fmt.Sprintf("──▶ Step %d/%d: %s", i+1, len(steps), strings.Join(step, " ")))
-		if err := d.runCmd(ctx, step); err != nil {
+		if err := d.runCmdWithProject(ctx, step, project); err != nil {
 			d.finish("failed", 1, err.Error())
 			return
 		}
@@ -121,9 +149,13 @@ func (d *Deployer) run(parent context.Context) {
 }
 
 func (d *Deployer) runCmd(ctx context.Context, argv []string) error {
+	return d.runCmdWithProject(ctx, argv, d.composeProject)
+}
+
+func (d *Deployer) runCmdWithProject(ctx context.Context, argv []string, project string) error {
 	cmd := exec.CommandContext(ctx, argv[0], argv[1:]...)
 	cmd.Env = append(os.Environ(),
-		"COMPOSE_PROJECT="+d.composeProject,
+		"COMPOSE_PROJECT="+project,
 		"DOCKER_BUILDKIT=1",
 	)
 	stdout, _ := cmd.StdoutPipe()

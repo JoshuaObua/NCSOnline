@@ -15,7 +15,7 @@
 
       <section v-if="activeJob" class="rounded-xl border border-blue-100 bg-blue-50 p-5">
         <div class="flex justify-between text-sm"><strong>{{ activeJob.job_type }} in progress</strong><span>{{ activeJob.progress }}%</span></div>
-        <div class="h-2 bg-white rounded-full mt-3"><div class="h-full bg-blue-600 rounded-full transition-all" :style="{width:activeJob.progress+'%'}"></div></div>
+        <div class="h-2 bg-white rounded-full mt-3"><div class="h-full bg-blue-600 rounded-full transition-all" :style="{ width: activeJob.progress + '%' }"></div></div>
         <p class="text-xs text-blue-800 mt-2">{{ activeJob.message }}</p>
       </section>
 
@@ -59,12 +59,12 @@
                 </td>
                 <td class="p-4 text-gray-500">{{ date(backup.created_at) }}</td>
                 <td class="p-4">{{ bytes(backup.size_bytes) }}</td>
-                <td class="p-4"><span class="status-pill" :class="backup.status==='VERIFIED'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'">{{ backup.status }}</span></td>
+                <td class="p-4"><span class="status-pill" :class="backup.status === 'VERIFIED' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'">{{ backup.status }}</span></td>
                 <td class="p-4 text-right">
                   <div class="inline-flex flex-wrap justify-end gap-2">
                     <button @click="downloadBackup(backup.id)" class="btn-icon" title="Download backup"><i class="icofont-download"></i></button>
-                    <button @click="queue('VERIFY',backup.id)" class="btn-icon" title="Verify backup"><i class="icofont-check-circled"></i></button>
-                    <button :disabled="backup.status!=='VERIFIED'" @click="restore(backup.id)" class="btn-icon text-red-700 disabled:opacity-30" title="Restore backup"><i class="icofont-history"></i></button>
+                    <button @click="queue('VERIFY', backup.id)" class="btn-icon" title="Verify backup"><i class="icofont-check-circled"></i></button>
+                    <button :disabled="backup.status !== 'VERIFIED'" @click="restore(backup.id)" class="btn-icon text-red-700 disabled:opacity-30" title="Restore backup"><i class="icofont-history"></i></button>
                     <button @click="deleteBackup(backup.id)" class="btn-icon text-red-700" title="Delete backup"><i class="icofont-trash"></i></button>
                   </div>
                 </td>
@@ -76,11 +76,20 @@
       </section>
 
       <section class="bg-white border border-gray-100 rounded-xl p-5">
-        <h2 class="font-bold text-primary-800">Recent jobs</h2>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="font-bold text-primary-800">Recent jobs</h2>
+          <div class="flex flex-wrap gap-2">
+            <button @click="exportJobs" class="btn-light"><i class="icofont-download"></i>Export logs</button>
+            <button @click="clearJobs" class="btn-danger"><i class="icofont-trash"></i>Clear all</button>
+          </div>
+        </div>
         <div class="mt-4 grid gap-2">
-          <div v-for="job in jobs.slice(0,12)" :key="job.id" class="flex flex-col gap-1 rounded-lg bg-gray-50 p-3 text-sm md:flex-row md:items-center md:justify-between">
-            <span><strong>{{ job.job_type }}</strong> · {{ job.message }}</span>
-            <span class="font-bold" :class="job.status==='FAILED'?'text-red-600':job.status==='SUCCEEDED'?'text-green-600':'text-blue-600'">{{ job.status }}</span>
+          <div v-for="job in jobs.slice(0, 12)" :key="job.id" class="flex flex-col gap-2 rounded-lg bg-gray-50 p-3 text-sm md:flex-row md:items-center md:justify-between">
+            <span><strong>{{ job.job_type }}</strong> - {{ job.message }}<br><small class="text-gray-400 font-mono">{{ job.id }}</small></span>
+            <span class="flex items-center gap-2">
+              <span class="font-bold" :class="job.status === 'FAILED' ? 'text-red-600' : job.status === 'SUCCEEDED' ? 'text-green-600' : 'text-blue-600'">{{ job.status }}</span>
+              <button :disabled="job.status === 'RUNNING' || job.status === 'PENDING'" @click="deleteJob(job.id)" class="btn-icon text-red-700 disabled:opacity-30" title="Delete job log"><i class="icofont-trash"></i></button>
+            </span>
           </div>
           <p v-if="!jobs.length" class="text-sm text-gray-400">No jobs yet.</p>
         </div>
@@ -95,6 +104,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
 import apiClient, { API_BASE_URL } from '@/api/client.js'
+import Swal from 'sweetalert2'
 
 const backups = ref([])
 const jobs = ref([])
@@ -111,12 +121,16 @@ async function load() {
   jobs.value = r.data.data?.jobs || []
 }
 async function queue(action, backup_id = null, confirmation = '') {
-  await apiClient.post('/api/v1/admin/system/backups/jobs', { action, backup_id, confirmation })
-  show(`${action} job queued`)
-  await load()
+  try {
+    await apiClient.post('/api/v1/admin/system/backups/jobs', { action, backup_id, confirmation })
+    await alertOk(`${action} job queued`)
+    await load()
+  } catch (err) {
+    await alertErr(err.response?.data?.error?.message || `${action} failed`)
+  }
 }
 async function restore(id) {
-  if (prompt('Enable maintenance mode first, then type RESTORE VERIFIED BACKUP') !== 'RESTORE VERIFIED BACKUP') return
+  if (!(await typedConfirm('Restore verified backup', 'RESTORE VERIFIED BACKUP', 'Enable maintenance mode first. This will restore data from the selected backup.'))) return
   await queue('RESTORE', id, 'RESTORE VERIFIED BACKUP')
 }
 async function downloadSchema() {
@@ -126,40 +140,67 @@ async function downloadBackup(id) {
   await download(`/api/v1/admin/system/backups/${id}/download`, `backup-${id}.dump`)
 }
 async function deleteBackup(id) {
-  if (!confirm('Delete this backup record and local backup file?')) return
-  await apiClient.delete(`/api/v1/admin/system/backups/${id}`)
-  show('Backup deleted')
-  await load()
+  if (!(await yesNo('Delete backup?', 'Delete this backup record and local backup file?'))) return
+  try {
+    await apiClient.delete(`/api/v1/admin/system/backups/${id}`)
+    await alertOk('Backup deleted')
+    await load()
+  } catch (err) {
+    await alertErr(err.response?.data?.error?.message || 'Delete failed')
+  }
 }
 async function importSchema(e) {
   const file = e.target.files?.[0]
   e.target.value = ''
   if (!file) return
-  if (prompt('Enable maintenance mode first, then type IMPORT SCHEMA') !== 'IMPORT SCHEMA') return
+  if (!(await typedConfirm('Import schema', 'IMPORT SCHEMA', 'Enable maintenance mode first. This applies the selected SQL schema file.'))) return
   const fd = new FormData()
   fd.append('schema', file)
   fd.append('confirmation', 'IMPORT SCHEMA')
   try {
     await apiClient.post('/api/v1/admin/system/backups/schema/import', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
-    show('Schema imported')
+    await alertOk('Schema imported')
   } catch (err) {
-    show(err.response?.data?.error?.message || 'Schema import failed', true)
+    await alertErr(err.response?.data?.error?.message || 'Schema import failed')
   }
 }
 async function deleteSchema() {
-  if (prompt('Enable maintenance mode first, then type DELETE DATABASE SCHEMA') !== 'DELETE DATABASE SCHEMA') return
+  if (!(await typedConfirm('Delete database schema', 'DELETE DATABASE SCHEMA', 'Enable maintenance mode first. This drops and recreates the public schema.'))) return
   try {
     await apiClient.delete('/api/v1/admin/system/backups/schema', { data: { confirmation: 'DELETE DATABASE SCHEMA' } })
-    show('Database schema deleted and recreated')
+    await alertOk('Database schema deleted and recreated')
   } catch (err) {
-    show(err.response?.data?.error?.message || 'Schema delete failed', true)
+    await alertErr(err.response?.data?.error?.message || 'Schema delete failed')
+  }
+}
+async function exportJobs() {
+  await download('/api/v1/admin/system/backups/jobs/export', `backup-jobs-${Date.now()}.csv`)
+}
+async function clearJobs() {
+  if (!(await typedConfirm('Clear backup job logs', 'CLEAR BACKUP JOB LOGS', 'Only finished job logs are cleared. Running and pending jobs are preserved.'))) return
+  try {
+    await apiClient.delete('/api/v1/admin/system/backups/jobs', { data: { confirmation: 'CLEAR BACKUP JOB LOGS' } })
+    await alertOk('Finished job logs cleared')
+    await load()
+  } catch (err) {
+    await alertErr(err.response?.data?.error?.message || 'Could not clear job logs')
+  }
+}
+async function deleteJob(id) {
+  if (!(await yesNo('Delete job log?', 'Delete this backup job log entry?'))) return
+  try {
+    await apiClient.delete(`/api/v1/admin/system/backups/jobs/${id}`)
+    await alertOk('Job log deleted')
+    await load()
+  } catch (err) {
+    await alertErr(err.response?.data?.error?.message || 'Could not delete job log')
   }
 }
 async function download(path, fallbackName) {
   const token = localStorage.getItem('ncsms_access_token')
   const res = await fetch(`${API_BASE_URL}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
   if (!res.ok) {
-    show('Download failed', true)
+    await alertErr('Download failed')
     return
   }
   const blob = await res.blob()
@@ -176,6 +217,26 @@ function filenameFromDisposition(value) {
 function show(text, isError = false) {
   message.value = text
   error.value = isError
+}
+async function typedConfirm(title, confirmText, text) {
+  const r = await Swal.fire({
+    title, text, input: 'text', inputPlaceholder: confirmText,
+    icon: 'warning', showCancelButton: true, confirmButtonText: 'Confirm',
+    preConfirm: v => v === confirmText || Swal.showValidationMessage(`Type ${confirmText} to continue`),
+  })
+  return r.isConfirmed
+}
+async function yesNo(title, text) {
+  const r = await Swal.fire({ title, text, icon: 'warning', showCancelButton: true, confirmButtonText: 'Yes' })
+  return r.isConfirmed
+}
+async function alertOk(text) {
+  show(text)
+  await Swal.fire({ toast: true, position: 'top-end', timer: 2200, showConfirmButton: false, icon: 'success', title: text })
+}
+async function alertErr(text) {
+  show(text, true)
+  await Swal.fire({ icon: 'error', title: 'Action failed', text })
 }
 const date = v => new Date(v).toLocaleString()
 const bytes = v => { let n = v || 0, i = 0, u = ['B','KB','MB','GB','TB']; while (n >= 1024 && i < u.length - 1) { n /= 1024; i++ } return `${n.toFixed(1)} ${u[i]}` }

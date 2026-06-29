@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import ipaddress
+import base64
+import hmac
+import hashlib
 import json
 import os
 import threading
@@ -58,8 +61,11 @@ PROVIDER_FALLBACK = os.getenv("LOCATION_PROVIDER_FALLBACK", "false").lower() == 
 PROVIDER_URL = os.getenv("LOCATION_PROVIDER_URL", "https://ipwho.is/{ip}")
 UPSTREAM_URL = os.getenv("GEO_UPSTREAM_URL", "http://backend:8080").rstrip("/")
 FRONTEND_URL = os.getenv("GEO_FRONTEND_URL", "http://frontend:80").rstrip("/")
+JWT_SECRET = os.getenv("JWT_SECRET", "")
 TRUSTED_PROXIES = [ipaddress.ip_network(v.strip()) for v in os.getenv("GEO_TRUSTED_PROXIES", "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.0/8").split(",") if v.strip()]
 CACHE_TTL = int(os.getenv("LOCATION_CACHE_TTL_SECONDS", "86400"))
+MAINTENANCE_CACHE_TTL = float(os.getenv("MAINTENANCE_CACHE_TTL_SECONDS", "2"))
+_maintenance_cache: tuple[float, dict[str, Any]] | None = None
 
 _reader: Reader | None = None
 _reader_mtime = 0.0
@@ -211,6 +217,101 @@ async def locate(request: LocateRequest) -> LocateResponse:
 HOP_HEADERS = {"connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade", "host", "content-length"}
 
 
+def _is_admin_path(path: str) -> bool:
+    return path.startswith(("/dashboard", "/admin", "/users", "/roles", "/applications", "/audit-logs", "/maintenance", "/settings", "/cms", "/nsmis"))
+
+
+def _maintenance_scope(path: str) -> str:
+    return "admin_dashboard" if _is_admin_path(path) or path.startswith("/api/v1/admin/") else "public_cms"
+
+
+def _scope_active(scope: dict[str, Any]) -> bool:
+    return bool(scope.get("is_active"))
+
+
+def _maintenance_title(scope: dict[str, Any]) -> str:
+    meta = scope.get("display_meta") or {}
+    return meta.get("custom_title") or "Scheduled Maintenance"
+
+
+def _maintenance_message(scope: dict[str, Any]) -> str:
+    meta = scope.get("display_meta") or {}
+    return meta.get("custom_message") or scope.get("reason") or "The platform is temporarily unavailable during scheduled maintenance."
+
+
+async def _maintenance_status() -> dict[str, Any]:
+    global _maintenance_cache
+    now = time.time()
+    if _maintenance_cache and _maintenance_cache[0] > now:
+        return _maintenance_cache[1]
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            response = await client.get(UPSTREAM_URL + "/api/v1/system/maintenance-status")
+            response.raise_for_status()
+            payload = response.json().get("data") or {}
+    except Exception:
+        payload = {}
+    _maintenance_cache = (now + MAINTENANCE_CACHE_TTL, payload)
+    return payload
+
+
+def _has_bypass(request: Request, scope: dict[str, Any]) -> bool:
+    rules = scope.get("bypass_rules") or {}
+    token = (rules.get("secret_query_param") or "").strip()
+    if token and (request.query_params.get("maintenance_bypass") == token or token in request.query_params):
+        return True
+    authz = request.headers.get("authorization", "")
+    if not authz and request.cookies.get("ncsms_access"):
+        authz = "Bearer " + request.cookies["ncsms_access"]
+    roles = _verified_roles(authz)
+    allowed_roles = {str(v).strip().lower() for v in rules.get("allowed_roles") or []}
+    if roles and any(role in allowed_roles for role in roles):
+        return True
+    return False
+
+
+def _b64url_decode(value: str) -> bytes:
+    return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+
+
+def _verified_roles(authz: str) -> set[str]:
+    if not JWT_SECRET or not authz.lower().startswith("bearer "):
+        return set()
+    token = authz[7:].strip()
+    parts = token.split(".")
+    if len(parts) != 3:
+        return set()
+    signing_input = f"{parts[0]}.{parts[1]}".encode()
+    expected = hmac.new(JWT_SECRET.encode(), signing_input, hashlib.sha256).digest()
+    try:
+        actual = _b64url_decode(parts[2])
+        header = json.loads(_b64url_decode(parts[0]))
+        payload = json.loads(_b64url_decode(parts[1]))
+    except Exception:
+        return set()
+    if header.get("alg") != "HS256" or not hmac.compare_digest(expected, actual):
+        return set()
+    if payload.get("iss") != "ncsms-api":
+        return set()
+    if payload.get("exp") and float(payload["exp"]) < time.time():
+        return set()
+    return {str(v).strip().lower() for v in payload.get("roles") or []}
+
+
+def _maintenance_response(request: Request, scope: dict[str, Any]) -> Response:
+    accepts_json = "application/json" in request.headers.get("accept", "") or request.url.path.startswith("/api/")
+    if accepts_json:
+        return Response(
+            content=json.dumps({"success": False, "error": {"code": "MAINTENANCE_MODE", "message": _maintenance_message(scope)}}),
+            status_code=503,
+            media_type="application/json",
+        )
+    title = _maintenance_title(scope)
+    message = _maintenance_message(scope)
+    html = f"""<!doctype html><html lang="en"><meta name="viewport" content="width=device-width"><title>{title}</title><body style="font-family:system-ui;background:#111827;color:white;display:grid;place-items:center;min-height:100vh;margin:0"><main style="max-width:42rem;text-align:center;padding:2rem"><h1>{title}</h1><p style="color:#d1d5db">{message}</p></main></body></html>"""
+    return Response(content=html, status_code=503, media_type="text/html; charset=utf-8")
+
+
 @app.api_route("/gate/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"])
 async def gate(path: str, request: Request) -> Response:
     ip = resolve_client_ip(request)
@@ -224,6 +325,11 @@ async def gate(path: str, request: Request) -> Response:
     allowed = whitelisted or code in ALLOWED or (not code and not FAIL_CLOSED)
     _counters[(code or "UNKNOWN", "allow" if allowed else "block")] += 1
     original_path = "/" + path
+    if request.method in {"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"} and original_path not in {"/api/v1/auth/login", "/api/v1/auth/refresh", "/health", "/healthz", "/readyz", "/login", "/register"}:
+        status = await _maintenance_status()
+        scope = status.get(_maintenance_scope(original_path)) or {}
+        if _scope_active(scope) and not _has_bypass(request, scope):
+            return _maintenance_response(request, scope)
     if not allowed:
         if original_path == "/ncs-ussd":
             return PlainTextResponse("END Secure System Violation", status_code=403)
