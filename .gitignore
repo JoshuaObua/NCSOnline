@@ -1,10 +1,5 @@
-.deploy_key_ncs_online
-.deploy_key_ncs_online.pub
-
 # Environment & secrets
 .env
-Deployment Instructions.md
-backend/bin/
 .env.local
 .env.*.local
 CREDENTIALS.md
@@ -35,6 +30,7 @@ Thumbs.db
 # Logs
 *.log
 nginx/logs/
+backend/logs/
 
 # Docker overrides
 docker-compose.override.yml
@@ -47,7 +43,7 @@ nginx/certs/*.crt
 # Local uploads
 backend/uploads/
 
-# Node (future frontend)
+# Node
 node_modules/
 .next/
 dist/
