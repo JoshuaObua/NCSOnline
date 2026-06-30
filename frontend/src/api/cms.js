@@ -10,6 +10,18 @@ export function getPost(slug) {
   return apiClient.get(`/api/v1/cms/posts/${slug}`)
 }
 
+export function listBlogCategories(active = true) {
+  return apiClient.get('/api/v1/cms/blog/categories', { params: { active: active ? 'true' : 'false' } })
+}
+
+export function listPostComments(slug) {
+  return apiClient.get(`/api/v1/cms/posts/${slug}/comments`)
+}
+
+export function submitPostComment(slug, data) {
+  return apiClient.post(`/api/v1/cms/posts/${slug}/comments`, data)
+}
+
 export function listEvents(params = {}) {
   return apiClient.get('/api/v1/cms/events', { params })
 }
@@ -42,6 +54,38 @@ export function adminUpdatePost(id, data) {
 
 export function adminDeletePost(id) {
   return apiClient.delete(`/api/v1/admin/cms/posts/${id}`)
+}
+
+export function adminListBlogCategories() {
+  return apiClient.get('/api/v1/admin/cms/blog/categories', { params: { active: 'false' } })
+}
+
+export function adminCreateBlogCategory(data) {
+  return apiClient.post('/api/v1/admin/cms/blog/categories', data)
+}
+
+export function adminUpdateBlogCategory(id, data) {
+  return apiClient.put(`/api/v1/admin/cms/blog/categories/${id}`, data)
+}
+
+export function adminDeleteBlogCategory(id) {
+  return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`)
+}
+
+export function adminListComments(params = {}) {
+  return apiClient.get('/api/v1/admin/cms/comments', { params })
+}
+
+export function adminApproveComment(id) {
+  return apiClient.post(`/api/v1/admin/cms/comments/${id}/approve`)
+}
+
+export function adminFlagComment(id) {
+  return apiClient.post(`/api/v1/admin/cms/comments/${id}/flag`)
+}
+
+export function adminDeleteComment(id) {
+  return apiClient.delete(`/api/v1/admin/cms/comments/${id}`)
 }
 
 export function adminListEvents(params = {}) {
@@ -82,8 +126,20 @@ export function listSlides(activeOnly = true) {
   return apiClient.get('/api/v1/cms/slides', { params: { active: activeOnly ? 'true' : 'false' } })
 }
 
+export function getSlideshow(slug = 'homepage-hero', activeOnly = true) {
+  return apiClient.get(`/api/v1/cms/slideshows/${slug}`, { params: { active: activeOnly ? 'true' : 'false' } })
+}
+
 export function adminListSlides() {
   return apiClient.get('/api/v1/admin/cms/slides', { params: { active: 'false' } })
+}
+
+export function adminGetSlideshow(slug = 'homepage-hero') {
+  return apiClient.get(`/api/v1/admin/cms/slideshows/${slug}`, { params: { active: 'false' } })
+}
+
+export function adminUpdateSlideshow(slug, data) {
+  return apiClient.put(`/api/v1/admin/cms/slideshows/${slug}`, data)
 }
 
 export function adminCreateSlide(data) {

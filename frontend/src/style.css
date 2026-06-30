@@ -26,6 +26,34 @@
 /* ── Global font ─────────────────────────────────── */
 html { scroll-behavior: smooth; }
 body { font-family: 'Poppins', sans-serif; min-width: 320px; }
+html.dark body { background: #0f172a; color: #e5e7eb; }
+html.dark .public-site { background: #0f172a; color: #d1d5db; }
+html.dark .public-site header,
+html.dark .public-site main .bg-white,
+html.dark .public-site main article,
+html.dark .public-site main .bg-gray-50,
+html.dark .public-site main .bg-soft {
+  background-color: #111827 !important;
+  color: #e5e7eb;
+}
+html.dark .public-site main h1,
+html.dark .public-site main h2,
+html.dark .public-site main h3,
+html.dark .public-site main h4,
+html.dark .public-site .text-\[\#1a365d\],
+html.dark .public-site .text-darken {
+  color: #f8fafc !important;
+}
+html.dark .public-site main p,
+html.dark .public-site .text-gray-500,
+html.dark .public-site .text-gray-600,
+html.dark .public-site .text-gray-700 {
+  color: #cbd5e1 !important;
+}
+html.dark .public-site .border-gray-100,
+html.dark .public-site .border-gray-200 {
+  border-color: #334155 !important;
+}
 
 :focus-visible { outline: 3px solid #F48C06; outline-offset: 2px; }
 

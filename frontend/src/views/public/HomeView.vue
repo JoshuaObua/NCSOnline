@@ -1,43 +1,8 @@
 <template>
   <div class="home-redesign">
     <template v-for="section in visibleSections" :key="section.id">
-      <section v-if="section.id === 'hero'" id="section-hero" class="relative h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden -mt-28" aria-roledescription="carousel" aria-label="NCS highlights">
-        <div :key="activeSlide.id || currentSlide" class="absolute inset-0 transition-all duration-700 ease-in-out opacity-100 scale-100 z-10">
-          <!-- Dynamic background: image from CMS via bg-cover, or gradient fallback -->
-          <div
-            class="absolute inset-0 bg-cover bg-center transition-opacity duration-700"
-            :style="activeSlide.image_url ? { backgroundImage: `url('${mediaUrl(activeSlide.image_url)}')` } : null"
-            :class="!activeSlide.image_url ? 'bg-gradient-to-br from-[#1a365d] to-[#274d7e]' : ''"
-            role="img"
-            :aria-label="activeSlide.title || 'National Council of Sports Uganda'"
-          ></div>
-          <!-- Readability overlay -->
-          <div class="absolute inset-0 bg-gradient-to-r from-[#1a365d]/90 via-[#1a365d]/70 to-transparent pointer-events-none"></div>
-          <div class="relative z-20 h-full max-w-7xl mx-auto px-4 flex items-center">
-            <div class="max-w-2xl transition-all duration-700 delay-200 translate-y-0 opacity-100">
-              <span class="inline-block px-4 py-1.5 bg-[#f5a623] text-white text-sm font-semibold rounded-full mb-4">{{ activeSlide.subtitle || 'National Council of Sports' }}</span>
-              <h1 class="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 leading-tight">{{ activeSlide.title || 'Welcome to National Council of Sports' }}</h1>
-              <p class="text-lg md:text-xl text-white/90 mb-8">{{ activeSlide.description || 'A Centre of Excellence for Promotion and Development of Sports' }}</p>
-              <div class="flex flex-wrap gap-4">
-                <router-link :to="activeSlide.button_url || '/pages/the-mandate'" class="inline-flex items-center justify-center bg-[#f5a623] hover:bg-[#e09612] text-white px-8 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">{{ activeSlide.button_text || 'Learn More' }}</router-link>
-                <router-link to="/my-portal" class="inline-flex items-center justify-center gap-2 border-2 border-white text-white hover:bg-white hover:text-[#1a365d] px-8 py-3 text-lg font-semibold rounded-lg transition-all duration-300 hover:-translate-y-1 bg-transparent">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
-                  My Portal
-                </router-link>
-              </div>
-            </div>
-          </div>
-        </div>
-        <button v-if="displaySlides.length > 1" type="button" class="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white hover:bg-[#f5a623] hover:border-[#f5a623] transition-all duration-300 group" aria-label="Previous slide" @click="moveSlide(-1)">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 group-hover:scale-110 transition-transform" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
-        </button>
-        <button v-if="displaySlides.length > 1" type="button" class="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white hover:bg-[#f5a623] hover:border-[#f5a623] transition-all duration-300 group" aria-label="Next slide" @click="moveSlide(1)">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 group-hover:scale-110 transition-transform" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
-        </button>
-        <div v-if="displaySlides.length > 1" class="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-3">
-          <button v-for="(_, index) in displaySlides" :key="index" type="button" :class="['transition-all duration-300 rounded-full h-3', index===currentSlide ? 'w-10 bg-[#f5a623]' : 'w-3 bg-white/50 hover:bg-white/80']" :aria-label="`Show slide ${index + 1}`" @click="setSlide(index)"></button>
-        </div>
-        <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent z-20 pointer-events-none"></div>
+      <section v-if="section.id === 'hero'" id="section-hero" class="-mt-28">
+        <PublicSlideshow :slideshow="slideshow" :slides="displaySlides" />
       </section>
 
       <section v-else-if="section.id === 'about'" id="section-about" class="py-16 md:py-24 bg-white overflow-hidden">
@@ -101,8 +66,8 @@
               <p class="text-gray-600 max-w-2xl mx-auto">{{ home.about.core_intro }}</p>
             </div>
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div v-for="(item, index) in home.core_functions" :key="item" class="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-white hover:border-[#f5a623]/30 hover:shadow-md transition-all">
-                <span class="flex-none w-8 h-8 rounded-full bg-[#f5a623] text-[#1a365d] font-bold flex items-center justify-center text-sm">{{ index + 1 }}</span>
+              <div v-for="item in home.core_functions" :key="item" class="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-[#f5a623]/5 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-[#f5a623] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
                 <span class="text-sm text-gray-700 leading-snug">{{ item }}</span>
               </div>
             </div>
@@ -164,17 +129,70 @@
 
       <section v-else-if="section.id === 'get_involved'" id="section-get-involved" class="home-section bg-white">
         <div class="home-shell involved-grid">
-          <div><span class="section-kicker">{{ home.involved_title }}</span><h2>{{ home.involved_subtitle }}</h2><p class="home-lead">{{ home.involved_text }}</p><div class="home-actions"><router-link :to="home.register_url" class="home-btn home-btn-gold">{{ home.register_label }}</router-link><router-link :to="home.contact_url" class="home-btn home-btn-outline-navy">{{ home.contact_label }}</router-link></div></div>
+          <div><span class="section-kicker">{{ home.involved_title }}</span><h2>{{ home.involved_subtitle }}</h2><p class="home-lead">{{ home.involved_text }}</p><div class="home-actions"><a :href="publicOrPortalUrl(home.register_url)" class="home-btn home-btn-gold">{{ home.register_label }}</a><router-link :to="home.contact_url" class="home-btn home-btn-outline-navy">{{ home.contact_label }}</router-link></div></div>
           <aside class="quick-contact"><h3>Quick Contact</h3><div><i class="icofont-location-pin"></i><p><b>Visit Us</b><span>{{ contact.address }}</span><span>{{ contact.postal_address }}</span></p></div><div><i class="icofont-phone"></i><p><b>Call Us</b><span>{{ contact.phone }}</span><span v-if="contact.fax">Fax: {{ contact.fax }}</span></p></div><div><i class="icofont-email"></i><p><b>Email Us</b><a :href="`mailto:${contact.email}`">{{ contact.email }}</a></p></div></aside>
         </div>
       </section>
 
-      <section v-else-if="section.id === 'events'" id="section-events" class="home-section bg-soft">
-        <div class="home-shell"><div class="section-heading row-heading"><div><span class="section-kicker">Calendar</span><h2>Upcoming Events</h2></div><router-link to="/events">All events →</router-link></div><div class="card-grid card-grid-3"><article v-for="event in events.slice(0,3)" :key="event.id" class="event-card"><time :datetime="event.event_date">{{ formatDate(event.event_date) }}</time><div><h3>{{ event.title }}</h3><p><i class="icofont-location-pin"></i> {{ event.location }}</p><router-link :to="`/events/${event.slug}`">Event details →</router-link></div></article><p v-if="!events.length" class="empty-state">Upcoming events will appear here.</p></div></div>
+      <section v-else-if="section.id === 'events'" id="section-events" class="home-section bg-white">
+        <div class="home-shell">
+          <div class="section-heading row-heading">
+            <div><span class="section-kicker">{{ home.events.eyebrow }}</span><h2>{{ home.events.title }}</h2><p>{{ home.events.intro }}</p></div>
+            <router-link to="/events">All events -></router-link>
+          </div>
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <router-link v-for="(event, index) in displayEvents.slice(0,6)" :key="event.id" :to="`/events/${event.slug}`" class="group relative bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-100 hover:border-[#f5a623]/30 hover:shadow-xl transition-all duration-500">
+              <div class="absolute top-0 right-0 w-20 h-20 opacity-5 rounded-bl-full" :class="eventAccent(index).bg"></div>
+              <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300" :class="[eventAccent(index).softBg, eventAccent(index).text]">
+                  <i :class="[eventAccent(index).icon, 'text-xl']" aria-hidden="true"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="inline-flex items-center rounded-md px-2.5 py-0.5 font-semibold bg-gray-100 text-gray-600 mb-2 text-xs">{{ event.category || 'NCS Event' }}</div>
+                  <h3 class="font-semibold text-[#1a365d] group-hover:text-[#f5a623] transition-colors mb-3 line-clamp-2">{{ event.title }}</h3>
+                  <div class="space-y-2">
+                    <div class="flex items-center gap-2 text-gray-500 text-sm"><i class="icofont-calendar text-[#f5a623]"></i><span>{{ formatDate(event.event_date) }}</span></div>
+                    <div class="flex items-center gap-2 text-gray-500 text-sm"><i class="icofont-location-pin text-[#f5a623]"></i><span>{{ event.location || 'Venue TBA' }}</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0"><i class="icofont-rounded-right text-[#f5a623]"></i></div>
+            </router-link>
+          </div>
+        </div>
       </section>
 
-      <section v-else-if="section.id === 'facilities'" id="section-facilities" class="home-section bg-white">
-        <div class="home-shell"><div class="section-heading row-heading"><div><span class="section-kicker">Venues</span><h2>Sports Facilities</h2></div><router-link to="/facilities">Explore facilities →</router-link></div><div class="card-grid card-grid-3"><router-link v-for="item in facilities.slice(0,3)" :key="item.id" :to="`/facilities/${item.slug}`" class="image-card"><img v-if="item.image_url" :src="mediaUrl(item.image_url)" :alt="item.name" /><div v-else class="card-placeholder"><i class="icofont-stadium"></i></div><div><h3>{{ item.name }}</h3><p>{{ item.description }}</p></div></router-link></div></div>
+      <section v-else-if="section.id === 'facilities'" id="section-facilities" class="py-16 md:py-24 bg-gray-50 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4">
+          <div class="text-center mb-8">
+            <span class="inline-block px-4 py-1.5 bg-[#f5a623]/10 text-[#f5a623] text-sm font-semibold rounded-full mb-3">{{ home.facilities.eyebrow }}</span>
+            <h2 class="text-3xl md:text-4xl font-bold text-[#1a365d] mb-4">{{ home.facilities.title }}</h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">{{ home.facilities.intro }}</p>
+          </div>
+          <div class="flex flex-wrap justify-center gap-2 mb-8">
+            <button v-for="category in facilityCategories" :key="category" type="button" :class="['rounded-full px-4 py-2 text-sm transition-all', category === activeFacilityCategory ? 'bg-[#1a365d] text-white' : 'bg-white text-gray-600 hover:bg-[#f5a623]/10 hover:text-[#f5a623]']" @click="activeFacilityCategory = category">{{ category }}</button>
+          </div>
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            <router-link v-for="item in filteredFacilities.slice(0,6)" :key="item.id" :to="`/facilities/${item.slug}`" class="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer">
+              <div class="relative h-48 overflow-hidden">
+                <img v-if="item.image_url" :src="mediaUrl(item.image_url)" :alt="item.name" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                <div v-else class="w-full h-full bg-[#1a365d]/10 flex items-center justify-center text-[#1a365d]"><i class="icofont-stadium text-5xl"></i></div>
+                <div class="absolute inset-0 bg-gradient-to-t from-[#1a365d]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="absolute bottom-4 left-4 right-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-500"><span class="inline-flex items-center justify-center w-full rounded-md bg-[#f5a623] text-white px-4 py-2 text-sm font-medium"><i class="icofont-location-pin mr-2"></i>Explore Facility</span></div>
+              </div>
+              <div class="p-6">
+                <p class="text-xs uppercase tracking-[0.2em] text-[#f5a623] mb-2">{{ item.category || 'Facility' }}</p>
+                <h3 class="text-xl font-bold text-[#1a365d] mb-2 group-hover:text-[#f5a623] transition-colors">{{ item.name }}</h3>
+                <p class="text-gray-600 text-sm mb-4">{{ item.description }}</p>
+                <div class="flex items-center text-[#f5a623] font-medium text-sm group-hover:gap-2 transition-all"><span>Learn More</span><i class="icofont-rounded-right"></i></div>
+              </div>
+              <div class="absolute top-0 right-0 w-16 h-16 bg-[#f5a623] transform translate-x-8 -translate-y-8 rotate-45 group-hover:translate-x-6 group-hover:-translate-y-6 transition-transform duration-500"></div>
+            </router-link>
+          </div>
+          <div class="text-center mt-12">
+            <router-link to="/facilities" class="inline-flex items-center justify-center gap-2 text-sm font-medium bg-[#1a365d] hover:bg-[#1a365d]/90 text-white px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">{{ home.facilities.button_label }}<i class="icofont-rounded-right"></i></router-link>
+          </div>
+        </div>
       </section>
 
       <section v-else-if="section.id === 'associations'" id="section-associations" class="home-section associations-strip">
@@ -182,10 +200,10 @@
       </section>
 
       <section v-else-if="section.id === 'help'" id="section-help" class="home-section bg-white">
-        <div class="home-shell"><div class="section-heading"><span class="section-kicker">Help & Support</span><h2>How can we help?</h2><p>Find guidance, contact NCS, or access your services.</p></div><div class="help-grid"><router-link to="/my-portal"><i class="icofont-ui-user"></i><h3>My Portal</h3><p>Sign in to manage registrations, licensing and renewals.</p></router-link><router-link to="/resource-centre"><i class="icofont-download"></i><h3>Resource Centre</h3><p>Guidelines, forms, reports and rules.</p></router-link><router-link to="/contact-us"><i class="icofont-support"></i><h3>Contact Support</h3><p>Speak with the NCS team.</p></router-link></div></div>
+        <div class="home-shell"><div class="section-heading"><span class="section-kicker">Help & Support</span><h2>How can we help?</h2><p>Find guidance, contact NCS, or access your services.</p></div><div class="help-grid"><a :href="portalUrl('/my-portal')"><i class="icofont-ui-user"></i><h3>My Portal</h3><p>Sign in to manage registrations, licensing and renewals.</p></a><router-link to="/resource-centre"><i class="icofont-download"></i><h3>Resource Centre</h3><p>Guidelines, forms, reports and rules.</p></router-link><router-link to="/contact-us"><i class="icofont-support"></i><h3>Contact Support</h3><p>Speak with the NCS team.</p></router-link></div></div>
       </section>
 
-      <section v-else-if="section.id === 'cta'" id="section-cta" class="home-cta"><div class="home-shell"><div><span>National Council of Sports Uganda</span><h2>Manage your NCS services in one place.</h2></div><router-link to="/my-portal" class="home-btn home-btn-gold">Open My Portal</router-link></div></section>
+      <section v-else-if="section.id === 'cta'" id="section-cta" class="home-cta"><div class="home-shell"><div><span>National Council of Sports Uganda</span><h2>Manage your NCS services in one place.</h2></div><a :href="portalUrl('/my-portal')" class="home-btn home-btn-gold">Open My Portal</a></div></section>
 
       <section v-else-if="section.id === 'faq_facts'" id="section-faq" class="home-section bg-soft">
         <div class="home-shell faq-facts-grid"><div><span class="section-kicker">{{ home.faq_eyebrow }}</span><h2>{{ home.faq_title }}</h2><div class="faq-list"><details v-for="faq in faqs.slice(0,10)" :key="faq.id"><summary>{{ faq.question }}</summary><p>{{ faq.answer }}</p></details></div><router-link to="/faqs" class="text-link">View All FAQs →</router-link></div><div><span class="section-kicker">{{ home.facts_eyebrow }}</span><h2>{{ home.facts_title }}</h2><div class="fact-list"><div v-for="fact in displayedFacts.slice(0,10)" :key="fact.id || fact.label"><i :class="fact.icon || 'icofont-light-bulb'"></i><p><strong>{{ fact.value }}</strong><span>{{ fact.label }}</span></p></div></div></div></div>
@@ -195,9 +213,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
-import { getSettings, listAssociations, listEvents, listFacilities, listFAQs, listFunFacts, listPosts, listSlides } from '@/api/cms.js'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { getSettings, getSlideshow, listAssociations, listEvents, listFacilities, listFAQs, listFunFacts, listPosts } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
+import PublicSlideshow from '@/components/public/PublicSlideshow.vue'
 
 const defaultSections = ['hero','about','stats','news','find_sport','get_involved','events','facilities','associations','help','cta','faq_facts'].map(id => ({ id, visible:true }))
 const home = reactive({
@@ -206,28 +225,50 @@ const home = reactive({
   leadership:{chairperson_name:'Mr. Ambrose Tashobya',chairperson_image:'',secretary_name:'Dr. Bernard Patrick Ogwel'},
   milestones:[{value:'60+',label:'Years of Excellence',icon:'icofont-award'},{value:'54+',label:'Sports Associations',icon:'icofont-trophy'},{value:'32+',label:'Sports Facilities',icon:'icofont-stadium'}],
   values:[{title:'Our Mission',text:'Maximizing opportunities for all Ugandans to participate and excel in Sports.',icon:'icofont-dart',featured:true},{title:'Our Vision',text:'A centre of excellence for promotion and development of Sports.',icon:'icofont-eye'},{title:'Integrity',text:'Upholding the highest standards of ethics and fair play in all sporting activities.',icon:'icofont-shield'},{title:'Inclusivity',text:'Ensuring sports opportunities are accessible to all Ugandans regardless of background.',icon:'icofont-people'},{title:'Excellence',text:'Striving for the highest standards in athlete development and sports administration.',icon:'icofont-award'},{title:'Global Recognition',text:'Positioning Uganda as a leading sports nation on the African and world stage.',icon:'icofont-globe',featured:true}],
-  core_functions:['Register and regulate national sports organisations','Develop and promote sports throughout Uganda','Advise government on sports policy and standards','Coordinate national and international sports participation','Manage and develop public sports facilities','Support athlete, coach and official development'],
+  core_functions:['Developing, promoting, and controlling sports on a national basis, including training and staffing','Recognizing sports disciplines and registering national sports organizations','Regulating associations and federations, awarding medals, certificates, trophies, and incentives','Approving international and national competitions and festivals','Facilitating Ugandan athletes participation in international competitions','Encouraging cooperation among associations and stimulating interest at all levels','Sponsoring scholarships for coaches and organizers','Advising on external sports relations and promoting sportsmanship','Arranging facilities with local authorities'],
+  facilities:{eyebrow:'World-Class Infrastructure',title:'Our Sports Facilities',intro:'Experience state-of-the-art sports facilities designed to nurture talent and host world-class events',button_label:'Explore All Facilities'},
+  events:{eyebrow:'Upcoming Events',title:'NCS Calendar',intro:'Follow national competitions, federation events, athlete development programs and major sports gatherings.'},
   stats_title:'Sports Excellence in Numbers',stats_intro:'Driving the development of sports across Uganda through dedicated programs and world-class facilities',finder_eyebrow:'Discover your federation',finder_title:'Find Your Sport',finder_intro:'Search across all 50+ National Sports Associations and Federations recognised by NCS. Tap any card to see the president, secretary, address, phone and website.',involved_title:'Get Involved',involved_subtitle:"Be Part of Uganda's Sports Excellence",involved_text:"Whether you're an athlete, coach, sports association, or enthusiast, the National Council of Sports welcomes you to join us in developing and promoting sports across Uganda.",register_label:'My Portal',register_url:'/my-portal',contact_label:'Contact Us',contact_url:'/contact-us',faq_eyebrow:'Got Questions?',faq_title:'Frequently Asked Questions',facts_eyebrow:'Did You Know?',facts_title:'Fun Facts'
 })
 const contact = reactive({ phone:'+256 414254477 / 343688', email:'info@ncs.go.ug', address:'Plot 2-10, Coronation Avenue', postal_address:'P.O. Box 20077, Lugogo, Kampala - UGANDA', fax:'+256 414 258350' })
+const slideshow = reactive({ name:'Homepage Hero', slug:'homepage-hero', transition_effect:'fade', transition_duration:700, autoplay_speed:6500, pause_on_hover:true })
+const intranetUrl = (import.meta.env?.VITE_INTRANET_URL || 'http://localhost:9081').replace(/\/$/, '')
 const posts=ref([]), events=ref([]), slides=ref([]), facts=ref([]), faqs=ref([]), facilities=ref([]), associations=ref([])
-const currentSlide=ref(0), sportQuery=ref(''), activeCategory=ref('All Sports')
-let slideTimer
+const sportQuery=ref(''), activeCategory=ref('All Sports'), activeFacilityCategory=ref('All')
+const fallbackEvents = [
+  { id:'event-1', title:'NCS Hosts CAA Heroes Luncheon', slug:'ncs-hosts-caa-heroes-luncheon', category:'Athletics', location:'Kampala', event_date:'2026-02-28T09:00:00Z' },
+  { id:'event-2', title:'Uganda Volleyball Federation U20 Africa Championships', slug:'uganda-volleyball-federation-u20-africa-championships', category:'Volleyball', location:'Cameroon', event_date:'2026-02-05T09:00:00Z' },
+  { id:'event-3', title:'Ugandan Cyclists to Take on the World On Rwandan Soil', slug:'ugandan-cyclists-to-take-on-the-world-on-rwandan-soil', category:'Cycling', location:'Rwanda', event_date:'2026-01-15T09:00:00Z' },
+  { id:'event-4', title:'Cricket Cranes Target High-Performance Gains in South Africa', slug:'cricket-cranes-target-high-performance-gains-in-south-africa', category:'Cricket', location:'South Africa', event_date:'2026-01-20T09:00:00Z' },
+]
+const fallbackFacilities = [
+  { id:'facility-1', name:'Sports Shop', slug:'sports-shop', category:'Shop', description:'Quality sports equipment and merchandise available', image_url:'https://images.unsplash.com/photo-1526948128573-703ee1aeb6fa?w=600&h=400&fit=crop' },
+  { id:'facility-2', name:'National Stadium', slug:'national-stadium', category:'Stadium', description:'A national venue for major competitions and ceremonies', image_url:'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=600&h=400&fit=crop' },
+  { id:'facility-3', name:'Indoor Gymnasium', slug:'indoor-gymnasium', category:'Gymnasium', description:'Indoor courts and training halls for multiple sports disciplines', image_url:'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600&h=400&fit=crop' },
+]
+const eventAccents = [
+  { bg:'bg-blue-500', softBg:'bg-blue-500/10', text:'text-blue-500', icon:'icofont-trophy' },
+  { bg:'bg-purple-500', softBg:'bg-purple-500/10', text:'text-purple-500', icon:'icofont-megaphone' },
+  { bg:'bg-green-500', softBg:'bg-green-500/10', text:'text-green-500', icon:'icofont-bicycle' },
+  { bg:'bg-red-500', softBg:'bg-red-500/10', text:'text-red-500', icon:'icofont-ui-press' },
+]
 const visibleSections=computed(() => (home.sections?.length ? home.sections : defaultSections).filter(item=>item.visible!==false))
 const displaySlides=computed(() => slides.value.length ? slides.value : [{id:'default',title:'Welcome to National Council of Sports',subtitle:'National Council of Sports',description:'A Centre of Excellence for Promotion and Development of Sports',button_text:'Discover NCS',button_url:'/pages/the-mandate',image_url:''}])
-const activeSlide=computed(()=>displaySlides.value[currentSlide.value]||displaySlides.value[0])
 const displayedFacts=computed(() => facts.value.length ? facts.value : home.milestones)
+const displayEvents=computed(() => events.value.length ? events.value : fallbackEvents)
+const displayFacilities=computed(() => facilities.value.length ? facilities.value : fallbackFacilities)
+const facilityCategories=computed(() => ['All', ...new Set(displayFacilities.value.map(item => item.category).filter(Boolean))])
+const filteredFacilities=computed(() => displayFacilities.value.filter(item => activeFacilityCategory.value === 'All' || item.category === activeFacilityCategory.value))
 const sportCategories=computed(() => ['All Sports',...new Set(associations.value.map(item=>item.category).filter(Boolean))])
 const filteredAssociations=computed(() => { const q=sportQuery.value.trim().toLowerCase(); return associations.value.filter(item => (activeCategory.value==='All Sports'||item.category===activeCategory.value) && (!q||[item.name,item.category,item.description].some(value=>String(value||'').toLowerCase().includes(q)))) })
-function moveSlide(step){currentSlide.value=(currentSlide.value+step+displaySlides.value.length)%displaySlides.value.length;restartTimer()}
-function setSlide(index){currentSlide.value=index;restartTimer()}
-function restartTimer(){clearInterval(slideTimer);if(displaySlides.value.length>1)slideTimer=setInterval(()=>moveSlide(1),6500)}
 function formatDate(value){return value?new Date(value).toLocaleDateString('en-UG',{day:'numeric',month:'short',year:'numeric'}):'Date TBA'}
 function stripPlus(value){return String(value||'').replace(/\+\s*$/,'')}
+function eventAccent(index){return eventAccents[index % eventAccents.length]}
+function portalUrl(path = ''){return `${intranetUrl}${path}`}
+function publicOrPortalUrl(path){return String(path || '').startsWith('/my-portal') ? portalUrl(path) : (path || '/contact-us')}
 function mergeHome(value){if(!value||typeof value!=='object')return;for(const [key,val] of Object.entries(value)){if(val&&typeof val==='object'&&!Array.isArray(val)&&home[key]&&typeof home[key]==='object')Object.assign(home[key],val);else home[key]=val}}
 function dataOf(result){return result.status==='fulfilled'?result.value.data?.data:null}
-onMounted(async()=>{const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),listSlides(),listFunFacts(),listFAQs(),listFacilities(),listAssociations(),getSettings('homepage'),getSettings('contact')]);posts.value=dataOf(results[0])?.items||[];events.value=dataOf(results[1])?.items||[];slides.value=dataOf(results[2])||[];facts.value=dataOf(results[3])||[];faqs.value=dataOf(results[4])||[];facilities.value=dataOf(results[5])||[];associations.value=dataOf(results[6])||[];mergeHome(dataOf(results[7])?.value);Object.assign(contact,dataOf(results[8])?.value||{});restartTimer()})
-onUnmounted(()=>clearInterval(slideTimer))
+onMounted(async()=>{const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),getSlideshow('homepage-hero'),listFunFacts(),listFAQs(),listFacilities(),listAssociations(),getSettings('homepage'),getSettings('contact')]);posts.value=dataOf(results[0])?.items||[];events.value=dataOf(results[1])?.items||[];const show=dataOf(results[2])||{};Object.assign(slideshow,show);slides.value=show.slides||[];facts.value=dataOf(results[3])||[];faqs.value=dataOf(results[4])||[];facilities.value=dataOf(results[5])||[];associations.value=dataOf(results[6])||[];mergeHome(dataOf(results[7])?.value);Object.assign(contact,dataOf(results[8])?.value||{})})
 </script>
 
 <style scoped>

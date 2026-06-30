@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"html"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -60,6 +62,13 @@ func (h *CMSHandler) ListInstitutionalDepartments(w http.ResponseWriter, r *http
 }
 
 var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
+var manualSlugRe = regexp.MustCompile(`^[a-z0-9-_]+$`)
+var scriptTagRe = regexp.MustCompile(`(?is)<\s*(script|iframe|object|embed|style)[^>]*>.*?<\s*/\s*(script|iframe|object|embed|style)\s*>`)
+var eventAttrRe = regexp.MustCompile(`(?i)\s+on[a-z]+\s*=\s*(".*?"|'.*?'|[^\s>]+)`)
+// Go's RE2 engine has no backreferences, so this can't require the closing
+// quote to match the opening one (\2 in PCRE/JS). Matching either quote style
+// regardless of symmetry is still safe here: we only ever strip, never keep.
+var unsafeHrefRe = regexp.MustCompile(`(?i)(href|src)\s*=\s*['"]?\s*javascript:[^'"\s>]*`)
 
 func toSlug(s string) string {
 	s = strings.ToLower(s)
@@ -72,6 +81,35 @@ func toSlug(s string) string {
 		}
 	}
 	return strings.Trim(slugRe.ReplaceAllString(b.String(), "-"), "-")
+}
+
+func sanitizePlain(s string, max int) string {
+	s = strings.TrimSpace(html.EscapeString(s))
+	if max > 0 && len(s) > max {
+		return s[:max]
+	}
+	return s
+}
+
+func sanitizeRichText(s string) string {
+	s = strings.TrimSpace(s)
+	s = scriptTagRe.ReplaceAllString(s, "")
+	s = eventAttrRe.ReplaceAllString(s, "")
+	s = unsafeHrefRe.ReplaceAllString(s, "")
+	return s
+}
+
+func normalizePostStatus(status string) (string, bool) {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "", "draft":
+		return "draft", true
+	case "approved":
+		return "approved", true
+	case "published":
+		return "published", true
+	default:
+		return "", false
+	}
 }
 
 func paginate(r *http.Request) (limit, offset int) {
@@ -140,6 +178,7 @@ func (h *CMSHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		Slug            *string `json:"slug"`
 		MetaTitle       string  `json:"meta_title"`
 		MetaDescription string  `json:"meta_description"`
+		FocusKeywords   string  `json:"focus_keywords"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
@@ -156,29 +195,41 @@ func (h *CMSHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	if req.Category == "" {
 		req.Category = "blog"
 	}
-	if req.Status == "" {
-		req.Status = "draft"
+	status, ok := normalizePostStatus(req.Status)
+	if !ok {
+		response.ValidationErr(w, map[string]string{"status": "must be draft, approved, or published"})
+		return
 	}
 
 	now := time.Now()
 	var publishedAt *time.Time
-	if req.Status == "published" {
+	var approvedAt *time.Time
+	if status == "published" {
 		publishedAt = &now
+	}
+	if status == "approved" || status == "published" {
+		approvedAt = &now
+	}
+	if req.Slug != nil && *req.Slug != "" && !manualSlugRe.MatchString(*req.Slug) {
+		response.ValidationErr(w, map[string]string{"slug": "must match ^[a-z0-9-_]+$"})
+		return
 	}
 
 	post := &models.CMSPost{
 		ID:              uuid.NewString(),
-		Title:           req.Title,
+		Title:           sanitizePlain(req.Title, 180),
 		Slug:            toSlug(slug),
-		Content:         req.Content,
-		Excerpt:         req.Excerpt,
-		Category:        req.Category,
-		Status:          req.Status,
-		CoverImageURL:   req.CoverImageURL,
+		Content:         sanitizeRichText(req.Content),
+		Excerpt:         sanitizePlain(req.Excerpt, 500),
+		Category:        sanitizePlain(req.Category, 80),
+		Status:          status,
+		CoverImageURL:   sanitizePlain(req.CoverImageURL, 500),
 		AuthorID:        &authorID,
 		PublishedAt:     publishedAt,
-		MetaTitle:       req.MetaTitle,
-		MetaDescription: req.MetaDescription,
+		ApprovedAt:      approvedAt,
+		MetaTitle:       sanitizePlain(req.MetaTitle, 180),
+		MetaDescription: sanitizePlain(req.MetaDescription, 160),
+		FocusKeywords:   sanitizePlain(req.FocusKeywords, 240),
 	}
 	if err := h.repo.CreatePost(r.Context(), post); err != nil {
 		if errors.Is(err, repository.ErrDuplicate) {
@@ -214,6 +265,7 @@ func (h *CMSHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		Slug            *string `json:"slug"`
 		MetaTitle       string  `json:"meta_title"`
 		MetaDescription string  `json:"meta_description"`
+		FocusKeywords   string  `json:"focus_keywords"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
@@ -221,27 +273,41 @@ func (h *CMSHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Title != "" {
-		post.Title = req.Title
+		post.Title = sanitizePlain(req.Title, 180)
 	}
 	if req.Content != "" {
-		post.Content = req.Content
+		post.Content = sanitizeRichText(req.Content)
 	}
 	if req.Excerpt != "" {
-		post.Excerpt = req.Excerpt
+		post.Excerpt = sanitizePlain(req.Excerpt, 500)
 	}
 	if req.Category != "" {
-		post.Category = req.Category
+		post.Category = sanitizePlain(req.Category, 80)
 	}
-	post.CoverImageURL = req.CoverImageURL
+	post.CoverImageURL = sanitizePlain(req.CoverImageURL, 500)
 	if req.Slug != nil && *req.Slug != "" {
+		if !manualSlugRe.MatchString(*req.Slug) {
+			response.ValidationErr(w, map[string]string{"slug": "must match ^[a-z0-9-_]+$"})
+			return
+		}
 		post.Slug = toSlug(*req.Slug)
 	}
-	post.MetaTitle = req.MetaTitle
-	post.MetaDescription = req.MetaDescription
+	post.MetaTitle = sanitizePlain(req.MetaTitle, 180)
+	post.MetaDescription = sanitizePlain(req.MetaDescription, 160)
+	post.FocusKeywords = sanitizePlain(req.FocusKeywords, 240)
 	if req.Status != "" {
 		prevStatus := post.Status
-		post.Status = req.Status
-		if prevStatus != "published" && req.Status == "published" && post.PublishedAt == nil {
+		status, ok := normalizePostStatus(req.Status)
+		if !ok {
+			response.ValidationErr(w, map[string]string{"status": "must be draft, approved, or published"})
+			return
+		}
+		post.Status = status
+		if prevStatus != "approved" && (status == "approved" || status == "published") && post.ApprovedAt == nil {
+			now := time.Now()
+			post.ApprovedAt = &now
+		}
+		if prevStatus != "published" && status == "published" && post.PublishedAt == nil {
 			now := time.Now()
 			post.PublishedAt = &now
 		}
@@ -262,6 +328,206 @@ func (h *CMSHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSONMsg(w, http.StatusOK, "Post deleted")
+}
+
+func (h *CMSHandler) ListBlogCategories(w http.ResponseWriter, r *http.Request) {
+	activeOnly := r.URL.Query().Get("active") != "false"
+	cats, err := h.repo.ListBlogCategories(r.Context(), activeOnly)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list blog categories")
+		return
+	}
+	response.JSON(w, http.StatusOK, cats)
+}
+
+func (h *CMSHandler) CreateBlogCategory(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Name        string `json:"name"`
+		Slug        string `json:"slug"`
+		Description string `json:"description"`
+		SortOrder   int    `json:"sort_order"`
+		IsActive    bool   `json:"is_active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if strings.TrimSpace(req.Name) == "" {
+		response.ValidationErr(w, map[string]string{"name": "required"})
+		return
+	}
+	slug := req.Slug
+	if slug == "" {
+		slug = toSlug(req.Name)
+	}
+	if !manualSlugRe.MatchString(slug) {
+		response.ValidationErr(w, map[string]string{"slug": "must match ^[a-z0-9-_]+$"})
+		return
+	}
+	cat := &models.BlogCategory{ID: uuid.NewString(), Name: sanitizePlain(req.Name, 120), Slug: slug, Description: sanitizePlain(req.Description, 500), SortOrder: req.SortOrder, IsActive: req.IsActive}
+	if err := h.repo.CreateBlogCategory(r.Context(), cat); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create blog category")
+		return
+	}
+	response.JSON(w, http.StatusCreated, cat)
+}
+
+func (h *CMSHandler) UpdateBlogCategory(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var req struct {
+		Name        string `json:"name"`
+		Slug        string `json:"slug"`
+		Description string `json:"description"`
+		SortOrder   int    `json:"sort_order"`
+		IsActive    bool   `json:"is_active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if strings.TrimSpace(req.Name) == "" || !manualSlugRe.MatchString(req.Slug) {
+		response.ValidationErr(w, map[string]string{"name": "required", "slug": "must match ^[a-z0-9-_]+$"})
+		return
+	}
+	cat := &models.BlogCategory{ID: id, Name: sanitizePlain(req.Name, 120), Slug: req.Slug, Description: sanitizePlain(req.Description, 500), SortOrder: req.SortOrder, IsActive: req.IsActive}
+	if err := h.repo.UpdateBlogCategory(r.Context(), cat); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Category not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update blog category")
+		return
+	}
+	response.JSON(w, http.StatusOK, cat)
+}
+
+func (h *CMSHandler) DeleteBlogCategory(w http.ResponseWriter, r *http.Request) {
+	if err := h.repo.DeleteBlogCategory(r.Context(), chi.URLParam(r, "id")); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Category not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not delete blog category")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Category deleted")
+}
+
+func (h *CMSHandler) ListPostComments(w http.ResponseWriter, r *http.Request) {
+	post, err := h.repo.GetPostBySlug(r.Context(), chi.URLParam(r, "slug"))
+	if errors.Is(err, repository.ErrNotFound) {
+		response.Err(w, http.StatusNotFound, "NOT_FOUND", "Post not found")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not get post")
+		return
+	}
+	comments, err := h.repo.ListApprovedCommentsForPost(r.Context(), post.ID)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list comments")
+		return
+	}
+	response.JSON(w, http.StatusOK, nestComments(comments))
+}
+
+func (h *CMSHandler) SubmitPostComment(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	post, err := h.repo.GetPostBySlug(r.Context(), chi.URLParam(r, "slug"))
+	if errors.Is(err, repository.ErrNotFound) {
+		response.Err(w, http.StatusNotFound, "NOT_FOUND", "Post not found")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not get post")
+		return
+	}
+	var req struct {
+		Body     string  `json:"body"`
+		ParentID *string `json:"parent_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	body := sanitizePlain(req.Body, 1500)
+	if len(body) < 3 {
+		response.ValidationErr(w, map[string]string{"body": "must be at least 3 characters"})
+		return
+	}
+	depth := 0
+	if req.ParentID != nil && strings.TrimSpace(*req.ParentID) != "" {
+		parent, err := h.repo.GetCommentByID(r.Context(), *req.ParentID)
+		if err != nil || parent.PostID != post.ID || parent.Depth >= 1 {
+			response.ValidationErr(w, map[string]string{"parent_id": "replies are limited to two levels"})
+			return
+		}
+		depth = parent.Depth + 1
+	} else {
+		req.ParentID = nil
+	}
+	comment := &models.BlogComment{ID: uuid.NewString(), PostID: post.ID, UserID: &userID, ParentID: req.ParentID, Body: body, Status: "pending", Depth: depth, IPAddress: r.RemoteAddr, UserAgent: sanitizePlain(r.UserAgent(), 500)}
+	if err := h.repo.CreateComment(r.Context(), comment); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not submit comment")
+		return
+	}
+	response.JSON(w, http.StatusCreated, comment)
+}
+
+func (h *CMSHandler) ListCommentsModeration(w http.ResponseWriter, r *http.Request) {
+	limit, offset := paginate(r)
+	comments, total, err := h.repo.ListComments(r.Context(), r.URL.Query().Get("status"), limit, offset)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list comments")
+		return
+	}
+	response.JSON(w, http.StatusOK, map[string]interface{}{"total": total, "items": comments})
+}
+
+func (h *CMSHandler) ApproveComment(w http.ResponseWriter, r *http.Request) { h.moderateComment(w, r, "approved") }
+func (h *CMSHandler) FlagComment(w http.ResponseWriter, r *http.Request)    { h.moderateComment(w, r, "flagged") }
+
+func (h *CMSHandler) moderateComment(w http.ResponseWriter, r *http.Request, status string) {
+	if err := h.repo.ModerateComment(r.Context(), chi.URLParam(r, "id"), status); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Comment not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not moderate comment")
+		return
+	}
+	response.JSON(w, http.StatusOK, map[string]string{"status": status})
+}
+
+func (h *CMSHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
+	if err := h.repo.DeleteComment(r.Context(), chi.URLParam(r, "id")); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Comment not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not delete comment")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Comment deleted")
+}
+
+func nestComments(comments []*models.BlogComment) []*models.BlogComment {
+	byID := map[string]*models.BlogComment{}
+	roots := []*models.BlogComment{}
+	for _, c := range comments {
+		c.Replies = []*models.BlogComment{}
+		byID[c.ID] = c
+	}
+	for _, c := range comments {
+		if c.ParentID != nil {
+			if parent, ok := byID[*c.ParentID]; ok {
+				parent.Replies = append(parent.Replies, c)
+				continue
+			}
+		}
+		roots = append(roots, c)
+	}
+	return roots
 }
 
 // ── Events ────────────────────────────────────────────────────────
@@ -299,6 +565,7 @@ func (h *CMSHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Title         string     `json:"title"`
 		Description   string     `json:"description"`
+		Category      string     `json:"category"`
 		Location      string     `json:"location"`
 		EventDate     *time.Time `json:"event_date"`
 		EndDate       *time.Time `json:"end_date"`
@@ -326,6 +593,7 @@ func (h *CMSHandler) CreateEvent(w http.ResponseWriter, r *http.Request) {
 		Title:         req.Title,
 		Slug:          toSlug(slug),
 		Description:   req.Description,
+		Category:      req.Category,
 		Location:      req.Location,
 		EventDate:     req.EventDate,
 		EndDate:       req.EndDate,
@@ -359,6 +627,7 @@ func (h *CMSHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Title         string     `json:"title"`
 		Description   string     `json:"description"`
+		Category      string     `json:"category"`
 		Location      string     `json:"location"`
 		EventDate     *time.Time `json:"event_date"`
 		EndDate       *time.Time `json:"end_date"`
@@ -375,6 +644,9 @@ func (h *CMSHandler) UpdateEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Description != "" {
 		event.Description = req.Description
+	}
+	if req.Category != "" {
+		event.Category = req.Category
 	}
 	if req.Location != "" {
 		event.Location = req.Location
@@ -595,15 +867,153 @@ func (h *CMSHandler) ListSlides(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, slides)
 }
 
+func (h *CMSHandler) GetSlideshow(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "slug")
+	if slug == "" {
+		slug = "homepage-hero"
+	}
+	show, err := h.repo.GetSlideshowBySlug(r.Context(), slug, r.URL.Query().Get("active") != "false")
+	if errors.Is(err, repository.ErrNotFound) {
+		response.Err(w, http.StatusNotFound, "NOT_FOUND", "Slideshow not found")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not get slideshow")
+		return
+	}
+	response.JSON(w, http.StatusOK, show)
+}
+
+func (h *CMSHandler) UpdateSlideshow(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "slug")
+	show, err := h.repo.GetSlideshowBySlug(r.Context(), slug, false)
+	if errors.Is(err, repository.ErrNotFound) {
+		response.Err(w, http.StatusNotFound, "NOT_FOUND", "Slideshow not found")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not get slideshow")
+		return
+	}
+	var req slideshowReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+		return
+	}
+	if strings.TrimSpace(req.Name) == "" {
+		response.ValidationErr(w, map[string]string{"name": "required"})
+		return
+	}
+	if req.TransitionEffect != "slide" {
+		req.TransitionEffect = "fade"
+	}
+	if req.TransitionDuration < 150 || req.TransitionDuration > 5000 || req.AutoplaySpeed < 2000 || req.AutoplaySpeed > 30000 {
+		response.ValidationErr(w, map[string]string{"timing": "duration must be 150-5000ms and autoplay 2000-30000ms"})
+		return
+	}
+	updated := &models.CMSSlideshow{
+		ID: show.ID, Slug: show.Slug, Name: sanitizePlain(req.Name, 120),
+		TransitionEffect: req.TransitionEffect, TransitionDuration: req.TransitionDuration,
+		AutoplaySpeed: req.AutoplaySpeed, PauseOnHover: req.PauseOnHover, IsActive: req.IsActive,
+	}
+	if err := h.repo.UpdateSlideshow(r.Context(), updated); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update slideshow")
+		return
+	}
+	response.JSON(w, http.StatusOK, updated)
+}
+
 type slideReq struct {
-	Title       string `json:"title"`
-	Subtitle    string `json:"subtitle"`
-	Description string `json:"description"`
-	ImageURL    string `json:"image_url"`
-	ButtonText  string `json:"button_text"`
-	ButtonURL   string `json:"button_url"`
-	SortOrder   int    `json:"sort_order"`
-	IsActive    bool   `json:"is_active"`
+	SlideshowID   string                   `json:"slideshow_id"`
+	Title         string                   `json:"title"`
+	Subtitle      string                   `json:"subtitle"`
+	Description   string                   `json:"description"`
+	ImageURL      string                   `json:"image_url"`
+	MediaType     string                   `json:"media_type"`
+	AnimationType string                   `json:"animation_type"`
+	ButtonText    string                   `json:"button_text"`
+	ButtonURL     string                   `json:"button_url"`
+	Buttons       []*models.CMSSlideButton `json:"buttons"`
+	SortOrder     int                      `json:"sort_order"`
+	IsActive      bool                     `json:"is_active"`
+}
+
+type slideshowReq struct {
+	Name               string `json:"name"`
+	TransitionEffect   string `json:"transition_effect"`
+	TransitionDuration int    `json:"transition_duration"`
+	AutoplaySpeed      int    `json:"autoplay_speed"`
+	PauseOnHover       bool   `json:"pause_on_hover"`
+	IsActive           bool   `json:"is_active"`
+}
+
+func safeSlideURL(raw string) bool {
+	raw = strings.TrimSpace(strings.ToLower(raw))
+	if raw == "" || strings.HasPrefix(raw, "javascript:") || strings.HasPrefix(raw, "data:") {
+		return false
+	}
+	return strings.HasPrefix(raw, "/") || strings.HasPrefix(raw, "http://") || strings.HasPrefix(raw, "https://") || strings.HasPrefix(raw, "mailto:")
+}
+
+func normalizeSlidePayload(req *slideReq) (*models.CMSSlide, map[string]string) {
+	errs := map[string]string{}
+	if strings.TrimSpace(req.Title) == "" {
+		errs["title"] = "required"
+	}
+	if req.SlideshowID == "" {
+		req.SlideshowID = "homepage-hero"
+	}
+	if req.MediaType == "" {
+		req.MediaType = "image"
+	}
+	if req.MediaType != "image" && req.MediaType != "video" {
+		errs["media_type"] = "must be image or video"
+	}
+	if req.AnimationType == "" {
+		req.AnimationType = "fade-in"
+	}
+	if req.AnimationType != "fade-in" && req.AnimationType != "slide-up" && req.AnimationType != "zoom-in" {
+		errs["animation_type"] = "must be fade-in, slide-up, or zoom-in"
+	}
+	buttons := req.Buttons
+	if len(buttons) == 0 && (req.ButtonText != "" || req.ButtonURL != "") {
+		buttons = []*models.CMSSlideButton{{Text: req.ButtonText, URL: req.ButtonURL, StyleClass: "primary", LinkTarget: "_self"}}
+	}
+	if len(buttons) > 2 {
+		errs["buttons"] = "maximum of two buttons"
+		buttons = buttons[:2]
+	}
+	for i, b := range buttons {
+		b.Text = sanitizePlain(b.Text, 80)
+		b.URL = strings.TrimSpace(b.URL)
+		if b.Text == "" || !safeSlideURL(b.URL) {
+			errs["buttons"] = "button text and safe URL are required"
+		}
+		if b.StyleClass != "primary" && b.StyleClass != "secondary" && b.StyleClass != "outline" {
+			b.StyleClass = "primary"
+		}
+		if b.LinkTarget != "_blank" {
+			b.LinkTarget = "_self"
+		}
+		b.SortOrder = i
+	}
+	s := &models.CMSSlide{
+		SlideshowID:   sanitizePlain(req.SlideshowID, 80),
+		Title:         sanitizePlain(req.Title, 180),
+		Subtitle:      sanitizePlain(req.Subtitle, 180),
+		Description:   sanitizePlain(req.Description, 500),
+		ImageURL:      sanitizePlain(req.ImageURL, 600),
+		MediaType:     req.MediaType,
+		AnimationType: req.AnimationType,
+		Buttons:       buttons,
+		SortOrder:     req.SortOrder,
+		IsActive:      req.IsActive,
+	}
+	if len(buttons) > 0 {
+		s.ButtonText = buttons[0].Text
+		s.ButtonURL = buttons[0].URL
+	}
+	return s, errs
 }
 
 // POST /api/v1/admin/cms/slides
@@ -613,18 +1023,18 @@ func (h *CMSHandler) CreateSlide(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
 		return
 	}
-	if req.Title == "" {
-		response.Err(w, http.StatusBadRequest, "VALIDATION_ERROR", "Title is required")
+	s, errs := normalizeSlidePayload(&req)
+	if len(errs) > 0 {
+		response.ValidationErr(w, errs)
 		return
 	}
-	s := &models.CMSSlide{
-		ID: uuid.NewString(), Title: req.Title, Subtitle: req.Subtitle,
-		Description: req.Description, ImageURL: req.ImageURL,
-		ButtonText: req.ButtonText, ButtonURL: req.ButtonURL,
-		SortOrder: req.SortOrder, IsActive: req.IsActive,
-	}
+	s.ID = uuid.NewString()
 	if err := h.repo.CreateSlide(r.Context(), s); err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create slide")
+		return
+	}
+	if err := h.repo.ReplaceSlideButtons(r.Context(), s.ID, s.Buttons); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save slide buttons")
 		return
 	}
 	response.JSON(w, http.StatusCreated, s)
@@ -638,14 +1048,18 @@ func (h *CMSHandler) UpdateSlide(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
 		return
 	}
-	s := &models.CMSSlide{
-		ID: id, Title: req.Title, Subtitle: req.Subtitle,
-		Description: req.Description, ImageURL: req.ImageURL,
-		ButtonText: req.ButtonText, ButtonURL: req.ButtonURL,
-		SortOrder: req.SortOrder, IsActive: req.IsActive,
+	s, errs := normalizeSlidePayload(&req)
+	if len(errs) > 0 {
+		response.ValidationErr(w, errs)
+		return
 	}
+	s.ID = id
 	if err := h.repo.UpdateSlide(r.Context(), s); err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update slide")
+		return
+	}
+	if err := h.repo.ReplaceSlideButtons(r.Context(), s.ID, s.Buttons); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save slide buttons")
 		return
 	}
 	response.JSON(w, http.StatusOK, s)
@@ -959,16 +1373,26 @@ func (h *CMSHandler) UploadMedia(w http.ResponseWriter, r *http.Request) {
 	ext := strings.ToLower(filepath.Ext(header.Filename))
 	allowed := map[string]bool{
 		".jpg": true, ".jpeg": true, ".png": true, ".gif": true,
-		".webp": true, ".svg": true, ".pdf": true,
+		".webp": true, ".svg": true, ".pdf": true, ".mp4": true, ".webm": true,
 	}
 	if !allowed[ext] {
-		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "File type not allowed. Allowed: jpg, jpeg, png, gif, webp, svg, pdf")
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "File type not allowed. Allowed: jpg, jpeg, png, gif, webp, svg, pdf, mp4, webm")
+		return
+	}
+	head := make([]byte, 512)
+	n, _ := io.ReadFull(file, head)
+	head = head[:n]
+	detected := http.DetectContentType(head)
+	if !allowedMagic(ext, detected, head) {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Uploaded file content does not match an allowed media type")
 		return
 	}
 
 	subDir := "images"
 	if ext == ".pdf" {
 		subDir = "documents"
+	} else if ext == ".mp4" || ext == ".webm" {
+		subDir = "videos"
 	}
 
 	settings, err := h.storageSettings(r.Context())
@@ -978,9 +1402,9 @@ func (h *CMSHandler) UploadMedia(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := storage.NewUploader(settings).Upload(r.Context(), storage.UploadInput{
 		Scope:       storage.ScopePublic,
-		Reader:      file,
+		Reader:      io.MultiReader(bytes.NewReader(head), file),
 		Filename:    header.Filename,
-		ContentType: header.Header.Get("Content-Type"),
+		ContentType: detected,
 		Size:        header.Size,
 		Subdir:      subDir,
 	})
@@ -989,6 +1413,30 @@ func (h *CMSHandler) UploadMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSON(w, http.StatusOK, result)
+}
+
+func allowedMagic(ext, detected string, head []byte) bool {
+	switch ext {
+	case ".jpg", ".jpeg":
+		return detected == "image/jpeg"
+	case ".png":
+		return detected == "image/png"
+	case ".gif":
+		return detected == "image/gif"
+	case ".webp":
+		return len(head) >= 12 && string(head[0:4]) == "RIFF" && string(head[8:12]) == "WEBP"
+	case ".svg":
+		s := strings.TrimSpace(strings.ToLower(string(head)))
+		return strings.HasPrefix(s, "<svg") || strings.Contains(s, "<svg")
+	case ".pdf":
+		return detected == "application/pdf"
+	case ".mp4":
+		return len(head) >= 12 && strings.Contains(string(head[4:12]), "ftyp")
+	case ".webm":
+		return len(head) >= 4 && head[0] == 0x1a && head[1] == 0x45 && head[2] == 0xdf && head[3] == 0xa3
+	default:
+		return false
+	}
 }
 
 // ── Fun Facts ─────────────────────────────────────────────────────
@@ -1261,6 +1709,7 @@ func (h *CMSHandler) CreateFacility(w http.ResponseWriter, r *http.Request) {
 		Name        string `json:"name"`
 		Slug        string `json:"slug"`
 		Description string `json:"description"`
+		Category    string `json:"category"`
 		ImageURL    string `json:"image_url"`
 		SortOrder   int    `json:"sort_order"`
 		IsActive    bool   `json:"is_active"`
@@ -1279,7 +1728,7 @@ func (h *CMSHandler) CreateFacility(w http.ResponseWriter, r *http.Request) {
 	}
 	f := &models.CMSFacility{
 		ID: uuid.NewString(), Name: req.Name, Slug: slug,
-		Description: req.Description, ImageURL: req.ImageURL,
+		Description: req.Description, Category: req.Category, ImageURL: req.ImageURL,
 		SortOrder: req.SortOrder, IsActive: req.IsActive,
 	}
 	if err := h.repo.CreateFacility(r.Context(), f); err != nil {
@@ -1307,6 +1756,7 @@ func (h *CMSHandler) UpdateFacility(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
+		Category    string `json:"category"`
 		ImageURL    string `json:"image_url"`
 		SortOrder   int    `json:"sort_order"`
 		IsActive    bool   `json:"is_active"`
@@ -1320,6 +1770,9 @@ func (h *CMSHandler) UpdateFacility(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Description != "" {
 		existing.Description = req.Description
+	}
+	if req.Category != "" {
+		existing.Category = req.Category
 	}
 	if req.ImageURL != "" {
 		existing.ImageURL = req.ImageURL

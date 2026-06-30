@@ -79,20 +79,15 @@
             <button type="button" aria-pressed="false" aria-label="Accessibility tools" title="Accessibility tools" class="inline-flex items-center justify-center w-10 h-10 rounded-md text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors" @click="openAccessibility">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><circle cx="16" cy="4" r="1"/><path d="m18 19 1-7-6 1"/><path d="m5 8 3-3 5.5 3-2.36 3.5"/><path d="M4.24 14.5a5 5 0 0 0 6.88 6"/><path d="M13.76 17.5a5 5 0 0 0-6.88-6"/></svg>
             </button>
+            <ThemeToggle />
 
-            <!-- Login (unauthenticated, desktop+) -->
-            <router-link v-if="!isAuthenticated" to="/login" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
+            <a :href="portalUrl('/login')" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
               Login
-            </router-link>
-            <!-- Portal (authenticated applicant) -->
-            <router-link v-if="isAuthenticated && isApplicant" to="/my-portal" title="My Portal" aria-label="Open my portal" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
+            </a>
+            <a :href="portalUrl('/my-portal')" title="My Portal" aria-label="Open my portal" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
               <i class="icofont-ui-home" aria-hidden="true"></i> My Portal
-            </router-link>
-            <!-- Dashboard (authenticated staff/admin) -->
-            <router-link v-if="isAuthenticated && !isApplicant" to="/dashboard" title="Dashboard" aria-label="Open dashboard" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
-              <i class="icofont-dashboard-web" aria-hidden="true"></i> Dashboard
-            </router-link>
+            </a>
 
             <!-- Mobile menu toggle -->
             <button type="button" class="inline-flex items-center justify-center h-9 w-9 lg:hidden rounded-md text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors" @click="mobileOpen = !mobileOpen" :aria-label="mobileOpen ? 'Close navigation menu' : 'Open navigation menu'" :aria-expanded="mobileOpen" aria-controls="mobile-navigation">
@@ -124,19 +119,16 @@
           </template>
 
           <div class="flex gap-3 mt-4 pt-4 border-t border-gray-100">
-            <router-link v-if="!isAuthenticated" to="/login" class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-lg text-[#1a365d] hover:border-[#f5a623] hover:text-[#f5a623] flex items-center justify-center gap-1.5" @click="mobileOpen = false">
+            <a :href="portalUrl('/login')" class="flex-1 py-2.5 text-sm font-semibold text-center border border-gray-300 rounded-lg text-[#1a365d] hover:border-[#f5a623] hover:text-[#f5a623] flex items-center justify-center gap-1.5" @click="mobileOpen = false">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
               Login
-            </router-link>
-            <router-link v-if="!isAuthenticated" to="/register" class="flex-1 py-2.5 text-sm font-semibold text-center border border-[#f5a623] text-[#f5a623] hover:bg-[#f5a623]/10 rounded-lg flex items-center justify-center gap-1.5" @click="mobileOpen = false">
+            </a>
+            <a :href="portalUrl('/register')" class="flex-1 py-2.5 text-sm font-semibold text-center border border-[#f5a623] text-[#f5a623] hover:bg-[#f5a623]/10 rounded-lg flex items-center justify-center gap-1.5" @click="mobileOpen = false">
               <i class="icofont-ui-user-group"></i> Register
-            </router-link>
-            <router-link v-if="isAuthenticated && isApplicant" to="/my-portal" class="flex-1 py-2.5 text-sm font-semibold text-center bg-[#1a365d] text-white rounded-lg flex items-center justify-center gap-1.5" @click="mobileOpen = false">
+            </a>
+            <a :href="portalUrl('/my-portal')" class="flex-1 py-2.5 text-sm font-semibold text-center bg-[#1a365d] text-white rounded-lg flex items-center justify-center gap-1.5" @click="mobileOpen = false">
               <i class="icofont-ui-home"></i> My Portal
-            </router-link>
-            <router-link v-if="isAuthenticated && !isApplicant" to="/dashboard" class="flex-1 py-2.5 text-sm font-semibold text-center bg-[#1a365d] text-white rounded-lg flex items-center justify-center gap-1.5" @click="mobileOpen = false">
-              <i class="icofont-dashboard-web"></i> Dashboard
-            </router-link>
+            </a>
           </div>
         </nav>
       </div>
@@ -276,7 +268,7 @@
           <div class="flex gap-5">
             <router-link to="/faqs" class="hover:text-gray-300 transition-colors">FAQs</router-link>
             <router-link to="/contact-us" class="hover:text-gray-300 transition-colors">Contact</router-link>
-            <router-link to="/my-portal" class="hover:text-gray-300 transition-colors">My Portal</router-link>
+            <a :href="portalUrl('/my-portal')" class="hover:text-gray-300 transition-colors">My Portal</a>
           </div>
         </div>
       </div>
@@ -290,11 +282,11 @@
 import { ref, computed, nextTick, onMounted, onUnmounted, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth.js'
 import { getMenu, getSettings } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 import PublicAccessibilityMenu from '@/components/public/PublicAccessibilityMenu.vue'
 import AppPreloader from '@/components/public/AppPreloader.vue'
+import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 
 const mobileOpen = ref(false)
 const searchOpen = ref(false)
@@ -302,13 +294,12 @@ const siteSearch = ref('')
 const scrolled = ref(false)
 const route = useRoute()
 const router = useRouter()
-const authStore = useAuthStore()
-const isAuthenticated = computed(() => authStore.isAuthenticated)
-const isApplicant = computed(() => authStore.isApplicant)
+const intranetUrl = (import.meta.env?.VITE_INTRANET_URL || 'http://localhost:9081').replace(/\/$/, '')
 const currentYear = computed(() => new Date().getFullYear())
 
 function onScroll() { scrolled.value = window.scrollY > 20 }
 function openAccessibility() { window.dispatchEvent(new CustomEvent('open-accessibility-menu')) }
+function portalUrl(path = '') { return `${intranetUrl}${path}` }
 function submitSearch() {
   const query = siteSearch.value.trim()
   if (query) router.push({ path: '/news', query: { search: query } })
@@ -324,7 +315,6 @@ watch(() => route.fullPath, async () => {
 
 const defaultMenu = [
   { label: 'Home',            url: '/' },
-  { label: 'My Portal',       url: '/my-portal' },
   { label: 'News',            url: '/news' },
   { label: 'Events',          url: '/events' },
   { label: 'Careers',         url: '/careers' },

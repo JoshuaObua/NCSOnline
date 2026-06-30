@@ -110,7 +110,7 @@
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { listPosts, getSettings } from '@/api/cms.js'
+import { listPosts, getSettings, listBlogCategories } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 
 const EXCLUDED = ['page', 'case_study']
@@ -134,10 +134,16 @@ function formatDate(d) {
 
 async function loadCategories() {
   try {
-    const res = await getSettings('post_categories')
-    const val = res.data?.data?.value
+    const res = await listBlogCategories(true)
+    const val = res.data?.data || res.data || []
     if (Array.isArray(val) && val.length) {
-      categories.value = [{ value: '', label: 'All' }, ...val.filter(c => !EXCLUDED.includes(c.value))]
+      categories.value = [{ value: '', label: 'All' }, ...val.filter(c => !EXCLUDED.includes(c.slug)).map(c => ({ value: c.slug, label: c.name }))]
+      return
+    }
+    const settings = await getSettings('post_categories')
+    const legacy = settings.data?.data?.value
+    if (Array.isArray(legacy) && legacy.length) {
+      categories.value = [{ value: '', label: 'All' }, ...legacy.filter(c => !EXCLUDED.includes(c.value))]
     }
   } catch {
     categories.value = [

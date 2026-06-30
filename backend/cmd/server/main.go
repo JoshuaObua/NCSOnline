@@ -129,11 +129,14 @@ func main() {
 		r.Route("/cms", func(r chi.Router) {
 			r.Get("/posts", h.CMS.ListPosts)
 			r.Get("/posts/{slug}", h.CMS.GetPost)
+			r.Get("/posts/{slug}/comments", h.CMS.ListPostComments)
+			r.Get("/blog/categories", h.CMS.ListBlogCategories)
 			r.Get("/events", h.CMS.ListEvents)
 			r.Get("/events/{slug}", h.CMS.GetEvent)
 			r.Get("/careers", h.CMS.ListCareers)
 			r.Get("/careers/{id}", h.CMS.GetCareer)
 			r.Get("/slides", h.CMS.ListSlides)
+			r.Get("/slideshows/{slug}", h.CMS.GetSlideshow)
 			r.Get("/menus/{name}", h.CMS.GetMenu)
 			r.Get("/settings/{key}", h.CMS.GetSetting)
 			r.Get("/fun-facts", h.CMS.ListFunFacts)
@@ -213,6 +216,7 @@ func main() {
 			// Generic authenticated file upload (used by the dynamic form
 			// dropzone for both applicants and admins).
 			r.Post("/media/upload", h.CMS.UploadMedia)
+			r.With(authRL.Middleware).Post("/cms/posts/{slug}/comments", h.CMS.SubmitPostComment)
 
 			// ── Self-service activity log + security settings ─────────
 			r.Get("/me/activities", h.Security.MyActivities)
@@ -364,6 +368,20 @@ func main() {
 					r.Delete("/{id}", h.CMS.DeletePost)
 				})
 
+				r.Route("/admin/cms/blog/categories", func(r chi.Router) {
+					r.Get("/", h.CMS.ListBlogCategories)
+					r.Post("/", h.CMS.CreateBlogCategory)
+					r.Put("/{id}", h.CMS.UpdateBlogCategory)
+					r.Delete("/{id}", h.CMS.DeleteBlogCategory)
+				})
+
+				r.Route("/admin/cms/comments", func(r chi.Router) {
+					r.Get("/", h.CMS.ListCommentsModeration)
+					r.Post("/{id}/approve", h.CMS.ApproveComment)
+					r.Post("/{id}/flag", h.CMS.FlagComment)
+					r.Delete("/{id}", h.CMS.DeleteComment)
+				})
+
 				r.Route("/admin/cms/events", func(r chi.Router) {
 					r.Get("/", h.CMS.ListEvents)
 					r.Post("/", h.CMS.CreateEvent)
@@ -384,6 +402,8 @@ func main() {
 					r.Put("/{id}", h.CMS.UpdateSlide)
 					r.Delete("/{id}", h.CMS.DeleteSlide)
 				})
+				r.Get("/admin/cms/slideshows/{slug}", h.CMS.GetSlideshow)
+				r.Put("/admin/cms/slideshows/{slug}", h.CMS.UpdateSlideshow)
 
 				r.Put("/admin/cms/menus/{name}", h.CMS.UpdateMenu)
 				r.Put("/admin/cms/settings/{key}", h.CMS.UpdateSetting)

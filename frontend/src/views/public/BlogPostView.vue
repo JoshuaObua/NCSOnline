@@ -53,8 +53,40 @@
           <!-- Body -->
           <div
             class="prose prose-gray max-w-none prose-headings:text-[#112b4e] prose-a:text-[#F48C06] prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-p:text-gray-600 prose-p:leading-relaxed"
-            v-html="post.content"
+            v-html="safeContent"
           ></div>
+
+          <section class="mt-14 pt-8 border-t border-gray-100">
+            <div class="flex items-center justify-between gap-4 mb-6">
+              <h2 class="text-2xl font-bold text-[#112b4e]">Comments</h2>
+              <span class="text-sm text-gray-400">{{ flatCommentCount }} visible</span>
+            </div>
+            <form v-if="isAuthenticated" class="comment-form" @submit.prevent="submitComment(null)">
+              <textarea v-model="commentBody" maxlength="1500" placeholder="Share a thoughtful comment"></textarea>
+              <button type="submit" :disabled="submitting">Submit for moderation</button>
+            </form>
+            <div v-else class="login-cta">
+              <p>Sign in to join the conversation on this article.</p>
+              <router-link to="/login">Log in to comment</router-link>
+            </div>
+            <div class="comments-list">
+              <article v-for="comment in comments" :key="comment.id" class="comment-card">
+                <strong>{{ comment.user_name || 'Reader' }}</strong>
+                <p>{{ comment.body }}</p>
+                <button v-if="isAuthenticated" type="button" @click="replyTo = replyTo === comment.id ? '' : comment.id">Reply</button>
+                <form v-if="replyTo === comment.id" class="comment-form compact" @submit.prevent="submitComment(comment.id)">
+                  <textarea v-model="replyBody" maxlength="1500" placeholder="Write a reply"></textarea>
+                  <button type="submit" :disabled="submitting">Submit reply</button>
+                </form>
+                <div v-if="comment.replies?.length" class="reply-list">
+                  <article v-for="reply in comment.replies" :key="reply.id" class="comment-card reply">
+                    <strong>{{ reply.user_name || 'Reader' }}</strong>
+                    <p>{{ reply.body }}</p>
+                  </article>
+                </div>
+              </article>
+            </div>
+          </section>
 
           <!-- Footer -->
           <div class="mt-14 pt-8 border-t border-gray-100 flex items-center justify-between flex-wrap gap-4">
@@ -78,14 +110,23 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { getPost } from '@/api/cms.js'
+import { getPost, listPostComments, submitPostComment } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
+import { sanitizeRichHtml } from '@/utils/sanitize.js'
 
 const route = useRoute()
 const post = ref(null)
+const comments = ref([])
+const commentBody = ref('')
+const replyBody = ref('')
+const replyTo = ref('')
+const submitting = ref(false)
 const loading = ref(true)
+const isAuthenticated = computed(() => !!localStorage.getItem('ncsms_access_token'))
+const safeContent = computed(() => sanitizeRichHtml(post.value?.content || ''))
+const flatCommentCount = computed(() => comments.value.reduce((total, c) => total + 1 + (c.replies?.length || 0), 0))
 
 function formatDate(d) {
   return new Date(d).toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
@@ -95,10 +136,38 @@ onMounted(async () => {
   try {
     const res = await getPost(route.params.slug)
     post.value = res.data.data
+    await loadComments()
   } catch {
     post.value = null
   } finally {
     loading.value = false
   }
 })
+
+async function loadComments() {
+  const res = await listPostComments(route.params.slug)
+  comments.value = res.data?.data || []
+}
+
+async function submitComment(parentId) {
+  const body = parentId ? replyBody.value : commentBody.value
+  if (!body.trim()) return
+  submitting.value = true
+  try {
+    await submitPostComment(route.params.slug, { body, parent_id: parentId })
+    if (parentId) {
+      replyBody.value = ''
+      replyTo.value = ''
+    } else {
+      commentBody.value = ''
+    }
+    alert('Thanks. Your comment is waiting for moderation.')
+  } finally {
+    submitting.value = false
+  }
+}
 </script>
+
+<style scoped>
+.comment-form{display:grid;gap:.75rem;margin-bottom:1.5rem}.comment-form textarea{min-height:7rem;border:1px solid #d1d5db;border-radius:.5rem;padding:.85rem;color:#111827}.comment-form button,.login-cta a{justify-self:start;background:#112b4e;color:white;border-radius:.45rem;padding:.65rem 1rem;font-weight:700}.comment-form.compact textarea{min-height:5rem}.login-cta{display:flex;align-items:center;justify-content:space-between;gap:1rem;background:#f8fafc;border:1px solid #e5e7eb;border-radius:.5rem;padding:1rem;margin-bottom:1.5rem}.comments-list{display:grid;gap:1rem}.comment-card{border:1px solid #e5e7eb;border-radius:.5rem;padding:1rem;background:white}.comment-card strong{color:#112b4e}.comment-card p{margin:.5rem 0;color:#4b5563}.comment-card>button{font-size:.85rem;font-weight:700;color:#f48c06}.reply-list{display:grid;gap:.75rem;margin-top:.9rem;padding-left:1rem;border-left:3px solid #facc15}.reply{background:#f8fafc}
+</style>

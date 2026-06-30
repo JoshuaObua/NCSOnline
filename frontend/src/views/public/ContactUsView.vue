@@ -121,9 +121,9 @@
               <h3 class="font-bold text-white mb-4 text-sm uppercase tracking-wide">Quick Links</h3>
               <ul class="space-y-2.5">
                 <li>
-                  <router-link to="/my-portal" class="flex items-center gap-2 text-white/70 hover:text-[#F48C06] text-sm font-medium transition-colors">
+                  <a :href="portalUrl('/my-portal')" class="flex items-center gap-2 text-white/70 hover:text-[#F48C06] text-sm font-medium transition-colors">
                     <i class="icofont-arrow-right text-[#F48C06] text-xs"></i> My Portal
-                  </router-link>
+                  </a>
                 </li>
                 <li>
                   <router-link to="/faqs" class="flex items-center gap-2 text-white/70 hover:text-[#F48C06] text-sm font-medium transition-colors">
@@ -152,6 +152,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { getSettings } from '@/api/cms.js'
+const intranetUrl = (import.meta.env?.VITE_INTRANET_URL || 'http://localhost:9081').replace(/\/$/, '')
+function portalUrl(path = '') { return `${intranetUrl}${path}` }
 
 const loading = ref(true)
 const contact = reactive({

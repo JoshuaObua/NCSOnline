@@ -226,10 +226,43 @@ type CMSPost struct {
 	AuthorName      string     `json:"author_name,omitempty"`
 	MetaTitle       string     `json:"meta_title,omitempty"`
 	MetaDescription string     `json:"meta_description,omitempty"`
+	FocusKeywords   string     `json:"focus_keywords,omitempty"`
 	ViewCount       int        `json:"view_count"`
+	ApprovedAt      *time.Time `json:"approved_at,omitempty"`
 	PublishedAt     *time.Time `json:"published_at,omitempty"`
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
+}
+
+type BlogCategory struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Slug        string    `json:"slug"`
+	Description string    `json:"description,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type BlogComment struct {
+	ID         string         `json:"id"`
+	PostID     string         `json:"post_id"`
+	PostTitle  string         `json:"post_title,omitempty"`
+	PostSlug   string         `json:"post_slug,omitempty"`
+	UserID     *string        `json:"user_id,omitempty"`
+	UserName   string         `json:"user_name,omitempty"`
+	ParentID   *string        `json:"parent_id,omitempty"`
+	Body       string         `json:"body"`
+	Status     string         `json:"status"`
+	Depth      int            `json:"depth"`
+	IPAddress  string         `json:"ip_address,omitempty"`
+	UserAgent  string         `json:"user_agent,omitempty"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	ApprovedAt *time.Time     `json:"approved_at,omitempty"`
+	FlaggedAt  *time.Time     `json:"flagged_at,omitempty"`
+	Replies    []*BlogComment `json:"replies,omitempty"`
 }
 
 type CMSEvent struct {
@@ -237,6 +270,7 @@ type CMSEvent struct {
 	Title         string     `json:"title"`
 	Slug          string     `json:"slug"`
 	Description   string     `json:"description"`
+	Category      string     `json:"category,omitempty"`
 	Location      string     `json:"location,omitempty"`
 	EventDate     *time.Time `json:"event_date,omitempty"`
 	EndDate       *time.Time `json:"end_date,omitempty"`
@@ -267,17 +301,48 @@ type CMSCareer struct {
 }
 
 type CMSSlide struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Subtitle    string    `json:"subtitle,omitempty"`
-	Description string    `json:"description,omitempty"`
-	ImageURL    string    `json:"image_url,omitempty"`
-	ButtonText  string    `json:"button_text,omitempty"`
-	ButtonURL   string    `json:"button_url,omitempty"`
-	SortOrder   int       `json:"sort_order"`
-	IsActive    bool      `json:"is_active"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID            string            `json:"id"`
+	SlideshowID   string            `json:"slideshow_id,omitempty"`
+	Title         string            `json:"title"`
+	Subtitle      string            `json:"subtitle,omitempty"`
+	Description   string            `json:"description,omitempty"`
+	Category      string            `json:"category,omitempty"`
+	ImageURL      string            `json:"image_url,omitempty"`
+	MediaType     string            `json:"media_type,omitempty"`
+	AnimationType string            `json:"animation_type,omitempty"`
+	ButtonText    string            `json:"button_text,omitempty"`
+	ButtonURL     string            `json:"button_url,omitempty"`
+	Buttons       []*CMSSlideButton `json:"buttons,omitempty"`
+	SortOrder     int               `json:"sort_order"`
+	IsActive      bool              `json:"is_active"`
+	CreatedAt     time.Time         `json:"created_at"`
+	UpdatedAt     time.Time         `json:"updated_at"`
+}
+
+type CMSSlideshow struct {
+	ID                 string      `json:"id"`
+	Name               string      `json:"name"`
+	Slug               string      `json:"slug"`
+	TransitionEffect   string      `json:"transition_effect"`
+	TransitionDuration int         `json:"transition_duration"`
+	AutoplaySpeed      int         `json:"autoplay_speed"`
+	PauseOnHover       bool        `json:"pause_on_hover"`
+	IsActive           bool        `json:"is_active"`
+	Slides             []*CMSSlide `json:"slides,omitempty"`
+	CreatedAt          time.Time   `json:"created_at"`
+	UpdatedAt          time.Time   `json:"updated_at"`
+}
+
+type CMSSlideButton struct {
+	ID         string    `json:"id"`
+	SlideID    string    `json:"slide_id,omitempty"`
+	Text       string    `json:"text"`
+	URL        string    `json:"url"`
+	StyleClass string    `json:"style_class"`
+	LinkTarget string    `json:"link_target"`
+	SortOrder  int       `json:"sort_order"`
+	CreatedAt  time.Time `json:"created_at,omitempty"`
+	UpdatedAt  time.Time `json:"updated_at,omitempty"`
 }
 
 type CMSMenuItem struct {
@@ -344,6 +409,7 @@ type CMSFacility struct {
 	Name        string    `json:"name"`
 	Slug        string    `json:"slug"`
 	Description string    `json:"description,omitempty"`
+	Category    string    `json:"category,omitempty"`
 	ImageURL    string    `json:"image_url,omitempty"`
 	SortOrder   int       `json:"sort_order"`
 	IsActive    bool      `json:"is_active"`

@@ -19,8 +19,8 @@ export default defineConfig({
     // served from the Vite dev port. nginx serves them at port 80 inside the
     // ncsms_net docker network.
     proxy: {
-      '/uploads': { target: 'http://104.219.248.160:9080', changeOrigin: true },
-      '/api':     { target: 'http://104.219.248.160:9080', changeOrigin: true }
+      '/uploads': { target: 'http://localhost:9080', changeOrigin: true },
+      '/api':     { target: 'http://localhost:9080', changeOrigin: true }
     }
   }
 })
