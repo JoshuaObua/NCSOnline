@@ -394,6 +394,16 @@ type CMSFAQ struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type NewsletterSubscriber struct {
+	ID             string     `json:"id"`
+	Email          string     `json:"email"`
+	Source         string     `json:"source"`
+	IsActive       bool       `json:"is_active"`
+	UnsubscribedAt *time.Time `json:"unsubscribed_at,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
 type CMSResource struct {
 	ID          string    `json:"id"`
 	Title       string    `json:"title"`

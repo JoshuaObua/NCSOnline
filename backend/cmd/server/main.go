@@ -147,6 +147,7 @@ func main() {
 			r.Get("/invest", h.CMS.ListInvest)
 			r.Get("/team", h.CMS.ListTeam)
 			r.Get("/departments", h.CMS.ListInstitutionalDepartments)
+			r.Post("/newsletter/subscribe", h.CMS.SubscribeNewsletter)
 		})
 
 		// ── Authenticated routes (geo-blocked: Uganda only, no VPN) ─────
@@ -381,6 +382,9 @@ func main() {
 					r.Post("/{id}/flag", h.CMS.FlagComment)
 					r.Delete("/{id}", h.CMS.DeleteComment)
 				})
+
+				r.Get("/admin/cms/newsletter/subscribers", h.CMS.ListNewsletterSubscribers)
+				r.Get("/admin/cms/newsletter/subscribers/export", h.CMS.ExportNewsletterSubscribers)
 
 				r.Route("/admin/cms/events", func(r chi.Router) {
 					r.Get("/", h.CMS.ListEvents)

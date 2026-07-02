@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -1649,6 +1650,83 @@ func (h *CMSHandler) DeleteFunFact(w http.ResponseWriter, r *http.Request) {
 }
 
 // ── FAQs ──────────────────────────────────────────────────────────
+
+// ── Newsletter ────────────────────────────────────────────────────
+
+var newsletterEmailRe = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+
+// SubscribeNewsletter handles the public footer sign-up.
+// POST /api/v1/cms/newsletter/subscribe
+func (h *CMSHandler) SubscribeNewsletter(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Email  string `json:"email"`
+		Source string `json:"source"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
+		return
+	}
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	if email == "" || len(email) > 254 || !newsletterEmailRe.MatchString(email) {
+		response.ValidationErr(w, map[string]string{"email": "a valid email address is required"})
+		return
+	}
+	source := sanitizePlain(req.Source, 60)
+	if source == "" {
+		source = "website"
+	}
+	sub, err := h.repo.SubscribeNewsletter(r.Context(), uuid.NewString(), email, source)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not subscribe")
+		return
+	}
+	response.JSON(w, http.StatusCreated, sub)
+}
+
+// ListNewsletterSubscribers returns a paginated list for the admin dashboard.
+// GET /api/v1/admin/cms/newsletter/subscribers
+func (h *CMSHandler) ListNewsletterSubscribers(w http.ResponseWriter, r *http.Request) {
+	limit, offset := paginate(r)
+	items, total, err := h.repo.ListNewsletterSubscribers(r.Context(), limit, offset)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list subscribers")
+		return
+	}
+	response.JSON(w, http.StatusOK, map[string]interface{}{"total": total, "items": items})
+}
+
+// ExportNewsletterSubscribers streams every subscriber as CSV (also used for
+// the "Export Excel" button, which opens the CSV in Excel).
+// GET /api/v1/admin/cms/newsletter/subscribers/export?format=csv|excel
+func (h *CMSHandler) ExportNewsletterSubscribers(w http.ResponseWriter, r *http.Request) {
+	items, _, err := h.repo.ListNewsletterSubscribers(r.Context(), 0, 0)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not export subscribers")
+		return
+	}
+	var buf bytes.Buffer
+	cw := csv.NewWriter(&buf)
+	_ = cw.Write([]string{"Email", "Source", "Subscribed At", "Status"})
+	for _, s := range items {
+		status := "subscribed"
+		if !s.IsActive {
+			status = "unsubscribed"
+		}
+		_ = cw.Write([]string{s.Email, s.Source, s.CreatedAt.Format(time.RFC3339), status})
+	}
+	cw.Flush()
+
+	contentType := "text/csv; charset=utf-8"
+	filename := "newsletter-subscribers.csv"
+	if strings.EqualFold(r.URL.Query().Get("format"), "excel") {
+		contentType = "application/vnd.ms-excel"
+		filename = "newsletter-subscribers.xls"
+	}
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(buf.Bytes())
+}
 
 func (h *CMSHandler) ListFAQs(w http.ResponseWriter, r *http.Request) {
 	category := r.URL.Query().Get("category")

@@ -1666,6 +1666,56 @@ func (r *CMSRepo) DeleteFAQ(ctx context.Context, id string) error {
 	return err
 }
 
+// ── Newsletter subscribers ────────────────────────────────────────
+
+// SubscribeNewsletter upserts an email. A repeat sign-up re-activates a
+// previously unsubscribed address rather than erroring on the UNIQUE(email).
+func (r *CMSRepo) SubscribeNewsletter(ctx context.Context, id, email, source string) (*models.NewsletterSubscriber, error) {
+	const q = `INSERT INTO newsletter_subscribers (id, email, source)
+	           VALUES ($1,$2,$3)
+	           ON CONFLICT (email) DO UPDATE
+	             SET is_active = TRUE,
+	                 unsubscribed_at = NULL,
+	                 source = CASE WHEN EXCLUDED.source <> '' THEN EXCLUDED.source ELSE newsletter_subscribers.source END,
+	                 updated_at = NOW()
+	           RETURNING id, email, source, is_active, unsubscribed_at, created_at, updated_at`
+	s := &models.NewsletterSubscriber{}
+	err := r.db.QueryRow(ctx, q, id, email, source).Scan(
+		&s.ID, &s.Email, &s.Source, &s.IsActive, &s.UnsubscribedAt, &s.CreatedAt, &s.UpdatedAt)
+	return s, err
+}
+
+// ListNewsletterSubscribers returns subscribers newest-first plus the total
+// count. A non-positive limit returns every row (used by the CSV export).
+func (r *CMSRepo) ListNewsletterSubscribers(ctx context.Context, limit, offset int) ([]*models.NewsletterSubscriber, int, error) {
+	var total int
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM newsletter_subscribers`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	q := `SELECT id, email, source, is_active, unsubscribed_at, created_at, updated_at
+	      FROM newsletter_subscribers
+	      ORDER BY created_at DESC`
+	args := []interface{}{}
+	if limit > 0 {
+		q += ` LIMIT $1 OFFSET $2`
+		args = append(args, limit, offset)
+	}
+	rows, err := r.db.Query(ctx, q, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	items := []*models.NewsletterSubscriber{}
+	for rows.Next() {
+		s := &models.NewsletterSubscriber{}
+		if err := rows.Scan(&s.ID, &s.Email, &s.Source, &s.IsActive, &s.UnsubscribedAt, &s.CreatedAt, &s.UpdatedAt); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, s)
+	}
+	return items, total, rows.Err()
+}
+
 // ── Resources ─────────────────────────────────────────────────────
 
 func (r *CMSRepo) ListResources(ctx context.Context, category string) ([]*models.CMSResource, error) {
