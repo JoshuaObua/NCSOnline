@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Self-hosted Poppins (latin) — served same-origin from /fonts so it loads
+   instantly and avoids the Chrome slow-network font intervention. */
+@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/poppins-400.woff2') format('woff2'); }
+@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/poppins-500.woff2') format('woff2'); }
+@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/poppins-600.woff2') format('woff2'); }
+@font-face { font-family: 'Poppins'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/poppins-700.woff2') format('woff2'); }
+
 @layer components {
   .admin-card          { @apply bg-white rounded-xl border border-gray-200 shadow-sm; }
   .admin-card-header   { @apply px-5 py-4 border-b border-gray-100 flex items-center justify-between; }
@@ -118,6 +125,47 @@ html.dark .public-site .border-gray-200 {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+
+/* ── Public site dark mode (toggled via .dark on <html> by useTheme) ───────
+   Public views use a light palette with NO dark: variants, so toggling did
+   nothing before. Remap the shared --skilline-* vars + the common utility
+   surfaces here. Brand accents (amber) and already-dark navy sections/footer
+   are intentionally left unchanged. Scoped to .public-site so the admin CMS
+   (which has its own :global(.dark) rules) is unaffected. */
+.dark .public-site {
+  --skilline-cream: #0f172a;
+  --skilline-heading: #f1f5f9;
+  --skilline-copy: #9aa7b8;
+  background-color: #0b1120;
+  color: var(--skilline-copy);
+}
+.dark .public-site .bg-white,
+.dark .public-site .bg-cream,
+.dark .public-site .bg-gray-50,
+.dark .public-site .bg-gray-100,
+.dark .public-site .bg-\[\#FEF9F2\] { background-color: #111827 !important; }
+.dark .public-site .bg-gray-200,
+.dark .public-site .bg-gray-300 { background-color: #1f2937 !important; }
+.dark .public-site .text-\[\#1a365d\],
+.dark .public-site .text-\[\#112b4e\],
+.dark .public-site .text-gray-900,
+.dark .public-site .text-gray-800,
+.dark .public-site .text-gray-700 { color: #e5e7eb !important; }
+.dark .public-site .text-gray-600,
+.dark .public-site .text-gray-500,
+.dark .public-site .text-gray-400 { color: #9aa7b8 !important; }
+.dark .public-site .border-gray-100,
+.dark .public-site .border-gray-200,
+.dark .public-site .border-gray-300 { border-color: #334155 !important; }
+.dark .public-site input:not([type=checkbox]):not([type=radio]),
+.dark .public-site textarea,
+.dark .public-site select { background-color: #111827 !important; color: #e5e7eb !important; border-color: #334155 !important; }
+.dark .public-site .shadow-sm,
+.dark .public-site .shadow,
+.dark .public-site .shadow-md,
+.dark .public-site .shadow-lg,
+.dark .public-site .shadow-xl,
+.dark .public-site .shadow-2xl { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45) !important; }
 
 .public-site main h1,
 .public-site main h2,
@@ -248,6 +296,9 @@ html.dark .public-site .border-gray-200 {
 .accessibility-trigger:hover,
 .accessibility-trigger:focus-visible,
 .accessibility-trigger[aria-expanded="true"] { background: #F48C06; transform: scale(1.1); box-shadow: 0 12px 30px rgb(37 38 65 / 0.38); }
+/* When adjustments are active the FAB turns amber to signal "click to turn off". */
+.accessibility-trigger--active { background: #F48C06; }
+.public-site[class*="a11y-"] .accessibility-trigger.accessibility-trigger--active { background: #F48C06 !important; }
 .accessibility-trigger-icon { width: 1.8rem; height: 1.8rem; }
 
 .accessibility-panel {
@@ -348,7 +399,10 @@ html.dark .public-site .border-gray-200 {
 .public-site.a11y-highlight-focus :focus { outline: 4px solid #00a8ff !important; outline-offset: 4px !important; }
 .public-site.a11y-large-cursor, .public-site.a11y-large-cursor * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath fill='white' stroke='black' stroke-width='2' d='M3 2l21 18-10 1 5 8-5 3-5-9-6 7z'/%3E%3C/svg%3E") 2 2, auto !important; }
 .public-site.a11y-hide-images img:not(.accessibility-panel img), .public-site.a11y-hide-images picture, .public-site.a11y-hide-images video { visibility: hidden !important; }
-.a11y-reading-guide { position: fixed; z-index: 79; left: 0; width: 100vw; height: 2.25rem; pointer-events: none; transform: translateY(-50%); border-top: 2px solid rgb(244 140 6 / 0.8); border-bottom: 2px solid rgb(244 140 6 / 0.8); background: rgb(255 223 0 / 0.12); }
+/* Reading guide sits below the accessibility toolbar (z-index 80) and never
+   receives pointer events, so it can never cover or disable the toolbar. It is
+   teleported to <body>, so it is outside the toolbar's stacking context. */
+.a11y-reading-guide { position: fixed; z-index: 70; left: 0; width: 100vw; height: 2.25rem; pointer-events: none; transform: translateY(-50%); border-top: 2px solid rgb(244 140 6 / 0.8); border-bottom: 2px solid rgb(244 140 6 / 0.8); background: rgb(255 223 0 / 0.12); }
 
 .public-site.a11y-high-contrast,
 .public-site.a11y-high-contrast main,
@@ -399,7 +453,39 @@ html.dark .public-site .border-gray-200 {
 .public-site.a11y-high-contrast img,
 .public-site.a11y-high-contrast video { filter: contrast(1.2); }
 
-.public-site.a11y-grayscale { filter: grayscale(100%); }
+/* NOTE: grayscale must never be applied to .public-site itself — a `filter`
+   on the fixed accessibility toolbar's ancestor turns .public-site into the
+   containing block, which displaces/clips the toolbar and makes the button
+   unclickable. Grayscale is handled by the scoped rule above
+   (.public-site.a11y-grayscale > :not(.accessibility-menu)) which leaves the
+   toolbar untouched. */
+
+/* Toolbar immunity: the accessibility controls always keep their own styling
+   and stay clickable, regardless of which visitor effects are active (high
+   contrast / grayscale / spacing / etc. must never restyle or disable them). */
+.public-site[class*="a11y-"] .accessibility-menu,
+.public-site[class*="a11y-"] .accessibility-menu * {
+  filter: none !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  cursor: auto !important;
+}
+.public-site[class*="a11y-"] .accessibility-trigger {
+  background: #2F327D !important; color: #fff !important; border-color: #fff !important; cursor: pointer !important;
+}
+.public-site[class*="a11y-"] .accessibility-trigger:hover,
+.public-site[class*="a11y-"] .accessibility-trigger:focus-visible,
+.public-site[class*="a11y-"] .accessibility-trigger[aria-expanded="true"] { background: #F48C06 !important; }
+.public-site[class*="a11y-"] .accessibility-panel { background: #fff !important; color: #1f2937 !important; border-color: #d1d5db !important; }
+.public-site[class*="a11y-"] .accessibility-panel :where(p,span,label,output,li) { color: #1f2937 !important; }
+.public-site[class*="a11y-"] .accessibility-panel h2 { color: #2F327D !important; }
+.public-site[class*="a11y-"] .accessibility-toggle,
+.public-site[class*="a11y-"] .accessibility-option,
+.public-site[class*="a11y-"] .accessibility-value,
+.public-site[class*="a11y-"] .accessibility-reset {
+  background: #fff !important; color: #1f2937 !important; border-color: #d1d5db !important; cursor: pointer !important;
+}
+.public-site[class*="a11y-"] .accessibility-toggle[aria-pressed="true"] { background: #eef2ff !important; border-color: #2F327D !important; }
 
 .public-site.a11y-readable-font,
 .public-site.a11y-readable-font * {

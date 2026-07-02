@@ -2,20 +2,19 @@
   <div
     ref="menuRoot"
     class="accessibility-menu"
-    @pointerenter="openFromHover"
-    @pointerleave="scheduleClose"
     @focusin="cancelScheduledClose"
     @focusout="onFocusOut"
   >
     <button
       type="button"
       class="accessibility-trigger"
-      aria-label="Open accessibility tools"
-      title="Accessibility tools"
+      :class="{ 'accessibility-trigger--active': anyActive }"
+      :aria-label="anyActive ? 'Turn off all accessibility adjustments' : 'Open accessibility tools'"
+      :title="anyActive ? 'Accessibility on — click to turn all off' : 'Accessibility tools'"
       :aria-expanded="open"
+      :aria-pressed="anyActive"
       aria-controls="visitor-accessibility-panel"
-      @focus="openPanel"
-      @click="openPanel"
+      @click="onTrigger"
     >
       <svg class="accessibility-trigger-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <circle cx="16" cy="4" r="1" />
@@ -74,13 +73,15 @@
       </section>
     </Transition>
 
-    <div v-if="preferences.readingGuide" class="a11y-reading-guide" :style="{ top: `${pointerY}px` }" aria-hidden="true"></div>
+    <Teleport to="body">
+      <div v-if="preferences.readingGuide" class="a11y-reading-guide" :style="{ top: `${pointerY}px` }" aria-hidden="true"></div>
+    </Teleport>
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
   </div>
 </template>
 
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 const STORAGE_KEY = 'ncs_public_accessibility'
 const defaults = {
@@ -115,6 +116,9 @@ const menuRoot = ref(null)
 const announcement = ref('')
 const pointerY = ref(window.innerHeight / 2)
 const preferences = reactive({ ...defaults })
+// True when any accessibility adjustment is active (text size changed or any
+// toggle on). Drives the FAB's master on/off behaviour + active styling.
+const anyActive = computed(() => preferences.textScale !== 100 || tools.some(tool => preferences[tool.key]))
 let closeTimer
 
 function readPreferences() {
@@ -154,6 +158,20 @@ function onFocusOut(event) {
 }
 function openPanel() {
   cancelScheduledClose()
+  open.value = true
+}
+// The FAB is a master on/off control so visitors can bail out with one click:
+// - panel open        → close it
+// - features active    → turn everything off (quick reset, incl. reading guide)
+// - nothing active     → open the panel to choose adjustments
+function onTrigger() {
+  cancelScheduledClose()
+  if (open.value) { closePanel(true); return }
+  if (anyActive.value) {
+    resetPreferences()
+    announcement.value = 'All accessibility settings turned off'
+    return
+  }
   open.value = true
 }
 function closePanel(returnFocus = false) {

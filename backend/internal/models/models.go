@@ -16,6 +16,9 @@ type User struct {
 	FirstName         string     `json:"first_name"`
 	LastName          string     `json:"last_name"`
 	Phone             string     `json:"phone,omitempty"`
+	AvatarURL         string     `json:"avatar_url,omitempty"`
+	AuthProvider      string     `json:"auth_provider,omitempty"`
+	GoogleSub         string     `json:"-"`
 	IsActive          bool       `json:"is_active"`
 	AccountStatus     string     `json:"account_status"`
 	StatusReason      string     `json:"status_reason,omitempty"`
@@ -81,6 +84,27 @@ type Permission struct {
 	Description string `json:"description,omitempty"`
 	Resource    string `json:"resource"`
 	Action      string `json:"action"`
+}
+
+type Notification struct {
+	ID        string    `json:"id"`
+	UserID    *string   `json:"user_id,omitempty"`
+	Type      string    `json:"type"`
+	Title     string    `json:"title"`
+	Message   string    `json:"message"`
+	Status    string    `json:"status"`
+	IconKey   string    `json:"icon_key"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ContactMessage struct {
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Subject   string    `json:"subject"`
+	Message   string    `json:"message"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // ── Auth Tokens ───────────────────────────────────────────────────
@@ -282,8 +306,8 @@ type CMSEvent struct {
 }
 
 type CMSCareer struct {
-	ID           string     `json:"id"`
-	Title        string     `json:"title"`
+	ID             string     `json:"id"`
+	Title          string     `json:"title"`
 	Department     string     `json:"department,omitempty"`
 	DepartmentID   *string    `json:"department_id,omitempty"`
 	DepartmentName string     `json:"department_name,omitempty"`

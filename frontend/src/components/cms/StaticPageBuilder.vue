@@ -55,78 +55,46 @@
           />
         </div>
 
-        <div class="form-section">
-          <div class="section-title">Page Building Blocks</div>
-          <div class="builder-toolbar">
-            <button v-for="type in blockTypes" :key="type.type" type="button" class="btn btn-light btn-sm" @click="addBlock(type.type)">
-              <i :class="type.icon"></i> {{ type.label }}
-            </button>
-          </div>
-          <div class="builder-blocks">
-            <article v-for="(block, index) in builder.blocks" :key="block.id" class="builder-block">
-              <div class="builder-block-head">
-                <div><i :class="blockIcon(block.type)"></i><strong>{{ blockLabel(block.type) }}</strong></div>
-                <div class="builder-actions">
-                  <button type="button" class="btn btn-sm btn-light" :disabled="index === 0" @click="moveBlock(index, -1)"><i class="fas fa-arrow-up"></i></button>
-                  <button type="button" class="btn btn-sm btn-light" :disabled="index === builder.blocks.length - 1" @click="moveBlock(index, 1)"><i class="fas fa-arrow-down"></i></button>
-                  <button type="button" class="btn btn-sm btn-danger" @click="removeBlock(index)"><i class="fas fa-trash"></i></button>
-                </div>
+        <div class="form-section builder-shell">
+          <div class="section-title">Advanced Nestable Page Builder</div>
+          <div class="builder-layout">
+            <aside class="builder-palette">
+              <div v-for="(items, category) in palette" :key="category" class="palette-group">
+                <h5>{{ category }}</h5>
+                <button
+                  v-for="item in items"
+                  :key="item.type"
+                  type="button"
+                  draggable="true"
+                  @dragstart="dragPalette(item.type)"
+                  @click="addBlock(item.type)"
+                >
+                  <i :class="item.icon"></i>{{ item.label }}
+                </button>
               </div>
+            </aside>
 
-              <div v-if="block.type === 'section'" class="row">
-                <div class="form-group col-md-4"><label>Kicker</label><input v-model="block.kicker" class="form-control" /></div>
-                <div class="form-group col-md-8"><label>Title</label><input v-model="block.title" class="form-control" /></div>
-                <div class="form-group col-12"><label>Text</label><textarea v-model="block.text" class="form-control compact-textarea"></textarea></div>
-              </div>
-
-              <div v-else-if="block.type === 'image'" class="row">
-                <div class="form-group col-md-8"><label>Image URL</label><input v-model="block.src" class="form-control" placeholder="/uploads/image.webp" /></div>
-                <div class="form-group col-md-4"><label>Alt text</label><input v-model="block.alt" class="form-control" /></div>
-                <div class="form-group col-12"><label>Caption</label><input v-model="block.caption" class="form-control" /></div>
-              </div>
-
-              <div v-else-if="block.type === 'row'" class="nested-builder">
-                <label>Columns</label>
-                <div class="builder-toolbar">
-                  <button type="button" class="btn btn-light btn-sm" @click="addColumn(block)"><i class="fas fa-columns"></i> Add column</button>
-                </div>
-                <div class="builder-columns">
-                  <div v-for="(column, colIndex) in block.columns" :key="column.id" class="builder-column">
-                    <div class="builder-block-head">
-                      <strong>Column {{ colIndex + 1 }}</strong>
-                      <button type="button" class="btn btn-sm btn-danger" @click="block.columns.splice(colIndex, 1)">Remove</button>
-                    </div>
-                    <label>Title<input v-model="column.title" class="form-control" /></label>
-                    <label>Text<textarea v-model="column.text" class="form-control compact-textarea"></textarea></label>
-                    <label>Icon class<input v-model="column.icon" class="form-control" placeholder="icofont-trophy" /></label>
-                  </div>
-                </div>
-              </div>
-
-              <div v-else-if="block.type === 'accordion'" class="nested-builder">
-                <div class="builder-toolbar"><button type="button" class="btn btn-light btn-sm" @click="addAccordionItem(block)"><i class="fas fa-plus"></i> Add item</button></div>
-                <div v-for="(item, itemIndex) in block.items" :key="item.id" class="builder-mini-card">
-                  <label>Question / heading<input v-model="item.title" class="form-control" /></label>
-                  <label>Answer / body<textarea v-model="item.text" class="form-control compact-textarea"></textarea></label>
-                  <button type="button" class="btn btn-sm btn-danger" @click="block.items.splice(itemIndex, 1)">Remove item</button>
-                </div>
-              </div>
-
-              <div v-else-if="block.type === 'dropdown'" class="nested-builder">
-                <label>Dropdown label<input v-model="block.label" class="form-control" /></label>
-                <label>Dropdown body<textarea v-model="block.text" class="form-control compact-textarea"></textarea></label>
-              </div>
-
-              <div v-else-if="block.type === 'icon-card'" class="row">
-                <div class="form-group col-md-4"><label>Icon class</label><input v-model="block.icon" class="form-control" placeholder="icofont-medal" /></div>
-                <div class="form-group col-md-8"><label>Title</label><input v-model="block.title" class="form-control" /></div>
-                <div class="form-group col-12"><label>Text</label><textarea v-model="block.text" class="form-control compact-textarea"></textarea></div>
-              </div>
-
-              <div v-else-if="block.type === 'html'">
-                <label>Raw HTML<textarea v-model="block.html" class="form-control code-textarea" placeholder="<div>Custom HTML</div>"></textarea></label>
-              </div>
-            </article>
+            <section
+              class="builder-canvas"
+              :class="{ 'is-drop-target': dropTarget === 'root' }"
+              @dragover.prevent="dropTarget = 'root'"
+              @dragleave="dropTarget = ''"
+              @drop.prevent="dropOnRoot"
+            >
+              <PageBuilderNode
+                v-for="node in builder.blocks"
+                :key="node.id"
+                :node="node"
+                :dragging-id="draggingId"
+                :drop-target="dropTarget"
+                @drag-start="dragExisting"
+                @drop-node="dropNode"
+                @drop-target="dropTarget = $event"
+                @delete="deleteNode"
+                @duplicate="duplicateExisting"
+              />
+              <div v-if="!builder.blocks.length" class="canvas-empty">Drop a section or component here</div>
+            </section>
           </div>
         </div>
 
@@ -144,70 +112,110 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import DropzoneUpload from '@/components/cms/DropzoneUpload.vue'
+import PageBuilderNode from '@/components/cms/PageBuilderNode.vue'
+import { blockMap, canAccept, createNode, duplicateNode, findNode, insertNode, pageBuilderVersion, removeNode, visibleBlocks } from '@/utils/pageBuilderRegistry.js'
 
 const props = defineProps({ model: { type: Object, required: true } })
 const emit = defineEmits(['save'])
 const manualSlug = ref(false)
-const blockTypes = [
-  { type:'section', label:'Text Section', icon:'icofont-align-left' },
-  { type:'image', label:'Image', icon:'icofont-image' },
-  { type:'row', label:'Rows/Columns', icon:'icofont-columns' },
-  { type:'accordion', label:'Accordion', icon:'icofont-list' },
-  { type:'dropdown', label:'Dropdown', icon:'icofont-rounded-down' },
-  { type:'icon-card', label:'Icon Card', icon:'icofont-star' },
-  { type:'html', label:'Raw HTML', icon:'icofont-code' },
-]
-const builder = reactive({ version: 1, blocks: [] })
+const draggingId = ref('')
+const dropTarget = ref('')
+const builder = reactive({ version: pageBuilderVersion, blocks: [] })
 
-watch(() => props.model.content, hydrateBuilder, { immediate:true })
+const palette = computed(() => visibleBlocks.reduce((groups, block) => {
+  groups[block.category] ||= []
+  groups[block.category].push(block)
+  return groups
+}, {}))
+
+watch(() => props.model.content, hydrateBuilder, { immediate: true })
 watch(() => props.model.id, () => { manualSlug.value = !!props.model.id; hydrateBuilder() })
-watch(builder, () => { props.model.content = JSON.stringify({ type:'ncs-page-builder', version:1, blocks: builder.blocks }) }, { deep:true })
+watch(builder, syncContent, { deep: true })
 
-function uid() { return `block_${Math.random().toString(36).slice(2, 10)}` }
 function slugify(value) { return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') }
 function syncSlug() { if (!manualSlug.value) props.model.slug = slugify(props.model.title) }
 function submit() {
   props.model.category = 'page'
-  props.model.content = JSON.stringify({ type:'ncs-page-builder', version:1, blocks: builder.blocks })
+  syncContent()
   emit('save')
+}
+function syncContent() {
+  props.model.content = JSON.stringify({ type: 'ncs-page-builder', version: pageBuilderVersion, blocks: builder.blocks })
 }
 function hydrateBuilder() {
   try {
     const parsed = JSON.parse(props.model.content || '{}')
-    builder.blocks = parsed?.type === 'ncs-page-builder' && Array.isArray(parsed.blocks) ? parsed.blocks : defaultBlocks()
+    if (parsed?.type === 'ncs-page-builder' && Array.isArray(parsed.blocks)) {
+      builder.blocks = parsed.blocks.map(normalizeNode)
+      return
+    }
   } catch {
-    builder.blocks = props.model.content ? [{ id:uid(), type:'html', html:props.model.content }] : defaultBlocks()
+    if (props.model.content) {
+      builder.blocks = [createNode('summernote_text')]
+      builder.blocks[0].props.html = props.model.content
+      return
+    }
   }
+  builder.blocks = [createNode('section')]
 }
-function defaultBlocks() {
-  return [{ id:uid(), type:'section', kicker:'Static Page', title:'Page section title', text:'Start writing your page content here.' }]
+function normalizeNode(node) {
+  if (node.props && Array.isArray(node.children)) return node
+  const migrated = createNode(node.type === 'row' ? 'grid' : node.type === 'icon-card' ? 'card' : node.type || 'paragraph')
+  migrated.id = node.id || migrated.id
+  migrated.props = { ...migrated.props, ...legacyProps(node) }
+  if (node.columns) migrated.children = node.columns.map(column => ({ ...createNode('column'), props: { width: '1fr' }, children: [legacyTextNode(column.title, column.text)] }))
+  if (node.items) migrated.children = node.items.map(item => ({ ...createNode('accordion_panel'), props: { title: item.title || 'Pane' }, children: [legacyTextNode('', item.text)] }))
+  return migrated
 }
-function addBlock(type) { builder.blocks.push(createBlock(type)) }
-function createBlock(type) {
-  const base = { id:uid(), type }
-  if (type === 'section') return { ...base, kicker:'', title:'New section', text:'' }
-  if (type === 'image') return { ...base, src:'', alt:'', caption:'' }
-  if (type === 'row') return { ...base, columns:[{ id:uid(), title:'Column title', text:'', icon:'icofont-check-circled' }, { id:uid(), title:'Column title', text:'', icon:'icofont-check-circled' }] }
-  if (type === 'accordion') return { ...base, items:[{ id:uid(), title:'Accordion item', text:'' }] }
-  if (type === 'dropdown') return { ...base, label:'Dropdown title', text:'' }
-  if (type === 'icon-card') return { ...base, icon:'icofont-star', title:'Icon card title', text:'' }
-  return { ...base, html:'<p>Custom HTML block</p>' }
+function legacyProps(node) {
+  if (node.type === 'section') return { text: node.text, html: node.text, title: node.title }
+  if (node.type === 'image') return { src: node.src, alt: node.alt, caption: node.caption }
+  if (node.type === 'html') return { html: node.html }
+  return node
 }
-function blockLabel(type) { return blockTypes.find(item => item.type === type)?.label || 'Block' }
-function blockIcon(type) { return blockTypes.find(item => item.type === type)?.icon || 'icofont-ui-note' }
-function removeBlock(index) { builder.blocks.splice(index, 1) }
-function moveBlock(index, direction) {
-  const next = index + direction
-  if (next < 0 || next >= builder.blocks.length) return
-  const [item] = builder.blocks.splice(index, 1)
-  builder.blocks.splice(next, 0, item)
+function legacyTextNode(title, text) {
+  const n = createNode(title ? 'h3' : 'paragraph')
+  n.props.text = title || text || ''
+  if (title && text) n.children = [createNode('paragraph')]
+  if (title && text) n.children[0].props.text = text
+  return n
 }
-function addColumn(block) { block.columns.push({ id:uid(), title:'Column title', text:'', icon:'icofont-check-circled' }) }
-function addAccordionItem(block) { block.items.push({ id:uid(), title:'Accordion item', text:'' }) }
+function addBlock(type) { builder.blocks.push(createNode(type)) }
+function dragPalette(type) { draggingId.value = `palette:${type}` }
+function dragExisting(id) { draggingId.value = id }
+function dropOnRoot() {
+  if (!draggingId.value) return
+  const node = takeDraggedNode()
+  if (node) builder.blocks.push(node)
+  clearDrag()
+}
+function dropNode({ parentId }) {
+  const parent = findNode(builder.blocks, parentId)
+  const node = takeDraggedNode()
+  if (!parent || !node || !canAccept(parent.type, node.type)) {
+    clearDrag()
+    return
+  }
+  insertNode(builder.blocks, parentId, node)
+  clearDrag()
+}
+function takeDraggedNode() {
+  if (draggingId.value.startsWith('palette:')) return createNode(draggingId.value.replace('palette:', ''))
+  return removeNode(builder.blocks, draggingId.value)
+}
+function deleteNode(id) { removeNode(builder.blocks, id) }
+function duplicateExisting(id) {
+  const node = findNode(builder.blocks, id)
+  if (node) builder.blocks.push(duplicateNode(node))
+}
+function clearDrag() {
+  draggingId.value = ''
+  dropTarget.value = ''
+}
 </script>
 
 <style scoped>
-.static-page-builder{display:grid;gap:20px}.page-builder-card{border:0;border-radius:3px;box-shadow:0 4px 25px rgba(0,0,0,.1)}.form-section{padding:18px 0;border-bottom:1px solid #f4f6f9}.section-title{margin:0 0 18px;color:#34395e;font-size:14px;font-weight:700}.compact-textarea{min-height:96px}.code-textarea{min-height:180px;font-family:Consolas,monospace}.builder-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}.builder-blocks{display:grid;gap:16px}.builder-block,.builder-mini-card,.builder-column{border:1px solid #e4e6fc;border-radius:3px;background:#fdfdff;padding:16px}.builder-block-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.builder-block-head>div{display:flex;align-items:center;gap:8px}.builder-block-head i{color:#6777ef}.builder-actions{display:flex;gap:6px}.builder-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.nested-builder{display:grid;gap:12px}.builder-mini-card{display:grid;gap:10px;margin-bottom:10px}.page-check-field{align-self:end}@media(max-width:900px){.builder-columns{grid-template-columns:1fr}.builder-block-head{align-items:flex-start;flex-direction:column}}:global(.dark) .page-builder-card,:global(.dark) .builder-block,:global(.dark) .builder-mini-card,:global(.dark) .builder-column{background:#1f2937!important;border-color:#334155!important;color:#e5e7eb!important}:global(.dark) .section-title{color:#f8fafc!important}
+.static-page-builder{display:grid;gap:20px}.page-builder-card{border:0;border-radius:3px;box-shadow:0 4px 25px rgba(0,0,0,.1)}.form-section{padding:18px 0;border-bottom:1px solid #f4f6f9}.section-title{margin:0 0 18px;color:#34395e;font-size:14px;font-weight:700}.compact-textarea{min-height:96px}.page-check-field{align-self:end}.builder-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:16px}.builder-palette{border:1px solid #e4e6fc;border-radius:8px;background:#fbfcff;padding:12px;height:max-content;position:sticky;top:90px}.palette-group{display:grid;gap:7px;margin-bottom:14px}.palette-group h5{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#6777ef;margin:0}.palette-group button{display:flex;align-items:center;gap:8px;border:1px solid #e5e7eb;border-radius:6px;background:white;color:#34395e;text-align:left;padding:8px 10px;font-weight:700;font-size:12px}.palette-group button:hover{border-color:#6777ef;color:#6777ef}.builder-canvas{display:grid;gap:12px;min-height:320px;border:1px dashed #b8c2d6;border-radius:8px;background:#f8fafc;padding:14px}.builder-canvas.is-drop-target{border-color:#6777ef;background:#f2f4ff}.canvas-empty{display:grid;place-items:center;min-height:220px;color:#94a3b8;font-weight:800}@media(max-width:1000px){.builder-layout{grid-template-columns:1fr}.builder-palette{position:static}}:global(.dark) .page-builder-card,:global(.dark) .builder-palette,:global(.dark) .builder-canvas{background:#1f2937!important;border-color:#334155!important;color:#e5e7eb!important}:global(.dark) .section-title{color:#f8fafc!important}
 </style>

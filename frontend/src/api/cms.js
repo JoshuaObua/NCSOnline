@@ -22,6 +22,10 @@ export function submitPostComment(slug, data) {
   return apiClient.post(`/api/v1/cms/posts/${slug}/comments`, data)
 }
 
+export function submitContactMessage(data) {
+  return apiClient.post('/api/v1/cms/messages', data)
+}
+
 export function listEvents(params = {}) {
   return apiClient.get('/api/v1/cms/events', { params })
 }
@@ -360,6 +364,34 @@ export function adminListAuditLogs(params = {}) {
 
 export function adminGetAuditLog(id) {
   return apiClient.get(`/api/v1/admin/audit-logs/${id}`)
+}
+
+export function listNotifications(params = {}) {
+  return apiClient.get('/api/v1/notifications', { params })
+}
+export function updateNotification(id, data) {
+  return apiClient.put(`/api/v1/notifications/${id}`, data)
+}
+export function deleteNotification(id) {
+  return apiClient.delete(`/api/v1/notifications/${id}`)
+}
+export function clearNotifications() {
+  return apiClient.delete('/api/v1/notifications/clear-all')
+}
+export function markAllNotificationsRead() {
+  return apiClient.put('/api/v1/notifications/mark-all-read')
+}
+export function listMessages(params = {}) {
+  return apiClient.get('/api/v1/messages', { params })
+}
+export function updateMessage(id, data) {
+  return apiClient.put(`/api/v1/messages/${id}`, data)
+}
+export function deleteMessage(id) {
+  return apiClient.delete(`/api/v1/messages/${id}`)
+}
+export function clearMessages() {
+  return apiClient.delete('/api/v1/messages/clear-all')
 }
 
 // Compatibility placeholders for CMS sections whose backend modules are not

@@ -92,7 +92,20 @@
             </button>
             <ThemeToggle />
 
-            <a :href="portalUrl('/login')" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
+            <div v-if="currentUser" class="account-menu">
+              <button type="button" class="account-trigger" aria-haspopup="menu" :aria-expanded="accountOpen" @click="accountOpen = !accountOpen">
+                <img v-if="currentUser.avatar_url" :src="currentUser.avatar_url" alt="" referrerpolicy="no-referrer" />
+                <span v-else>{{ accountInitials }}</span>
+              </button>
+              <div v-show="accountOpen" class="account-dropdown" role="menu">
+                <router-link to="/account/profile" role="menuitem">Profile Overview</router-link>
+                <router-link to="/account/settings" role="menuitem">Settings & Security</router-link>
+                <router-link to="/account/activities" role="menuitem">My Audit Activities</router-link>
+                <button type="button" role="menuitem" @click="logoutAccount">Sign out</button>
+              </div>
+            </div>
+
+            <a v-else :href="portalUrl('/login')" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
               Login
             </a>
@@ -168,6 +181,7 @@
             </div>
             <form class="flex w-full md:w-auto gap-2" @submit.prevent="submitNewsletter">
               <label for="newsletter-email" class="sr-only">Email address for NCS updates</label>
+              <input v-model="newsletterWebsite" type="text" tabindex="-1" autocomplete="off" class="newsletter-hp" aria-hidden="true" />
               <input
                 id="newsletter-email"
                 v-model="newsletterEmail"
@@ -305,12 +319,20 @@ import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 
 const mobileOpen = ref(false)
 const searchOpen = ref(false)
+const accountOpen = ref(false)
 const siteSearch = ref('')
 const scrolled = ref(false)
+const accountUser = ref(readAccountUser())
 const route = useRoute()
 const router = useRouter()
 const intranetUrl = (import.meta.env?.VITE_INTRANET_URL || 'http://localhost:9081').replace(/\/$/, '')
 const currentYear = computed(() => new Date().getFullYear())
+const currentUser = computed(() => accountUser.value)
+const accountName = computed(() => {
+  const user = currentUser.value || {}
+  return `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Account'
+})
+const accountInitials = computed(() => accountName.value.split(/\s+/).slice(0, 2).map(part => part[0] || '').join('').toUpperCase() || 'U')
 
 function onScroll() { scrolled.value = window.scrollY > 20 }
 function openAccessibility() { window.dispatchEvent(new CustomEvent('open-accessibility-menu')) }
@@ -323,10 +345,24 @@ onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
 onUnmounted(() => window.removeEventListener('scroll', onScroll))
 
 watch(() => route.fullPath, async () => {
+  accountUser.value = readAccountUser()
   mobileOpen.value = false
+  accountOpen.value = false
   await nextTick()
   document.getElementById('main-content')?.focus({ preventScroll: true })
 })
+
+function logoutAccount() {
+  localStorage.removeItem('ncsms_access_token')
+  localStorage.removeItem('ncsms_user')
+  accountUser.value = null
+  accountOpen.value = false
+  router.push('/')
+}
+
+function readAccountUser() {
+  try { return JSON.parse(localStorage.getItem('ncsms_user') || 'null') } catch { return null }
+}
 
 const defaultMenu = [
   { label: 'Home',            url: '/' },
@@ -397,11 +433,18 @@ function isExternalLink(url) {
 
 // Newsletter subscription
 const newsletterEmail = ref('')
+const newsletterWebsite = ref('')
 const newsletterStatus = ref('idle')   // 'idle' | 'sending' | 'success' | 'error'
 const newsletterMessage = ref('')
 
 async function submitNewsletter() {
   const email = newsletterEmail.value.trim()
+  if (newsletterWebsite.value.trim()) {
+    newsletterStatus.value = 'success'
+    newsletterMessage.value = 'Thanks - you are subscribed. Watch your inbox for updates.'
+    newsletterEmail.value = ''
+    return
+  }
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     newsletterStatus.value = 'error'
     newsletterMessage.value = 'Please enter a valid email address.'
@@ -415,7 +458,7 @@ async function submitNewsletter() {
     const r = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/v1/cms/newsletter/subscribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, source: 'public_footer' }),
+      body: JSON.stringify({ email, source: 'public_footer', website: newsletterWebsite.value }),
     })
     if (r.ok) {
       newsletterStatus.value = 'success'
@@ -651,10 +694,24 @@ onMounted(() => {
 
 <style scoped>
 .public-site > main { padding-top: 7rem; }
+.newsletter-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.account-menu{position:relative}.account-trigger{width:38px;height:38px;border:1px solid #e5e7eb;border-radius:999px;background:white;color:#112b4e;display:grid;place-items:center;overflow:hidden;font-weight:900}.account-trigger img{width:100%;height:100%;object-fit:cover}.account-dropdown{position:absolute;right:0;top:calc(100% + 10px);width:230px;background:white;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 18px 40px rgba(15,23,42,.16);padding:.45rem;z-index:70}.account-dropdown a,.account-dropdown button{display:block;width:100%;border:0;background:transparent;border-radius:6px;padding:.7rem .75rem;text-align:left;color:#112b4e;font-size:.88rem;font-weight:800}.account-dropdown a:hover,.account-dropdown button:hover{background:#f8fafc;color:#f48c06}
 
 /* Marquee — single continuous track, replicates the Header spec's CSS animation */
 .public-marquee-container { display: block; min-width: 0; }
-.public-marquee-content { display: inline-block; white-space: nowrap; animation: public-marquee-scroll 34s linear infinite; }
+.public-marquee-content {
+  display: inline-block;
+  white-space: nowrap;
+  animation: public-marquee-scroll 34s linear infinite;
+  /* Keep the announcements ticker scrolling continuously even when the OS
+     requests reduced motion. The global reduced-motion reset in style.css
+     forces `animation-duration: 0.01ms !important; animation-iteration-count:
+     1 !important` on `*`, which would otherwise freeze the marquee. Re-assert
+     with !important — the class selector's specificity beats the universal
+     (*) reset, so the ticker always runs. */
+  animation-duration: 34s !important;
+  animation-iteration-count: infinite !important;
+  animation-timing-function: linear !important;
+}
 @keyframes public-marquee-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .public-marquee-content { animation: none; } }
 </style>

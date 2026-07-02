@@ -19,6 +19,7 @@ import (
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
+	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
@@ -261,6 +262,30 @@ func (h *OperatorHandler) RevokeSession(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	response.JSONMsg(w, http.StatusOK, "Session revoked")
+}
+
+func (h *OperatorHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	sessionID := chi.URLParam(r, "id")
+	if sessionID == "" {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Session id is required")
+		return
+	}
+	if err := h.repo.RevokeSession(r.Context(), userID, sessionID); err != nil {
+		response.Err(w, http.StatusBadRequest, "REVOKE_ERROR", err.Error())
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Session revoked")
+}
+
+func (h *OperatorHandler) DeleteOtherSessions(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	current, _ := r.Context().Value(models.CtxSessionID).(string)
+	if err := h.repo.RevokeOtherSessions(r.Context(), userID, current); err != nil {
+		response.Err(w, http.StatusBadRequest, "REVOKE_ERROR", err.Error())
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Other sessions revoked")
 }
 
 var resourceUpgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool {

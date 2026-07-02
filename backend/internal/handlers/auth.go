@@ -132,6 +132,37 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, result)
 }
 
+// POST /api/v1/auth/google
+func (h *AuthHandler) Google(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Credential string `json:"credential"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	result, err := h.svc.LoginWithGoogle(r.Context(), req.Credential, r.RemoteAddr, r.UserAgent())
+	if errors.Is(err, services.ErrGoogleAuthNotConfigured) {
+		response.Err(w, http.StatusServiceUnavailable, "GOOGLE_AUTH_NOT_CONFIGURED", "Google sign-in is not configured")
+		return
+	}
+	if errors.Is(err, services.ErrGoogleTokenInvalid) {
+		response.Err(w, http.StatusUnauthorized, "INVALID_GOOGLE_TOKEN", "Google sign-in could not be verified")
+		return
+	}
+	if errors.Is(err, services.ErrAccountDisabled) {
+		response.Err(w, http.StatusForbidden, "ACCOUNT_DISABLED", "Your account has been deactivated")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Google sign-in failed. Please try again.")
+		return
+	}
+	middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
+	h.secureResult(w, result)
+	response.JSON(w, http.StatusOK, result)
+}
+
 // POST /api/v1/auth/refresh
 func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	raw := refreshFromRequest(r)

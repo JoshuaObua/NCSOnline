@@ -540,7 +540,7 @@
         </section>
 
         <section v-else-if="active === 'create-post'" class="cms-panel">
-          <BlogPostEditor :model="postForm" :categories="contentCategories" @save="savePost" />
+          <BlogPostEditor :model="postForm" :categories="blogCategories" @save="savePost" />
         </section>
 
         <section v-else-if="active === 'manage-posts'" class="cms-panel">
@@ -774,6 +774,65 @@
         <section v-else-if="active === 'manage-faq-categories'" class="cms-panel">
           <div class="cms-panel-head"><h2>Manage FAQ Categories</h2><button type="button" @click="resetFAQCategoryForm(); active = 'create-faq-categories'">New category</button></div>
           <ContentTable :items="faqCategories" title-key="name" subtitle-key="slug" @edit="editFAQCategory" @delete="removeFAQCategory" />
+        </section>
+
+        <section v-else-if="active === 'messages'" class="cms-panel message-center">
+          <div class="cms-panel-head">
+            <h2>Messages</h2>
+            <div class="cms-actions-inline">
+              <select v-model="messageStatus" class="form-control" @change="loadContactMessages"><option value="">All</option><option value="unread">Unread</option><option value="read">Read</option></select>
+              <button type="button" @click="loadContactMessages">Refresh</button>
+              <button type="button" @click="clearAllMessages">Clear All</button>
+            </div>
+          </div>
+          <div class="notification-list">
+            <article v-for="item in contactMessages" :key="item.id" class="notification-item" :class="{ unread: item.status === 'unread' }">
+              <span class="notification-dot"></span>
+              <div>
+                <strong>{{ item.subject || 'Contact Us Message' }}</strong>
+                <span>{{ item.name }} · {{ item.email }} · {{ formatDateTime(item.created_at) }}</span>
+                <p>{{ item.message }}</p>
+              </div>
+              <div class="cms-actions-inline">
+                <button type="button" @click="selectedMessage = item; markMessage(item, 'read')">View</button>
+                <button type="button" @click="markMessage(item, item.status === 'read' ? 'unread' : 'read')">{{ item.status === 'read' ? 'Unread' : 'Read' }}</button>
+                <button type="button" @click="removeMessage(item)">Delete</button>
+              </div>
+            </article>
+            <p v-if="!contactMessages.length" class="cms-empty">No messages found.</p>
+          </div>
+          <article v-if="selectedMessage" class="cms-subpanel">
+            <div class="cms-panel-head"><h2>{{ selectedMessage.subject || 'Contact Us Message' }}</h2><button type="button" @click="selectedMessage = null">Close</button></div>
+            <p><strong>From:</strong> {{ selectedMessage.name }} &lt;{{ selectedMessage.email }}&gt;</p>
+            <p><strong>Received:</strong> {{ formatDateTime(selectedMessage.created_at) }}</p>
+            <p>{{ selectedMessage.message }}</p>
+          </article>
+        </section>
+
+        <section v-else-if="active === 'notifications'" class="cms-panel notification-center">
+          <div class="cms-panel-head">
+            <h2>Notifications</h2>
+            <div class="cms-actions-inline">
+              <select v-model="notificationStatus" class="form-control" @change="loadNotifications"><option value="">All</option><option value="unread">Unread</option><option value="read">Read</option></select>
+              <button type="button" @click="markAllNotifications">Mark All as Read</button>
+              <button type="button" @click="clearAllNotifications">Clear All</button>
+            </div>
+          </div>
+          <div class="notification-list">
+            <article v-for="item in cmsNotifications" :key="item.id" class="notification-item" :class="{ unread: item.status === 'unread' }">
+              <span class="notification-icon" :class="notificationThemeClass(item)"><i :class="notificationIcon(item)"></i></span>
+              <div>
+                <strong>{{ item.title }}</strong>
+                <span>{{ item.type }} · {{ formatDateTime(item.created_at) }}</span>
+                <p>{{ item.message }}</p>
+              </div>
+              <div class="cms-actions-inline">
+                <button type="button" @click="toggleNotificationRead(item)">{{ item.status === 'read' ? 'Unread' : 'Read' }}</button>
+                <button type="button" @click="dismissNotification(item)">Dismiss</button>
+              </div>
+            </article>
+            <p v-if="!cmsNotifications.length" class="cms-empty">No new notifications.</p>
+          </div>
         </section>
 
         <section v-else-if="active === 'resources'" class="cms-panel">
@@ -1211,7 +1270,7 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onMounted, reactive, ref } from 'vue'
+import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
 import { API_BASE_URL } from '@/api/client.js'
@@ -1381,6 +1440,8 @@ const newsletterSections = [
   { id:'newsletter', label:'Subscribers', icon:'icofont-email' },
 ]
 const contentSections = [
+  { id:'messages', label:'Messages', icon:'icofont-envelope' },
+  { id:'notifications', label:'Notifications', icon:'icofont-notification' },
   { id:'comments', label:'Comment Moderation', icon:'icofont-speech-comments' },
   { id:'audit-logs', label:'Audit Logs', icon:'icofont-shield-alt' },
   { id:'menus', label:'Main Menu', icon:'icofont-navigation-menu' },
@@ -1451,6 +1512,8 @@ const sectionPermissionMap = {
   facts:['fun_facts:create'],
   'manage-facts':['fun_facts:read'],
   newsletter:['newsletter:read'],
+  messages:['messages:read'],
+  notifications:['notifications:read'],
   comments:['comments:read'],
   'audit-logs':['audit:read'],
   menus:['menus:read'],
@@ -1467,6 +1530,7 @@ const resourceLabels = {
   federations:'Federations', federation_categories:'Federation Categories', fun_facts:'Fun Facts', newsletter:'Newsletter',
   comments:'Comments', menus:'Main Menu', settings:'Contact Details', storage:'Storage Settings', users:'Users',
   roles:'Roles', audit:'Audit Logs', dashboard:'Dashboard', cms:'Legacy CMS', applications:'Applications',
+  messages:'Messages', notifications:'Notifications',
 }
 const actionOrder = ['read', 'create', 'update', 'write', 'delete', 'activate', 'assign', 'roles', 'reset_password', 'export']
 
@@ -1527,6 +1591,8 @@ const eventCategories = ref([])
 const investCategories = ref([])
 const federationCategories = ref([])
 const newsletterSubscribers = ref([])
+const contactMessages = ref([])
+const cmsNotifications = ref([])
 const comments = ref([])
 const users = ref([])
 const roles = ref([])
@@ -1539,6 +1605,9 @@ const auditMeta = ref({})
 const auditSearch = ref('')
 const selectedAuditLog = ref(null)
 const commentStatus = ref('pending')
+const messageStatus = ref('')
+const notificationStatus = ref('')
+const selectedMessage = ref(null)
 const slideshow = reactive({ id:'homepage-hero', name:'Homepage Hero', slug:'homepage-hero', transition_effect:'fade', transition_duration:700, autoplay_speed:6500, pause_on_hover:true, is_active:true })
 const mainMenuTree = ref([]), footerMenuTree = ref([])
 const savingMenus = ref(false)
@@ -1748,15 +1817,42 @@ onMounted(() => {
     router.replace('/login')
     return
   }
+  const params = new URLSearchParams(window.location.search)
   // Returning from the Google Drive OAuth consent screen lands back on this
   // same route with ?code=&state= — land on the Storage Settings tab so the
   // admin sees the connect flow finish instead of the Overview tab.
-  if (new URLSearchParams(window.location.search).get('code')) active.value = 'storage'
+  if (params.get('code')) {
+    active.value = 'storage'
+  } else {
+    // Restore the active panel from the URL (?section=) so a browser refresh
+    // keeps the admin on the same section instead of resetting to Overview.
+    const requested = params.get('section')
+    if (requested && requested !== active.value && sections.some(s => s.id === requested) && canAccessSection(requested)) {
+      active.value = requested
+    }
+  }
   loadAll()
 })
 
+// Mirror the active panel into the URL (?section=) so it survives a refresh and
+// is shareable. router.replace avoids polluting history; existing query params
+// (e.g. the OAuth code/state) are preserved. Overview keeps a clean URL.
+watch(active, (id) => {
+  const currentQuery = router.currentRoute.value.query
+  if ((currentQuery.section || 'overview') === id) return
+  const query = { ...currentQuery }
+  if (id === 'overview') delete query.section
+  else query.section = id
+  router.replace({ query }).catch(() => {})
+})
+
 function fields(short = [], long = []) {
-  return [...short.map(name => ({ name, type: name === 'is_active' ? 'checkbox' : 'input' })), ...long.map(name => ({ name, type:'textarea' }))]
+  return [...short.map(name => ({
+    name,
+    type: name === 'is_active'
+      ? 'checkbox'
+      : (name === 'sort_order' || name.endsWith('_order') ? 'number' : 'input'),
+  })), ...long.map(name => ({ name, type: 'textarea' }))]
 }
 function formatNumber(value) {
   return new Intl.NumberFormat('en-UG').format(Number(value || 0))
@@ -1818,7 +1914,21 @@ async function confirmAction(title, text = 'This cannot be undone.') {
   return result.isConfirmed
 }
 function copyInto(target, source) { Object.keys(target).forEach(k => { target[k] = source?.[k] ?? (typeof target[k] === 'boolean' ? false : '') }) }
-function clean(payload) { return Object.fromEntries(Object.entries(payload).filter(([k, v]) => k !== 'id' && !(k.endsWith('_id') && v === ''))) }
+function clean(payload) {
+  // Fields the backend decodes as Go numbers. HTML inputs yield strings, so we
+  // coerce here — sending "2" where an int is expected fails json decode with
+  // "Invalid JSON body" (400). This is the single serialization point for every
+  // saveEntity create/update, so coercing here fixes them all at once.
+  const isNumericField = k => k === 'sort_order' || k.endsWith('_order') || k === 'transition_duration' || k === 'autoplay_speed'
+  return Object.fromEntries(
+    Object.entries(payload)
+      .filter(([k, v]) => k !== 'id' && !(k.endsWith('_id') && v === ''))
+      .map(([k, v]) => {
+        if (isNumericField(k)) { const n = Number(v); return [k, Number.isFinite(n) ? n : 0] }
+        return [k, v]
+      }),
+  )
+}
 function normalizeSlug(value) { return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') }
 function titleize(value) { return String(value || '').replace(/[_:-]+/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) }
 function normalizeRoleNames(input) {
@@ -1832,8 +1942,8 @@ function collectPermissionNames(input, target) {
   }
 }
 function builtinRolePermissions(roleName) {
-  if (roleName === 'admin') return ['dashboard:read','audit:read','users:read','users:create','users:update','users:delete','users:activate','users:reset_password','users:roles','roles:read','roles:assign','cms:read','cms:write','cms:delete','menus:read','menus:update','settings:read','settings:update','storage:read','storage:update']
-  if (roleName === 'content_manager') return ['cms:read','cms:write','cms:delete']
+  if (roleName === 'admin') return ['dashboard:read','audit:read','users:read','users:create','users:update','users:delete','users:activate','users:reset_password','users:roles','roles:read','roles:assign','cms:read','cms:write','cms:delete','menus:read','menus:update','settings:read','settings:update','storage:read','storage:update','messages:read','messages:update','messages:delete','notifications:read','notifications:update','notifications:delete']
+  if (roleName === 'content_manager') return ['cms:read','cms:write','cms:delete','messages:read','messages:update','notifications:read','notifications:update']
   return []
 }
 function hasPermission(permissionName) {
@@ -1866,6 +1976,8 @@ function selectSection(id) {
   notificationsOpen.value = false
   profileOpen.value = false
   if (id === 'audit-logs' && !auditLogs.value.length) loadAuditLogs()
+  if (id === 'messages' && !contactMessages.value.length) loadContactMessages()
+  if (id === 'notifications' && !cmsNotifications.value.length) loadNotifications()
   if (['roles', 'manage-roles'].includes(id) && (!roles.value.length || !permissions.value.length)) loadRoles()
   if (['users', 'manage-users'].includes(id) && !users.value.length) loadUsers()
 }
@@ -1906,9 +2018,16 @@ function mergeHomepageDefaults(target, defaults = homepageDefaults) {
       target[key] = value
     }
   }
-  if (!Array.isArray(target.milestones)) target.milestones = JSON.parse(JSON.stringify(homepageDefaults.milestones))
-  while (target.milestones.length < 4) target.milestones.push(JSON.parse(JSON.stringify(homepageDefaults.milestones[target.milestones.length] || homepageDefaults.milestones[0])))
-  if (!Array.isArray(target.topbar.marquee)) target.topbar.marquee = JSON.parse(JSON.stringify(homepageDefaults.topbar.marquee))
+  // Root-level-only invariants. These must NOT run on the nested recursive
+  // calls (e.g. target = homepage.about / homepage.topbar.social), where
+  // target.topbar / target.milestones don't exist — accessing
+  // target.topbar.marquee there throws "Cannot read properties of undefined".
+  if (defaults === homepageDefaults) {
+    if (!Array.isArray(target.milestones)) target.milestones = JSON.parse(JSON.stringify(homepageDefaults.milestones))
+    while (target.milestones.length < 4) target.milestones.push(JSON.parse(JSON.stringify(homepageDefaults.milestones[target.milestones.length] || homepageDefaults.milestones[0])))
+    if (!target.topbar || typeof target.topbar !== 'object') target.topbar = JSON.parse(JSON.stringify(homepageDefaults.topbar))
+    if (!Array.isArray(target.topbar.marquee)) target.topbar.marquee = JSON.parse(JSON.stringify(homepageDefaults.topbar.marquee))
+  }
 }
 
 function addHomepageValue() {
@@ -2270,6 +2389,142 @@ async function removeRole(role) {
 function resetRoleForm() {
   Object.assign(roleForm, { id:'', name:'', description:'', is_system:false })
   selectedPermissionIds.value = new Set()
+}
+
+function sampleContactMessages() {
+  return [
+    { id:'preview-message-1', name:'Public Visitor', email:'visitor@example.com', subject:'Facility inquiry', message:'I would like to know more about booking a sports facility.', status:'unread', created_at:new Date().toISOString() },
+  ]
+}
+
+function sampleNotificationsList() {
+  return [
+    { id:'preview-notification-1', type:'new_comment', title:'New Comment', message:'A public comment is waiting for moderation.', status:'unread', icon_key:'chat', created_at:new Date().toISOString() },
+    { id:'preview-notification-2', type:'unusual_activity', title:'Unusual Activity', message:'A new sign-in was detected for the CMS.', status:'unread', icon_key:'shield-alert', created_at:new Date().toISOString() },
+  ]
+}
+
+async function loadContactMessages() {
+  try {
+    if (!(await canReachApi())) {
+      contactMessages.value = sampleContactMessages()
+      error.value = 'Backend API is not reachable on port 9080. Messages is showing preview data.'
+      return
+    }
+    const res = await cms.listMessages({ status:messageStatus.value, per_page:100 })
+    contactMessages.value = listData(res)
+  } catch (err) { setErr(err) }
+}
+
+async function markMessage(item, status) {
+  try {
+    if (!(await canReachApi())) {
+      item.status = status
+      return
+    }
+    await cms.updateMessage(item.id, { status })
+    await loadContactMessages()
+  } catch (err) { setErr(err) }
+}
+
+async function removeMessage(item) {
+  if (!(await confirmAction('Delete this message?', 'The contact message will be removed from the CMS inbox.'))) return
+  try {
+    if (!(await canReachApi())) {
+      contactMessages.value = contactMessages.value.filter(row => row.id !== item.id)
+      return
+    }
+    await cms.deleteMessage(item.id)
+    await loadContactMessages()
+    setMsg('Message deleted')
+  } catch (err) { setErr(err) }
+}
+
+async function clearAllMessages() {
+  if (!(await confirmAction('Clear all messages?', 'All contact messages will be removed from the inbox.'))) return
+  try {
+    if (!(await canReachApi())) {
+      contactMessages.value = []
+      return
+    }
+    await cms.clearMessages()
+    await loadContactMessages()
+    setMsg('Messages cleared')
+  } catch (err) { setErr(err) }
+}
+
+async function loadNotifications() {
+  try {
+    if (!(await canReachApi())) {
+      cmsNotifications.value = sampleNotificationsList()
+      error.value = 'Backend API is not reachable on port 9080. Notifications is showing preview data.'
+      return
+    }
+    const res = await cms.listNotifications({ status:notificationStatus.value, per_page:100 })
+    cmsNotifications.value = listData(res)
+  } catch (err) { setErr(err) }
+}
+
+async function toggleNotificationRead(item) {
+  const status = item.status === 'read' ? 'unread' : 'read'
+  try {
+    if (!(await canReachApi())) {
+      item.status = status
+      return
+    }
+    await cms.updateNotification(item.id, { status })
+    await loadNotifications()
+  } catch (err) { setErr(err) }
+}
+
+async function dismissNotification(item) {
+  try {
+    if (!(await canReachApi())) {
+      cmsNotifications.value = cmsNotifications.value.filter(row => row.id !== item.id)
+      return
+    }
+    await cms.deleteNotification(item.id)
+    await loadNotifications()
+  } catch (err) { setErr(err) }
+}
+
+async function clearAllNotifications() {
+  if (!(await confirmAction('Clear all notifications?', 'All notifications will be dismissed.'))) return
+  try {
+    if (!(await canReachApi())) {
+      cmsNotifications.value = []
+      return
+    }
+    await cms.clearNotifications()
+    await loadNotifications()
+    setMsg('Notifications cleared')
+  } catch (err) { setErr(err) }
+}
+
+async function markAllNotifications() {
+  try {
+    if (!(await canReachApi())) {
+      cmsNotifications.value.forEach(item => item.status = 'read')
+      return
+    }
+    await cms.markAllNotificationsRead()
+    await loadNotifications()
+    setMsg('Notifications marked read')
+  } catch (err) { setErr(err) }
+}
+
+function notificationIcon(item) {
+  const key = item.icon_key || item.type
+  if (key === 'chat' || item.type === 'new_comment') return 'icofont-speech-comments'
+  if (key === 'shield-alert' || item.type === 'unusual_activity' || item.type === 'new_sign_in') return 'icofont-shield-alt'
+  if (key === 'key' || item.type === 'password_reset') return 'icofont-key'
+  return 'icofont-check-circled'
+}
+
+function notificationThemeClass(item) {
+  if (['unusual_activity', 'new_sign_in', 'password_reset'].includes(item.type)) return 'warn'
+  if (item.type === 'system_success') return 'success'
+  return 'info'
 }
 
 function sampleUsers() {
@@ -2707,34 +2962,64 @@ const EditorForm = defineComponent({
   props: { title:String, model:Object, fields:Array },
   emits: ['save', 'error'],
   setup(props, { emit }) {
-    return () => h('form', { class:'cms-editor', onSubmit:e => { e.preventDefault(); emit('save') } }, [
-      h('div', { class:'cms-panel-head' }, [h('h2', props.title), h('button', { type:'submit' }, props.model.id ? 'Update' : 'Create')]),
-      h('div', { class:'cms-two' }, props.fields.map(field => h('label', { class: field.type === 'textarea' ? 'wide' : '' }, [
-        field.name.replaceAll('_', ' '),
-        field.name === 'file_url'
-          ? h(DropzoneUpload, {
-              modelValue: props.model[field.name],
-              'onUpdate:modelValue': value => props.model[field.name] = value,
-              mediaType: 'file',
-              label: 'resource file',
-              accept: 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-              hint: 'Upload PDF, Word, or Excel files for the Resource Centre.',
-              onError: error => emit('error', error),
-            })
-          : ['image_url','cover_image_url','logo_url'].includes(field.name)
-            ? h(DropzoneUpload, {
-                modelValue: props.model[field.name],
-                'onUpdate:modelValue': value => props.model[field.name] = value,
-                label: 'image',
-                accept: 'image/png,image/jpeg,image/webp,image/svg+xml',
-                onError: error => emit('error', error),
-              })
-            : field.type === 'textarea'
-          ? h('textarea', { value: props.model[field.name], onInput:e => props.model[field.name] = e.target.value })
-          : field.type === 'checkbox'
-            ? h('input', { type:'checkbox', checked: !!props.model[field.name], onChange:e => props.model[field.name] = e.target.checked })
-            : h('input', { value: props.model[field.name], onInput:e => props.model[field.name] = e.target.value }),
-      ]))),
+    const humanize = name => name.replaceAll('_', ' ')
+    const control = (field) => {
+      if (field.name === 'file_url') {
+        return h(DropzoneUpload, {
+          modelValue: props.model[field.name],
+          'onUpdate:modelValue': value => props.model[field.name] = value,
+          mediaType: 'file',
+          label: 'resource file',
+          accept: 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          hint: 'Upload PDF, Word, or Excel files for the Resource Centre.',
+          onError: error => emit('error', error),
+        })
+      }
+      if (['image_url', 'cover_image_url', 'logo_url'].includes(field.name)) {
+        return h(DropzoneUpload, {
+          modelValue: props.model[field.name],
+          'onUpdate:modelValue': value => props.model[field.name] = value,
+          label: 'image',
+          accept: 'image/png,image/jpeg,image/webp,image/svg+xml',
+          onError: error => emit('error', error),
+        })
+      }
+      if (field.type === 'textarea') {
+        return h('textarea', { class: 'form-control', rows: 4, value: props.model[field.name], onInput: e => props.model[field.name] = e.target.value })
+      }
+      if (field.type === 'number') {
+        // Coerce to a real number so the JSON payload sends e.g. sort_order:2
+        // (an int the backend accepts) rather than the string "2" (which fails
+        // Go's int decode and returns 400 Bad Request).
+        return h('input', { class: 'form-control', type: 'number', value: props.model[field.name], onInput: e => props.model[field.name] = e.target.value === '' ? 0 : Number(e.target.value) })
+      }
+      return h('input', { class: 'form-control', value: props.model[field.name], onInput: e => props.model[field.name] = e.target.value })
+    }
+    // Mirrors the Otika "basic-form.html" markup: card > card-body > form-group
+    // (label + .form-control), checkboxes as Bootstrap .form-check, and a
+    // card-footer submit button — so all EditorForm sections match the template.
+    return () => h('form', { class: 'otika-form-card', onSubmit: e => { e.preventDefault(); emit('save') } }, [
+      h('div', { class: 'card' }, [
+        h('div', { class: 'card-header' }, [h('h4', props.title)]),
+        h('div', { class: 'card-body' }, props.fields.map(field => {
+          if (field.type === 'checkbox') {
+            const id = `ef-${field.name}`
+            return h('div', { class: 'form-group' }, [
+              h('div', { class: 'form-check' }, [
+                h('input', { class: 'form-check-input', type: 'checkbox', id, checked: !!props.model[field.name], onChange: e => props.model[field.name] = e.target.checked }),
+                h('label', { class: 'form-check-label text-capitalize', for: id }, humanize(field.name)),
+              ]),
+            ])
+          }
+          return h('div', { class: 'form-group' }, [
+            h('label', { class: 'text-capitalize' }, humanize(field.name)),
+            control(field),
+          ])
+        })),
+        h('div', { class: 'card-footer text-right' }, [
+          h('button', { class: 'btn btn-primary mr-1', type: 'submit' }, props.model.id ? 'Update' : 'Create'),
+        ]),
+      ]),
     ])
   },
 })
@@ -2750,5 +3035,6 @@ const EditorForm = defineComponent({
 .otika-dashboard .card{border:0!important;border-radius:3px!important;box-shadow:0 4px 25px 0 rgba(0,0,0,.1)!important}.otika-dashboard .card-header{border-bottom-color:#f9f9f9!important}.otika-dashboard .card-header h4{font-size:16px!important;font-weight:700!important;color:#34395e!important}.otika-dashboard .card-statistic-4{position:relative;color:#34395e;padding:15px;border-radius:3px;overflow:hidden}.otika-dashboard .card-statistic-4 .card-content{padding:8px 0 8px 10px}.otika-dashboard .card-statistic-4 h5{color:#6c757d;font-weight:600}.otika-dashboard .card-statistic-4 h2{color:#34395e;font-weight:700}.cms-stat-icon{display:flex!important;align-items:center;justify-content:center;width:72px;height:72px;margin:22px auto 0;border-radius:50%;background:#f4f6f9;font-size:36px}.cms-chart-bars{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;min-height:260px;padding:12px 4px}.cms-chart-bar{display:grid;grid-template-rows:auto 1fr auto;gap:8px;min-width:44px;height:250px;text-align:center;color:#6c757d}.cms-chart-bar__value{font-size:12px;font-weight:700;color:#34395e}.cms-chart-bar__track{display:flex;align-items:flex-end;width:100%;height:190px;border-radius:30px;background:#f4f6f9;overflow:hidden}.cms-chart-bar__track span{display:block;width:100%;border-radius:30px 30px 0 0;background:#6777ef}.cms-chart-bar strong{font-size:12px}.cms-kpi-row,.cms-source-row,.cms-progress-item>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;color:#6c757d}.cms-kpi-row strong,.cms-source-row strong,.cms-progress-item strong{color:#34395e}.cms-progress-item{margin-bottom:18px}.cms-progress-item .progress,.otika-dashboard .progress{height:6px!important;border-radius:30px;background:#f4f6f9}.cms-source-row{padding:10px 0;border-bottom:1px solid #f4f6f9}.cms-source-row i{width:22px;color:#6777ef}.cms-donut{--first:44%;--second:72%;display:grid;place-content:center;width:190px;height:190px;margin:0 auto 18px;border-radius:50%;background:conic-gradient(#6777ef 0 var(--first),#47c363 var(--first) var(--second),#ffa426 var(--second) 100%);color:#34395e;position:relative}.cms-donut::before{content:"";position:absolute;inset:28px;border-radius:50%;background:#fff}.cms-donut span,.cms-donut small{position:relative;z-index:1;text-align:center}.cms-donut span{font-size:28px;font-weight:800}.cms-donut small{font-size:12px;color:#6c757d}.cms-donut-legend{display:grid;gap:8px}.cms-donut-legend span{display:flex;align-items:center;gap:8px;color:#6c757d}.cms-donut-legend i{display:inline-block;width:10px;height:10px;border-radius:50%}.otika-dashboard .table td,.otika-dashboard .table th{vertical-align:middle}.otika-dashboard .order-list{display:flex;align-items:center}.otika-dashboard .team-member img{width:32px;height:32px;object-fit:cover}.cms-inline-link{border:0;background:transparent;color:#6777ef;font-weight:700;padding:0 0 0 8px}.cms-analytics-snapshot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.cms-analytics-snapshot article{display:flex;align-items:center;gap:12px;padding:18px;border-radius:3px;background:#f4f6f9}.cms-analytics-snapshot i{font-size:30px}.cms-analytics-snapshot span{display:block;color:#6c757d;font-size:12px}.cms-analytics-snapshot strong{display:block;color:#34395e;font-size:20px}.cms-main-footer{margin-top:0!important}:global(.dark) .otika-dashboard .card-header h4,:global(.dark) .otika-dashboard .card-statistic-4 h2,:global(.dark) .cms-kpi-row strong,:global(.dark) .cms-source-row strong,:global(.dark) .cms-progress-item strong,:global(.dark) .cms-chart-bar__value,:global(.dark) .cms-donut span,:global(.dark) .cms-analytics-snapshot strong{color:#f8fafc!important}:global(.dark) .otika-dashboard .card-statistic-4 h5,:global(.dark) .cms-kpi-row,:global(.dark) .cms-source-row,:global(.dark) .cms-progress-item>div:first-child,:global(.dark) .cms-chart-bar,:global(.dark) .cms-donut small,:global(.dark) .cms-donut-legend span,:global(.dark) .cms-analytics-snapshot span{color:#cbd5e1!important}:global(.dark) .otika-dashboard .card{background:#1f2937!important;border-color:#334155!important;box-shadow:0 4px 25px rgba(0,0,0,.28)!important}:global(.dark) .cms-donut::before,:global(.dark) .cms-stat-icon,:global(.dark) .cms-chart-bar__track,:global(.dark) .cms-analytics-snapshot article{background:#111827!important}@media(max-width:768px){.cms-chart-bars{gap:8px;overflow-x:auto}.cms-chart-bar{min-width:40px}.cms-analytics-snapshot{grid-template-columns:1fr}.cms-main-footer{display:block;text-align:center}.cms-main-footer .footer-right{float:none;margin-top:6px}}
 .otika-cms .navbar-bg{position:fixed!important;top:0!important;right:0!important;left:260px!important;z-index:1030!important;height:70px!important;background:#fff!important;box-shadow:0 4px 25px rgba(0,0,0,.08)!important}.otika-cms .main-navbar{position:fixed!important;top:0!important;right:0!important;left:260px!important;z-index:1040!important;min-height:70px!important;background:#fff!important;color:#111827!important;box-shadow:0 4px 25px rgba(0,0,0,.08)!important}.otika-cms .main-navbar .nav-link,.otika-cms .main-navbar i{color:#111827!important}.otika-cms .main-wrapper{min-height:100vh!important;display:flex!important;flex-direction:column!important}.otika-cms .main-content{flex:1 0 auto!important;padding-top:92px!important}.otika-cms .cms-main-footer{flex:0 0 auto!important;margin-top:auto!important;border-top:1px solid #e4e6fc!important;background:#fff!important;color:#6c757d!important}.otika-cms .cms-main-footer .footer-left{font-weight:700;color:#34395e!important}.otika-cms .main-wrapper.sidebar-mini .navbar-bg,.otika-cms .main-wrapper.sidebar-mini .main-navbar{left:65px!important}.otika-cms .navbar .dropdown-menu.show{z-index:1060!important}.otika-basic-table-card{border:0!important;border-radius:3px!important;box-shadow:0 4px 25px rgba(0,0,0,.1)!important}.otika-basic-table-card .table th,.otika-basic-table-card .table td,.newsletter-table .table th,.newsletter-table .table td,.otika-dashboard .table th,.otika-dashboard .table td{vertical-align:middle!important}.otika-basic-table-card .table thead th,.newsletter-table .table thead th,.otika-dashboard .table thead th{border-bottom:1px solid #f4f6f9!important;color:#34395e!important;font-weight:700!important}.otika-basic-table-card .table strong{color:#34395e!important}.otika-basic-table-card .table span{color:#6c757d!important}.table-actions{white-space:nowrap}.cms-table{display:block!important;overflow-x:auto!important}.cms-table-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;margin-bottom:0!important;border:0!important;border-bottom:1px solid #f4f6f9!important;border-radius:0!important;background:#fff!important;padding:14px 18px!important;box-shadow:none!important}.cms-table-row:nth-child(odd){background:#fbfbfd!important}.cms-table.compact{border-radius:3px!important;background:#fff!important;box-shadow:0 4px 25px rgba(0,0,0,.08)!important;overflow:auto!important}:global(.dark .otika-cms .navbar-bg),:global(.dark .otika-cms .main-navbar){background:#111827!important;color:#f8fafc!important;box-shadow:0 4px 24px rgba(0,0,0,.35)!important}:global(.dark .otika-cms .main-navbar .nav-link),:global(.dark .otika-cms .main-navbar i){color:#f8fafc!important}:global(.dark .otika-cms .cms-main-footer),:global(.dark) .otika-basic-table-card,:global(.dark) .cms-table.compact{background:#1f2937!important;color:#cbd5e1!important;border-color:#334155!important}:global(.dark .otika-cms .cms-main-footer .footer-left),:global(.dark) .otika-basic-table-card .table thead th,:global(.dark) .newsletter-table .table thead th,:global(.dark) .otika-dashboard .table thead th,:global(.dark) .otika-basic-table-card .table strong{color:#f8fafc!important}:global(.dark) .otika-basic-table-card .table span{color:#cbd5e1!important}:global(.dark) .cms-table-row{background:#1f2937!important;border-color:#334155!important}:global(.dark) .cms-table-row:nth-child(odd){background:#111827!important}@media(max-width:991px){.otika-cms .navbar-bg,.otika-cms .main-navbar,.otika-cms .main-wrapper.sidebar-mini .navbar-bg,.otika-cms .main-wrapper.sidebar-mini .main-navbar{left:0!important}.otika-cms .main-content{padding-top:116px!important}}@media(max-width:575px){.table-actions .btn{display:inline-flex;margin-bottom:4px}.otika-cms .cms-main-footer{text-align:center!important}.otika-cms .cms-main-footer .footer-right{float:none!important;margin-top:6px!important}}
 .homepage-card-list{display:grid;gap:16px}.homepage-dynamic-card{display:grid;gap:12px;border:1px solid #e4e6fc;border-radius:3px;background:#fdfdff;padding:18px;box-shadow:0 4px 25px rgba(0,0,0,.04)}.homepage-dynamic-card .cms-panel-head{margin-bottom:0}.homepage-dynamic-card h3,.cms-subpanel h3{font-size:15px!important;color:#34395e!important}.cms-row input.form-control{height:42px;border:1px solid #e4e6fc;border-radius:3px;background:#fff;color:#34395e;padding:10px 15px}.cms-check{display:flex!important;grid-column:1/-1;align-items:center!important;gap:10px!important;text-transform:none!important}.cms-check input{width:18px!important;height:18px!important;accent-color:#6777ef}:global(.dark) .homepage-dynamic-card{background:#111827!important;border-color:#334155!important}:global(.dark) .homepage-dynamic-card h3,:global(.dark) .cms-subpanel h3{color:#f8fafc!important}:global(.dark) .cms-row input.form-control{background:#111827!important;color:#f8fafc!important;border-color:#475569!important}
-.otika-form-card .card{border:0!important;border-radius:3px!important;box-shadow:0 4px 25px rgba(0,0,0,.1)!important;margin-bottom:0!important}.otika-form-card .card-header{border-bottom:1px solid #f9f9f9!important;padding:18px 25px!important}.otika-form-card .card-header h4{font-size:16px!important;font-weight:700!important;color:#34395e!important;margin:0!important}.otika-form-card .card-body{padding:25px!important}.otika-form-card .card-footer{border-top:1px solid #f9f9f9!important;background:#fff!important;padding:18px 25px!important}.otika-form-card .section-title{margin:18px 0 16px!important;font-size:13px!important;font-weight:700!important;color:#34395e!important}.otika-form-card .form-group{margin-bottom:18px!important}.otika-form-card label{font-size:12px!important;font-weight:600!important;color:#34395e!important;margin-bottom:7px!important}.otika-form-card .form-control{height:42px!important;border:1px solid #e4e6fc!important;border-radius:3px!important;background:#fdfdff!important;color:#495057!important;padding:10px 15px!important;box-shadow:none!important}.otika-form-card .form-control:focus{border-color:#6777ef!important;box-shadow:0 2px 6px #acb5f6!important}.otika-form-card textarea.form-control,.otika-form-card .otika-textarea{height:auto!important;min-height:110px!important}.otika-form-card .custom-control-label{line-height:1.8!important}.otika-form-card .btn-primary{border:0!important;border-radius:30px!important;background:#6777ef!important;box-shadow:0 2px 6px #acb5f6!important;font-size:12px!important;font-weight:600!important;padding:8px 18px!important}:global(.dark) .otika-form-card .card,:global(.dark) .otika-form-card .card-footer{background:#1f2937!important;border-color:#334155!important}:global(.dark) .otika-form-card .card-header h4,:global(.dark) .otika-form-card .section-title,:global(.dark) .otika-form-card label{color:#f8fafc!important}:global(.dark) .otika-form-card .form-control{background:#111827!important;color:#f8fafc!important;border-color:#475569!important}
+.otika-form-card .card{border:0!important;border-radius:3px!important;box-shadow:0 4px 25px rgba(0,0,0,.1)!important;margin-bottom:0!important}.otika-form-card .card-header{border-bottom:1px solid #f9f9f9!important;padding:18px 25px!important}.otika-form-card .card-header h4{font-size:16px!important;font-weight:700!important;color:#34395e!important;margin:0!important}.otika-form-card .card-body{padding:25px!important}.otika-form-card .card-footer{border-top:1px solid #f9f9f9!important;background:#fff!important;padding:18px 25px!important}.otika-form-card .section-title{margin:18px 0 16px!important;font-size:13px!important;font-weight:700!important;color:#34395e!important}.otika-form-card .form-group{margin-bottom:18px!important}.otika-form-card label{font-size:12px!important;font-weight:600!important;color:#34395e!important;margin-bottom:7px!important}.otika-form-card .form-control{height:42px!important;border:1px solid #e4e6fc!important;border-radius:3px!important;background:#fdfdff!important;color:#495057!important;padding:10px 15px!important;box-shadow:none!important}.otika-form-card .form-control:focus{border-color:#6777ef!important;box-shadow:0 2px 6px #acb5f6!important}.otika-form-card textarea.form-control,.otika-form-card .otika-textarea{height:auto!important;min-height:110px!important}.otika-form-card .custom-control-label{line-height:1.8!important}.otika-form-card .btn-primary{border:0!important;border-radius:30px!important;background:#6777ef!important;box-shadow:0 2px 6px #acb5f6!important;font-size:12px!important;font-weight:600!important;padding:8px 18px!important}.otika-form-card .form-check{padding-left:1.5rem;min-height:auto;margin-bottom:.35rem}.otika-form-card .form-check-input{width:16px;height:16px;accent-color:#6777ef}.otika-form-card .form-check-label{font-weight:500!important;margin-bottom:0!important;line-height:1.6}:global(.dark) .otika-form-card .card,:global(.dark) .otika-form-card .card-footer{background:#1f2937!important;border-color:#334155!important}:global(.dark) .otika-form-card .card-header h4,:global(.dark) .otika-form-card .section-title,:global(.dark) .otika-form-card label{color:#f8fafc!important}:global(.dark) .otika-form-card .form-control{background:#111827!important;color:#f8fafc!important;border-color:#475569!important}
+.notification-list{display:grid;gap:12px}.notification-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:3px;background:#fff;box-shadow:0 4px 25px rgba(0,0,0,.08);border-left:3px solid transparent;color:#6c757d}.notification-item.unread{background:#f4f7ff;border-left-color:#6777ef}.notification-item strong{display:block;color:#34395e;font-size:14px}.notification-item span{display:block;color:#98a6ad;font-size:12px}.notification-item p{margin:6px 0 0;color:#6c757d}.notification-dot{width:10px;height:10px;margin-top:7px;border-radius:50%;background:#6777ef}.notification-icon{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:#eaf4ff;color:#3abaf4}.notification-icon.warn{background:#fff4e6;color:#ffa426}.notification-icon.success{background:#e8f7f0;color:#47c363}.notification-icon.info{background:#eaf4ff;color:#3abaf4}.notification-item:not(.unread){opacity:.82}:global(.dark) .notification-item{background:#1f2937;box-shadow:0 4px 25px rgba(0,0,0,.28)}:global(.dark) .notification-item.unread{background:#111827}:global(.dark) .notification-item strong{color:#f8fafc}:global(.dark) .notification-item p{color:#cbd5e1}@media(max-width:768px){.notification-item{grid-template-columns:auto minmax(0,1fr)}.notification-item>.cms-actions-inline{grid-column:1/-1}}
 </style>

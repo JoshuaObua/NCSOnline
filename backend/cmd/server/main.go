@@ -61,11 +61,27 @@ func main() {
 
 	rl := middleware.NewRateLimiter(cfg.RateLimitReqs, cfg.RateLimitWindow)
 	authRL := middleware.NewRateLimiter(10, cfg.RateLimitWindow)
+	publicFormRL := middleware.NewRateLimiter(8, cfg.RateLimitWindow)
 
 	r := chi.NewRouter()
 	metricRegistry := appMetrics.New()
 
 	r.Use(chimiddleware.RequestID)
+	// CORS must run BEFORE the rate limiter / maintenance / auth so that CORS
+	// headers are present on EVERY response — including 401, 429 and the
+	// OPTIONS preflight. If a rate-limited (429) or unauthorized (401) response
+	// lacks Access-Control-Allow-Origin, the browser reports it as a CORS
+	// failure (ERR_FAILED) instead of surfacing the real status. Handling the
+	// preflight here also keeps OPTIONS requests out of the rate-limit budget,
+	// so the CMS dashboard's burst of parallel loads isn't throttled.
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   cfg.AllowedOrigins,
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
+		ExposedHeaders:   []string{"X-Request-ID"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 	r.Use(metricRegistry.Middleware)
 	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.RejectAmbiguousPaths)
@@ -75,14 +91,6 @@ func main() {
 	r.Use(middleware.HoneypotScanner)
 	r.Use(middleware.MaintenanceMode(h.SystemState, cfg.MaintenanceEnabled, cfg.JWTSecret))
 	r.Use(rl.Middleware)
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   cfg.AllowedOrigins,
-		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
-		ExposedHeaders:   []string{"X-Request-ID"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
 	r.Use(chimiddleware.Recoverer)
 
 	healthHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -104,6 +112,13 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"ready"}`))
 	})
 	r.Handle("/metrics", metricRegistry)
+	// Serve locally-stored uploads. In production nginx serves this directory
+	// directly (see nginx.conf "location /uploads/"); registering it here makes
+	// uploaded media reachable when the backend runs without nginx in front
+	// (e.g. local dev), so CMS upload previews and public images resolve
+	// instead of 404ing. Public + read-only by design.
+	r.Get("/uploads/*", h.CMS.ServeLocalUpload)
+	r.Head("/uploads/*", h.CMS.ServeLocalUpload)
 	r.Post("/ncs-ussd", h.USSD.ServeHTTP)
 	r.Get("/api/v1/system/maintenance-status", func(w http.ResponseWriter, r *http.Request) {
 		s := h.SystemState.Get()
@@ -120,6 +135,7 @@ func main() {
 			r.Use(authRL.Middleware)
 			r.Post("/register", h.Auth.Register)
 			r.Post("/login", h.Auth.Login)
+			r.Post("/google", h.Auth.Google)
 			r.Post("/refresh", h.Auth.RefreshToken)
 			r.Post("/forgot-password", h.Auth.ForgotPassword)
 			r.Post("/reset-password", h.Auth.ResetPassword)
@@ -147,7 +163,8 @@ func main() {
 			r.Get("/invest", h.CMS.ListInvest)
 			r.Get("/team", h.CMS.ListTeam)
 			r.Get("/departments", h.CMS.ListInstitutionalDepartments)
-			r.Post("/newsletter/subscribe", h.CMS.SubscribeNewsletter)
+			r.With(publicFormRL.Middleware).Post("/messages", h.CMS.CreateContactMessage)
+			r.With(publicFormRL.Middleware).Post("/newsletter/subscribe", h.CMS.SubscribeNewsletter)
 		})
 
 		// ── Authenticated routes (geo-blocked: Uganda only, no VPN) ─────
@@ -158,10 +175,30 @@ func main() {
 			r.Use(middleware.ValidateAuthenticatedUser(repos.Users))
 			r.Use(middleware.EnforceIPAllowlist(repos.Security))
 
+			r.Route("/notifications", func(r chi.Router) {
+				r.Get("/", h.CMS.ListNotifications)
+				r.Put("/{id}", h.CMS.UpdateNotification)
+				r.Delete("/{id}", h.CMS.DeleteNotification)
+				r.Delete("/clear-all", h.CMS.ClearNotifications)
+				r.Put("/mark-all-read", h.CMS.MarkAllNotificationsRead)
+			})
+
+			r.Route("/messages", func(r chi.Router) {
+				r.Get("/", h.CMS.ListContactMessages)
+				r.Put("/{id}", h.CMS.UpdateContactMessage)
+				r.Delete("/{id}", h.CMS.DeleteContactMessage)
+				r.Delete("/clear-all", h.CMS.ClearContactMessages)
+			})
+
 			// Self-service auth
 			r.Post("/auth/logout", h.Auth.Logout)
 			r.Get("/auth/me", h.Auth.Me)
 			r.Post("/auth/change-password", h.Auth.ChangePassword)
+			r.Post("/auth/update-password", h.Auth.ChangePassword)
+			r.Get("/auth/sessions", h.Operator.Sessions)
+			r.Delete("/auth/sessions/clear-all", h.Operator.DeleteOtherSessions)
+			r.Delete("/auth/sessions/{id}", h.Operator.DeleteSession)
+			r.Get("/account/audit-logs", h.Security.MyActivities)
 
 			// PIN management
 			r.Post("/auth/pin/set", h.Auth.SetPIN)

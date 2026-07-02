@@ -58,16 +58,24 @@ func New(db *pgxpool.Pool) *Repos {
 type UserRepo struct{ db *pgxpool.Pool }
 
 func (r *UserRepo) Create(ctx context.Context, u *models.User) error {
-	const q = `INSERT INTO users (id, email, password_hash, first_name, last_name, phone)
-	           VALUES ($1,$2,$3,$4,$5,$6)
+	const q = `INSERT INTO users (id, email, password_hash, first_name, last_name, phone, avatar_url, auth_provider, google_sub, is_email_verified, email_verified_at)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $10 THEN NOW() ELSE NULL END)
 	           RETURNING created_at, updated_at`
+	if u.AuthProvider == "" {
+		u.AuthProvider = "password"
+	}
+	var googleSub interface{}
+	if u.GoogleSub != "" {
+		googleSub = u.GoogleSub
+	}
 	return r.db.QueryRow(ctx, q,
-		u.ID, u.Email, u.PasswordHash, u.FirstName, u.LastName, u.Phone,
+		u.ID, u.Email, u.PasswordHash, u.FirstName, u.LastName, u.Phone, u.AvatarURL, u.AuthProvider, googleSub, u.IsEmailVerified,
 	).Scan(&u.CreatedAt, &u.UpdatedAt)
 }
 
 func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error) {
 	const q = `SELECT id, email, password_hash, first_name, last_name, COALESCE(phone,''),
+	                  COALESCE(avatar_url,''), COALESCE(auth_provider,''), COALESCE(google_sub,''),
 	                  COALESCE(pin_hash,''), COALESCE(pin_change_required, TRUE),
 	                  is_active, account_status, status_reason, fraud_flag, fraud_reason,
 	                  suspended_until, status_changed_at,
@@ -78,6 +86,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 	u := &models.User{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &u.Phone,
+		&u.AvatarURL, &u.AuthProvider, &u.GoogleSub,
 		&u.PinHash, &u.PinChangeRequired,
 		&u.IsActive, &u.AccountStatus, &u.StatusReason, &u.FraudFlag, &u.FraudReason,
 		&u.SuspendedUntil, &u.StatusChangedAt,
@@ -93,6 +102,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	const q = `SELECT id, email, password_hash, first_name, last_name, COALESCE(phone,''),
+	                  COALESCE(avatar_url,''), COALESCE(auth_provider,''), COALESCE(google_sub,''),
 	                  COALESCE(pin_hash,''), COALESCE(pin_change_required, TRUE),
 	                  is_active, account_status, status_reason, fraud_flag, fraud_reason,
 	                  suspended_until, status_changed_at,
@@ -103,6 +113,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, 
 	u := &models.User{}
 	err := r.db.QueryRow(ctx, q, email).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &u.Phone,
+		&u.AvatarURL, &u.AuthProvider, &u.GoogleSub,
 		&u.PinHash, &u.PinChangeRequired,
 		&u.IsActive, &u.AccountStatus, &u.StatusReason, &u.FraudFlag, &u.FraudReason,
 		&u.SuspendedUntil, &u.StatusChangedAt,
@@ -114,6 +125,28 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, 
 		return nil, ErrNotFound
 	}
 	return u, err
+}
+
+func (r *UserRepo) GetByGoogleSub(ctx context.Context, googleSub string) (*models.User, error) {
+	const q = `SELECT id FROM users WHERE google_sub=$1 AND deleted_at IS NULL`
+	var id string
+	err := r.db.QueryRow(ctx, q, googleSub).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return r.GetByID(ctx, id)
+}
+
+func (r *UserRepo) LinkGoogleIdentity(ctx context.Context, userID, googleSub, avatarURL string) error {
+	const q = `UPDATE users
+	           SET google_sub=$2, avatar_url=$3, auth_provider=CASE WHEN auth_provider='' THEN 'google' ELSE auth_provider END,
+	               is_email_verified=TRUE, email_verified_at=COALESCE(email_verified_at, NOW()), updated_at=NOW()
+	           WHERE id=$1 AND deleted_at IS NULL`
+	_, err := r.db.Exec(ctx, q, userID, googleSub, avatarURL)
+	return err
 }
 
 func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams) ([]*models.User, int64, error) {
@@ -2082,6 +2115,116 @@ func (r *CMSRepo) DeleteDepartment(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+func (r *CMSRepo) ListNotifications(ctx context.Context, userID, status string, limit, offset int) ([]*models.Notification, int64, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	const countQ = `SELECT COUNT(*) FROM notifications WHERE ($1='' OR user_id=$1 OR user_id IS NULL) AND ($2='' OR status=$2) AND status <> 'dismissed'`
+	const q = `SELECT id, user_id, type, title, message, status, icon_key, created_at FROM notifications WHERE ($1='' OR user_id=$1 OR user_id IS NULL) AND ($2='' OR status=$2) AND status <> 'dismissed' ORDER BY created_at DESC LIMIT $3 OFFSET $4`
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, userID, status).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.db.Query(ctx, q, userID, status, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := []*models.Notification{}
+	for rows.Next() {
+		n := &models.Notification{}
+		if err := rows.Scan(&n.ID, &n.UserID, &n.Type, &n.Title, &n.Message, &n.Status, &n.IconKey, &n.CreatedAt); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, n)
+	}
+	return out, total, rows.Err()
+}
+
+func (r *CMSRepo) CreateNotification(ctx context.Context, n *models.Notification) error {
+	const q = `INSERT INTO notifications (id, user_id, type, title, message, status, icon_key) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING created_at`
+	return r.db.QueryRow(ctx, q, n.ID, n.UserID, n.Type, n.Title, n.Message, n.Status, n.IconKey).Scan(&n.CreatedAt)
+}
+
+func (r *CMSRepo) UpdateNotificationStatus(ctx context.Context, id, userID, status string) error {
+	ct, err := r.db.Exec(ctx, `UPDATE notifications SET status=$3 WHERE id=$1 AND ($2='' OR user_id=$2 OR user_id IS NULL)`, id, userID, status)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) ClearNotifications(ctx context.Context, userID string) error {
+	_, err := r.db.Exec(ctx, `UPDATE notifications SET status='dismissed' WHERE ($1='' OR user_id=$1 OR user_id IS NULL)`, userID)
+	return err
+}
+
+func (r *CMSRepo) MarkAllNotificationsRead(ctx context.Context, userID string) error {
+	_, err := r.db.Exec(ctx, `UPDATE notifications SET status='read' WHERE status='unread' AND ($1='' OR user_id=$1 OR user_id IS NULL)`, userID)
+	return err
+}
+
+func (r *CMSRepo) ListContactMessages(ctx context.Context, status string, limit, offset int) ([]*models.ContactMessage, int64, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	const countQ = `SELECT COUNT(*) FROM contact_messages WHERE ($1='' OR status=$1)`
+	const q = `SELECT id, name, email, subject, message, status, created_at FROM contact_messages WHERE ($1='' OR status=$1) ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, status).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.db.Query(ctx, q, status, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := []*models.ContactMessage{}
+	for rows.Next() {
+		m := &models.ContactMessage{}
+		if err := rows.Scan(&m.ID, &m.Name, &m.Email, &m.Subject, &m.Message, &m.Status, &m.CreatedAt); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, m)
+	}
+	return out, total, rows.Err()
+}
+
+func (r *CMSRepo) CreateContactMessage(ctx context.Context, m *models.ContactMessage) error {
+	const q = `INSERT INTO contact_messages (id, name, email, subject, message, status) VALUES ($1,$2,$3,$4,$5,$6) RETURNING created_at`
+	return r.db.QueryRow(ctx, q, m.ID, m.Name, m.Email, m.Subject, m.Message, m.Status).Scan(&m.CreatedAt)
+}
+
+func (r *CMSRepo) UpdateContactMessageStatus(ctx context.Context, id, status string) error {
+	ct, err := r.db.Exec(ctx, `UPDATE contact_messages SET status=$2 WHERE id=$1`, id, status)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) DeleteContactMessage(ctx context.Context, id string) error {
+	ct, err := r.db.Exec(ctx, `DELETE FROM contact_messages WHERE id=$1`, id)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) ClearContactMessages(ctx context.Context) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM contact_messages`)
+	return err
 }
 
 func (r *CMSRepo) DeleteTeamMember(ctx context.Context, id string) error {

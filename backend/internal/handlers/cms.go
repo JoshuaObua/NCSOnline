@@ -62,6 +62,185 @@ func (h *CMSHandler) ListInstitutionalDepartments(w http.ResponseWriter, r *http
 	response.JSON(w, http.StatusOK, out)
 }
 
+func notificationTheme(kind string) (string, string) {
+	switch kind {
+	case "new_comment":
+		return "chat", "New Comment"
+	case "new_sign_in", "unusual_activity":
+		return "shield-alert", "Security Activity"
+	case "password_reset":
+		return "key", "Password Reset"
+	default:
+		return "check", "System Notification"
+	}
+}
+
+func (h *CMSHandler) ListNotifications(w http.ResponseWriter, r *http.Request) {
+	limit, offset := paginate(r)
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	items, total, err := h.repo.ListNotifications(r.Context(), userID, r.URL.Query().Get("status"), limit, offset)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list notifications")
+		return
+	}
+	response.JSON(w, http.StatusOK, map[string]interface{}{"total": total, "items": items})
+}
+
+func (h *CMSHandler) UpdateNotification(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if req.Status != "read" && req.Status != "unread" && req.Status != "dismissed" {
+		response.ValidationErr(w, map[string]string{"status": "must be read, unread, or dismissed"})
+		return
+	}
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	if err := h.repo.UpdateNotificationStatus(r.Context(), chi.URLParam(r, "id"), userID, req.Status); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Notification not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update notification")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Notification updated")
+}
+
+func (h *CMSHandler) DeleteNotification(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	if err := h.repo.UpdateNotificationStatus(r.Context(), chi.URLParam(r, "id"), userID, "dismissed"); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Notification not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not dismiss notification")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Notification dismissed")
+}
+
+func (h *CMSHandler) ClearNotifications(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	if err := h.repo.ClearNotifications(r.Context(), userID); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not clear notifications")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Notifications cleared")
+}
+
+func (h *CMSHandler) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	if err := h.repo.MarkAllNotificationsRead(r.Context(), userID); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not mark notifications read")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Notifications marked read")
+}
+
+func (h *CMSHandler) ListContactMessages(w http.ResponseWriter, r *http.Request) {
+	limit, offset := paginate(r)
+	items, total, err := h.repo.ListContactMessages(r.Context(), r.URL.Query().Get("status"), limit, offset)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list messages")
+		return
+	}
+	response.JSON(w, http.StatusOK, map[string]interface{}{"total": total, "items": items})
+}
+
+func (h *CMSHandler) CreateContactMessage(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Name    string `json:"name"`
+		Email   string `json:"email"`
+		Subject string `json:"subject"`
+		Message string `json:"message"`
+		Website string `json:"website"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if strings.TrimSpace(req.Website) != "" {
+		response.JSONMsg(w, http.StatusCreated, "Message submitted")
+		return
+	}
+	errs := map[string]string{}
+	if strings.TrimSpace(req.Name) == "" {
+		errs["name"] = "required"
+	}
+	if !strings.Contains(req.Email, "@") {
+		errs["email"] = "valid email required"
+	}
+	if strings.TrimSpace(req.Message) == "" {
+		errs["message"] = "required"
+	}
+	if len(errs) > 0 {
+		response.ValidationErr(w, errs)
+		return
+	}
+	msg := &models.ContactMessage{
+		ID: uuid.NewString(), Name: sanitizePlain(req.Name, 160), Email: sanitizePlain(req.Email, 220),
+		Subject: sanitizePlain(firstNonEmpty(req.Subject, "Contact Us Message"), 220),
+		Message: sanitizePlain(req.Message, 5000), Status: "unread",
+	}
+	if err := h.repo.CreateContactMessage(r.Context(), msg); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not submit message")
+		return
+	}
+	icon, title := notificationTheme("system_success")
+	_ = h.repo.CreateNotification(r.Context(), &models.Notification{
+		ID: uuid.NewString(), Type: "system_success", Title: title, Message: "New public contact message received.",
+		Status: "unread", IconKey: icon,
+	})
+	response.JSON(w, http.StatusCreated, msg)
+}
+
+func (h *CMSHandler) UpdateContactMessage(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if req.Status != "read" && req.Status != "unread" {
+		response.ValidationErr(w, map[string]string{"status": "must be read or unread"})
+		return
+	}
+	if err := h.repo.UpdateContactMessageStatus(r.Context(), chi.URLParam(r, "id"), req.Status); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Message not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update message")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Message updated")
+}
+
+func (h *CMSHandler) DeleteContactMessage(w http.ResponseWriter, r *http.Request) {
+	if err := h.repo.DeleteContactMessage(r.Context(), chi.URLParam(r, "id")); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Message not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not delete message")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Message deleted")
+}
+
+func (h *CMSHandler) ClearContactMessages(w http.ResponseWriter, r *http.Request) {
+	if err := h.repo.ClearContactMessages(r.Context()); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not clear messages")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Messages cleared")
+}
+
 func (h *CMSHandler) CreateInstitutionalDepartment(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name        string `json:"name"`
@@ -544,9 +723,14 @@ func (h *CMSHandler) SubmitPostComment(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Body     string  `json:"body"`
 		ParentID *string `json:"parent_id"`
+		Website  string  `json:"website"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if strings.TrimSpace(req.Website) != "" {
+		response.JSONMsg(w, http.StatusCreated, "Comment submitted")
 		return
 	}
 	body := sanitizePlain(req.Body, 1500)
@@ -1659,11 +1843,16 @@ var newsletterEmailRe = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
 // POST /api/v1/cms/newsletter/subscribe
 func (h *CMSHandler) SubscribeNewsletter(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Email  string `json:"email"`
-		Source string `json:"source"`
+		Email   string `json:"email"`
+		Source  string `json:"source"`
+		Website string `json:"website"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
+		return
+	}
+	if strings.TrimSpace(req.Website) != "" {
+		response.JSONMsg(w, http.StatusCreated, "Subscribed")
 		return
 	}
 	email := strings.ToLower(strings.TrimSpace(req.Email))

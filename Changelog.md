@@ -59,6 +59,19 @@
 ### Verified
 - Ran `npm run build` in `frontend`; the production build completed successfully.
 
+### Messages And Notifications System
+
+- Added database schema for `notifications` and `contact_messages`, including status tracking, timestamps, notification type/icon metadata, and read/unread/dismissed states.
+- Added granular RBAC permissions for Messages and Notifications.
+- Added backend repository and handler logic for listing notifications, marking read/unread, dismissing individual notifications, clearing all notifications, and marking all as read.
+- Added backend repository and handler logic for public contact message submission, listing CMS messages, marking messages read/unread, deleting individual messages, and clearing all messages.
+- Added frontend API helpers for public contact message submission and authenticated message/notification management.
+- Added dedicated CMS Messages and Notifications pages with unread highlighting, dot indicators, icon/color themes, empty states, individual actions, and bulk actions.
+- Added sidebar entries and permission-aware visibility for Messages and Notifications.
+
+### Verification Note
+- Build and Go compile checks could not be completed in this pass because the local shell began timing out even for simple commands. No preview was rebuilt or restarted, per request.
+
 ### Events Otika Form Update
 
 - Reworked Add New Event into an Otika basic-form style card with `card`, `card-header`, `card-body`, `form-group`, `form-control`, `selectric`, and `card-footer` classes.

@@ -22,6 +22,9 @@ const ContactUsView = () => import('@/views/public/ContactUsView.vue')
 const TeamView = () => import('@/views/public/TeamView.vue')
 const CMSLoginView = () => import('@/views/CMSLoginView.vue')
 const WebsiteContentManagerView = () => import('@/views/WebsiteContentManagerView.vue')
+const AccountProfileView = () => import('@/views/account/AccountProfileView.vue')
+const AccountSettingsView = () => import('@/views/account/AccountSettingsView.vue')
+const AccountActivitiesView = () => import('@/views/account/AccountActivitiesView.vue')
 
 const routes = [
   {
@@ -47,6 +50,9 @@ const routes = [
       { path: 'faqs', name: 'FAQs', component: FAQsView },
       { path: 'contact-us', name: 'ContactUs', component: ContactUsView },
       { path: 'team', name: 'Team', component: TeamView },
+      { path: 'account/profile', name: 'AccountProfile', component: AccountProfileView },
+      { path: 'account/settings', name: 'AccountSettings', component: AccountSettingsView },
+      { path: 'account/activities', name: 'AccountActivities', component: AccountActivitiesView },
     ],
   },
   { path: '/login', name: 'CMSLogin', component: CMSLoginView },
@@ -86,6 +92,9 @@ const publicPageTitles = {
   FAQs: 'Frequently Asked Questions',
   ContactUs: 'Contact Us',
   Team: 'NCS Membership',
+  AccountProfile: 'Profile Overview',
+  AccountSettings: 'Settings & Security',
+  AccountActivities: 'My Audit Activities',
   CMSLogin: 'Content Manager Login',
   WebsiteCMS: 'Content Manager',
 }
