@@ -2003,6 +2003,37 @@ func (r *CMSRepo) ListDepartmentsWithStaffCount(ctx context.Context) ([]*Departm
 	return out, rows.Err()
 }
 
+func (r *CMSRepo) CreateDepartment(ctx context.Context, d *DepartmentWithCount) error {
+	_, err := r.db.Exec(ctx,
+		`INSERT INTO departments (id, name, code, description) VALUES ($1,$2,$3,$4)`,
+		d.ID, d.Name, d.Code, d.Description)
+	return err
+}
+
+func (r *CMSRepo) UpdateDepartment(ctx context.Context, d *DepartmentWithCount) error {
+	ct, err := r.db.Exec(ctx,
+		`UPDATE departments SET name=$2, code=$3, description=$4 WHERE id=$1`,
+		d.ID, d.Name, d.Code, d.Description)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) DeleteDepartment(ctx context.Context, id string) error {
+	ct, err := r.db.Exec(ctx, `DELETE FROM departments WHERE id=$1`, id)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 func (r *CMSRepo) DeleteTeamMember(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM cms_team_members WHERE id=$1`, id)
 	return err

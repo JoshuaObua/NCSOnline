@@ -40,6 +40,16 @@
                 </div>
               </div>
 
+              <div v-if="contact.whatsapp" class="flex items-start gap-4">
+                <div class="w-11 h-11 bg-emerald-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <i class="icofont-brand-whatsapp text-white text-lg"></i>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">WhatsApp</p>
+                  <a :href="`https://wa.me/${whatsappNumber}`" class="font-semibold text-darken hover:text-accent transition-colors">{{ contact.whatsapp }}</a>
+                </div>
+              </div>
+
               <div v-if="contact.email" class="flex items-start gap-4">
                 <div class="w-11 h-11 bg-[#112b4e] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm">
                   <i class="icofont-email text-white text-lg"></i>
@@ -57,6 +67,18 @@
                 <div>
                   <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Address</p>
                   <p class="font-semibold text-darken">{{ contact.address }}</p>
+                  <p v-if="contact.location" class="text-sm text-gray-500">{{ contact.location }}</p>
+                  <p v-if="contact.postal_address" class="text-sm text-gray-500">{{ contact.postal_address }}</p>
+                </div>
+              </div>
+
+              <div v-if="contact.fax" class="flex items-start gap-4">
+                <div class="w-11 h-11 bg-purple-500 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <i class="icofont-fax text-white text-lg"></i>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Fax</p>
+                  <p class="font-semibold text-darken">{{ contact.fax }}</p>
                 </div>
               </div>
 
@@ -121,11 +143,6 @@
               <h3 class="font-bold text-white mb-4 text-sm uppercase tracking-wide">Quick Links</h3>
               <ul class="space-y-2.5">
                 <li>
-                  <a :href="portalUrl('/my-portal')" class="flex items-center gap-2 text-white/70 hover:text-[#F48C06] text-sm font-medium transition-colors">
-                    <i class="icofont-arrow-right text-[#F48C06] text-xs"></i> My Portal
-                  </a>
-                </li>
-                <li>
                   <router-link to="/faqs" class="flex items-center gap-2 text-white/70 hover:text-[#F48C06] text-sm font-medium transition-colors">
                     <i class="icofont-arrow-right text-[#F48C06] text-xs"></i> Frequently Asked Questions
                   </router-link>
@@ -152,14 +169,16 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { getSettings } from '@/api/cms.js'
-const intranetUrl = (import.meta.env?.VITE_INTRANET_URL || 'http://localhost:9081').replace(/\/$/, '')
-function portalUrl(path = '') { return `${intranetUrl}${path}` }
 
 const loading = ref(true)
 const contact = reactive({
   phone: '',
+  whatsapp: '',
   email: '',
+  fax: '',
+  location: '',
   address: '',
+  postal_address: '',
   hours: '',
   mapUrl: '',
   social: { facebook: '', twitter: '', linkedin: '', instagram: '', youtube: '' }
@@ -168,18 +187,25 @@ const contact = reactive({
 const hasSocial = computed(() =>
   Object.values(contact.social || {}).some(v => v && v.trim())
 )
+const whatsappNumber = computed(() => String(contact.whatsapp || '').replace(/\D/g, ''))
 
 onMounted(async () => {
   try {
     const r = await getSettings('contact')
     const v = r.data?.data?.value
     if (v && typeof v === 'object') {
-      if (v.phone)   contact.phone   = v.phone
-      if (v.email)   contact.email   = v.email
-      if (v.address) contact.address = v.address
-      if (v.hours)   contact.hours   = v.hours
-      if (v.mapUrl)  contact.mapUrl  = v.mapUrl
-      if (v.social)  Object.assign(contact.social, v.social)
+      Object.assign(contact, {
+        phone: v.phone || contact.phone,
+        whatsapp: v.whatsapp || contact.whatsapp,
+        email: v.email || contact.email,
+        fax: v.fax || contact.fax,
+        location: v.location || contact.location,
+        address: v.address || contact.address,
+        postal_address: v.postal_address || contact.postal_address,
+        hours: v.hours || contact.hours,
+        mapUrl: v.mapUrl || contact.mapUrl,
+      })
+      if (v.social) Object.assign(contact.social, v.social)
     }
   } catch { /* show fallback */ }
   finally { loading.value = false }

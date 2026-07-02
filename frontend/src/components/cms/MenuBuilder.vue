@@ -4,9 +4,10 @@
       <button type="button" @click="addRootItem">Add root item</button>
       <span>Max depth: {{ MAX_MENU_DEPTH }}</span>
     </div>
-    <MenuBranch
+    <MenuTreeBranch
       :items="localItems"
       :depth="1"
+      :pages="pages"
       @changed="handleBranchChange"
       @edit="editItem"
       @remove="removeItem"
@@ -18,12 +19,13 @@
 </template>
 
 <script setup>
-import Sortable from 'sortablejs'
-import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
+import MenuTreeBranch from '@/components/cms/MenuTreeBranch.vue'
 import { MAX_MENU_DEPTH, cloneTree, createMenuItem, debounce, maxDepth, normalizeMenuTree, sanitizeText, sanitizeUrl } from '@/utils/menuTree.js'
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
+  pages: { type: Array, default: () => [] },
 })
 const emit = defineEmits(['update:modelValue', 'change'])
 
@@ -49,8 +51,10 @@ function addRootItem() {
 }
 
 function editItem(item, field, value) {
-  item[field] = field === 'url' ? sanitizeUrl(value) : sanitizeText(value)
-  if (field === 'target') item.target = value === '_blank' ? '_blank' : '_self'
+  if (field === 'url') item.url = sanitizeUrl(value)
+  else if (field === 'target') item.target = value === '_blank' ? '_blank' : '_self'
+  else if (field === 'hidden') item.hidden = value === true
+  else item[field] = sanitizeText(value)
   commit()
 }
 
@@ -125,88 +129,12 @@ function outdentItem(items, id, parent = null, parentList = null) {
   }
   return items.some(item => outdentItem(item.children, id, item, items))
 }
-
-const MenuBranch = defineComponent({
-  name: 'MenuBranch',
-  props: {
-    items: { type: Array, required: true },
-    depth: { type: Number, required: true },
-  },
-  emits: ['changed', 'edit', 'remove', 'add-child', 'move'],
-  setup(branchProps, { emit }) {
-    const listRef = ref(null)
-    let sortable
-    const canNest = computed(() => branchProps.depth < MAX_MENU_DEPTH)
-
-    onMounted(() => initSortable())
-    onBeforeUnmount(() => sortable?.destroy())
-
-    watch(() => branchProps.items, async () => {
-      await nextTick()
-      initSortable()
-    }, { deep: true })
-
-    function initSortable() {
-      sortable?.destroy()
-      if (!listRef.value) return
-      sortable = Sortable.create(listRef.value, {
-        group: { name: 'cms-menu', pull: true, put: canNest.value },
-        handle: '.menu-item__drag',
-        animation: 140,
-        fallbackOnBody: true,
-        swapThreshold: 0.65,
-        onEnd: event => {
-          if (event.oldIndex == null || event.newIndex == null || event.oldIndex === event.newIndex) return emit('changed')
-          const [moved] = branchProps.items.splice(event.oldIndex, 1)
-          branchProps.items.splice(event.newIndex, 0, moved)
-          emit('changed')
-        },
-        onAdd: event => {
-          const source = event.from.__vueMenuItems
-          if (!source) return emit('changed')
-          const [moved] = source.splice(event.oldIndex, 1)
-          branchProps.items.splice(event.newIndex, 0, moved)
-          emit('changed')
-        },
-        onRemove: () => emit('changed'),
-      })
-      listRef.value.__vueMenuItems = branchProps.items
-    }
-
-    return () => h('ol', { ref: listRef, class: ['menu-branch', `depth-${branchProps.depth}`] }, branchProps.items.map(item =>
-      h('li', { key: item.id, class: 'menu-item' }, [
-        h('div', { class: 'menu-item__row' }, [
-          h('button', { type: 'button', class: 'menu-item__drag', 'aria-label': `Drag ${item.title}` }, '::'),
-          h('label', [h('span', 'Title'), h('input', { value: item.title, onInput: e => emit('edit', item, 'title', e.target.value) })]),
-          h('label', [h('span', 'URL'), h('input', { value: item.url, onInput: e => emit('edit', item, 'url', e.target.value) })]),
-          h('label', [h('span', 'Target'), h('select', { value: item.target, onChange: e => emit('edit', item, 'target', e.target.value) }, [
-            h('option', { value: '_self' }, 'Same tab'),
-            h('option', { value: '_blank' }, 'New tab'),
-          ])]),
-          h('div', { class: 'menu-item__actions' }, [
-            h('button', { type: 'button', onClick: () => emit('move', { item, action: 'up' }) }, 'Up'),
-            h('button', { type: 'button', onClick: () => emit('move', { item, action: 'down' }) }, 'Down'),
-            h('button', { type: 'button', disabled: !canNest.value, onClick: () => emit('move', { item, action: 'indent' }) }, 'Indent'),
-            h('button', { type: 'button', onClick: () => emit('move', { item, action: 'outdent' }) }, 'Outdent'),
-            h('button', { type: 'button', disabled: !canNest.value, onClick: () => emit('add-child', item) }, 'Child'),
-            h('button', { type: 'button', onClick: () => emit('remove', item) }, 'Delete'),
-          ]),
-        ]),
-        h(MenuBranch, {
-          items: item.children,
-          depth: branchProps.depth + 1,
-          onChanged: () => emit('changed'),
-          onEdit: (...args) => emit('edit', ...args),
-          onRemove: child => emit('remove', child),
-          onAddChild: child => emit('add-child', child),
-          onMove: payload => emit('move', payload),
-        }),
-      ])
-    ))
-  },
-})
 </script>
 
 <style scoped>
-.menu-builder{display:grid;gap:1rem}.menu-builder__toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem}.menu-builder__toolbar button{border-radius:.45rem;background:#1a365d;color:white;padding:.6rem .9rem;font-weight:700}.menu-builder__toolbar span,.menu-builder__hint{color:#64748b;font-size:.82rem}.menu-branch{display:grid;gap:.75rem;min-height:.75rem}.menu-branch.depth-2,.menu-branch.depth-3{margin-left:1.5rem;margin-top:.75rem;border-left:2px solid #e5e7eb;padding-left:1rem}.menu-item{list-style:none}.menu-item__row{display:grid;grid-template-columns:auto minmax(8rem,1fr) minmax(8rem,1fr) 8rem auto;gap:.65rem;align-items:end;border:1px solid #e5e7eb;border-radius:.55rem;background:#fff;padding:.75rem}.menu-item__drag{cursor:grab;border:1px solid #d1d5db;border-radius:.35rem;padding:.55rem;color:#64748b}.menu-item label{display:grid;gap:.25rem;color:#475569;font-size:.72rem;font-weight:800;text-transform:uppercase}.menu-item input,.menu-item select{border:1px solid #cbd5e1;border-radius:.4rem;padding:.55rem;font-size:.85rem;color:#111827}.menu-item__actions{display:flex;flex-wrap:wrap;gap:.35rem;justify-content:flex-end}.menu-item__actions button{border:1px solid #d1d5db;border-radius:.35rem;padding:.42rem .55rem;font-size:.75rem}.menu-item__actions button:disabled{opacity:.4;cursor:not-allowed}:global(.dark) .menu-item__row{background:#111827;border-color:#334155}:global(.dark) .menu-item input,:global(.dark) .menu-item select{background:#0f172a;color:#f8fafc;border-color:#475569}@media(max-width:900px){.menu-item__row{grid-template-columns:1fr}.menu-item__actions{justify-content:flex-start}}
+.menu-builder { display: grid; gap: 1rem; }
+.menu-builder__toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.menu-builder__toolbar button { border-radius: .45rem; background: #1a365d; color: white; padding: .6rem .9rem; font-weight: 700; }
+.menu-builder__toolbar span,
+.menu-builder__hint { color: #64748b; font-size: .82rem; }
 </style>

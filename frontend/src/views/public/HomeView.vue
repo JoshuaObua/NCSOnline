@@ -87,12 +87,13 @@
             <p class="text-white/70 leading-relaxed">{{ home.stats_intro }}</p>
           </div>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div v-for="fact in displayedFacts.slice(0,4)" :key="fact.id || fact.label" class="text-center p-6 rounded-xl bg-white/5 backdrop-blur border border-white/10 hover:border-[#f5a623]/40 hover:bg-white/10 transition-all">
+            <div v-for="(fact, index) in displayedFacts.slice(0,4)" :key="fact.id || fact.label" class="text-center p-6 rounded-xl bg-white/5 backdrop-blur border border-white/10 hover:border-[#f5a623]/40 hover:bg-white/10 transition-all">
               <div class="w-14 h-14 rounded-xl bg-[#f5a623]/20 text-[#f5a623] flex items-center justify-center mx-auto mb-4">
                 <i :class="[fact.icon || 'icofont-chart-growth', 'text-2xl']" aria-hidden="true"></i>
               </div>
-              <div class="text-3xl md:text-4xl font-bold text-white mb-1">{{ fact.value }}</div>
+              <div class="text-3xl md:text-4xl font-bold text-white mb-1">{{ counterValue(fact, index) }}</div>
               <div class="text-sm text-white/70">{{ fact.label }}</div>
+              <p v-if="fact.description" class="mt-3 text-xs leading-relaxed text-white/55">{{ fact.description }}</p>
             </div>
           </div>
         </div>
@@ -129,7 +130,7 @@
 
       <section v-else-if="section.id === 'get_involved'" id="section-get-involved" class="home-section bg-white">
         <div class="home-shell involved-grid">
-          <div><span class="section-kicker">{{ home.involved_title }}</span><h2>{{ home.involved_subtitle }}</h2><p class="home-lead">{{ home.involved_text }}</p><div class="home-actions"><a :href="publicOrPortalUrl(home.register_url)" class="home-btn home-btn-gold">{{ home.register_label }}</a><router-link :to="home.contact_url" class="home-btn home-btn-outline-navy">{{ home.contact_label }}</router-link></div></div>
+          <div><span class="section-kicker">{{ home.involved_title }}</span><h2>{{ home.involved_subtitle }}</h2><p class="home-lead">{{ home.involved_text }}</p><div class="home-actions"><router-link :to="home.contact_url" class="home-btn home-btn-gold">{{ home.contact_label }}</router-link></div></div>
           <aside class="quick-contact"><h3>Quick Contact</h3><div><i class="icofont-location-pin"></i><p><b>Visit Us</b><span>{{ contact.address }}</span><span>{{ contact.postal_address }}</span></p></div><div><i class="icofont-phone"></i><p><b>Call Us</b><span>{{ contact.phone }}</span><span v-if="contact.fax">Fax: {{ contact.fax }}</span></p></div><div><i class="icofont-email"></i><p><b>Email Us</b><a :href="`mailto:${contact.email}`">{{ contact.email }}</a></p></div></aside>
         </div>
       </section>
@@ -176,7 +177,7 @@
             <router-link v-for="item in filteredFacilities.slice(0,6)" :key="item.id" :to="`/facilities/${item.slug}`" class="group relative bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer">
               <div class="relative h-48 overflow-hidden">
                 <img v-if="item.image_url" :src="mediaUrl(item.image_url)" :alt="item.name" class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div v-else class="w-full h-full bg-[#1a365d]/10 flex items-center justify-center text-[#1a365d]"><i class="icofont-stadium text-5xl"></i></div>
+                <div v-else class="w-full h-full bg-[#1a365d]/10 flex items-center justify-center text-[#1a365d]"><i class="icofont-building-alt text-5xl"></i></div>
                 <div class="absolute inset-0 bg-gradient-to-t from-[#1a365d]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 <div class="absolute bottom-4 left-4 right-4 transform translate-y-full group-hover:translate-y-0 transition-transform duration-500"><span class="inline-flex items-center justify-center w-full rounded-md bg-[#f5a623] text-white px-4 py-2 text-sm font-medium"><i class="icofont-location-pin mr-2"></i>Explore Facility</span></div>
               </div>
@@ -200,20 +201,20 @@
       </section>
 
       <section v-else-if="section.id === 'help'" id="section-help" class="home-section bg-white">
-        <div class="home-shell"><div class="section-heading"><span class="section-kicker">Help & Support</span><h2>How can we help?</h2><p>Find guidance, contact NCS, or access your services.</p></div><div class="help-grid"><a :href="portalUrl('/my-portal')"><i class="icofont-ui-user"></i><h3>My Portal</h3><p>Sign in to manage registrations, licensing and renewals.</p></a><router-link to="/resource-centre"><i class="icofont-download"></i><h3>Resource Centre</h3><p>Guidelines, forms, reports and rules.</p></router-link><router-link to="/contact-us"><i class="icofont-support"></i><h3>Contact Support</h3><p>Speak with the NCS team.</p></router-link></div></div>
+        <div class="home-shell"><div class="section-heading"><span class="section-kicker">Help & Support</span><h2>How can we help?</h2><p>Find guidance, contact NCS, or access your services.</p></div><div class="help-grid"><router-link to="/resource-centre"><i class="icofont-download"></i><h3>Resource Centre</h3><p>Guidelines, forms, reports and rules.</p></router-link><router-link to="/contact-us"><i class="icofont-support"></i><h3>Contact Support</h3><p>Speak with the NCS team.</p></router-link></div></div>
       </section>
 
-      <section v-else-if="section.id === 'cta'" id="section-cta" class="home-cta"><div class="home-shell"><div><span>National Council of Sports Uganda</span><h2>Manage your NCS services in one place.</h2></div><a :href="portalUrl('/my-portal')" class="home-btn home-btn-gold">Open My Portal</a></div></section>
+      <section v-else-if="section.id === 'cta'" id="section-cta" class="home-cta"><div class="home-shell"><div><span>National Council of Sports Uganda</span><h2>Need support from the National Council of Sports?</h2></div><router-link to="/contact-us" class="home-btn home-btn-gold">Contact NCS</router-link></div></section>
 
       <section v-else-if="section.id === 'faq_facts'" id="section-faq" class="home-section bg-soft">
-        <div class="home-shell faq-facts-grid"><div><span class="section-kicker">{{ home.faq_eyebrow }}</span><h2>{{ home.faq_title }}</h2><div class="faq-list"><details v-for="faq in faqs.slice(0,10)" :key="faq.id"><summary>{{ faq.question }}</summary><p>{{ faq.answer }}</p></details></div><router-link to="/faqs" class="text-link">View All FAQs →</router-link></div><div><span class="section-kicker">{{ home.facts_eyebrow }}</span><h2>{{ home.facts_title }}</h2><div class="fact-list"><div v-for="fact in displayedFacts.slice(0,10)" :key="fact.id || fact.label"><i :class="fact.icon || 'icofont-light-bulb'"></i><p><strong>{{ fact.value }}</strong><span>{{ fact.label }}</span></p></div></div></div></div>
+        <div class="home-shell faq-facts-grid"><div><span class="section-kicker">{{ home.faq_eyebrow }}</span><h2>{{ home.faq_title }}</h2><div class="faq-list"><details v-for="faq in displayFAQs.slice(0,10)" :key="faq.id"><summary>{{ faq.question }}</summary><p>{{ faq.answer }}</p></details><p v-if="!displayFAQs.length" class="empty-state">FAQs will appear here when published.</p></div><router-link to="/faqs" class="text-link">View All FAQs →</router-link></div><div><span class="section-kicker">{{ home.facts_eyebrow }}</span><h2>{{ home.facts_title }}</h2><div class="fact-list"><div v-for="fact in cmsFacts.slice(0,10)" :key="fact.id || fact.label"><i :class="fact.icon || 'icofont-light-bulb'"></i><p><strong>{{ fact.value }}</strong><span>{{ fact.label }}</span></p></div><p v-if="!cmsFacts.length" class="empty-state">Fun facts will appear here when published.</p></div></div></div>
       </section>
     </template>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { getSettings, getSlideshow, listAssociations, listEvents, listFacilities, listFAQs, listFunFacts, listPosts } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 import PublicSlideshow from '@/components/public/PublicSlideshow.vue'
@@ -223,16 +224,15 @@ const home = reactive({
   sections: defaultSections,
   about:{eyebrow:'About NCS',title:'Developing Sports Excellence Since 1964',intro:'The National Council of Sports (NCS) is a statutory body established to develop, promote, and control sports in Uganda under the Ministry of Education and Sports.',body:'Established under the <strong>National Council of Sports Act (Chapter 48)</strong>, assented on 22 June 1964 and commenced on 25 June 1964, NCS serves as the apex regulator for sports development in Uganda, now updated by the <strong>National Sports Act, 2023</strong>.',leadership_label:'View Current Membership',leadership_url:'/team',core_title:'Core Functions of NCS',core_intro:'As mandated by the National Sports Act, NCS performs the following key functions:',mandate_label:'Read Full Mandate',mandate_url:'/pages/the-mandate'},
   leadership:{chairperson_name:'Mr. Ambrose Tashobya',chairperson_image:'',secretary_name:'Dr. Bernard Patrick Ogwel'},
-  milestones:[{value:'60+',label:'Years of Excellence',icon:'icofont-award'},{value:'54+',label:'Sports Associations',icon:'icofont-trophy'},{value:'32+',label:'Sports Facilities',icon:'icofont-stadium'}],
+  milestones:[{value:'60+',label:'Years of Excellence',description:'Established in 1964 and still driving national sport.',icon:'icofont-award'},{value:'54+',label:'Sports Associations',description:'Recognised bodies supported across Uganda.',icon:'icofont-trophy'},{value:'32+',label:'Sports Facilities',description:'Facilities and venues supporting athletes and federations.',icon:'icofont-building-alt'},{value:'100K+',label:'Athletes Reached',description:'Athletes, coaches, and administrators served through NCS programs.',icon:'icofont-users-alt-5'}],
   values:[{title:'Our Mission',text:'Maximizing opportunities for all Ugandans to participate and excel in Sports.',icon:'icofont-dart',featured:true},{title:'Our Vision',text:'A centre of excellence for promotion and development of Sports.',icon:'icofont-eye'},{title:'Integrity',text:'Upholding the highest standards of ethics and fair play in all sporting activities.',icon:'icofont-shield'},{title:'Inclusivity',text:'Ensuring sports opportunities are accessible to all Ugandans regardless of background.',icon:'icofont-people'},{title:'Excellence',text:'Striving for the highest standards in athlete development and sports administration.',icon:'icofont-award'},{title:'Global Recognition',text:'Positioning Uganda as a leading sports nation on the African and world stage.',icon:'icofont-globe',featured:true}],
   core_functions:['Developing, promoting, and controlling sports on a national basis, including training and staffing','Recognizing sports disciplines and registering national sports organizations','Regulating associations and federations, awarding medals, certificates, trophies, and incentives','Approving international and national competitions and festivals','Facilitating Ugandan athletes participation in international competitions','Encouraging cooperation among associations and stimulating interest at all levels','Sponsoring scholarships for coaches and organizers','Advising on external sports relations and promoting sportsmanship','Arranging facilities with local authorities'],
   facilities:{eyebrow:'World-Class Infrastructure',title:'Our Sports Facilities',intro:'Experience state-of-the-art sports facilities designed to nurture talent and host world-class events',button_label:'Explore All Facilities'},
   events:{eyebrow:'Upcoming Events',title:'NCS Calendar',intro:'Follow national competitions, federation events, athlete development programs and major sports gatherings.'},
-  stats_title:'Sports Excellence in Numbers',stats_intro:'Driving the development of sports across Uganda through dedicated programs and world-class facilities',finder_eyebrow:'Discover your federation',finder_title:'Find Your Sport',finder_intro:'Search across all 50+ National Sports Associations and Federations recognised by NCS. Tap any card to see the president, secretary, address, phone and website.',involved_title:'Get Involved',involved_subtitle:"Be Part of Uganda's Sports Excellence",involved_text:"Whether you're an athlete, coach, sports association, or enthusiast, the National Council of Sports welcomes you to join us in developing and promoting sports across Uganda.",register_label:'My Portal',register_url:'/my-portal',contact_label:'Contact Us',contact_url:'/contact-us',faq_eyebrow:'Got Questions?',faq_title:'Frequently Asked Questions',facts_eyebrow:'Did You Know?',facts_title:'Fun Facts'
+  stats_title:'Sports Excellence in Numbers',stats_intro:'Driving the development of sports across Uganda through dedicated programs and world-class facilities',finder_eyebrow:'Discover your federation',finder_title:'Find Your Sport',finder_intro:'Search across all 50+ National Sports Associations and Federations recognised by NCS. Tap any card to see the president, secretary, address, phone and website.',involved_title:'Get Involved',involved_subtitle:"Be Part of Uganda's Sports Excellence",involved_text:"Whether you're an athlete, coach, sports association, or enthusiast, the National Council of Sports welcomes you to join us in developing and promoting sports across Uganda.",contact_label:'Contact Us',contact_url:'/contact-us',faq_eyebrow:'Got Questions?',faq_title:'Frequently Asked Questions',facts_eyebrow:'Did You Know?',facts_title:'Fun Facts'
 })
 const contact = reactive({ phone:'+256 414254477 / 343688', email:'info@ncs.go.ug', address:'Plot 2-10, Coronation Avenue', postal_address:'P.O. Box 20077, Lugogo, Kampala - UGANDA', fax:'+256 414 258350' })
 const slideshow = reactive({ name:'Homepage Hero', slug:'homepage-hero', transition_effect:'fade', transition_duration:700, autoplay_speed:6500, pause_on_hover:true })
-const intranetUrl = (import.meta.env?.VITE_INTRANET_URL || 'http://localhost:9081').replace(/\/$/, '')
 const posts=ref([]), events=ref([]), slides=ref([]), facts=ref([]), faqs=ref([]), facilities=ref([]), associations=ref([])
 const sportQuery=ref(''), activeCategory=ref('All Sports'), activeFacilityCategory=ref('All')
 const fallbackEvents = [
@@ -254,7 +254,10 @@ const eventAccents = [
 ]
 const visibleSections=computed(() => (home.sections?.length ? home.sections : defaultSections).filter(item=>item.visible!==false))
 const displaySlides=computed(() => slides.value.length ? slides.value : [{id:'default',title:'Welcome to National Council of Sports',subtitle:'National Council of Sports',description:'A Centre of Excellence for Promotion and Development of Sports',button_text:'Discover NCS',button_url:'/pages/the-mandate',image_url:''}])
-const displayedFacts=computed(() => facts.value.length ? facts.value : home.milestones)
+const animatedCounterValues=ref([])
+const displayedFacts=computed(() => Array.isArray(home.milestones) && home.milestones.length ? home.milestones : facts.value)
+const cmsFacts=computed(() => facts.value)
+const displayFAQs=computed(() => faqs.value)
 const displayEvents=computed(() => events.value.length ? events.value : fallbackEvents)
 const displayFacilities=computed(() => facilities.value.length ? facilities.value : fallbackFacilities)
 const facilityCategories=computed(() => ['All', ...new Set(displayFacilities.value.map(item => item.category).filter(Boolean))])
@@ -263,12 +266,15 @@ const sportCategories=computed(() => ['All Sports',...new Set(associations.value
 const filteredAssociations=computed(() => { const q=sportQuery.value.trim().toLowerCase(); return associations.value.filter(item => (activeCategory.value==='All Sports'||item.category===activeCategory.value) && (!q||[item.name,item.category,item.description].some(value=>String(value||'').toLowerCase().includes(q)))) })
 function formatDate(value){return value?new Date(value).toLocaleDateString('en-UG',{day:'numeric',month:'short',year:'numeric'}):'Date TBA'}
 function stripPlus(value){return String(value||'').replace(/\+\s*$/,'')}
+function parseCounter(value){const raw=String(value||'0');const match=raw.match(/^([\d,.]+)\s*(.*)$/);return {number:Number((match?.[1]||'0').replace(/,/g,''))||0,suffix:match?.[2]||''}}
+function animateCounters(){const targets=displayedFacts.value.slice(0,4).map(item=>parseCounter(item.value));const started=performance.now();const duration=1100;function tick(now){const progress=Math.min((now-started)/duration,1);const eased=1-Math.pow(1-progress,3);animatedCounterValues.value=targets.map(item=>Math.round(item.number*eased));if(progress<1)requestAnimationFrame(tick)};requestAnimationFrame(tick)}
+function counterValue(fact,index){const parsed=parseCounter(fact.value);const value=animatedCounterValues.value[index];return `${value ?? parsed.number}${parsed.suffix}`}
 function eventAccent(index){return eventAccents[index % eventAccents.length]}
-function portalUrl(path = ''){return `${intranetUrl}${path}`}
-function publicOrPortalUrl(path){return String(path || '').startsWith('/my-portal') ? portalUrl(path) : (path || '/contact-us')}
 function mergeHome(value){if(!value||typeof value!=='object')return;for(const [key,val] of Object.entries(value)){if(val&&typeof val==='object'&&!Array.isArray(val)&&home[key]&&typeof home[key]==='object')Object.assign(home[key],val);else home[key]=val}}
 function dataOf(result){return result.status==='fulfilled'?result.value.data?.data:null}
-onMounted(async()=>{const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),getSlideshow('homepage-hero'),listFunFacts(),listFAQs(),listFacilities(),listAssociations(),getSettings('homepage'),getSettings('contact')]);posts.value=dataOf(results[0])?.items||[];events.value=dataOf(results[1])?.items||[];const show=dataOf(results[2])||{};Object.assign(slideshow,show);slides.value=show.slides||[];facts.value=dataOf(results[3])||[];faqs.value=dataOf(results[4])||[];facilities.value=dataOf(results[5])||[];associations.value=dataOf(results[6])||[];mergeHome(dataOf(results[7])?.value);Object.assign(contact,dataOf(results[8])?.value||{})})
+function itemsOf(result){const value=dataOf(result);return Array.isArray(value)?value:(value?.items||[])}
+watch(displayedFacts, animateCounters, { immediate:true, deep:true })
+onMounted(async()=>{const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),getSlideshow('homepage-hero'),listFunFacts(),listFAQs(),listFacilities(),listAssociations(),getSettings('homepage'),getSettings('contact')]);posts.value=dataOf(results[0])?.items||[];events.value=dataOf(results[1])?.items||[];const show=dataOf(results[2])||{};Object.assign(slideshow,show);slides.value=show.slides||[];facts.value=itemsOf(results[3]);faqs.value=itemsOf(results[4]);facilities.value=itemsOf(results[5]);associations.value=itemsOf(results[6]);mergeHome(dataOf(results[7])?.value);Object.assign(contact,dataOf(results[8])?.value||{})})
 </script>
 
 <style scoped>

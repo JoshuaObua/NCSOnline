@@ -457,6 +457,13 @@ func main() {
 					r.Delete("/{id}", h.CMS.DeleteTeamMember)
 				})
 
+				r.Route("/admin/cms/departments", func(r chi.Router) {
+					r.Get("/", h.CMS.ListInstitutionalDepartments)
+					r.Post("/", h.CMS.CreateInstitutionalDepartment)
+					r.Put("/{id}", h.CMS.UpdateInstitutionalDepartment)
+					r.Delete("/{id}", h.CMS.DeleteInstitutionalDepartment)
+				})
+
 				r.Post("/admin/media/upload", h.CMS.UploadMedia)
 			})
 

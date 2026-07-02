@@ -61,10 +61,83 @@ func (h *CMSHandler) ListInstitutionalDepartments(w http.ResponseWriter, r *http
 	response.JSON(w, http.StatusOK, out)
 }
 
+func (h *CMSHandler) CreateInstitutionalDepartment(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Name        string `json:"name"`
+		Code        string `json:"code"`
+		Slug        string `json:"slug"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		response.ValidationErr(w, map[string]string{"name": "required"})
+		return
+	}
+	code := strings.ToUpper(strings.TrimSpace(req.Code))
+	if code == "" {
+		code = strings.ToUpper(strings.ReplaceAll(toSlug(firstNonEmpty(req.Slug, req.Name)), "-", "_"))
+	}
+	dept := &repository.DepartmentWithCount{ID: uuid.NewString(), Name: req.Name, Code: code, Description: req.Description}
+	if err := h.repo.CreateDepartment(r.Context(), dept); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create department")
+		return
+	}
+	response.JSON(w, http.StatusCreated, dept)
+}
+
+func (h *CMSHandler) UpdateInstitutionalDepartment(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Name        string `json:"name"`
+		Code        string `json:"code"`
+		Slug        string `json:"slug"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		response.ValidationErr(w, map[string]string{"name": "required"})
+		return
+	}
+	code := strings.ToUpper(strings.TrimSpace(req.Code))
+	if code == "" {
+		code = strings.ToUpper(strings.ReplaceAll(toSlug(firstNonEmpty(req.Slug, req.Name)), "-", "_"))
+	}
+	dept := &repository.DepartmentWithCount{ID: chi.URLParam(r, "id"), Name: req.Name, Code: code, Description: req.Description}
+	if err := h.repo.UpdateDepartment(r.Context(), dept); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Department not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update department")
+		return
+	}
+	response.JSON(w, http.StatusOK, dept)
+}
+
+func (h *CMSHandler) DeleteInstitutionalDepartment(w http.ResponseWriter, r *http.Request) {
+	if err := h.repo.DeleteDepartment(r.Context(), chi.URLParam(r, "id")); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Department not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not delete department")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Department deleted")
+}
+
 var slugRe = regexp.MustCompile(`[^a-z0-9]+`)
 var manualSlugRe = regexp.MustCompile(`^[a-z0-9-_]+$`)
 var scriptTagRe = regexp.MustCompile(`(?is)<\s*(script|iframe|object|embed|style)[^>]*>.*?<\s*/\s*(script|iframe|object|embed|style)\s*>`)
 var eventAttrRe = regexp.MustCompile(`(?i)\s+on[a-z]+\s*=\s*(".*?"|'.*?'|[^\s>]+)`)
+
 // Go's RE2 engine has no backreferences, so this can't require the closing
 // quote to match the opening one (\2 in PCRE/JS). Matching either quote style
 // regardless of symmetry is still safe here: we only ever strip, never keep.
@@ -81,6 +154,15 @@ func toSlug(s string) string {
 		}
 	}
 	return strings.Trim(slugRe.ReplaceAllString(b.String(), "-"), "-")
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func sanitizePlain(s string, max int) string {
@@ -169,16 +251,18 @@ func (h *CMSHandler) GetPost(w http.ResponseWriter, r *http.Request) {
 func (h *CMSHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	authorID, _ := r.Context().Value(models.CtxUserID).(string)
 	var req struct {
-		Title           string  `json:"title"`
-		Content         string  `json:"content"`
-		Excerpt         string  `json:"excerpt"`
-		Category        string  `json:"category"`
-		Status          string  `json:"status"`
-		CoverImageURL   string  `json:"cover_image_url"`
-		Slug            *string `json:"slug"`
-		MetaTitle       string  `json:"meta_title"`
-		MetaDescription string  `json:"meta_description"`
-		FocusKeywords   string  `json:"focus_keywords"`
+		Title              string          `json:"title"`
+		Content            string          `json:"content"`
+		Excerpt            string          `json:"excerpt"`
+		Category           string          `json:"category"`
+		Status             string          `json:"status"`
+		CoverImageURL      string          `json:"cover_image_url"`
+		BreadcrumbImageURL string          `json:"breadcrumb_image_url"`
+		PageBuilder        json.RawMessage `json:"page_builder"`
+		Slug               *string         `json:"slug"`
+		MetaTitle          string          `json:"meta_title"`
+		MetaDescription    string          `json:"meta_description"`
+		FocusKeywords      string          `json:"focus_keywords"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
@@ -194,6 +278,12 @@ func (h *CMSHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Category == "" {
 		req.Category = "blog"
+	}
+	if len(req.PageBuilder) > 0 && json.Valid(req.PageBuilder) {
+		req.Content = string(req.PageBuilder)
+	}
+	if req.BreadcrumbImageURL != "" {
+		req.CoverImageURL = req.BreadcrumbImageURL
 	}
 	status, ok := normalizePostStatus(req.Status)
 	if !ok {
@@ -256,16 +346,18 @@ func (h *CMSHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Title           string  `json:"title"`
-		Content         string  `json:"content"`
-		Excerpt         string  `json:"excerpt"`
-		Category        string  `json:"category"`
-		Status          string  `json:"status"`
-		CoverImageURL   string  `json:"cover_image_url"`
-		Slug            *string `json:"slug"`
-		MetaTitle       string  `json:"meta_title"`
-		MetaDescription string  `json:"meta_description"`
-		FocusKeywords   string  `json:"focus_keywords"`
+		Title              string          `json:"title"`
+		Content            string          `json:"content"`
+		Excerpt            string          `json:"excerpt"`
+		Category           string          `json:"category"`
+		Status             string          `json:"status"`
+		CoverImageURL      string          `json:"cover_image_url"`
+		BreadcrumbImageURL string          `json:"breadcrumb_image_url"`
+		PageBuilder        json.RawMessage `json:"page_builder"`
+		Slug               *string         `json:"slug"`
+		MetaTitle          string          `json:"meta_title"`
+		MetaDescription    string          `json:"meta_description"`
+		FocusKeywords      string          `json:"focus_keywords"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
@@ -275,6 +367,9 @@ func (h *CMSHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	if req.Title != "" {
 		post.Title = sanitizePlain(req.Title, 180)
 	}
+	if len(req.PageBuilder) > 0 && json.Valid(req.PageBuilder) {
+		req.Content = string(req.PageBuilder)
+	}
 	if req.Content != "" {
 		post.Content = sanitizeRichText(req.Content)
 	}
@@ -283,6 +378,9 @@ func (h *CMSHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Category != "" {
 		post.Category = sanitizePlain(req.Category, 80)
+	}
+	if req.BreadcrumbImageURL != "" {
+		req.CoverImageURL = req.BreadcrumbImageURL
 	}
 	post.CoverImageURL = sanitizePlain(req.CoverImageURL, 500)
 	if req.Slug != nil && *req.Slug != "" {
@@ -484,8 +582,12 @@ func (h *CMSHandler) ListCommentsModeration(w http.ResponseWriter, r *http.Reque
 	response.JSON(w, http.StatusOK, map[string]interface{}{"total": total, "items": comments})
 }
 
-func (h *CMSHandler) ApproveComment(w http.ResponseWriter, r *http.Request) { h.moderateComment(w, r, "approved") }
-func (h *CMSHandler) FlagComment(w http.ResponseWriter, r *http.Request)    { h.moderateComment(w, r, "flagged") }
+func (h *CMSHandler) ApproveComment(w http.ResponseWriter, r *http.Request) {
+	h.moderateComment(w, r, "approved")
+}
+func (h *CMSHandler) FlagComment(w http.ResponseWriter, r *http.Request) {
+	h.moderateComment(w, r, "flagged")
+}
 
 func (h *CMSHandler) moderateComment(w http.ResponseWriter, r *http.Request, status string) {
 	if err := h.repo.ModerateComment(r.Context(), chi.URLParam(r, "id"), status); err != nil {
@@ -1202,10 +1304,11 @@ func (h *CMSHandler) storageSettings(ctx context.Context) (storage.Settings, err
 type storageSettingsResponse struct {
 	storage.Settings
 	GoogleDriveConnected bool `json:"google_drive_connected"`
+	SupabaseConfigured   bool `json:"supabase_configured"`
 }
 
 func storageSettingsView(s storage.Settings) storageSettingsResponse {
-	return storageSettingsResponse{Settings: s.Redacted(), GoogleDriveConnected: s.GoogleDriveConnected()}
+	return storageSettingsResponse{Settings: s.Redacted(), GoogleDriveConnected: s.GoogleDriveConnected(), SupabaseConfigured: s.SupabaseConfigured()}
 }
 
 // ── Google Drive OAuth connect flow ──────────────────────────────────────
@@ -1413,6 +1516,38 @@ func (h *CMSHandler) UploadMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSON(w, http.StatusOK, result)
+}
+
+// ServeLocalUpload serves files written by the "local" storage provider.
+// In production, nginx serves this same directory directly as a static
+// alias (see nginx/nginx.conf's "location /uploads/" block) — this handler
+// exists so local uploads are still reachable when running without nginx.
+// It resolves the current path from live storage settings (not a fixed
+// directory) so it keeps working if an admin changes the local upload path
+// from the Storage Settings panel.
+func (h *CMSHandler) ServeLocalUpload(w http.ResponseWriter, r *http.Request) {
+	settings, err := h.storageSettings(r.Context())
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	rel := strings.TrimPrefix(strings.TrimPrefix(r.URL.Path, settings.LocalPublicURLPrefix), "/")
+	if rel == "" {
+		http.NotFound(w, r)
+		return
+	}
+	absBase, err := filepath.Abs(settings.LocalPublicPath)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	target := filepath.Join(absBase, filepath.FromSlash(rel))
+	if target != absBase && !strings.HasPrefix(target, absBase+string(filepath.Separator)) {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Cache-Control", "public, max-age=2592000, immutable")
+	http.ServeFile(w, r, target)
 }
 
 func allowedMagic(ext, detected string, head []byte) bool {

@@ -46,5 +46,5 @@ async function activate() {
   color: #a84b00;
 }
 .theme-toggle:active { transform: scale(0.96); }
-:global(.dark) .theme-toggle { color: #f8fafc; }
+:global(.dark .theme-toggle) { color: #f8fafc; }
 </style>

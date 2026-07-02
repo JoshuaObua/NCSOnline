@@ -112,6 +112,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import Swal from 'sweetalert2'
 import { getPost, listPostComments, submitPostComment } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 import { sanitizeRichHtml } from '@/utils/sanitize.js'
@@ -161,7 +162,12 @@ async function submitComment(parentId) {
     } else {
       commentBody.value = ''
     }
-    alert('Thanks. Your comment is waiting for moderation.')
+    await Swal.fire({
+      icon: 'success',
+      title: 'Comment submitted',
+      text: 'Thanks. Your comment is waiting for moderation.',
+      confirmButtonColor: '#6777ef',
+    })
   } finally {
     submitting.value = false
   }

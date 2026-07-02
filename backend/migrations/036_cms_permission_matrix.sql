@@ -1,0 +1,145 @@
+-- Migration 036: granular CMS permission matrix
+-- Adds one permission resource per CMS sidebar module so custom roles can
+-- allow read/create/update/delete independently.
+
+BEGIN;
+
+INSERT INTO permissions (id, name, description, resource, action) VALUES
+    ('perm_homepage_read', 'homepage:read', 'View homepage section settings', 'homepage', 'read'),
+    ('perm_homepage_update', 'homepage:update', 'Update homepage section settings', 'homepage', 'update'),
+    ('perm_slideshows_read', 'slideshows:read', 'View slideshow records', 'slideshows', 'read'),
+    ('perm_slideshows_create', 'slideshows:create', 'Create slideshow slides', 'slideshows', 'create'),
+    ('perm_slideshows_update', 'slideshows:update', 'Update slideshow slides and settings', 'slideshows', 'update'),
+    ('perm_slideshows_delete', 'slideshows:delete', 'Delete slideshow slides', 'slideshows', 'delete'),
+    ('perm_blog_posts_read', 'blog_posts:read', 'View blog posts', 'blog_posts', 'read'),
+    ('perm_blog_posts_create', 'blog_posts:create', 'Create blog posts', 'blog_posts', 'create'),
+    ('perm_blog_posts_update', 'blog_posts:update', 'Edit blog posts', 'blog_posts', 'update'),
+    ('perm_blog_posts_delete', 'blog_posts:delete', 'Delete blog posts', 'blog_posts', 'delete'),
+    ('perm_blog_categories_read', 'blog_categories:read', 'View blog categories', 'blog_categories', 'read'),
+    ('perm_blog_categories_create', 'blog_categories:create', 'Create blog categories', 'blog_categories', 'create'),
+    ('perm_blog_categories_update', 'blog_categories:update', 'Edit blog categories', 'blog_categories', 'update'),
+    ('perm_blog_categories_delete', 'blog_categories:delete', 'Delete blog categories', 'blog_categories', 'delete'),
+    ('perm_static_pages_read', 'static_pages:read', 'View static pages', 'static_pages', 'read'),
+    ('perm_static_pages_create', 'static_pages:create', 'Create static pages', 'static_pages', 'create'),
+    ('perm_static_pages_update', 'static_pages:update', 'Edit static pages', 'static_pages', 'update'),
+    ('perm_static_pages_delete', 'static_pages:delete', 'Delete static pages', 'static_pages', 'delete'),
+    ('perm_projects_read', 'projects:read', 'View projects', 'projects', 'read'),
+    ('perm_projects_create', 'projects:create', 'Create projects', 'projects', 'create'),
+    ('perm_projects_update', 'projects:update', 'Edit projects', 'projects', 'update'),
+    ('perm_projects_delete', 'projects:delete', 'Delete projects', 'projects', 'delete'),
+    ('perm_project_categories_read', 'project_categories:read', 'View project categories', 'project_categories', 'read'),
+    ('perm_project_categories_create', 'project_categories:create', 'Create project categories', 'project_categories', 'create'),
+    ('perm_project_categories_update', 'project_categories:update', 'Edit project categories', 'project_categories', 'update'),
+    ('perm_project_categories_delete', 'project_categories:delete', 'Delete project categories', 'project_categories', 'delete'),
+    ('perm_case_studies_read', 'case_studies:read', 'View case studies', 'case_studies', 'read'),
+    ('perm_case_studies_create', 'case_studies:create', 'Create case studies', 'case_studies', 'create'),
+    ('perm_case_studies_update', 'case_studies:update', 'Edit case studies', 'case_studies', 'update'),
+    ('perm_case_studies_delete', 'case_studies:delete', 'Delete case studies', 'case_studies', 'delete'),
+    ('perm_case_study_categories_read', 'case_study_categories:read', 'View case study categories', 'case_study_categories', 'read'),
+    ('perm_case_study_categories_create', 'case_study_categories:create', 'Create case study categories', 'case_study_categories', 'create'),
+    ('perm_case_study_categories_update', 'case_study_categories:update', 'Edit case study categories', 'case_study_categories', 'update'),
+    ('perm_case_study_categories_delete', 'case_study_categories:delete', 'Delete case study categories', 'case_study_categories', 'delete'),
+    ('perm_faqs_read', 'faqs:read', 'View FAQ articles', 'faqs', 'read'),
+    ('perm_faqs_create', 'faqs:create', 'Create FAQ articles', 'faqs', 'create'),
+    ('perm_faqs_update', 'faqs:update', 'Edit FAQ articles', 'faqs', 'update'),
+    ('perm_faqs_delete', 'faqs:delete', 'Delete FAQ articles', 'faqs', 'delete'),
+    ('perm_faq_categories_read', 'faq_categories:read', 'View FAQ categories', 'faq_categories', 'read'),
+    ('perm_faq_categories_create', 'faq_categories:create', 'Create FAQ categories', 'faq_categories', 'create'),
+    ('perm_faq_categories_update', 'faq_categories:update', 'Edit FAQ categories', 'faq_categories', 'update'),
+    ('perm_faq_categories_delete', 'faq_categories:delete', 'Delete FAQ categories', 'faq_categories', 'delete'),
+    ('perm_resources_read', 'resources:read', 'View resource centre articles', 'resources', 'read'),
+    ('perm_resources_create', 'resources:create', 'Create resource centre articles', 'resources', 'create'),
+    ('perm_resources_update', 'resources:update', 'Edit resource centre articles', 'resources', 'update'),
+    ('perm_resources_delete', 'resources:delete', 'Delete resource centre articles', 'resources', 'delete'),
+    ('perm_resource_categories_read', 'resource_categories:read', 'View resource categories', 'resource_categories', 'read'),
+    ('perm_resource_categories_create', 'resource_categories:create', 'Create resource categories', 'resource_categories', 'create'),
+    ('perm_resource_categories_update', 'resource_categories:update', 'Edit resource categories', 'resource_categories', 'update'),
+    ('perm_resource_categories_delete', 'resource_categories:delete', 'Delete resource categories', 'resource_categories', 'delete'),
+    ('perm_careers_read', 'careers:read', 'View career posts', 'careers', 'read'),
+    ('perm_careers_create', 'careers:create', 'Create career posts', 'careers', 'create'),
+    ('perm_careers_update', 'careers:update', 'Edit career posts', 'careers', 'update'),
+    ('perm_careers_delete', 'careers:delete', 'Delete career posts', 'careers', 'delete'),
+    ('perm_career_categories_read', 'career_categories:read', 'View career categories', 'career_categories', 'read'),
+    ('perm_career_categories_create', 'career_categories:create', 'Create career categories', 'career_categories', 'create'),
+    ('perm_career_categories_update', 'career_categories:update', 'Edit career categories', 'career_categories', 'update'),
+    ('perm_career_categories_delete', 'career_categories:delete', 'Delete career categories', 'career_categories', 'delete'),
+    ('perm_team_members_read', 'team_members:read', 'View team members', 'team_members', 'read'),
+    ('perm_team_members_create', 'team_members:create', 'Create team members', 'team_members', 'create'),
+    ('perm_team_members_update', 'team_members:update', 'Edit team members', 'team_members', 'update'),
+    ('perm_team_members_delete', 'team_members:delete', 'Delete team members', 'team_members', 'delete'),
+    ('perm_team_departments_read', 'team_departments:read', 'View team departments', 'team_departments', 'read'),
+    ('perm_team_departments_create', 'team_departments:create', 'Create team departments', 'team_departments', 'create'),
+    ('perm_team_departments_update', 'team_departments:update', 'Edit team departments', 'team_departments', 'update'),
+    ('perm_team_departments_delete', 'team_departments:delete', 'Delete team departments', 'team_departments', 'delete'),
+    ('perm_facilities_read', 'facilities:read', 'View facilities', 'facilities', 'read'),
+    ('perm_facilities_create', 'facilities:create', 'Create facilities', 'facilities', 'create'),
+    ('perm_facilities_update', 'facilities:update', 'Edit facilities', 'facilities', 'update'),
+    ('perm_facilities_delete', 'facilities:delete', 'Delete facilities', 'facilities', 'delete'),
+    ('perm_facility_categories_read', 'facility_categories:read', 'View facility categories', 'facility_categories', 'read'),
+    ('perm_facility_categories_create', 'facility_categories:create', 'Create facility categories', 'facility_categories', 'create'),
+    ('perm_facility_categories_update', 'facility_categories:update', 'Edit facility categories', 'facility_categories', 'update'),
+    ('perm_facility_categories_delete', 'facility_categories:delete', 'Delete facility categories', 'facility_categories', 'delete'),
+    ('perm_events_read', 'events:read', 'View events', 'events', 'read'),
+    ('perm_events_create', 'events:create', 'Create events', 'events', 'create'),
+    ('perm_events_update', 'events:update', 'Edit events', 'events', 'update'),
+    ('perm_events_delete', 'events:delete', 'Delete events', 'events', 'delete'),
+    ('perm_event_categories_read', 'event_categories:read', 'View event categories', 'event_categories', 'read'),
+    ('perm_event_categories_create', 'event_categories:create', 'Create event categories', 'event_categories', 'create'),
+    ('perm_event_categories_update', 'event_categories:update', 'Edit event categories', 'event_categories', 'update'),
+    ('perm_event_categories_delete', 'event_categories:delete', 'Delete event categories', 'event_categories', 'delete'),
+    ('perm_investments_read', 'investments:read', 'View investment posts', 'investments', 'read'),
+    ('perm_investments_create', 'investments:create', 'Create investment posts', 'investments', 'create'),
+    ('perm_investments_update', 'investments:update', 'Edit investment posts', 'investments', 'update'),
+    ('perm_investments_delete', 'investments:delete', 'Delete investment posts', 'investments', 'delete'),
+    ('perm_investment_categories_read', 'investment_categories:read', 'View investment categories', 'investment_categories', 'read'),
+    ('perm_investment_categories_create', 'investment_categories:create', 'Create investment categories', 'investment_categories', 'create'),
+    ('perm_investment_categories_update', 'investment_categories:update', 'Edit investment categories', 'investment_categories', 'update'),
+    ('perm_investment_categories_delete', 'investment_categories:delete', 'Delete investment categories', 'investment_categories', 'delete'),
+    ('perm_federations_read', 'federations:read', 'View federations', 'federations', 'read'),
+    ('perm_federations_create', 'federations:create', 'Create federations', 'federations', 'create'),
+    ('perm_federations_update', 'federations:update', 'Edit federations', 'federations', 'update'),
+    ('perm_federations_delete', 'federations:delete', 'Delete federations', 'federations', 'delete'),
+    ('perm_federation_categories_read', 'federation_categories:read', 'View federation categories', 'federation_categories', 'read'),
+    ('perm_federation_categories_create', 'federation_categories:create', 'Create federation categories', 'federation_categories', 'create'),
+    ('perm_federation_categories_update', 'federation_categories:update', 'Edit federation categories', 'federation_categories', 'update'),
+    ('perm_federation_categories_delete', 'federation_categories:delete', 'Delete federation categories', 'federation_categories', 'delete'),
+    ('perm_fun_facts_read', 'fun_facts:read', 'View fun fact articles', 'fun_facts', 'read'),
+    ('perm_fun_facts_create', 'fun_facts:create', 'Create fun fact articles', 'fun_facts', 'create'),
+    ('perm_fun_facts_update', 'fun_facts:update', 'Edit fun fact articles', 'fun_facts', 'update'),
+    ('perm_fun_facts_delete', 'fun_facts:delete', 'Delete fun fact articles', 'fun_facts', 'delete'),
+    ('perm_newsletter_read', 'newsletter:read', 'View newsletter subscribers', 'newsletter', 'read'),
+    ('perm_newsletter_export', 'newsletter:export', 'Export newsletter subscribers', 'newsletter', 'export'),
+    ('perm_comments_read', 'comments:read', 'View public comments', 'comments', 'read'),
+    ('perm_comments_update', 'comments:update', 'Approve or flag comments', 'comments', 'update'),
+    ('perm_comments_delete', 'comments:delete', 'Delete comments', 'comments', 'delete'),
+    ('perm_menus_read', 'menus:read', 'View CMS menus', 'menus', 'read'),
+    ('perm_menus_update', 'menus:update', 'Update CMS menus', 'menus', 'update'),
+    ('perm_settings_read', 'settings:read', 'View CMS settings', 'settings', 'read'),
+    ('perm_settings_update', 'settings:update', 'Update CMS settings and contact details', 'settings', 'update'),
+    ('perm_storage_read', 'storage:read', 'View storage settings', 'storage', 'read'),
+    ('perm_storage_update', 'storage:update', 'Update storage settings', 'storage', 'update'),
+    ('perm_users_create', 'users:create', 'Create CMS users', 'users', 'create'),
+    ('perm_users_update', 'users:update', 'Edit CMS users', 'users', 'update'),
+    ('perm_users_delete_granular', 'users:delete', 'Delete CMS users', 'users', 'delete'),
+    ('perm_users_reset_password', 'users:reset_password', 'Reset CMS user passwords', 'users', 'reset_password'),
+    ('perm_users_roles', 'users:roles', 'Assign and revoke CMS user roles', 'users', 'roles')
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'role_super_admin', id FROM permissions
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'role_admin', id FROM permissions
+WHERE resource IN ('users', 'roles', 'dashboard', 'audit')
+   OR name LIKE 'cms:%'
+   OR name IN ('settings:read', 'settings:update', 'menus:read', 'menus:update', 'storage:read', 'storage:update')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT 'role_content_manager', id FROM permissions
+WHERE resource NOT IN ('users', 'roles', 'audit', 'dashboard', 'storage')
+  AND name NOT IN ('settings:update')
+ON CONFLICT DO NOTHING;
+
+COMMIT;

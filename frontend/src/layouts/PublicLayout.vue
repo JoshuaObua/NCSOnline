@@ -47,7 +47,7 @@
 
           <!-- Desktop nav -->
           <nav class="hidden lg:flex items-center gap-1" aria-label="Primary navigation">
-            <template v-for="item in menuItems" :key="item.id || item.label">
+            <template v-for="item in visibleMenuItems" :key="item.id || item.label">
               <div v-if="(item.children?.length) || item.mega" class="relative group">
                 <button type="button" :class="['flex items-center gap-1 px-3 py-2 font-medium transition-colors duration-300 text-sm', isActiveTopLevel(item) ? 'text-[#f5a623]' : 'text-[#1a365d] hover:text-[#f5a623]']" aria-haspopup="menu" aria-expanded="false">
                   {{ item.label }}
@@ -55,14 +55,25 @@
                 </button>
                 <div class="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 min-w-[220px] z-50">
                   <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2 overflow-hidden">
-                    <router-link v-for="sub in (item.children || item.megaItems || [])" :key="sub.id || sub.label" :to="sub.url || '/'" class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors">
+                    <component
+                      :is="isExternalNavLink(sub) ? 'a' : 'router-link'"
+                      v-for="sub in (item.children || item.megaItems || [])"
+                      :key="sub.id || sub.label"
+                      v-bind="linkAttrs(sub)"
+                      class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors"
+                    >
                       <span v-if="sub.icon" class="text-base">{{ sub.icon }}</span>
                       {{ sub.label }}
-                    </router-link>
+                    </component>
                   </div>
                 </div>
               </div>
-              <router-link v-else :to="item.url || '/'" :class="['px-3 py-2 font-medium transition-colors duration-300 text-sm', isActiveLink(item) ? 'text-[#f5a623]' : 'text-[#1a365d] hover:text-[#f5a623]']">{{ item.label }}</router-link>
+              <component
+                :is="isExternalNavLink(item) ? 'a' : 'router-link'"
+                v-else
+                v-bind="linkAttrs(item)"
+                :class="['px-3 py-2 font-medium transition-colors duration-300 text-sm', isActiveLink(item) ? 'text-[#f5a623]' : 'text-[#1a365d] hover:text-[#f5a623]']"
+              >{{ item.label }}</component>
             </template>
           </nav>
 
@@ -85,10 +96,6 @@
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
               Login
             </a>
-            <a :href="portalUrl('/my-portal')" title="My Portal" aria-label="Open my portal" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
-              <i class="icofont-ui-home" aria-hidden="true"></i> My Portal
-            </a>
-
             <!-- Mobile menu toggle -->
             <button type="button" class="inline-flex items-center justify-center h-9 w-9 lg:hidden rounded-md text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors" @click="mobileOpen = !mobileOpen" :aria-label="mobileOpen ? 'Close navigation menu' : 'Open navigation menu'" :aria-expanded="mobileOpen" aria-controls="mobile-navigation">
               <svg v-if="!mobileOpen" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6" aria-hidden="true"><path d="M4 12h16"/><path d="M4 18h16"/><path d="M4 6h16"/></svg>
@@ -101,7 +108,7 @@
       <!-- Mobile menu (native details/summary per spec) -->
       <div :class="['lg:hidden absolute top-full left-0 right-0 bg-white shadow-xl transition-all duration-500 overflow-hidden', mobileOpen ? 'max-h-[80vh] opacity-100' : 'max-h-0 opacity-0 pointer-events-none']">
         <nav id="mobile-navigation" class="p-4 space-y-2 max-h-[70vh] overflow-y-auto" aria-label="Mobile navigation">
-          <template v-for="item in menuItems" :key="item.id || item.label">
+          <template v-for="item in visibleMenuItems" :key="item.id || item.label">
             <div v-if="(item.children?.length) || item.mega">
               <details class="group">
                 <summary class="flex items-center justify-between px-4 py-3 text-[#1a365d] font-medium cursor-pointer hover:bg-[#f5a623]/10 rounded-lg transition-colors">
@@ -109,12 +116,24 @@
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 group-open:rotate-180 transition-transform" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="pl-4 mt-1 space-y-1">
-                  <router-link v-for="sub in (item.children || item.megaItems || [])" :key="sub.id || sub.label" :to="sub.url || '/'" class="block px-4 py-2 text-[#1a365d]/80 hover:text-[#f5a623] transition-colors text-sm" @click="mobileOpen = false">{{ sub.label }}</router-link>
+                  <component
+                    :is="isExternalNavLink(sub) ? 'a' : 'router-link'"
+                    v-for="sub in (item.children || item.megaItems || [])"
+                    :key="sub.id || sub.label"
+                    v-bind="linkAttrs(sub)"
+                    class="block px-4 py-2 text-[#1a365d]/80 hover:text-[#f5a623] transition-colors text-sm"
+                    @click="mobileOpen = false"
+                  >{{ sub.label }}</component>
                 </div>
               </details>
             </div>
             <div v-else>
-              <router-link :to="item.url || '/'" class="block px-4 py-3 text-[#1a365d] font-medium hover:bg-[#f5a623]/10 rounded-lg transition-colors" @click="mobileOpen = false">{{ item.label }}</router-link>
+              <component
+                :is="isExternalNavLink(item) ? 'a' : 'router-link'"
+                v-bind="linkAttrs(item)"
+                class="block px-4 py-3 text-[#1a365d] font-medium hover:bg-[#f5a623]/10 rounded-lg transition-colors"
+                @click="mobileOpen = false"
+              >{{ item.label }}</component>
             </div>
           </template>
 
@@ -125,9 +144,6 @@
             </a>
             <a :href="portalUrl('/register')" class="flex-1 py-2.5 text-sm font-semibold text-center border border-[#f5a623] text-[#f5a623] hover:bg-[#f5a623]/10 rounded-lg flex items-center justify-center gap-1.5" @click="mobileOpen = false">
               <i class="icofont-ui-user-group"></i> Register
-            </a>
-            <a :href="portalUrl('/my-portal')" class="flex-1 py-2.5 text-sm font-semibold text-center bg-[#1a365d] text-white rounded-lg flex items-center justify-center gap-1.5" @click="mobileOpen = false">
-              <i class="icofont-ui-home"></i> My Portal
             </a>
           </div>
         </nav>
@@ -268,7 +284,6 @@
           <div class="flex gap-5">
             <router-link to="/faqs" class="hover:text-gray-300 transition-colors">FAQs</router-link>
             <router-link to="/contact-us" class="hover:text-gray-300 transition-colors">Contact</router-link>
-            <a :href="portalUrl('/my-portal')" class="hover:text-gray-300 transition-colors">My Portal</a>
           </div>
         </div>
       </div>
@@ -430,7 +445,9 @@ async function submitNewsletter() {
 
 const contact = reactive({
   phone: '+256 414254477 / 343688',
+  whatsapp: '',
   email: 'info@ncs.go.ug',
+  location: '',
   address: 'Plot 2-10, Coronation Avenue',
   postal_address: 'P.O. Box 20077, Lugogo\nKampala - UGANDA',
   fax: '',
@@ -445,7 +462,8 @@ const headerSettings = reactive({
     'Maximizing opportunities for all Ugandans to participate and excel in Sports.',
     'Established 1964',
   ],
-  webmail_url: 'https://mail.umcs.go.ug/'
+  webmail_url: 'https://mail.umcs.go.ug/',
+  social: { facebook: '', twitter: '', linkedin: '', instagram: '', youtube: '' }
 })
 // Site identity (logos + favicon + name) — backed by cms_settings.site
 const siteIdentity = reactive({
@@ -490,10 +508,10 @@ const socialNetworks = computed(() => [
 // Topbar social row (Header spec): plain icons w/ hover gold — FB, X, LinkedIn, YouTube, Webmail
 const topbarSocialLinks = computed(() => {
   const rows = [
-    { key:'facebook',  label:'Facebook',  url: contact.social.facebook  || socialDefaults.facebook },
-    { key:'twitter',   label:'Twitter',   url: contact.social.twitter   || socialDefaults.twitter },
-    { key:'linkedin',  label:'LinkedIn',  url: contact.social.linkedin  || socialDefaults.linkedin },
-    { key:'youtube',   label:'YouTube',   url: contact.social.youtube   || socialDefaults.youtube },
+    { key:'facebook',  label:'Facebook',  url: headerSettings.social.facebook  || contact.social.facebook  || socialDefaults.facebook },
+    { key:'twitter',   label:'Twitter',   url: headerSettings.social.twitter   || contact.social.twitter   || socialDefaults.twitter },
+    { key:'linkedin',  label:'LinkedIn',  url: headerSettings.social.linkedin  || contact.social.linkedin  || socialDefaults.linkedin },
+    { key:'youtube',   label:'YouTube',   url: headerSettings.social.youtube   || contact.social.youtube   || socialDefaults.youtube },
   ]
   if (headerSettings.webmail_url) {
     rows.push({ key:'webmail', label:'Webmail', url: headerSettings.webmail_url })
@@ -504,10 +522,10 @@ const topbarSocialLinks = computed(() => {
 // Footer-spec social row: FB, X, LinkedIn, YouTube, Webmail (Instagram dropped to match the design)
 const footerSocialLinks = computed(() => {
   const rows = [
-    { key:'facebook',  label:'Facebook on NCS Uganda',  icon:'icofont-facebook',  url: contact.social.facebook  || socialDefaults.facebook },
-    { key:'twitter',   label:'X / Twitter',             icon:'icofont-twitter',   url: contact.social.twitter   || socialDefaults.twitter },
-    { key:'linkedin',  label:'LinkedIn',                icon:'icofont-linkedin',  url: contact.social.linkedin  || socialDefaults.linkedin },
-    { key:'youtube',   label:'YouTube',                 icon:'icofont-youtube',   url: contact.social.youtube   || socialDefaults.youtube },
+    { key:'facebook',  label:'Facebook on NCS Uganda',  icon:'icofont-facebook',  url: headerSettings.social.facebook  || contact.social.facebook  || socialDefaults.facebook },
+    { key:'twitter',   label:'X / Twitter',             icon:'icofont-twitter',   url: headerSettings.social.twitter   || contact.social.twitter   || socialDefaults.twitter },
+    { key:'linkedin',  label:'LinkedIn',                icon:'icofont-linkedin',  url: headerSettings.social.linkedin  || contact.social.linkedin  || socialDefaults.linkedin },
+    { key:'youtube',   label:'YouTube',                 icon:'icofont-youtube',   url: headerSettings.social.youtube   || contact.social.youtube   || socialDefaults.youtube },
   ]
   if (headerSettings.webmail_url) {
     rows.push({ key:'webmail', label:'Webmail', icon:'icofont-email', url: headerSettings.webmail_url })
@@ -522,6 +540,33 @@ function isActiveLink(item) {
 function isActiveTopLevel(item) {
   const children = item.children || item.megaItems || []
   return children.some(c => c.url && route.path.startsWith(c.url))
+}
+
+function filterVisible(items) {
+  return (items || [])
+    .filter(item => !item.hidden)
+    .map(item => ({
+      ...item,
+      children: item.children ? filterVisible(item.children) : item.children,
+      megaItems: item.megaItems ? filterVisible(item.megaItems) : item.megaItems,
+    }))
+}
+const visibleMenuItems = computed(() => filterVisible(menuItems.value))
+
+function isExternalNavLink(item) {
+  const url = item?.url || ''
+  return item?.target === '_blank' || isExternalLink(url) || url.startsWith('#')
+}
+
+// Only include the keys relevant to each mode — passing an explicit
+// href="undefined" alongside router-link's own :to would clobber the
+// href it auto-generates, so external and internal links get distinct
+// attribute sets rather than the same props toggled on/off.
+function linkAttrs(item) {
+  if (isExternalNavLink(item)) {
+    return { href: item?.url || '/', target: item?.target, rel: item?.target === '_blank' ? 'noopener noreferrer' : undefined }
+  }
+  return { to: item?.url || '/' }
 }
 
 async function loadMenu() {
@@ -550,7 +595,11 @@ async function loadContact() {
     const v = r.data?.data?.value
     if (v && typeof v === 'object' && Object.keys(v).length) {
       if (typeof v.phone   === 'string') contact.phone = v.phone
+      if (typeof v.whatsapp === 'string') contact.whatsapp = v.whatsapp
       if (typeof v.email   === 'string') contact.email = v.email
+      if (typeof v.fax     === 'string') contact.fax = v.fax
+      if (typeof v.location === 'string') contact.location = v.location
+      if (typeof v.postal_address === 'string') contact.postal_address = v.postal_address
       if (typeof v.address === 'string') contact.address = v.address
       if (typeof v.hours   === 'string') contact.hours = v.hours
       if (typeof v.mapUrl  === 'string') contact.mapUrl = v.mapUrl
@@ -560,12 +609,19 @@ async function loadContact() {
 }
 
 async function loadHeaderSettings() {
+  const applyHeaderValue = (v) => {
+    if (Array.isArray(v?.marquee) && v.marquee.length) headerSettings.marquee = v.marquee.filter(Boolean)
+    if (typeof v?.webmail_url === 'string') headerSettings.webmail_url = v.webmail_url
+    if (v?.social && typeof v.social === 'object') Object.assign(headerSettings.social, v.social)
+  }
   try {
     const r = await getSettings('header')
-    const v = r.data?.data?.value
-    if (Array.isArray(v?.marquee) && v.marquee.length) headerSettings.marquee = v.marquee
-    if (typeof v?.webmail_url === 'string') headerSettings.webmail_url = v.webmail_url
+    applyHeaderValue(r.data?.data?.value)
   } catch { /* keep defaults */ }
+  try {
+    const r = await getSettings('homepage')
+    applyHeaderValue(r.data?.data?.value?.topbar)
+  } catch { /* homepage topbar is optional */ }
 }
 
 async function loadSiteIdentity() {

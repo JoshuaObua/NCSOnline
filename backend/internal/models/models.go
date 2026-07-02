@@ -349,6 +349,8 @@ type CMSMenuItem struct {
 	ID        string        `json:"id"`
 	Label     string        `json:"label"`
 	URL       string        `json:"url"`
+	Target    string        `json:"target,omitempty"`
+	Hidden    bool          `json:"hidden,omitempty"`
 	Icon      string        `json:"icon,omitempty"`
 	Children  []CMSMenuItem `json:"children"`
 	Mega      bool          `json:"mega,omitempty"`

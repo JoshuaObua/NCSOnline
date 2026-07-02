@@ -72,6 +72,91 @@ export function adminDeleteBlogCategory(id) {
   return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`)
 }
 
+export function adminListProjectCategories() {
+  return apiClient.get('/api/v1/admin/cms/blog/categories', { params: { active: 'false', content_type: 'project' } })
+}
+
+export function adminCreateProjectCategory(data) {
+  return apiClient.post('/api/v1/admin/cms/blog/categories', { ...data, content_type: 'project' })
+}
+
+export function adminUpdateProjectCategory(id, data) {
+  return apiClient.put(`/api/v1/admin/cms/blog/categories/${id}`, { ...data, content_type: 'project' })
+}
+
+export function adminDeleteProjectCategory(id) {
+  return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`)
+}
+
+export function adminListCaseStudyCategories() {
+  return apiClient.get('/api/v1/admin/cms/blog/categories', { params: { active: 'false', content_type: 'case_study' } })
+}
+
+export function adminCreateCaseStudyCategory(data) {
+  return apiClient.post('/api/v1/admin/cms/blog/categories', { ...data, content_type: 'case_study' })
+}
+
+export function adminUpdateCaseStudyCategory(id, data) {
+  return apiClient.put(`/api/v1/admin/cms/blog/categories/${id}`, { ...data, content_type: 'case_study' })
+}
+
+export function adminDeleteCaseStudyCategory(id) {
+  return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`)
+}
+
+function adminListScopedCategories(contentType) {
+  return apiClient.get('/api/v1/admin/cms/blog/categories', { params: { active: 'false', content_type: contentType } })
+}
+
+function adminCreateScopedCategory(contentType, data) {
+  return apiClient.post('/api/v1/admin/cms/blog/categories', { ...data, content_type: contentType })
+}
+
+function adminUpdateScopedCategory(contentType, id, data) {
+  return apiClient.put(`/api/v1/admin/cms/blog/categories/${id}`, { ...data, content_type: contentType })
+}
+
+export function adminListFAQCategories() { return adminListScopedCategories('faq') }
+export function adminCreateFAQCategory(data) { return adminCreateScopedCategory('faq', data) }
+export function adminUpdateFAQCategory(id, data) { return adminUpdateScopedCategory('faq', id, data) }
+export function adminDeleteFAQCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListResourceCategories() { return adminListScopedCategories('resource') }
+export function adminCreateResourceCategory(data) { return adminCreateScopedCategory('resource', data) }
+export function adminUpdateResourceCategory(id, data) { return adminUpdateScopedCategory('resource', id, data) }
+export function adminDeleteResourceCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListCareerCategories() { return adminListScopedCategories('career') }
+export function adminCreateCareerCategory(data) { return adminCreateScopedCategory('career', data) }
+export function adminUpdateCareerCategory(id, data) { return adminUpdateScopedCategory('career', id, data) }
+export function adminDeleteCareerCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListTeamDepartments() { return apiClient.get('/api/v1/admin/cms/departments') }
+export function adminCreateTeamDepartment(data) { return apiClient.post('/api/v1/admin/cms/departments', data) }
+export function adminUpdateTeamDepartment(id, data) { return apiClient.put(`/api/v1/admin/cms/departments/${id}`, data) }
+export function adminDeleteTeamDepartment(id) { return apiClient.delete(`/api/v1/admin/cms/departments/${id}`) }
+export function adminListFacilityCategories() { return adminListScopedCategories('facility') }
+export function adminCreateFacilityCategory(data) { return adminCreateScopedCategory('facility', data) }
+export function adminUpdateFacilityCategory(id, data) { return adminUpdateScopedCategory('facility', id, data) }
+export function adminDeleteFacilityCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListEventCategories() { return adminListScopedCategories('event') }
+export function adminCreateEventCategory(data) { return adminCreateScopedCategory('event', data) }
+export function adminUpdateEventCategory(id, data) { return adminUpdateScopedCategory('event', id, data) }
+export function adminDeleteEventCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListInvestCategories() { return adminListScopedCategories('investment') }
+export function adminCreateInvestCategory(data) { return adminCreateScopedCategory('investment', data) }
+export function adminUpdateInvestCategory(id, data) { return adminUpdateScopedCategory('investment', id, data) }
+export function adminDeleteInvestCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListFederationCategories() { return adminListScopedCategories('federation') }
+export function adminCreateFederationCategory(data) { return adminCreateScopedCategory('federation', data) }
+export function adminUpdateFederationCategory(id, data) { return adminUpdateScopedCategory('federation', id, data) }
+export function adminDeleteFederationCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+
+export function adminListNewsletterSubscribers(params = {}) {
+  return apiClient.get('/api/v1/admin/cms/newsletter/subscribers', { params })
+}
+
+export function adminExportNewsletterSubscribers(format = 'csv') {
+  return apiClient.get('/api/v1/admin/cms/newsletter/subscribers/export', { params: { format }, responseType: 'blob' })
+}
+
 export function adminListComments(params = {}) {
   return apiClient.get('/api/v1/admin/cms/comments', { params })
 }
@@ -239,6 +324,43 @@ export function adminListTeam(params = {}) { return apiClient.get('/api/v1/admin
 export function adminCreateTeam(data) { return apiClient.post('/api/v1/admin/cms/team', data) }
 export function adminUpdateTeam(id, data) { return apiClient.put(`/api/v1/admin/cms/team/${id}`, data) }
 export function adminDeleteTeam(id) { return apiClient.delete(`/api/v1/admin/cms/team/${id}`) }
+export function listInstitutionalDepartments() { return apiClient.get('/api/v1/cms/departments') }
+
+// ── Admin RBAC / Roles ────────────────────────────────────────────────
+
+export function adminListRoles() { return apiClient.get('/api/v1/admin/roles') }
+export function adminGetRole(id) { return apiClient.get(`/api/v1/admin/roles/${id}`) }
+export function adminCreateRole(data) { return apiClient.post('/api/v1/admin/roles', data) }
+export function adminUpdateRole(id, data) { return apiClient.put(`/api/v1/admin/roles/${id}`, data) }
+export function adminDeleteRole(id) { return apiClient.delete(`/api/v1/admin/roles/${id}`) }
+export function adminListPermissions() { return apiClient.get('/api/v1/admin/permissions') }
+export function adminAssignRolePermission(roleId, permissionId) {
+  return apiClient.post(`/api/v1/admin/roles/${roleId}/permissions`, { permission_id: permissionId })
+}
+export function adminRemoveRolePermission(roleId, permissionId) {
+  return apiClient.delete(`/api/v1/admin/roles/${roleId}/permissions/${permissionId}`)
+}
+
+export function adminListUsers(params = {}) { return apiClient.get('/api/v1/admin/users', { params }) }
+export function adminGetUser(id) { return apiClient.get(`/api/v1/admin/users/${id}`) }
+export function adminCreateUser(data) { return apiClient.post('/api/v1/admin/users', data) }
+export function adminUpdateUser(id, data) { return apiClient.put(`/api/v1/admin/users/${id}`, data) }
+export function adminDeleteUser(id) { return apiClient.delete(`/api/v1/admin/users/${id}`) }
+export function adminActivateUser(id) { return apiClient.post(`/api/v1/admin/users/${id}/activate`) }
+export function adminDeactivateUser(id) { return apiClient.post(`/api/v1/admin/users/${id}/deactivate`) }
+export function adminResetUserPassword(id, newPassword) { return apiClient.post(`/api/v1/admin/users/${id}/reset-password`, { new_password: newPassword }) }
+export function adminAssignUserRole(userId, roleId) { return apiClient.post(`/api/v1/admin/users/${userId}/roles`, { role_id: roleId }) }
+export function adminRemoveUserRole(userId, roleId) { return apiClient.delete(`/api/v1/admin/users/${userId}/roles/${roleId}`) }
+
+// ── Admin Audit Logs ──────────────────────────────────────────────────
+
+export function adminListAuditLogs(params = {}) {
+  return apiClient.get('/api/v1/admin/audit-logs', { params })
+}
+
+export function adminGetAuditLog(id) {
+  return apiClient.get(`/api/v1/admin/audit-logs/${id}`)
+}
 
 // Compatibility placeholders for CMS sections whose backend modules are not
 // available yet. Keeping named exports prevents production bundlers from

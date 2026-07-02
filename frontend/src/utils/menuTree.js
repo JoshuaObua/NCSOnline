@@ -6,6 +6,7 @@ export function createMenuItem(overrides = {}) {
     title: 'New menu item',
     url: '/',
     target: '_self',
+    hidden: false,
     children: [],
     ...overrides,
   })
@@ -25,6 +26,7 @@ export function normalizeMenuItem(item) {
     title,
     url,
     target,
+    hidden: item.hidden === true,
     children: normalizeMenuTree(item.children || item.megaItems || []),
   }
 }
@@ -36,8 +38,18 @@ export function toCmsMenuItems(items = []) {
     title: item.title,
     url: item.url,
     target: item.target,
+    hidden: item.hidden,
     children: toCmsMenuItems(item.children),
   }))
+}
+
+// Derives a UI-only "link type" from the item's url — not persisted, so it
+// can never drift out of sync with the url it describes.
+export function inferLinkType(url, pageOptions = []) {
+  const value = String(url ?? '')
+  if (value.startsWith('#')) return 'anchor'
+  if (pageOptions.some(page => page.url === value)) return 'internal'
+  return 'custom'
 }
 
 export function cloneTree(items = []) {

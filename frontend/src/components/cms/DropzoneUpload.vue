@@ -1,5 +1,5 @@
 <template>
-  <div class="dz" :class="{ active: dragging, filled: !!modelValue, uploading }">
+  <div class="otika-upload">
     <input
       ref="fileInput"
       class="sr-only"
@@ -9,7 +9,8 @@
     />
 
     <div
-      class="dz-zone"
+      class="dropzone dz-clickable"
+      :class="{ 'dz-drag-hover': dragging, 'dz-started': !!modelValue, 'dz-uploading': uploading }"
       role="button"
       tabindex="0"
       :aria-label="modelValue ? 'Replace media' : 'Choose or drop media'"
@@ -20,24 +21,34 @@
       @dragleave.prevent="dragging = false"
       @drop.prevent="onDrop"
     >
-      <div v-if="modelValue" class="dz-preview">
-        <video v-if="mediaType === 'video'" :src="resolvedUrl" muted playsinline />
-        <img v-else :src="resolvedUrl" :alt="label" />
-      </div>
-      <div v-else class="dz-empty">
-        <i class="icofont-upload-alt" aria-hidden="true"></i>
-      </div>
-
-      <div class="dz-meta">
-        <strong>{{ statusTitle }}</strong>
-        <span>{{ uploadStatus || hint }}</span>
+      <div class="dz-message" data-dz-message>
+        <div v-if="modelValue" class="dz-preview dz-file-preview dz-processing dz-success dz-complete">
+          <div class="dz-image">
+            <video v-if="mediaType === 'video'" :src="resolvedUrl" muted playsinline />
+            <div v-else-if="mediaType === 'file'" class="dz-document-preview">
+              <i class="fas fa-file-alt" aria-hidden="true"></i>
+            </div>
+            <img v-else :src="resolvedUrl" :alt="label" />
+          </div>
+          <div class="dz-details">
+            <div class="dz-filename"><span>{{ statusTitle }}</span></div>
+            <div class="dz-size"><strong>{{ uploadStatus || 'Ready' }}</strong></div>
+          </div>
+        </div>
+        <div v-else class="otika-drop-empty">
+          <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+          <h6>{{ statusTitle }}</h6>
+          <span>{{ uploadStatus || hint }}</span>
+        </div>
       </div>
     </div>
 
-    <div class="dz-actions">
-      <button type="button" class="dz-choose" @click="fileInput?.click()">{{ modelValue ? 'Replace' : 'Choose file' }}</button>
-      <button v-if="modelValue" type="button" class="dz-remove" @click="clear" aria-label="Remove media">
-        <i class="icofont-trash" aria-hidden="true"></i>
+    <div class="upload-actions">
+      <button type="button" class="btn btn-primary btn-sm mr-2" @click="fileInput?.click()">
+        {{ modelValue ? 'Replace' : 'Choose file' }}
+      </button>
+      <button v-if="modelValue" type="button" class="btn btn-danger btn-sm" @click="clear" aria-label="Remove media">
+        <i class="fas fa-trash" aria-hidden="true"></i>
       </button>
     </div>
   </div>
@@ -74,7 +85,7 @@ const uploadStatus = ref('')
 const resolvedUrl = computed(() => mediaUrl(props.modelValue))
 const acceptTypes = computed(() => props.allowVideo ? `${props.accept},${props.videoAccept}` : props.accept)
 const statusTitle = computed(() => {
-  if (uploading.value) return 'Uploading…'
+  if (uploading.value) return 'Uploading...'
   return props.modelValue ? `${props.label} selected` : `Drop ${props.label} here`
 })
 
@@ -136,15 +147,13 @@ async function handleFile(file) {
         return
       }
     }
-  } else {
-    if (file.size > props.maxVideoMb * 1024 * 1024) {
-      fail(`Video must be ${props.maxVideoMb}MB or smaller.`)
-      return
-    }
+  } else if (file.size > props.maxVideoMb * 1024 * 1024) {
+    fail(`Video must be ${props.maxVideoMb}MB or smaller.`)
+    return
   }
 
   uploading.value = true
-  uploadStatus.value = 'Uploading…'
+  uploadStatus.value = 'Uploading...'
   try {
     const res = await uploadMedia(file)
     const url = res.data?.data?.url || res.data?.url || ''
@@ -165,94 +174,155 @@ function fail(message) {
 </script>
 
 <style scoped>
-.dz {
+.otika-upload {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+}
+
+.dropzone {
+  min-height: 150px;
+  border: 2px dashed #6777ef;
+  background: #fff;
+  border-radius: 3px;
+  padding: 20px;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.dropzone.dz-drag-hover,
+.dropzone.dz-started {
+  border-color: #ffa426;
+  background: #fffdf7;
+}
+
+.dropzone.dz-uploading {
+  opacity: .75;
+}
+
+.dropzone:focus-visible {
+  outline: 2px solid #6777ef;
+  outline-offset: 2px;
+}
+
+.dropzone .dz-message {
+  margin: 0;
+  text-align: center;
+}
+
+.otika-drop-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 14px 10px;
+  color: #6c757d;
+}
+
+.otika-drop-empty i {
+  color: #6777ef;
+  font-size: 42px;
+}
+
+.otika-drop-empty h6 {
+  margin: 0;
+  color: #34395e;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.otika-drop-empty span {
+  max-width: 32rem;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.dz-preview {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  width: 180px;
+  min-height: 160px;
+  margin: 0;
+  vertical-align: top;
+}
+
+.dz-image {
+  width: 180px;
+  height: 120px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: #f2f2f2;
+}
+
+.dz-image img,
+.dz-image video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dz-document-preview {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  color: #6777ef;
+  font-size: 36px;
+}
+
+.dz-details {
+  color: #34395e;
+  font-size: 12px;
+  padding: 10px 6px 0;
+  text-align: center;
+}
+
+.dz-filename,
+.dz-size {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upload-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .85rem;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  border: 2px dashed #cbd5e1;
-  border-radius: .5rem;
-  background: #f8fafc;
-  padding: .85rem;
-  transition: border-color 150ms ease, background 150ms ease;
-}
-.dz.active,
-.dz.filled { border-color: #f5a623; background: #fff7ed; }
-.dz.uploading { opacity: .75; }
-
-.dz-zone {
-  display: flex;
-  align-items: center;
-  gap: .85rem;
-  flex: 1 1 16rem;
-  min-width: 0;
-  cursor: pointer;
-}
-.dz-zone:focus-visible { outline: 2px solid #1a365d; outline-offset: 2px; border-radius: .35rem; }
-
-.dz-preview {
-  flex: 0 0 auto;
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: .4rem;
-  overflow: hidden;
-  background: #0f172a;
-  display: grid;
-  place-items: center;
-}
-.dz-preview img,
-.dz-preview video { width: 100%; height: 100%; object-fit: cover; }
-
-.dz-empty {
-  flex: 0 0 auto;
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: .4rem;
-  background: white;
-  border: 1px solid #e2e8f0;
-  display: grid;
-  place-items: center;
-  font-size: 1.4rem;
-  color: #94a3b8;
+  gap: 8px;
 }
 
-.dz-meta { display: block; min-width: 0; word-break: break-word; }
-.dz-meta strong { display: block; color: #1a365d; }
-.dz-meta span { display: block; color: #64748b; font-size: .82rem; }
+@media (max-width: 420px) {
+  .dropzone {
+    padding: 14px;
+  }
 
-.dz-actions {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  flex: 0 0 auto;
-  margin-left: auto;
-}
-.dz-choose,
-.dz-remove {
-  border: 1px solid #cbd5e1;
-  border-radius: .4rem;
-  padding: .55rem .8rem;
-  font-weight: 800;
-  background: white;
-  white-space: nowrap;
-}
-.dz-remove { color: #b91c1c; border-color: #fecaca; display: grid; place-items: center; padding: .55rem; }
-
-@media (max-width: 30rem) {
-  .dz { flex-direction: column; align-items: stretch; }
-  .dz-zone { flex-direction: column; text-align: center; }
-  .dz-actions { margin-left: 0; justify-content: stretch; }
-  .dz-choose { flex: 1; }
+  .dz-preview,
+  .dz-image {
+    width: 100%;
+  }
 }
 
-:global(.dark) .dz { background: #0f172a; border-color: #334155; }
-:global(.dark) .dz.active,
-:global(.dark) .dz.filled { background: #422006; border-color: #f5a623; }
-:global(.dark) .dz-empty { background: #111827; border-color: #334155; }
-:global(.dark) .dz-meta strong { color: #f8fafc; }
-:global(.dark) .dz-choose,
-:global(.dark) .dz-remove { background: #111827; border-color: #475569; color: #e5e7eb; }
+:global(.dark) .dropzone {
+  background: #1f2937;
+  border-color: #6777ef;
+}
+
+:global(.dark) .dropzone.dz-drag-hover,
+:global(.dark) .dropzone.dz-started {
+  background: #2b240f;
+  border-color: #ffa426;
+}
+
+:global(.dark) .otika-drop-empty h6,
+:global(.dark) .dz-details {
+  color: #f8fafc;
+}
+
+:global(.dark) .otika-drop-empty {
+  color: #cbd5e1;
+}
+
+:global(.dark) .dz-image {
+  background: #111827;
+}
 </style>
