@@ -87,7 +87,7 @@
             <p class="text-white/70 leading-relaxed">{{ home.stats_intro }}</p>
           </div>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div v-for="(fact, index) in displayedFacts.slice(0,4)" :key="fact.id || fact.label" class="text-center p-6 rounded-xl bg-white/5 backdrop-blur border border-white/10 hover:border-[#f5a623]/40 hover:bg-white/10 transition-all">
+            <div v-for="(fact, index) in displayedFacts" :key="fact.id || fact.label" class="text-center p-6 rounded-xl bg-white/5 backdrop-blur border border-white/10 hover:border-[#f5a623]/40 hover:bg-white/10 transition-all">
               <div class="w-14 h-14 rounded-xl bg-[#f5a623]/20 text-[#f5a623] flex items-center justify-center mx-auto mb-4">
                 <i :class="[fact.icon || 'icofont-chart-growth', 'text-2xl']" aria-hidden="true"></i>
               </div>
@@ -267,7 +267,7 @@ const filteredAssociations=computed(() => { const q=sportQuery.value.trim().toLo
 function formatDate(value){return value?new Date(value).toLocaleDateString('en-UG',{day:'numeric',month:'short',year:'numeric'}):'Date TBA'}
 function stripPlus(value){return String(value||'').replace(/\+\s*$/,'')}
 function parseCounter(value){const raw=String(value||'0');const match=raw.match(/^([\d,.]+)\s*(.*)$/);return {number:Number((match?.[1]||'0').replace(/,/g,''))||0,suffix:match?.[2]||''}}
-function animateCounters(){const targets=displayedFacts.value.slice(0,4).map(item=>parseCounter(item.value));const started=performance.now();const duration=1100;function tick(now){const progress=Math.min((now-started)/duration,1);const eased=1-Math.pow(1-progress,3);animatedCounterValues.value=targets.map(item=>Math.round(item.number*eased));if(progress<1)requestAnimationFrame(tick)};requestAnimationFrame(tick)}
+function animateCounters(){const targets=displayedFacts.value.map(item=>parseCounter(item.value));const started=performance.now();const duration=1100;function tick(now){const progress=Math.min((now-started)/duration,1);const eased=1-Math.pow(1-progress,3);animatedCounterValues.value=targets.map(item=>Math.round(item.number*eased));if(progress<1)requestAnimationFrame(tick)};requestAnimationFrame(tick)}
 function counterValue(fact,index){const parsed=parseCounter(fact.value);const value=animatedCounterValues.value[index];return `${value ?? parsed.number}${parsed.suffix}`}
 function eventAccent(index){return eventAccents[index % eventAccents.length]}
 function mergeHome(value){if(!value||typeof value!=='object')return;for(const [key,val] of Object.entries(value)){if(val&&typeof val==='object'&&!Array.isArray(val)&&home[key]&&typeof home[key]==='object')Object.assign(home[key],val);else home[key]=val}}
