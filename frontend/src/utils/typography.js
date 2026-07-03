@@ -84,17 +84,24 @@ export function buildFontFaceCSS(customFonts = []) {
 // custom font, followed by one rule per configured element. Elements with no
 // configured properties are skipped entirely so the site's existing styling
 // (Tailwind defaults) shows through untouched until an admin sets something.
+//
+// Declarations are !important: several public components (e.g. the homepage
+// hero) set font-size/weight in their own <style scoped> blocks, which Vue
+// compiles with a [data-v-xxx] attribute selector — that's *more* specific
+// than a plain ".carousel-content h1" rule here, so without !important an
+// admin-configured override would silently lose to the component's baked-in
+// default regardless of injection order.
 export function buildTypographyCSS(config, customFonts = []) {
   const typography = normalizeTypography(config)
   const rules = TYPOGRAPHY_GROUPS.flatMap(g => g.elements)
     .map(el => {
       const c = typography[el.key]
       const decls = []
-      if (c.family) decls.push(`font-family: ${quoteFontFamily(c.family)}, sans-serif`)
-      if (c.size) decls.push(`font-size: ${c.size}${c.unit || 'px'}`)
-      if (c.weight) decls.push(`font-weight: ${c.weight}`)
-      if (c.line_height) decls.push(`line-height: ${c.line_height}`)
-      if (c.letter_spacing) decls.push(`letter-spacing: ${c.letter_spacing}`)
+      if (c.family) decls.push(`font-family: ${quoteFontFamily(c.family)}, sans-serif !important`)
+      if (c.size) decls.push(`font-size: ${c.size}${c.unit || 'px'} !important`)
+      if (c.weight) decls.push(`font-weight: ${c.weight} !important`)
+      if (c.line_height) decls.push(`line-height: ${c.line_height} !important`)
+      if (c.letter_spacing) decls.push(`letter-spacing: ${c.letter_spacing} !important`)
       return decls.length ? `${el.selector} { ${decls.join('; ')}; }` : ''
     })
     .filter(Boolean)
