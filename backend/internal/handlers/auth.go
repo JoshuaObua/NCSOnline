@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -90,6 +91,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slog.Error("register failed", "error", err.Error(), "email", req.Email)
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Registration failed. Please try again.")
 		return
 	}
@@ -124,6 +126,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slog.Error("login failed", "error", err.Error(), "email", req.Email)
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "An unexpected error occurred")
 		return
 	}
