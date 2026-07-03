@@ -62,6 +62,11 @@ func main() {
 	rl := middleware.NewRateLimiter(cfg.RateLimitReqs, cfg.RateLimitWindow)
 	authRL := middleware.NewRateLimiter(10, cfg.RateLimitWindow)
 	publicFormRL := middleware.NewRateLimiter(8, cfg.RateLimitWindow)
+	// Separate, much higher budget for the authenticated CMS area: a single
+	// dashboard load or "save" action legitimately fires dozens of parallel
+	// requests (and each save reloads the whole dashboard), which blew through
+	// the public-traffic budget above in minutes of completely normal use.
+	adminRL := middleware.NewRateLimiter(600, cfg.RateLimitWindow)
 
 	r := chi.NewRouter()
 	metricRegistry := appMetrics.New()
@@ -90,8 +95,11 @@ func main() {
 	r.Use(middleware.AuditLogger(auditWriter))
 	r.Use(middleware.HoneypotScanner)
 	r.Use(middleware.MaintenanceMode(h.SystemState, cfg.MaintenanceEnabled, cfg.JWTSecret))
-	r.Use(rl.Middleware)
 	r.Use(chimiddleware.Recoverer)
+	// rl (the public-traffic budget) is applied per route group below instead
+	// of globally here — health checks, the authenticated CMS, and public
+	// content reads have very different legitimate request volumes, and a
+	// single shared budget across all of them 429s normal CMS usage.
 
 	healthHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -117,10 +125,10 @@ func main() {
 	// uploaded media reachable when the backend runs without nginx in front
 	// (e.g. local dev), so CMS upload previews and public images resolve
 	// instead of 404ing. Public + read-only by design.
-	r.Get("/uploads/*", h.CMS.ServeLocalUpload)
-	r.Head("/uploads/*", h.CMS.ServeLocalUpload)
-	r.Post("/ncs-ussd", h.USSD.ServeHTTP)
-	r.Get("/api/v1/system/maintenance-status", func(w http.ResponseWriter, r *http.Request) {
+	r.With(rl.Middleware).Get("/uploads/*", h.CMS.ServeLocalUpload)
+	r.With(rl.Middleware).Head("/uploads/*", h.CMS.ServeLocalUpload)
+	r.With(rl.Middleware).Post("/ncs-ussd", h.USSD.ServeHTTP)
+	r.With(rl.Middleware).Get("/api/v1/system/maintenance-status", func(w http.ResponseWriter, r *http.Request) {
 		s := h.SystemState.Get()
 		response.JSON(w, http.StatusOK, map[string]any{
 			"public_cms":      s.Scoped(maintenance.ScopePublicCMS),
@@ -143,6 +151,7 @@ func main() {
 
 		// ── Public CMS (read-only, published content) ─────────────────
 		r.Route("/cms", func(r chi.Router) {
+			r.Use(rl.Middleware)
 			r.Get("/posts", h.CMS.ListPosts)
 			r.Get("/posts/{slug}", h.CMS.GetPost)
 			r.Get("/posts/{slug}/comments", h.CMS.ListPostComments)
@@ -156,6 +165,7 @@ func main() {
 			r.Get("/menus/{name}", h.CMS.GetMenu)
 			r.Get("/settings/{key}", h.CMS.GetSetting)
 			r.Get("/fun-facts", h.CMS.ListFunFacts)
+			r.Get("/fonts", h.CMS.ListFonts)
 			r.Get("/faqs", h.CMS.ListFAQs)
 			r.Get("/resources", h.CMS.ListResources)
 			r.Get("/facilities", h.CMS.ListFacilities)
@@ -166,6 +176,7 @@ func main() {
 			r.With(publicFormRL.Middleware).Post("/messages", h.CMS.CreateContactMessage)
 			r.With(publicFormRL.Middleware).Post("/newsletter/subscribe", h.CMS.SubscribeNewsletter)
 		})
+		r.With(rl.Middleware).Post("/analytics/collect", h.Analytics.Track)
 
 		// ── Authenticated routes (geo-blocked: Uganda only, no VPN) ─────
 		r.Group(func(r chi.Router) {
@@ -174,6 +185,7 @@ func main() {
 			r.Use(middleware.ValidateGlobalSession(h.SystemState))
 			r.Use(middleware.ValidateAuthenticatedUser(repos.Users))
 			r.Use(middleware.EnforceIPAllowlist(repos.Security))
+			r.Use(adminRL.Middleware)
 
 			r.Route("/notifications", func(r chi.Router) {
 				r.Get("/", h.CMS.ListNotifications)
@@ -193,6 +205,7 @@ func main() {
 			// Self-service auth
 			r.Post("/auth/logout", h.Auth.Logout)
 			r.Get("/auth/me", h.Auth.Me)
+			r.Put("/auth/me", h.Auth.UpdateMyProfile)
 			r.Post("/auth/change-password", h.Auth.ChangePassword)
 			r.Post("/auth/update-password", h.Auth.ChangePassword)
 			r.Get("/auth/sessions", h.Operator.Sessions)
@@ -301,10 +314,12 @@ func main() {
 				r.Use(middleware.RequireRoles("super_admin", "admin"))
 
 				r.Get("/admin/dashboard", h.Dashboard.Stats)
+				r.Get("/admin/analytics", h.Analytics.Dashboard)
 				r.Get("/admin/system/status", h.Operator.Status)
 				r.Get("/admin/system/resources", h.Operator.Resources)
 				r.Get("/admin/system/resources/ws", h.Operator.ResourceStream)
 				r.Get("/admin/system/service-logs", h.Operator.ServiceLogs)
+				r.Get("/admin/system/service-logs/stream", h.Operator.ServiceLogStream)
 
 				r.Route("/admin/users", func(r chi.Router) {
 					r.Get("/", h.Users.List)
@@ -343,6 +358,7 @@ func main() {
 				r.Post("/admin/storage-settings/google-drive/exchange", h.CMS.ExchangeGoogleDriveCode)
 				r.Post("/admin/storage-settings/google-drive/disconnect", h.CMS.DisconnectGoogleDrive)
 				r.Get("/admin/system/backups", h.Backups.List)
+				r.Get("/admin/system/backups/health", h.Backups.Health)
 				r.Get("/admin/system/backups/schema", h.Backups.DownloadSchema)
 				r.Post("/admin/system/backups/schema/import", h.Backups.ImportSchema)
 				r.Delete("/admin/system/backups/schema", h.Backups.DeleteSchema)
@@ -454,6 +470,12 @@ func main() {
 					r.Post("/", h.CMS.CreateFunFact)
 					r.Put("/{id}", h.CMS.UpdateFunFact)
 					r.Delete("/{id}", h.CMS.DeleteFunFact)
+				})
+
+				r.Route("/admin/cms/fonts", func(r chi.Router) {
+					r.Get("/", h.CMS.ListFonts)
+					r.Post("/", h.CMS.UploadFont)
+					r.Delete("/{id}", h.CMS.DeleteFont)
 				})
 
 				r.Route("/admin/cms/faqs", func(r chi.Router) {

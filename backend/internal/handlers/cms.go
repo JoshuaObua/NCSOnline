@@ -1759,6 +1759,113 @@ func allowedMagic(ext, detected string, head []byte) bool {
 	}
 }
 
+// ── Custom Fonts ──────────────────────────────────────────────────
+
+// GET /api/v1/cms/fonts (public — the site needs the list to render @font-face)
+// GET /api/v1/admin/cms/fonts (admin — same data, listed in the Font Manager)
+func (h *CMSHandler) ListFonts(w http.ResponseWriter, r *http.Request) {
+	items, err := h.repo.ListCustomFonts(r.Context())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list fonts")
+		return
+	}
+	response.JSON(w, http.StatusOK, items)
+}
+
+var allowedFontExt = map[string]string{
+	".ttf": "ttf", ".otf": "otf", ".woff": "woff", ".woff2": "woff2",
+}
+
+// POST /api/v1/admin/cms/fonts
+func (h *CMSHandler) UploadFont(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Could not parse form (max 32MB)")
+		return
+	}
+	displayName := sanitizePlain(r.FormValue("display_name"), 120)
+	if displayName == "" {
+		response.ValidationErr(w, map[string]string{"display_name": "required"})
+		return
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "No file uploaded (field: 'file')")
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	format, ok := allowedFontExt[ext]
+	if !ok {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "File type not allowed. Allowed: ttf, otf, woff, woff2")
+		return
+	}
+	head := make([]byte, 12)
+	n, _ := io.ReadFull(file, head)
+	head = head[:n]
+	if !allowedFontMagic(format, head) {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Uploaded file content does not match an allowed font type")
+		return
+	}
+
+	settings, err := h.storageSettings(r.Context())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load storage settings")
+		return
+	}
+	result, err := storage.NewUploader(settings).Upload(r.Context(), storage.UploadInput{
+		Scope:       storage.ScopePublic,
+		Reader:      io.MultiReader(bytes.NewReader(head), file),
+		Filename:    header.Filename,
+		ContentType: "font/" + format,
+		Size:        header.Size,
+		Subdir:      "fonts",
+	})
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "UPLOAD_FAILED", err.Error())
+		return
+	}
+
+	f := &models.CMSCustomFont{
+		ID: uuid.NewString(), FontName: toSlug(displayName), DisplayName: displayName,
+		FileURL: result.URL, FontFormat: format,
+	}
+	if err := h.repo.CreateCustomFont(r.Context(), f); err != nil {
+		if errors.Is(err, repository.ErrDuplicate) {
+			response.Err(w, http.StatusConflict, "DUPLICATE_NAME", "A font with this name already exists")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save font")
+		return
+	}
+	response.JSON(w, http.StatusCreated, f)
+}
+
+// DELETE /api/v1/admin/cms/fonts/{id}
+func (h *CMSHandler) DeleteFont(w http.ResponseWriter, r *http.Request) {
+	if err := h.repo.DeleteCustomFont(r.Context(), chi.URLParam(r, "id")); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not delete font")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Deleted")
+}
+
+func allowedFontMagic(format string, head []byte) bool {
+	switch format {
+	case "otf":
+		return len(head) >= 4 && string(head[0:4]) == "OTTO"
+	case "ttf":
+		// TrueType sfnt version 1.0 (0x00 01 00 00) or a TrueType Collection ("ttcf").
+		return len(head) >= 4 && (string(head[0:4]) == "\x00\x01\x00\x00" || string(head[0:4]) == "true" || string(head[0:4]) == "ttcf")
+	case "woff":
+		return len(head) >= 4 && string(head[0:4]) == "wOFF"
+	case "woff2":
+		return len(head) >= 4 && string(head[0:4]) == "wOF2"
+	default:
+		return false
+	}
+}
+
 // ── Fun Facts ─────────────────────────────────────────────────────
 
 func (h *CMSHandler) ListFunFacts(w http.ResponseWriter, r *http.Request) {

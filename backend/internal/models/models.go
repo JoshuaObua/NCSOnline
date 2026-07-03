@@ -407,6 +407,15 @@ type CMSFunFact struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type CMSCustomFont struct {
+	ID          string    `json:"id"`
+	FontName    string    `json:"font_name"`
+	DisplayName string    `json:"display_name"`
+	FileURL     string    `json:"file_url"`
+	FontFormat  string    `json:"font_format"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
 type CMSFAQ struct {
 	ID        string    `json:"id"`
 	Question  string    `json:"question"`

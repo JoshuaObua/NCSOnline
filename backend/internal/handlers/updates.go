@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
+	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/services"
 )
@@ -14,6 +15,7 @@ import (
 type UpdatesHandler struct {
 	svc      *services.UpdatesService
 	deployer *services.Deployer
+	backups  *repository.BackupRepo
 }
 
 // GET /api/v1/admin/system/updates — preflight + cached latest release.
@@ -66,8 +68,27 @@ func (h *UpdatesHandler) DeployStatus(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/admin/system/updates/deploy — kick off `docker compose pull && up -d`.
 func (h *UpdatesHandler) Deploy(w http.ResponseWriter, r *http.Request) {
+	actor, _ := r.Context().Value(models.CtxUserID).(string)
+	if h.deployer.Status().State == "running" {
+		h.writeDeployErr(w, services.ErrDeployInProgress)
+		return
+	}
 	settings := h.svc.Settings(r.Context())
-	if err := h.deployer.StartWithOptions(r.Context(), services.DeployOptions{ComposeProject: settings.ComposeProject, Services: settings.DeployServices, Script: settings.DeployScript}); err != nil {
+	backupJob, err := h.backups.Queue(r.Context(), "BACKUP", nil, actor)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "BACKUP_QUEUE_FAILED", "Could not queue pre-deploy backup")
+		return
+	}
+	if err := h.deployer.StartWithOptions(r.Context(), services.DeployOptions{
+		ComposeProject: settings.ComposeProject,
+		Services:       settings.DeployServices,
+		Script:         settings.DeployScript,
+		RepoSlug:       settings.RepoSlug,
+		GithubToken:    settings.GithubToken,
+		TargetBranch:   settings.TargetBranch,
+		WorkTree:       settings.WorkTree,
+		PreBackupJobID: backupJob.ID,
+	}); err != nil {
 		h.writeDeployErr(w, err)
 		return
 	}

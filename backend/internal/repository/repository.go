@@ -31,6 +31,7 @@ type Repos struct {
 	Forms         *FormRepo
 	Departments   *DepartmentRepo
 	Security      *SecurityRepo
+	Analytics     *AnalyticsRepo
 }
 
 func New(db *pgxpool.Pool) *Repos {
@@ -50,6 +51,7 @@ func New(db *pgxpool.Pool) *Repos {
 		Forms:         &FormRepo{db: db},
 		Departments:   &DepartmentRepo{db: db},
 		Security:      &SecurityRepo{db: db},
+		Analytics:     &AnalyticsRepo{db: db},
 	}
 }
 
@@ -191,9 +193,9 @@ func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mod
 }
 
 func (r *UserRepo) Update(ctx context.Context, u *models.User) error {
-	const q = `UPDATE users SET first_name=$2, last_name=$3, phone=$4, updated_at=NOW()
+	const q = `UPDATE users SET first_name=$2, last_name=$3, phone=$4, avatar_url=$5, updated_at=NOW()
 	           WHERE id=$1 AND deleted_at IS NULL`
-	_, err := r.db.Exec(ctx, q, u.ID, u.FirstName, u.LastName, u.Phone)
+	_, err := r.db.Exec(ctx, q, u.ID, u.FirstName, u.LastName, u.Phone, u.AvatarURL)
 	return err
 }
 
@@ -1615,6 +1617,42 @@ func (r *CMSRepo) UpdateSetting(ctx context.Context, key string, value []byte) e
 	const q = `INSERT INTO cms_settings (key, value, updated_at) VALUES ($1,$2,NOW())
 	           ON CONFLICT (key) DO UPDATE SET value=$2, updated_at=NOW()`
 	_, err := r.db.Exec(ctx, q, key, value)
+	return err
+}
+
+// ── Custom Fonts ────────────────────────────────────────────────────
+
+func (r *CMSRepo) ListCustomFonts(ctx context.Context) ([]*models.CMSCustomFont, error) {
+	const q = `SELECT id, font_name, display_name, file_url, font_format, created_at
+	           FROM cms_custom_fonts ORDER BY created_at ASC`
+	rows, err := r.db.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*models.CMSCustomFont{}
+	for rows.Next() {
+		f := &models.CMSCustomFont{}
+		if err := rows.Scan(&f.ID, &f.FontName, &f.DisplayName, &f.FileURL, &f.FontFormat, &f.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, f)
+	}
+	return items, rows.Err()
+}
+
+func (r *CMSRepo) CreateCustomFont(ctx context.Context, f *models.CMSCustomFont) error {
+	const q = `INSERT INTO cms_custom_fonts (id, font_name, display_name, file_url, font_format)
+	           VALUES ($1,$2,$3,$4,$5) RETURNING created_at`
+	err := r.db.QueryRow(ctx, q, f.ID, f.FontName, f.DisplayName, f.FileURL, f.FontFormat).Scan(&f.CreatedAt)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
+}
+
+func (r *CMSRepo) DeleteCustomFont(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM cms_custom_fonts WHERE id=$1`, id)
 	return err
 }
 

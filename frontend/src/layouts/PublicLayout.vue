@@ -54,17 +54,35 @@
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 group-hover:rotate-180 transition-transform duration-200" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                 </button>
                 <div class="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 min-w-[220px] z-50">
-                  <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2 overflow-hidden">
-                    <component
-                      :is="isExternalNavLink(sub) ? 'a' : 'router-link'"
-                      v-for="sub in (item.children || item.megaItems || [])"
-                      :key="sub.id || sub.label"
-                      v-bind="linkAttrs(sub)"
-                      class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors"
-                    >
-                      <span v-if="sub.icon" class="text-base">{{ sub.icon }}</span>
-                      {{ sub.label }}
-                    </component>
+                  <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2">
+                    <template v-for="sub in (item.children || item.megaItems || [])" :key="sub.id || sub.label">
+                      <div v-if="sub.children?.length" class="relative group/sub">
+                        <button type="button" class="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors" aria-haspopup="menu" aria-expanded="false">
+                          <span class="flex items-center gap-2"><span v-if="sub.icon" class="text-base">{{ sub.icon }}</span>{{ sub.label }}</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                        <div class="absolute left-full top-0 pl-1 opacity-0 invisible group-hover/sub:opacity-100 group-hover/sub:visible group-focus-within/sub:opacity-100 group-focus-within/sub:visible transition-all duration-200 min-w-[200px] z-50">
+                          <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2">
+                            <component
+                              :is="isExternalNavLink(grandsub) ? 'a' : 'router-link'"
+                              v-for="grandsub in sub.children"
+                              :key="grandsub.id || grandsub.label"
+                              v-bind="linkAttrs(grandsub)"
+                              class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors"
+                            >{{ grandsub.label }}</component>
+                          </div>
+                        </div>
+                      </div>
+                      <component
+                        v-else
+                        :is="isExternalNavLink(sub) ? 'a' : 'router-link'"
+                        v-bind="linkAttrs(sub)"
+                        class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors"
+                      >
+                        <span v-if="sub.icon" class="text-base">{{ sub.icon }}</span>
+                        {{ sub.label }}
+                      </component>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -129,14 +147,31 @@
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 group-open:rotate-180 transition-transform" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="pl-4 mt-1 space-y-1">
-                  <component
-                    :is="isExternalNavLink(sub) ? 'a' : 'router-link'"
-                    v-for="sub in (item.children || item.megaItems || [])"
-                    :key="sub.id || sub.label"
-                    v-bind="linkAttrs(sub)"
-                    class="block px-4 py-2 text-[#1a365d]/80 hover:text-[#f5a623] transition-colors text-sm"
-                    @click="mobileOpen = false"
-                  >{{ sub.label }}</component>
+                  <template v-for="sub in (item.children || item.megaItems || [])" :key="sub.id || sub.label">
+                    <details v-if="sub.children?.length" class="group/sub">
+                      <summary class="flex items-center justify-between px-4 py-2 text-[#1a365d]/90 font-medium text-sm cursor-pointer hover:text-[#f5a623]">
+                        {{ sub.label }}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 group-open/sub:rotate-180 transition-transform" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                      </summary>
+                      <div class="pl-4 mt-1 space-y-1">
+                        <component
+                          :is="isExternalNavLink(grandsub) ? 'a' : 'router-link'"
+                          v-for="grandsub in sub.children"
+                          :key="grandsub.id || grandsub.label"
+                          v-bind="linkAttrs(grandsub)"
+                          class="block px-4 py-2 text-[#1a365d]/70 hover:text-[#f5a623] transition-colors text-sm"
+                          @click="mobileOpen = false"
+                        >{{ grandsub.label }}</component>
+                      </div>
+                    </details>
+                    <component
+                      v-else
+                      :is="isExternalNavLink(sub) ? 'a' : 'router-link'"
+                      v-bind="linkAttrs(sub)"
+                      class="block px-4 py-2 text-[#1a365d]/80 hover:text-[#f5a623] transition-colors text-sm"
+                      @click="mobileOpen = false"
+                    >{{ sub.label }}</component>
+                  </template>
                 </div>
               </details>
             </div>
@@ -210,7 +245,7 @@
 
       <!-- Links grid (NCS Footer Section Design spec) -->
       <div class="max-w-7xl mx-auto px-4 py-12 md:py-16">
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-8">
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-10 md:gap-8">
 
           <!-- Column 1 — Brand + about + social -->
           <div>
@@ -272,7 +307,27 @@
             </ul>
           </div>
 
-          <!-- Column 4 — Documents (dynamic from footerSettings.columns[1]) -->
+          <!-- Column 4 — Information (dynamic, CMS "footer_information" menu) -->
+          <div>
+            <h4 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
+              <span class="w-8 h-0.5 bg-[#f5a623]"></span>Information
+            </h4>
+            <ul class="space-y-3">
+              <li v-for="link in footerInformationLinks" :key="link.id || link.label">
+                <component
+                  :is="isExternalNavLink(link) ? 'a' : 'router-link'"
+                  v-bind="linkAttrs(link)"
+                  class="flex items-center gap-2 text-sm text-white/80 hover:text-[#f5a623] transition-colors group"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                  {{ link.label }}
+                </component>
+              </li>
+              <li v-if="!footerInformationLinks.length" class="text-xs text-white/40 italic">No information links configured yet.</li>
+            </ul>
+          </div>
+
+          <!-- Column 5 — Documents (dynamic from footerSettings.columns[1]) -->
           <div>
             <h4 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
               <span class="w-8 h-0.5 bg-[#f5a623]"></span>{{ documentsColumn.title || 'Documents' }}
@@ -311,8 +366,10 @@
 import { ref, computed, nextTick, onMounted, onUnmounted, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
-import { getMenu, getSettings } from '@/api/cms.js'
+import { getMenu, getSettings, getTypography, listFonts } from '@/api/cms.js'
+import { injectTypographyCSS } from '@/utils/typography.js'
 import { mediaUrl } from '@/api/client.js'
+import { installAnalyticsTracker, trackPageView, uninstallAnalyticsTracker } from '@/utils/analyticsTracker.js'
 import PublicAccessibilityMenu from '@/components/public/PublicAccessibilityMenu.vue'
 import AppPreloader from '@/components/public/AppPreloader.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
@@ -325,7 +382,21 @@ const scrolled = ref(false)
 const accountUser = ref(readAccountUser())
 const route = useRoute()
 const router = useRouter()
-const intranetUrl = (import.meta.env?.VITE_INTRANET_URL || 'http://localhost:9081').replace(/\/$/, '')
+// Priority: explicit intranet URL, then the browser host plus VITE_INTRANET_PORT.
+// Mirrors resolveApiBase() in api/client.js so neither URL is pinned to a
+// specific host at build time.
+function resolveIntranetUrl() {
+  const envBase = import.meta.env?.VITE_INTRANET_URL
+  if (envBase) return envBase.replace(/\/$/, '')
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const port = import.meta.env?.VITE_INTRANET_PORT
+    return port
+      ? `${window.location.protocol}//${window.location.hostname}:${port}`
+      : window.location.origin
+  }
+  return ''
+}
+const intranetUrl = resolveIntranetUrl()
 const currentYear = computed(() => new Date().getFullYear())
 const currentUser = computed(() => accountUser.value)
 const accountName = computed(() => {
@@ -348,6 +419,7 @@ watch(() => route.fullPath, async () => {
   accountUser.value = readAccountUser()
   mobileOpen.value = false
   accountOpen.value = false
+  trackPageView(route.path)
   await nextTick()
   document.getElementById('main-content')?.focus({ preventScroll: true })
 })
@@ -402,6 +474,7 @@ const defaultFooter = {
 
 const menuItems = ref(defaultMenu)
 const footerSettings = reactive({ ...defaultFooter, columns: [...defaultFooter.columns] })
+const footerInformationLinks = ref([])
 
 // Quick Links uses the first dynamic column (CMS), Documents uses the second
 const quickLinksColumn = computed(() => footerSettings.columns?.[0] || defaultFooter.columns[0])
@@ -582,7 +655,7 @@ function isActiveLink(item) {
 }
 function isActiveTopLevel(item) {
   const children = item.children || item.megaItems || []
-  return children.some(c => c.url && route.path.startsWith(c.url))
+  return children.some(c => (c.url && route.path.startsWith(c.url)) || isActiveTopLevel(c))
 }
 
 function filterVisible(items) {
@@ -618,6 +691,23 @@ async function loadMenu() {
     const items = r.data?.data?.items || r.data?.data?.Items || []
     if (items.length) menuItems.value = items
   } catch { /* keep defaults */ }
+}
+
+async function loadTypography() {
+  try {
+    const [settingsRes, fontsRes] = await Promise.all([getTypography(), listFonts()])
+    const value = settingsRes.data?.data?.value || {}
+    const fonts = fontsRes.data?.data || []
+    injectTypographyCSS(value, fonts)
+  } catch { /* leave default site typography untouched */ }
+}
+
+async function loadFooterInformation() {
+  try {
+    const r = await getMenu('footer_information')
+    const items = r.data?.data?.items || r.data?.data?.Items || []
+    footerInformationLinks.value = items
+  } catch { /* keep empty — column hides itself */ }
 }
 
 async function loadFooterSettings() {
@@ -684,12 +774,17 @@ async function loadSiteIdentity() {
 }
 
 onMounted(() => {
+  installAnalyticsTracker()
+  trackPageView(route.path)
   loadMenu()
   loadFooterSettings()
+  loadFooterInformation()
   loadContact()
   loadHeaderSettings()
   loadSiteIdentity()
+  loadTypography()
 })
+onUnmounted(() => uninstallAnalyticsTracker())
 </script>
 
 <style scoped>

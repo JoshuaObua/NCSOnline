@@ -281,6 +281,23 @@ export function adminCreateFunFact(data) { return apiClient.post('/api/v1/admin/
 export function adminUpdateFunFact(id, data) { return apiClient.put(`/api/v1/admin/cms/fun-facts/${id}`, data) }
 export function adminDeleteFunFact(id) { return apiClient.delete(`/api/v1/admin/cms/fun-facts/${id}`) }
 
+// ── Appearance: custom fonts + typography mapping ──────────────────
+
+export function listFonts() { return apiClient.get('/api/v1/cms/fonts') }
+export function adminListFonts() { return apiClient.get('/api/v1/admin/cms/fonts') }
+export function adminUploadFont(file, displayName) {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('display_name', displayName)
+  return apiClient.post('/api/v1/admin/cms/fonts', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+export function adminDeleteFont(id) { return apiClient.delete(`/api/v1/admin/cms/fonts/${id}`) }
+
+export function getTypography() { return apiClient.get('/api/v1/cms/settings/typography') }
+export function adminUpdateTypography(value) { return apiClient.put('/api/v1/admin/cms/settings/typography', value) }
+
 // ── FAQs ──────────────────────────────────────────────────────────
 
 export function listFAQs(params = {}) { return apiClient.get('/api/v1/cms/faqs', { params }) }
@@ -364,6 +381,10 @@ export function adminListAuditLogs(params = {}) {
 
 export function adminGetAuditLog(id) {
   return apiClient.get(`/api/v1/admin/audit-logs/${id}`)
+}
+
+export function adminGetAnalytics(params = {}) {
+  return apiClient.get('/api/v1/admin/analytics', { params })
 }
 
 export function listNotifications(params = {}) {

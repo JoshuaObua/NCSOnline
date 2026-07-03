@@ -1,0 +1,6 @@
+services:
+  backend:
+    env_file: [.env]
+    environment:
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL}

@@ -1,23 +1,26 @@
 import axios from 'axios'
 
 // Resolve the API base URL at runtime so the same build works on any host.
-// Priority: VITE_API_BASE_URL env var → same host as the browser on port 9080.
+// Priority: explicit base URL, then the browser host plus VITE_API_PORT.
 function resolveApiBase() {
   const envBase = import.meta.env?.VITE_API_BASE_URL
   if (envBase) return envBase.replace(/\/$/, '')
   if (typeof window !== 'undefined' && window.location?.hostname) {
-    return `${window.location.protocol}//${window.location.hostname}:9080`
+    const port = import.meta.env?.VITE_API_PORT
+    return port
+      ? `${window.location.protocol}//${window.location.hostname}:${port}`
+      : window.location.origin
   }
-  return 'http://localhost:9080'
+  return ''
 }
 
 export const API_BASE_URL = resolveApiBase()
 
 /**
  * Resolve a possibly-relative media path (e.g. "/uploads/images/x.jpg") to an
- * absolute URL the browser can fetch. nginx serves uploads at the API origin
- * (port 9080), but the frontend is hosted on port 3000 during dev, so a bare
- * "/uploads/..." path would 404 against the Vite host.
+ * absolute URL the browser can fetch. nginx serves uploads at the API origin,
+ * but the frontend can be hosted on a separate dev origin, so a bare
+ * "/uploads/..." path may 404 against the Vite host.
  *
  * Accepts:
  *   - "" / null / undefined         → returns ""

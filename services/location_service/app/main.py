@@ -58,13 +58,15 @@ WHITELIST_PATH = Path(os.getenv("GEO_WHITELIST_PATH", "/config/geo-whitelist.jso
 ALLOWED = {v.strip().upper() for v in os.getenv("GEO_ALLOWED_COUNTRIES", "UG").split(",") if v.strip()}
 FAIL_CLOSED = os.getenv("GEO_FAIL_CLOSED", "false").lower() == "true"
 PROVIDER_FALLBACK = os.getenv("LOCATION_PROVIDER_FALLBACK", "false").lower() == "true"
-PROVIDER_URL = os.getenv("LOCATION_PROVIDER_URL", "https://ipwho.is/{ip}")
-UPSTREAM_URL = os.getenv("GEO_UPSTREAM_URL", "http://backend:8080").rstrip("/")
-FRONTEND_URL = os.getenv("GEO_FRONTEND_URL", "http://frontend:80").rstrip("/")
+PROVIDER_URL = os.getenv("LOCATION_PROVIDER_URL", "")
+UPSTREAM_URL = os.getenv("GEO_UPSTREAM_URL", os.getenv("BACKEND_INTERNAL_URL", "")).rstrip("/")
+FRONTEND_URL = os.getenv("GEO_FRONTEND_URL", os.getenv("FRONTEND_INTERNAL_URL", "")).rstrip("/")
 JWT_SECRET = os.getenv("JWT_SECRET", "")
-TRUSTED_PROXIES = [ipaddress.ip_network(v.strip()) for v in os.getenv("GEO_TRUSTED_PROXIES", "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.0/8").split(",") if v.strip()]
+TRUSTED_PROXIES = [ipaddress.ip_network(v.strip()) for v in os.getenv("GEO_TRUSTED_PROXIES", "").split(",") if v.strip()]
 CACHE_TTL = int(os.getenv("LOCATION_CACHE_TTL_SECONDS", "86400"))
 MAINTENANCE_CACHE_TTL = float(os.getenv("MAINTENANCE_CACHE_TTL_SECONDS", "2"))
+PROVIDER_TIMEOUT = float(os.getenv("LOCATION_PROVIDER_TIMEOUT", "3.0"))
+GATE_TIMEOUT = float(os.getenv("LOCATION_GATE_TIMEOUT", "30.0"))
 _maintenance_cache: tuple[float, dict[str, Any]] | None = None
 
 _reader: Reader | None = None
@@ -179,7 +181,7 @@ async def locate_ip(ip: str) -> dict[str, Any]:
         except Exception:
             pass
     if PROVIDER_FALLBACK:
-        async with httpx.AsyncClient(timeout=3.0) as client:
+        async with httpx.AsyncClient(timeout=PROVIDER_TIMEOUT) as client:
             response = await client.get(PROVIDER_URL.format(ip=ip))
             response.raise_for_status()
             raw = response.json()
@@ -263,9 +265,14 @@ def _has_bypass(request: Request, scope: dict[str, Any]) -> bool:
     authz = request.headers.get("authorization", "")
     if not authz and request.cookies.get("ncsms_access"):
         authz = "Bearer " + request.cookies["ncsms_access"]
-    roles = _verified_roles(authz)
+    claims = _verified_claims(authz)
+    roles = {str(v).strip().lower() for v in claims.get("roles") or []}
     allowed_roles = {str(v).strip().lower() for v in rules.get("allowed_roles") or []}
     if roles and any(role in allowed_roles for role in roles):
+        return True
+    user_id = str(claims.get("user_id") or claims.get("sub") or "").strip()
+    allowed_users = {str(v).strip() for v in rules.get("allowed_user_ids") or []}
+    if user_id and user_id in allowed_users:
         return True
     return False
 
@@ -275,12 +282,17 @@ def _b64url_decode(value: str) -> bytes:
 
 
 def _verified_roles(authz: str) -> set[str]:
+    payload = _verified_claims(authz)
+    return {str(v).strip().lower() for v in payload.get("roles") or []}
+
+
+def _verified_claims(authz: str) -> dict[str, Any]:
     if not JWT_SECRET or not authz.lower().startswith("bearer "):
-        return set()
+        return {}
     token = authz[7:].strip()
     parts = token.split(".")
     if len(parts) != 3:
-        return set()
+        return {}
     signing_input = f"{parts[0]}.{parts[1]}".encode()
     expected = hmac.new(JWT_SECRET.encode(), signing_input, hashlib.sha256).digest()
     try:
@@ -288,14 +300,14 @@ def _verified_roles(authz: str) -> set[str]:
         header = json.loads(_b64url_decode(parts[0]))
         payload = json.loads(_b64url_decode(parts[1]))
     except Exception:
-        return set()
+        return {}
     if header.get("alg") != "HS256" or not hmac.compare_digest(expected, actual):
-        return set()
+        return {}
     if payload.get("iss") != "ncsms-api":
-        return set()
+        return {}
     if payload.get("exp") and float(payload["exp"]) < time.time():
-        return set()
-    return {str(v).strip().lower() for v in payload.get("roles") or []}
+        return {}
+    return payload
 
 
 def _maintenance_response(request: Request, scope: dict[str, Any]) -> Response:
@@ -361,7 +373,7 @@ async def gate(path: str, request: Request) -> Response:
     headers = {k: v for k, v in request.headers.items() if k.lower() not in HOP_HEADERS}
     headers["x-sentinel-client-ip"] = ip
     target = UPSTREAM_URL if original_path.startswith("/api/") or original_path == "/ncs-ussd" else FRONTEND_URL
-    async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
+    async with httpx.AsyncClient(timeout=GATE_TIMEOUT, follow_redirects=False) as client:
         upstream = await client.request(request.method, target + original_path, params=request.query_params, content=body, headers=headers)
     response_headers = {k: v for k, v in upstream.headers.items() if k.lower() not in HOP_HEADERS}
     return Response(content=upstream.content, status_code=upstream.status_code, headers=response_headers)
