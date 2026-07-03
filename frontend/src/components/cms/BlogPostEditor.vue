@@ -25,7 +25,7 @@
             </div>
             <div class="form-group col-lg-8">
               <label>Slug</label>
-              <input v-model="model.slug" class="form-control" :readonly="!manualSlug" pattern="^[a-z0-9_-]+$" required placeholder="post-url-slug" />
+              <input v-model="model.slug" class="form-control" :readonly="!manualSlug" pattern="^[a-z0-9_\-]+$" required placeholder="post-url-slug" />
             </div>
             <div class="form-group col-lg-4 blog-check-field">
               <label class="d-block">Slug Control</label>
