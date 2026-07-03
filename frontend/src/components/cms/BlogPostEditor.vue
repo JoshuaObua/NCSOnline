@@ -25,7 +25,7 @@
             </div>
             <div class="form-group col-lg-8">
               <label>Slug</label>
-              <input v-model="model.slug" class="form-control" :readonly="!manualSlug" pattern="^[a-z0-9-_]+$" required placeholder="post-url-slug" />
+              <input v-model="model.slug" class="form-control" :readonly="!manualSlug" pattern="^[a-z0-9_-]+$" required placeholder="post-url-slug" />
             </div>
             <div class="form-group col-lg-4 blog-check-field">
               <label class="d-block">Slug Control</label>
@@ -220,10 +220,15 @@ function restoreDraft(showMessage = true) {
   } catch {}
 }
 
+// Only the CSS is loaded — class names like .summernote-toolbar/.summernote-editable
+// are reused purely for visual consistency with the original theme, but the actual
+// editor below is TipTap (EditorContent), not Summernote. The real summernote-bs4.js
+// bundle expects a global jQuery to attach itself to (`$.fn.summernote = ...`), which
+// this app never loads, so including it here only threw an uncaught TypeError on
+// every mount without doing anything.
 function ensureSummernoteAssets() {
   addAsset('link', '/otika-assets/bundles/summernote/summernote-bs4.css')
   addAsset('link', '/otika-assets/bundles/jquery-selectric/selectric.css')
-  addAsset('script', '/otika-assets/bundles/summernote/summernote-bs4.js')
 }
 
 function addAsset(tag, href) {
