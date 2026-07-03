@@ -113,7 +113,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { listPosts, getSettings, listBlogCategories } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 
-const EXCLUDED = ['page', 'case_study']
+const EXCLUDED = ['page', 'case_study', 'project']
 const route = useRoute()
 const router = useRouter()
 

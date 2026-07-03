@@ -997,10 +997,10 @@ type CMSRepo struct{ db *pgxpool.Pool }
 // Posts
 
 func (r *CMSRepo) CreatePost(ctx context.Context, p *models.CMSPost) error {
-	const q = `INSERT INTO cms_posts (id, title, slug, content, excerpt, category, status, cover_image_url, author_id, published_at, meta_title, meta_description, focus_keywords, approved_at)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING created_at, updated_at`
+	const q = `INSERT INTO cms_posts (id, title, slug, content, excerpt, category, category_tag, status, cover_image_url, author_id, published_at, meta_title, meta_description, focus_keywords, approved_at)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING created_at, updated_at`
 	return r.db.QueryRow(ctx, q,
-		p.ID, p.Title, p.Slug, p.Content, p.Excerpt, p.Category, p.Status,
+		p.ID, p.Title, p.Slug, p.Content, p.Excerpt, p.Category, p.CategoryTag, p.Status,
 		p.CoverImageURL, p.AuthorID, p.PublishedAt, p.MetaTitle, p.MetaDescription,
 		p.FocusKeywords, p.ApprovedAt,
 	).Scan(&p.CreatedAt, &p.UpdatedAt)
@@ -1008,7 +1008,7 @@ func (r *CMSRepo) CreatePost(ctx context.Context, p *models.CMSPost) error {
 
 func (r *CMSRepo) GetPostBySlug(ctx context.Context, slug string) (*models.CMSPost, error) {
 	_, _ = r.db.Exec(ctx, `UPDATE cms_posts SET view_count = COALESCE(view_count,0)+1 WHERE slug=$1`, slug)
-	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, p.status,
+	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, COALESCE(p.category_tag,''), p.status,
 	                  COALESCE(p.cover_image_url,''), p.author_id,
 	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
 	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
@@ -1019,7 +1019,7 @@ func (r *CMSRepo) GetPostBySlug(ctx context.Context, slug string) (*models.CMSPo
 	           WHERE p.slug=$1`
 	p := &models.CMSPost{}
 	err := r.db.QueryRow(ctx, q, slug).Scan(
-		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.Status,
+		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.CategoryTag, &p.Status,
 		&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
 		&p.FocusKeywords, &p.ViewCount, &p.ApprovedAt, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
 	)
@@ -1030,7 +1030,7 @@ func (r *CMSRepo) GetPostBySlug(ctx context.Context, slug string) (*models.CMSPo
 }
 
 func (r *CMSRepo) GetPostByID(ctx context.Context, id string) (*models.CMSPost, error) {
-	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, p.status,
+	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, COALESCE(p.category_tag,''), p.status,
 	                  COALESCE(p.cover_image_url,''), p.author_id,
 	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
 	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
@@ -1041,7 +1041,7 @@ func (r *CMSRepo) GetPostByID(ctx context.Context, id string) (*models.CMSPost, 
 	           WHERE p.id=$1`
 	p := &models.CMSPost{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
-		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.Status,
+		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.CategoryTag, &p.Status,
 		&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
 		&p.FocusKeywords, &p.ViewCount, &p.ApprovedAt, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
 	)
@@ -1054,7 +1054,7 @@ func (r *CMSRepo) GetPostByID(ctx context.Context, id string) (*models.CMSPost, 
 func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit, offset int) ([]*models.CMSPost, int64, error) {
 	const countQ = `SELECT COUNT(*) FROM cms_posts p
 	                WHERE ($1='' OR p.category=$1) AND ($2='' OR p.status=$2)`
-	const q = `SELECT p.id, p.title, p.slug, p.excerpt, p.category, p.status,
+	const q = `SELECT p.id, p.title, p.slug, p.excerpt, p.category, COALESCE(p.category_tag,''), p.status,
 	                  COALESCE(p.cover_image_url,''), p.author_id,
 	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
 	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
@@ -1076,7 +1076,7 @@ func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit,
 	posts := []*models.CMSPost{}
 	for rows.Next() {
 		p := &models.CMSPost{}
-		if err := rows.Scan(&p.ID, &p.Title, &p.Slug, &p.Excerpt, &p.Category, &p.Status,
+		if err := rows.Scan(&p.ID, &p.Title, &p.Slug, &p.Excerpt, &p.Category, &p.CategoryTag, &p.Status,
 			&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
 			&p.FocusKeywords, &p.ViewCount, &p.ApprovedAt, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, 0, err
@@ -1087,11 +1087,11 @@ func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit,
 }
 
 func (r *CMSRepo) UpdatePost(ctx context.Context, p *models.CMSPost) error {
-	const q = `UPDATE cms_posts SET title=$2, slug=$3, content=$4, excerpt=$5, category=$6,
+	const q = `UPDATE cms_posts SET title=$2, slug=$3, content=$4, excerpt=$5, category=$6, category_tag=$14,
 	           status=$7, cover_image_url=$8, published_at=$9,
 	           meta_title=$10, meta_description=$11, focus_keywords=$12, approved_at=$13, updated_at=NOW() WHERE id=$1`
 	_, err := r.db.Exec(ctx, q, p.ID, p.Title, p.Slug, p.Content, p.Excerpt,
-		p.Category, p.Status, p.CoverImageURL, p.PublishedAt, p.MetaTitle, p.MetaDescription, p.FocusKeywords, p.ApprovedAt)
+		p.Category, p.Status, p.CoverImageURL, p.PublishedAt, p.MetaTitle, p.MetaDescription, p.FocusKeywords, p.ApprovedAt, p.CategoryTag)
 	return err
 }
 
@@ -1100,11 +1100,11 @@ func (r *CMSRepo) DeletePost(ctx context.Context, id string) error {
 	return err
 }
 
-func (r *CMSRepo) ListBlogCategories(ctx context.Context, activeOnly bool) ([]*models.BlogCategory, error) {
-	q := `SELECT id, name, slug, COALESCE(description,''), sort_order, is_active, created_at, updated_at
-	      FROM blog_categories WHERE ($1=FALSE OR is_active=TRUE)
+func (r *CMSRepo) ListBlogCategories(ctx context.Context, activeOnly bool, contentType string) ([]*models.BlogCategory, error) {
+	q := `SELECT id, name, slug, COALESCE(description,''), content_type, sort_order, is_active, created_at, updated_at
+	      FROM blog_categories WHERE ($1=FALSE OR is_active=TRUE) AND content_type=$2
 	      ORDER BY sort_order, name`
-	rows, err := r.db.Query(ctx, q, activeOnly)
+	rows, err := r.db.Query(ctx, q, activeOnly, contentType)
 	if err != nil {
 		return nil, err
 	}
@@ -1112,7 +1112,7 @@ func (r *CMSRepo) ListBlogCategories(ctx context.Context, activeOnly bool) ([]*m
 	out := []*models.BlogCategory{}
 	for rows.Next() {
 		c := &models.BlogCategory{}
-		if err := rows.Scan(&c.ID, &c.Name, &c.Slug, &c.Description, &c.SortOrder, &c.IsActive, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Slug, &c.Description, &c.ContentType, &c.SortOrder, &c.IsActive, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -1121,15 +1121,15 @@ func (r *CMSRepo) ListBlogCategories(ctx context.Context, activeOnly bool) ([]*m
 }
 
 func (r *CMSRepo) CreateBlogCategory(ctx context.Context, c *models.BlogCategory) error {
-	const q = `INSERT INTO blog_categories (id, name, slug, description, sort_order, is_active)
-	           VALUES ($1,$2,$3,$4,$5,$6) RETURNING created_at, updated_at`
-	return r.db.QueryRow(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.SortOrder, c.IsActive).Scan(&c.CreatedAt, &c.UpdatedAt)
+	const q = `INSERT INTO blog_categories (id, name, slug, description, content_type, sort_order, is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING created_at, updated_at`
+	return r.db.QueryRow(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.ContentType, c.SortOrder, c.IsActive).Scan(&c.CreatedAt, &c.UpdatedAt)
 }
 
 func (r *CMSRepo) UpdateBlogCategory(ctx context.Context, c *models.BlogCategory) error {
-	const q = `UPDATE blog_categories SET name=$2, slug=$3, description=$4, sort_order=$5, is_active=$6, updated_at=NOW()
+	const q = `UPDATE blog_categories SET name=$2, slug=$3, description=$4, content_type=$5, sort_order=$6, is_active=$7, updated_at=NOW()
 	           WHERE id=$1`
-	tag, err := r.db.Exec(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.SortOrder, c.IsActive)
+	tag, err := r.db.Exec(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.ContentType, c.SortOrder, c.IsActive)
 	if err != nil {
 		return err
 	}

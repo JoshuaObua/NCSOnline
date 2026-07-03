@@ -316,8 +316,19 @@
         <div class="max-w-screen-xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <span>&copy; {{ currentYear }} {{ footerSettings.copyright }}</span>
           <div class="flex gap-5">
-            <router-link to="/faqs" class="hover:text-gray-300 transition-colors">FAQs</router-link>
-            <router-link to="/contact-us" class="hover:text-gray-300 transition-colors">Contact</router-link>
+            <template v-if="footerMenuItems.length">
+              <component
+                :is="isExternalNavLink(item) ? 'a' : 'router-link'"
+                v-for="(item, idx) in footerMenuItems"
+                :key="idx"
+                v-bind="linkAttrs(item)"
+                class="hover:text-gray-300 transition-colors"
+              >{{ item.label }}</component>
+            </template>
+            <template v-else>
+              <router-link to="/faqs" class="hover:text-gray-300 transition-colors">FAQs</router-link>
+              <router-link to="/contact-us" class="hover:text-gray-300 transition-colors">Contact</router-link>
+            </template>
           </div>
         </div>
       </div>
@@ -438,6 +449,7 @@ const defaultFooter = {
 }
 
 const menuItems = ref(defaultMenu)
+const footerMenuItems = ref([])
 const footerSettings = reactive({ ...defaultFooter, columns: [...defaultFooter.columns] })
 
 // Address rendered as multi-line block: split contact.address on newlines (or commas),
@@ -653,6 +665,14 @@ async function loadMenu() {
   } catch { /* keep defaults */ }
 }
 
+async function loadFooterMenu() {
+  try {
+    const r = await getMenu('footer')
+    const items = r.data?.data?.items || r.data?.data?.Items || []
+    footerMenuItems.value = items.filter(item => !item.hidden)
+  } catch { /* keep empty, bottom bar falls back to defaults */ }
+}
+
 async function loadTypography() {
   try {
     const [settingsRes, fontsRes] = await Promise.all([getTypography(), listFonts()])
@@ -729,6 +749,7 @@ onMounted(() => {
   installAnalyticsTracker()
   trackPageView(route.path)
   loadMenu()
+  loadFooterMenu()
   loadFooterSettings()
   loadContact()
   loadHeaderSettings()

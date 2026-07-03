@@ -667,7 +667,7 @@
         </section>
 
         <section v-else-if="active === 'projects'" class="cms-panel">
-          <BlogPostEditor :model="projectForm" :categories="contentCategories" @save="saveProject" />
+          <BlogPostEditor :model="projectForm" :categories="projectCategories" category-field="category_tag" @save="saveProject" />
         </section>
 
         <section v-else-if="active === 'manage-projects'" class="cms-panel">
@@ -685,7 +685,7 @@
         </section>
 
         <section v-else-if="active === 'case-studies'" class="cms-panel">
-          <BlogPostEditor :model="caseStudyForm" :categories="contentCategories" @save="saveCaseStudy" />
+          <BlogPostEditor :model="caseStudyForm" :categories="caseStudyCategories" category-field="category_tag" @save="saveCaseStudy" />
         </section>
 
         <section v-else-if="active === 'manage-case-studies'" class="cms-panel">
@@ -1827,8 +1827,8 @@ function snapshotMenus() {
 
 const postForm = reactive({ id:'', title:'', slug:'', category:'news', excerpt:'', content:'', cover_image_url:'', status:'draft', meta_title:'', meta_description:'', focus_keywords:'' })
 const pageForm = reactive({ id:'', title:'', slug:'', category:'page', excerpt:'', content:'', cover_image_url:'', status:'draft', meta_title:'', meta_description:'', focus_keywords:'' })
-const projectForm = reactive({ id:'', title:'', slug:'', category:'project', excerpt:'', content:'', cover_image_url:'', status:'draft', meta_title:'', meta_description:'', focus_keywords:'' })
-const caseStudyForm = reactive({ id:'', title:'', slug:'', category:'case_study', excerpt:'', content:'', cover_image_url:'', status:'draft', meta_title:'', meta_description:'', focus_keywords:'' })
+const projectForm = reactive({ id:'', title:'', slug:'', category:'project', category_tag:'', excerpt:'', content:'', cover_image_url:'', status:'draft', meta_title:'', meta_description:'', focus_keywords:'' })
+const caseStudyForm = reactive({ id:'', title:'', slug:'', category:'case_study', category_tag:'', excerpt:'', content:'', cover_image_url:'', status:'draft', meta_title:'', meta_description:'', focus_keywords:'' })
 const blogCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true })
 const projectCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'project' })
 const caseStudyCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'case_study' })
@@ -1951,16 +1951,6 @@ const analyticsSnapshot = computed(() => [
   { label:'Top Country', value:analytics.value?.top_countries?.[0]?.label || 'Unknown', icon:'icofont-globe col-blue' },
   { label:'Top Page', value:analytics.value?.top_pages?.[0]?.label || '/', icon:'icofont-page col-cyan' },
 ])
-const contentCategories = computed(() => {
-  const allCategories = [...blogCategories.value, ...projectCategories.value, ...caseStudyCategories.value, ...faqCategories.value, ...resourceCategories.value, ...careerCategories.value]
-  const existing = new Set(allCategories.map(cat => cat.slug || cat.value))
-  const extras = [
-    { name:'Static Page', slug:'page' },
-    { name:'Project', slug:'project' },
-    { name:'Case Study', slug:'case_study' },
-  ].filter(cat => !existing.has(cat.slug))
-  return [...allCategories, ...extras]
-})
 const departmentOptions = computed(() => institutionalDepartments.value.length ? institutionalDepartments.value : teamDepartments.value)
 const currentRoleNames = computed(() => normalizeRoleNames(storedUser.roles || storedUser.role || []))
 const currentPermissionNames = computed(() => {
@@ -2073,13 +2063,6 @@ function listData(res, fallback = []) {
   if (Array.isArray(value)) return value
   if (Array.isArray(value?.items)) return value.items
   return fallback
-}
-function scopedCategories(items, type) {
-  const aliases = [type, `${type}_category`]
-  if (type === 'investment') aliases.push('invest')
-  if (type === 'federation') aliases.push('association', 'associations')
-  const scoped = (items || []).filter(item => aliases.includes(item.content_type || item.category_type || item.scope || ''))
-  return scoped.length ? scoped : (items || [])
 }
 function pageMeta(res) { return res?.data?.meta || {} }
 function setMsg(text) { message.value = text; error.value = ''; setTimeout(() => { message.value = '' }, 2500) }
@@ -2299,16 +2282,16 @@ async function loadAll() {
     permissions.value = listData(results[23].value)
     auditLogs.value = listData(results[24].value)
     auditMeta.value = pageMeta(results[24].value)
-    projectCategories.value = scopedCategories(listData(results[25].value), 'project')
-    caseStudyCategories.value = scopedCategories(listData(results[26].value), 'case_study')
-    faqCategories.value = scopedCategories(listData(results[27].value), 'faq')
-    resourceCategories.value = scopedCategories(listData(results[28].value), 'resource')
-    careerCategories.value = scopedCategories(listData(results[29].value), 'career')
-    teamDepartments.value = scopedCategories(listData(results[30].value), 'team_department')
-    facilityCategories.value = scopedCategories(listData(results[31].value), 'facility')
-    eventCategories.value = scopedCategories(listData(results[32].value), 'event')
-    investCategories.value = scopedCategories(listData(results[33].value), 'investment')
-    federationCategories.value = scopedCategories(listData(results[34].value), 'federation')
+    projectCategories.value = listData(results[25].value)
+    caseStudyCategories.value = listData(results[26].value)
+    faqCategories.value = listData(results[27].value)
+    resourceCategories.value = listData(results[28].value)
+    careerCategories.value = listData(results[29].value)
+    teamDepartments.value = listData(results[30].value)
+    facilityCategories.value = listData(results[31].value)
+    eventCategories.value = listData(results[32].value)
+    investCategories.value = listData(results[33].value)
+    federationCategories.value = listData(results[34].value)
     newsletterSubscribers.value = listData(results[35].value, sampleNewsletterSubscribers())
     institutionalDepartments.value = listData(results[36].value)
     analytics.value = data(results[37].value) || null
@@ -3039,11 +3022,11 @@ function resetPageForm() {
 }
 
 function resetProjectForm() {
-  Object.assign(projectForm, { id:'', title:'', slug:'', category:'project', excerpt:'', content:'', cover_image_url:'', status:'draft', meta_title:'', meta_description:'', focus_keywords:'' })
+  Object.assign(projectForm, { id:'', title:'', slug:'', category:'project', category_tag:'', excerpt:'', content:'', cover_image_url:'', status:'draft', meta_title:'', meta_description:'', focus_keywords:'' })
 }
 
 function resetCaseStudyForm() {
-  Object.assign(caseStudyForm, { id:'', title:'', slug:'', category:'case_study', excerpt:'', content:'', cover_image_url:'', status:'draft', meta_title:'', meta_description:'', focus_keywords:'' })
+  Object.assign(caseStudyForm, { id:'', title:'', slug:'', category:'case_study', category_tag:'', excerpt:'', content:'', cover_image_url:'', status:'draft', meta_title:'', meta_description:'', focus_keywords:'' })
 }
 
 function resetBlogCategoryForm() {

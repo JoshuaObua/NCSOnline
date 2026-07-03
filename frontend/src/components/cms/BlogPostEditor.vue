@@ -19,7 +19,8 @@
             </div>
             <div class="form-group col-lg-4">
               <label>Category</label>
-              <select v-model="model.category" class="form-control selectric">
+              <select v-model="model[categoryField]" class="form-control selectric">
+                <option value="">None</option>
                 <option v-for="cat in categories" :key="cat.slug || cat.value" :value="cat.slug || cat.value">{{ cat.name || cat.label }}</option>
               </select>
             </div>
@@ -128,7 +129,7 @@ import { debounce } from '@/utils/menuTree.js'
 import { sanitizeRichHtml } from '@/utils/sanitize.js'
 import DropzoneUpload from '@/components/cms/DropzoneUpload.vue'
 
-const props = defineProps({ model: { type: Object, required: true }, categories: { type: Array, default: () => [] } })
+const props = defineProps({ model: { type: Object, required: true }, categories: { type: Array, default: () => [] }, categoryField: { type: String, default: 'category' } })
 const emit = defineEmits(['save'])
 const manualSlug = ref(false)
 const draftState = ref('')

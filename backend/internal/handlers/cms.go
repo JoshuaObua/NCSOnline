@@ -435,6 +435,7 @@ func (h *CMSHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		Content            string          `json:"content"`
 		Excerpt            string          `json:"excerpt"`
 		Category           string          `json:"category"`
+		CategoryTag        string          `json:"category_tag"`
 		Status             string          `json:"status"`
 		CoverImageURL      string          `json:"cover_image_url"`
 		BreadcrumbImageURL string          `json:"breadcrumb_image_url"`
@@ -492,6 +493,7 @@ func (h *CMSHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
 		Content:         sanitizeRichText(req.Content),
 		Excerpt:         sanitizePlain(req.Excerpt, 500),
 		Category:        sanitizePlain(req.Category, 80),
+		CategoryTag:     sanitizePlain(req.CategoryTag, 80),
 		Status:          status,
 		CoverImageURL:   sanitizePlain(req.CoverImageURL, 500),
 		AuthorID:        &authorID,
@@ -530,6 +532,7 @@ func (h *CMSHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 		Content            string          `json:"content"`
 		Excerpt            string          `json:"excerpt"`
 		Category           string          `json:"category"`
+		CategoryTag        *string         `json:"category_tag"`
 		Status             string          `json:"status"`
 		CoverImageURL      string          `json:"cover_image_url"`
 		BreadcrumbImageURL string          `json:"breadcrumb_image_url"`
@@ -558,6 +561,9 @@ func (h *CMSHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Category != "" {
 		post.Category = sanitizePlain(req.Category, 80)
+	}
+	if req.CategoryTag != nil {
+		post.CategoryTag = sanitizePlain(*req.CategoryTag, 80)
 	}
 	if req.BreadcrumbImageURL != "" {
 		req.CoverImageURL = req.BreadcrumbImageURL
@@ -610,7 +616,11 @@ func (h *CMSHandler) DeletePost(w http.ResponseWriter, r *http.Request) {
 
 func (h *CMSHandler) ListBlogCategories(w http.ResponseWriter, r *http.Request) {
 	activeOnly := r.URL.Query().Get("active") != "false"
-	cats, err := h.repo.ListBlogCategories(r.Context(), activeOnly)
+	contentType := strings.TrimSpace(r.URL.Query().Get("content_type"))
+	if contentType == "" {
+		contentType = "blog"
+	}
+	cats, err := h.repo.ListBlogCategories(r.Context(), activeOnly, contentType)
 	if err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list blog categories")
 		return
@@ -623,6 +633,7 @@ func (h *CMSHandler) CreateBlogCategory(w http.ResponseWriter, r *http.Request) 
 		Name        string `json:"name"`
 		Slug        string `json:"slug"`
 		Description string `json:"description"`
+		ContentType string `json:"content_type"`
 		SortOrder   int    `json:"sort_order"`
 		IsActive    bool   `json:"is_active"`
 	}
@@ -642,7 +653,11 @@ func (h *CMSHandler) CreateBlogCategory(w http.ResponseWriter, r *http.Request) 
 		response.ValidationErr(w, map[string]string{"slug": "must match ^[a-z0-9-_]+$"})
 		return
 	}
-	cat := &models.BlogCategory{ID: uuid.NewString(), Name: sanitizePlain(req.Name, 120), Slug: slug, Description: sanitizePlain(req.Description, 500), SortOrder: req.SortOrder, IsActive: req.IsActive}
+	contentType := strings.TrimSpace(req.ContentType)
+	if contentType == "" {
+		contentType = "blog"
+	}
+	cat := &models.BlogCategory{ID: uuid.NewString(), Name: sanitizePlain(req.Name, 120), Slug: slug, Description: sanitizePlain(req.Description, 500), ContentType: contentType, SortOrder: req.SortOrder, IsActive: req.IsActive}
 	if err := h.repo.CreateBlogCategory(r.Context(), cat); err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create blog category")
 		return
@@ -656,6 +671,7 @@ func (h *CMSHandler) UpdateBlogCategory(w http.ResponseWriter, r *http.Request) 
 		Name        string `json:"name"`
 		Slug        string `json:"slug"`
 		Description string `json:"description"`
+		ContentType string `json:"content_type"`
 		SortOrder   int    `json:"sort_order"`
 		IsActive    bool   `json:"is_active"`
 	}
@@ -667,7 +683,11 @@ func (h *CMSHandler) UpdateBlogCategory(w http.ResponseWriter, r *http.Request) 
 		response.ValidationErr(w, map[string]string{"name": "required", "slug": "must match ^[a-z0-9-_]+$"})
 		return
 	}
-	cat := &models.BlogCategory{ID: id, Name: sanitizePlain(req.Name, 120), Slug: req.Slug, Description: sanitizePlain(req.Description, 500), SortOrder: req.SortOrder, IsActive: req.IsActive}
+	contentType := strings.TrimSpace(req.ContentType)
+	if contentType == "" {
+		contentType = "blog"
+	}
+	cat := &models.BlogCategory{ID: id, Name: sanitizePlain(req.Name, 120), Slug: req.Slug, Description: sanitizePlain(req.Description, 500), ContentType: contentType, SortOrder: req.SortOrder, IsActive: req.IsActive}
 	if err := h.repo.UpdateBlogCategory(r.Context(), cat); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Category not found")

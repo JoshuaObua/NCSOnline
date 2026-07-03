@@ -244,6 +244,7 @@ type CMSPost struct {
 	Content         string     `json:"content"`
 	Excerpt         string     `json:"excerpt"`
 	Category        string     `json:"category"`
+	CategoryTag     string     `json:"category_tag,omitempty"`
 	Status          string     `json:"status"`
 	CoverImageURL   string     `json:"cover_image_url,omitempty"`
 	AuthorID        *string    `json:"author_id,omitempty"`
@@ -263,6 +264,7 @@ type BlogCategory struct {
 	Name        string    `json:"name"`
 	Slug        string    `json:"slug"`
 	Description string    `json:"description,omitempty"`
+	ContentType string    `json:"content_type"`
 	SortOrder   int       `json:"sort_order"`
 	IsActive    bool      `json:"is_active"`
 	CreatedAt   time.Time `json:"created_at"`
