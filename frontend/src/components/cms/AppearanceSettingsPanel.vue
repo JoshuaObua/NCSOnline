@@ -16,8 +16,42 @@
       <p class="storage-hint">Accepts .ttf, .otf, .woff, and .woff2. The display name becomes the CSS font-family used in Typography Mapping.</p>
       <div class="font-upload-row">
         <label class="wide">Display name<input v-model="newFontName" class="form-control" placeholder="e.g. Custom Header Bold" /></label>
-        <label class="wide">Font file<input ref="fileInput" type="file" accept=".ttf,.otf,.woff,.woff2" @change="onFilePicked" /></label>
-        <button type="button" :disabled="uploading || !newFontFile || !newFontName.trim()" @click="uploadFont">{{ uploading ? 'Uploading…' : 'Upload font' }}</button>
+        <div class="otika-upload">
+          <input ref="fileInput" class="sr-only" type="file" accept=".ttf,.otf,.woff,.woff2" @change="onFilePicked" />
+          <div
+            class="dropzone dz-clickable"
+            :class="{ 'dz-drag-hover': dragging, 'dz-started': !!newFontFile, 'dz-uploading': uploading }"
+            role="button"
+            tabindex="0"
+            :aria-label="newFontFile ? 'Replace font file' : 'Choose or drop a font file'"
+            @click="fileInput?.click()"
+            @keydown.enter.prevent="fileInput?.click()"
+            @keydown.space.prevent="fileInput?.click()"
+            @dragover.prevent="dragging = true"
+            @dragleave.prevent="dragging = false"
+            @drop.prevent="onDrop"
+          >
+            <div class="dz-message">
+              <div v-if="newFontFile" class="dz-preview">
+                <i class="fas fa-font" aria-hidden="true"></i>
+                <div class="dz-details">
+                  <div class="dz-filename">{{ newFontFile.name }}</div>
+                  <div class="dz-size">{{ formatFileSize(newFontFile.size) }}</div>
+                </div>
+              </div>
+              <div v-else class="otika-drop-empty">
+                <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+                <h6>{{ uploading ? 'Uploading…' : 'Drop a font file here' }}</h6>
+                <span>.ttf, .otf, .woff, or .woff2 — click to browse</span>
+              </div>
+            </div>
+          </div>
+          <div class="upload-actions">
+            <button type="button" class="btn-secondary" @click="fileInput?.click()">{{ newFontFile ? 'Replace' : 'Choose file' }}</button>
+            <button v-if="newFontFile" type="button" class="btn-danger" aria-label="Remove selected file" @click="clearPickedFile"><i class="fas fa-trash" aria-hidden="true"></i></button>
+          </div>
+        </div>
+        <button type="button" class="upload-submit" :disabled="uploading || !newFontFile || !newFontName.trim()" @click="uploadFont">{{ uploading ? 'Uploading…' : 'Upload font' }}</button>
       </div>
 
       <div class="cms-panel-head"><h3>Installed fonts</h3></div>
@@ -87,9 +121,25 @@ const newFontName = ref('')
 const fileInput = ref(null)
 const uploading = ref(false)
 const saving = ref(false)
+const dragging = ref(false)
+
+const ALLOWED_FONT_EXT = ['.ttf', '.otf', '.woff', '.woff2']
 
 function quoted(name) {
   return /\s/.test(name) ? `'${name}'` : name
+}
+
+function formatFileSize(bytes) {
+  const n = Number(bytes) || 0
+  if (n <= 0) return '0 B'
+  const units = ['B', 'KB', 'MB']
+  const i = Math.min(units.length - 1, Math.floor(Math.log(n) / Math.log(1024)))
+  return `${(n / Math.pow(1024, i)).toFixed(1)} ${units[i]}`
+}
+
+function isFontFile(file) {
+  const name = file?.name?.toLowerCase() || ''
+  return ALLOWED_FONT_EXT.some(ext => name.endsWith(ext))
 }
 
 function injectFontPreviewFaces() {
@@ -117,7 +167,28 @@ async function loadTypography() {
 }
 
 function onFilePicked(event) {
-  newFontFile.value = event.target.files?.[0] || null
+  const file = event.target.files?.[0] || null
+  event.target.value = ''
+  if (file && !isFontFile(file)) {
+    emit('error', new Error('Use a .ttf, .otf, .woff, or .woff2 file.'))
+    return
+  }
+  newFontFile.value = file
+}
+
+function onDrop(event) {
+  dragging.value = false
+  const file = event.dataTransfer.files?.[0] || null
+  if (file && !isFontFile(file)) {
+    emit('error', new Error('Use a .ttf, .otf, .woff, or .woff2 file.'))
+    return
+  }
+  newFontFile.value = file
+}
+
+function clearPickedFile() {
+  newFontFile.value = null
+  if (fileInput.value) fileInput.value.value = ''
 }
 
 async function uploadFont() {
@@ -126,8 +197,7 @@ async function uploadFont() {
   try {
     await adminUploadFont(newFontFile.value, newFontName.value.trim())
     newFontName.value = ''
-    newFontFile.value = null
-    if (fileInput.value) fileInput.value.value = ''
+    clearPickedFile()
     await loadFonts()
     emit('message', 'Font uploaded')
   } catch (err) {
@@ -186,11 +256,32 @@ onMounted(async () => {
 
 .storage-hint { color: #6c757d; font-size: 13px; margin: 0; line-height: 1.7; }
 
-.font-upload-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px; align-items: end; }
-.font-upload-row label { display: grid; gap: 7px; font-size: 12px; font-weight: 600; color: #34395e; min-width: 0; }
-.font-upload-row input { border: 1px solid #e4e6fc; border-radius: 3px; padding: 10px 15px; font-weight: 500; color: #495057; background: #fdfdff; outline: none; }
-.font-upload-row button { border: 0; border-radius: 30px; background: #6777ef; color: #fff; padding: 10px 18px; font-size: 12px; font-weight: 700; white-space: nowrap; }
-.font-upload-row button:disabled { opacity: .5; }
+.font-upload-row { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 14px; align-items: start; }
+.font-upload-row > label { display: grid; gap: 7px; font-size: 12px; font-weight: 600; color: #34395e; min-width: 0; }
+.font-upload-row > label input { border: 1px solid #e4e6fc; border-radius: 3px; padding: 10px 15px; font-weight: 500; color: #495057; background: #fdfdff; outline: none; }
+.upload-submit { border: 0; border-radius: 30px; background: #6777ef; color: #fff; padding: 10px 18px; font-size: 12px; font-weight: 700; white-space: nowrap; align-self: end; }
+.upload-submit:disabled { opacity: .5; }
+
+.otika-upload { display: grid; gap: 10px; min-width: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.dropzone { min-height: 90px; border: 2px dashed #6777ef; background: #fff; border-radius: 3px; padding: 14px; cursor: pointer; transition: border-color 150ms ease, background 150ms ease; }
+.dropzone.dz-drag-hover,
+.dropzone.dz-started { border-color: #ffa426; background: #fffdf7; }
+.dropzone.dz-uploading { opacity: .75; }
+.dropzone:focus-visible { outline: 2px solid #6777ef; outline-offset: 2px; }
+.dz-message { margin: 0; text-align: center; }
+.otika-drop-empty { display: grid; justify-items: center; gap: 6px; padding: 6px 10px; color: #6c757d; }
+.otika-drop-empty i { color: #6777ef; font-size: 30px; }
+.otika-drop-empty h6 { margin: 0; color: #34395e; font-size: 13px; font-weight: 700; }
+.otika-drop-empty span { font-size: 11px; }
+.dz-preview { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.dz-preview i { color: #6777ef; font-size: 28px; }
+.dz-details { text-align: left; color: #34395e; font-size: 12px; }
+.dz-filename { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 16rem; }
+.dz-size { color: #94a3b8; }
+.upload-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.upload-actions .btn-secondary { border: 1px solid #e4e6fc; border-radius: 30px; background: #fff; color: #34395e; padding: 6px 14px; font-size: 11px; font-weight: 700; }
+.upload-actions .btn-danger { border: 0; border-radius: 30px; background: #fc544b; color: #fff; padding: 6px 10px; font-size: 11px; font-weight: 700; }
 
 .font-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .font-table th { text-align: left; color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px 10px; border-bottom: 1px solid #f1f2fb; }
@@ -223,6 +314,13 @@ onMounted(async () => {
 :global(.dark .font-upload-row input),
 :global(.dark .typography-row select),
 :global(.dark .typography-row input) { background: #0f172a; color: #f8fafc; border-color: #475569; }
+:global(.dark .dropzone) { background: #1f2937; border-color: #6777ef; }
+:global(.dark .dropzone.dz-drag-hover),
+:global(.dark .dropzone.dz-started) { background: #2b240f; border-color: #ffa426; }
+:global(.dark .otika-drop-empty h6),
+:global(.dark .dz-details) { color: #f8fafc; }
+:global(.dark .otika-drop-empty) { color: #cbd5e1; }
+:global(.dark .upload-actions .btn-secondary) { background: #0f172a; color: #f8fafc; border-color: #475569; }
 :global(.dark .font-table th) { color: #64748b; }
 :global(.dark .font-table td) { color: #f8fafc; border-color: #1e293b; }
 :global(.dark .typography-row) { border-color: #1e293b; }

@@ -1851,12 +1851,15 @@ func (h *CMSHandler) DeleteFont(w http.ResponseWriter, r *http.Request) {
 }
 
 func allowedFontMagic(format string, head []byte) bool {
+	// .otf and .ttf both wrap an sfnt container and are validated the same
+	// way: an .otf file isn't required to use "OTTO" (PostScript/CFF
+	// outlines) — it's just as valid for it to use TrueType outlines
+	// internally, which uses the same sfnt version tag as a .ttf file. The
+	// file extension, not the internal magic, is what actually distinguishes
+	// the two as far as this app cares.
 	switch format {
-	case "otf":
-		return len(head) >= 4 && string(head[0:4]) == "OTTO"
-	case "ttf":
-		// TrueType sfnt version 1.0 (0x00 01 00 00) or a TrueType Collection ("ttcf").
-		return len(head) >= 4 && (string(head[0:4]) == "\x00\x01\x00\x00" || string(head[0:4]) == "true" || string(head[0:4]) == "ttcf")
+	case "otf", "ttf":
+		return len(head) >= 4 && (string(head[0:4]) == "OTTO" || string(head[0:4]) == "\x00\x01\x00\x00" || string(head[0:4]) == "true" || string(head[0:4]) == "ttcf")
 	case "woff":
 		return len(head) >= 4 && string(head[0:4]) == "wOFF"
 	case "woff2":
