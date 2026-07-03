@@ -287,13 +287,15 @@
             </a>
           </div>
 
-          <!-- Column 3 — Quick Links (dynamic from footerSettings.columns[0]) -->
-          <div>
+          <!-- Columns 3+ — fully dynamic footer link columns (title + links both
+               editable in the CMS under Settings → Footer Columns). Any number
+               of columns can exist; each renders identically. -->
+          <div v-for="(column, colIdx) in footerSettings.columns" :key="colIdx">
             <h4 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
-              <span class="w-8 h-0.5 bg-[#f5a623]"></span>{{ quickLinksColumn.title || 'Quick Links' }}
+              <span class="w-8 h-0.5 bg-[#f5a623]"></span>{{ column.title || 'Links' }}
             </h4>
             <ul class="space-y-3">
-              <li v-for="(link, idx) in quickLinksColumn.links" :key="idx">
+              <li v-for="(link, idx) in column.links" :key="idx">
                 <component
                   :is="isExternalLink(link.url) ? 'a' : 'router-link'"
                   v-bind="isExternalLink(link.url) ? { href: link.url, target: '_blank', rel: 'noopener' } : { to: link.url || '/' }"
@@ -303,44 +305,7 @@
                   {{ link.label }}
                 </component>
               </li>
-              <li v-if="!quickLinksColumn.links?.length" class="text-xs text-white/40 italic">No quick links configured yet.</li>
-            </ul>
-          </div>
-
-          <!-- Column 4 — Information (dynamic, CMS "footer_information" menu) -->
-          <div>
-            <h4 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
-              <span class="w-8 h-0.5 bg-[#f5a623]"></span>Information
-            </h4>
-            <ul class="space-y-3">
-              <li v-for="link in footerInformationLinks" :key="link.id || link.label">
-                <component
-                  :is="isExternalNavLink(link) ? 'a' : 'router-link'"
-                  v-bind="linkAttrs(link)"
-                  class="flex items-center gap-2 text-sm text-white/80 hover:text-[#f5a623] transition-colors group"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 group-hover:translate-x-1 transition-transform" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-                  {{ link.label }}
-                </component>
-              </li>
-              <li v-if="!footerInformationLinks.length" class="text-xs text-white/40 italic">No information links configured yet.</li>
-            </ul>
-          </div>
-
-          <!-- Column 5 — Documents (dynamic from footerSettings.columns[1]) -->
-          <div>
-            <h4 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
-              <span class="w-8 h-0.5 bg-[#f5a623]"></span>{{ documentsColumn.title || 'Documents' }}
-            </h4>
-            <ul class="space-y-3">
-              <li v-for="(doc, idx) in documentsColumn.links" :key="idx">
-                <a :href="doc.url" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm text-white/80 hover:text-[#f5a623] transition-colors group">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-red-400 flex-shrink-0" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
-                  <span class="flex-1 line-clamp-1">{{ doc.label }}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-                </a>
-              </li>
-              <li v-if="!documentsColumn.links?.length" class="text-xs text-white/40 italic">No documents added yet.</li>
+              <li v-if="!column.links?.length" class="text-xs text-white/40 italic">No links configured yet.</li>
             </ul>
           </div>
         </div>
@@ -474,11 +439,6 @@ const defaultFooter = {
 
 const menuItems = ref(defaultMenu)
 const footerSettings = reactive({ ...defaultFooter, columns: [...defaultFooter.columns] })
-const footerInformationLinks = ref([])
-
-// Quick Links uses the first dynamic column (CMS), Documents uses the second
-const quickLinksColumn = computed(() => footerSettings.columns?.[0] || defaultFooter.columns[0])
-const documentsColumn = computed(() => footerSettings.columns?.[1] || defaultFooter.columns[1])
 
 // Address rendered as multi-line block: split contact.address on newlines (or commas),
 // then append postal_address as a separate line if present.
@@ -702,14 +662,6 @@ async function loadTypography() {
   } catch { /* leave default site typography untouched */ }
 }
 
-async function loadFooterInformation() {
-  try {
-    const r = await getMenu('footer_information')
-    const items = r.data?.data?.items || r.data?.data?.Items || []
-    footerInformationLinks.value = items
-  } catch { /* keep empty — column hides itself */ }
-}
-
 async function loadFooterSettings() {
   try {
     const r = await getSettings('footer')
@@ -778,7 +730,6 @@ onMounted(() => {
   trackPageView(route.path)
   loadMenu()
   loadFooterSettings()
-  loadFooterInformation()
   loadContact()
   loadHeaderSettings()
   loadSiteIdentity()
