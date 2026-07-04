@@ -1509,7 +1509,7 @@ const unreadMessageCount = computed(() => contactMessages.value.filter(m => m.st
 const unreadNotificationCount = computed(() => cmsNotifications.value.filter(n => n.status === 'unread').length)
 
 const topSections = [
-  { id:'overview', label:'Overview', icon:'icofont-dashboard-web' },
+  { id:'overview', label:'Dashboard', icon:'icofont-dashboard-web' },
   { id:'analytics', label:'Analytics', icon:'icofont-chart-histogram' },
 ]
 const homepageSections = [

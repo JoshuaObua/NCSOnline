@@ -29,6 +29,7 @@ func main() {
 	repos := repository.New(db)
 	repo := repos.NSMIS
 	emailer := services.NewEmailService(cfg)
+	backupExecutor := services.NewBackupExecutor(repos.Backups, cfg.DatabaseURL)
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	workerID := "nsmis-" + uuid.NewString()
@@ -64,6 +65,23 @@ func main() {
 				}
 				if !worked {
 					break
+				}
+			}
+			if err := repos.Backups.EnsureDaily(ctx); err != nil {
+				log.Printf("could not schedule daily backup: %v", err)
+			}
+			for i := 0; i < 5; i++ {
+				job, claimErr := repos.Backups.Claim(ctx, workerID)
+				if claimErr == repository.ErrNotFound {
+					break
+				}
+				if claimErr != nil {
+					log.Printf("backup job claim failed: %v", claimErr)
+					break
+				}
+				if runErr := backupExecutor.RunJob(ctx, *job); runErr != nil {
+					log.Printf("backup job %s (%s) failed: %v", job.ID, job.JobType, runErr)
+					_ = repos.Backups.Fail(ctx, job.ID, runErr.Error())
 				}
 			}
 		}

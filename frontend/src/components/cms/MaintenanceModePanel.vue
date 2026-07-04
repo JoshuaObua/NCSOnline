@@ -36,7 +36,7 @@
       <div class="cms-panel-head">
         <h3>Database Backups</h3>
         <div class="profile-actions">
-          <button type="button" :disabled="queuing" @click="queue('BACKUP')">{{ queuing ? 'Queuing…' : 'Queue backup' }}</button>
+          <button type="button" :disabled="queuing" @click="queue('BACKUP')">{{ queuing ? 'Starting backup…' : 'Run Manual Backup' }}</button>
           <button type="button" @click="checkHealth">Check DB health</button>
         </div>
       </div>

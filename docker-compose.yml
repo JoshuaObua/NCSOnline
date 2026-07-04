@@ -37,6 +37,7 @@ services:
       - website_uploads_data:/app/uploads
       - website_private_data:/app/private-data
       - website_app_logs:/var/log/app
+      - website_backups_data:/var/backups/ncs
     expose: ["${PORT}"]
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:${PORT}/healthz || exit 1"]
@@ -44,6 +45,22 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    networks: [ncswebsite_net]
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    entrypoint: ["/nsmis-worker"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: [.env]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    volumes:
+      - website_backups_data:/var/backups/ncs
     networks: [ncswebsite_net]
 
   location-service:
@@ -116,6 +133,7 @@ volumes:
   website_private_data:
   website_geoip_data:
   website_app_logs:
+  website_backups_data:
 
 networks:
   ncswebsite_net:
