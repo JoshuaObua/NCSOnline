@@ -2183,7 +2183,27 @@ func (r *CMSRepo) ListNotifications(ctx context.Context, userID, status string, 
 
 func (r *CMSRepo) CreateNotification(ctx context.Context, n *models.Notification) error {
 	const q = `INSERT INTO notifications (id, user_id, type, title, message, status, icon_key) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING created_at`
-	return r.db.QueryRow(ctx, q, n.ID, n.UserID, n.Type, n.Title, n.Message, n.Status, n.IconKey).Scan(&n.CreatedAt)
+	if err := r.db.QueryRow(ctx, q, n.ID, n.UserID, n.Type, n.Title, n.Message, n.Status, n.IconKey).Scan(&n.CreatedAt); err != nil {
+		return err
+	}
+	_, _ = r.db.Exec(ctx, `INSERT INTO system_notifications (id,user_id,event_type,title,message,severity,payload,status,created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9)
+		ON CONFLICT (id) DO NOTHING`,
+		n.ID, n.UserID, n.Type, n.Title, n.Message, notificationSeverity(n.Type), `{}`, n.Status, n.CreatedAt)
+	return nil
+}
+
+func notificationSeverity(kind string) string {
+	switch kind {
+	case "new_sign_in", "unusual_activity", "deploy_failed", "service_offline":
+		return "warning"
+	case "system_failure", "security_alert":
+		return "critical"
+	case "system_success", "backup_success":
+		return "success"
+	default:
+		return "info"
+	}
 }
 
 func (r *CMSRepo) UpdateNotificationStatus(ctx context.Context, id, userID, status string) error {
@@ -2205,6 +2225,138 @@ func (r *CMSRepo) ClearNotifications(ctx context.Context, userID string) error {
 func (r *CMSRepo) MarkAllNotificationsRead(ctx context.Context, userID string) error {
 	_, err := r.db.Exec(ctx, `UPDATE notifications SET status='read' WHERE status='unread' AND ($1='' OR user_id=$1 OR user_id IS NULL)`, userID)
 	return err
+}
+
+func (r *CMSRepo) UpsertInboundSubmission(ctx context.Context, s *models.InboundSubmission) error {
+	if s.ID == "" {
+		return errors.New("inbound submission id required")
+	}
+	if s.Payload == nil {
+		s.Payload = json.RawMessage(`{}`)
+	}
+	if s.InternalNotes == nil {
+		s.InternalNotes = json.RawMessage(`[]`)
+	}
+	if s.StatusState == "" {
+		s.StatusState = "unread"
+	}
+	if s.WorkflowStatus == "" {
+		s.WorkflowStatus = "pending_review"
+	}
+	const q = `INSERT INTO inbound_submissions (id,source_type,source_id,payload,status_state,workflow_status,assigned_admin_id,internal_notes)
+	           VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8::jsonb)
+	           ON CONFLICT (source_type, source_id) DO UPDATE SET
+	             payload=EXCLUDED.payload,
+	             status_state=EXCLUDED.status_state,
+	             workflow_status=EXCLUDED.workflow_status,
+	             assigned_admin_id=COALESCE(EXCLUDED.assigned_admin_id, inbound_submissions.assigned_admin_id),
+	             updated_at=NOW()
+	           RETURNING created_at, updated_at`
+	return r.db.QueryRow(ctx, q, s.ID, s.SourceType, nullableText(s.SourceID), s.Payload, s.StatusState, s.WorkflowStatus, s.AssignedAdminID, s.InternalNotes).Scan(&s.CreatedAt, &s.UpdatedAt)
+}
+
+func (r *CMSRepo) ListInboundSubmissions(ctx context.Context, sourceType, status string, limit, offset int) ([]*models.InboundSubmission, int64, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	const countQ = `SELECT COUNT(*) FROM inbound_submissions WHERE ($1='' OR source_type=$1) AND ($2='' OR status_state=$2)`
+	const q = `SELECT id,source_type,COALESCE(source_id,''),payload,status_state,workflow_status,assigned_admin_id,internal_notes,created_at,updated_at
+	           FROM inbound_submissions
+	           WHERE ($1='' OR source_type=$1) AND ($2='' OR status_state=$2)
+	           ORDER BY created_at DESC LIMIT $3 OFFSET $4`
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, sourceType, status).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.db.Query(ctx, q, sourceType, status, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := []*models.InboundSubmission{}
+	for rows.Next() {
+		s := &models.InboundSubmission{}
+		if err := rows.Scan(&s.ID, &s.SourceType, &s.SourceID, &s.Payload, &s.StatusState, &s.WorkflowStatus, &s.AssignedAdminID, &s.InternalNotes, &s.CreatedAt, &s.UpdatedAt); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, s)
+	}
+	return out, total, rows.Err()
+}
+
+func (r *CMSRepo) InboundSubmissionCounts(ctx context.Context) (*models.InboundSubmissionCounts, error) {
+	rows, err := r.db.Query(ctx, `SELECT source_type, COUNT(*) FROM inbound_submissions WHERE status_state='unread' GROUP BY source_type`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	counts := &models.InboundSubmissionCounts{}
+	for rows.Next() {
+		var source string
+		var count int64
+		if err := rows.Scan(&source, &count); err != nil {
+			return nil, err
+		}
+		switch source {
+		case "blog_comment":
+			counts.BlogComments = count
+		case "contact_form":
+			counts.ContactForms = count
+		case "investment_request":
+			counts.InvestmentRequests = count
+		}
+		counts.Total += count
+	}
+	return counts, rows.Err()
+}
+
+func (r *CMSRepo) UpdateInboundSubmission(ctx context.Context, id, statusState, workflowStatus, adminID string) error {
+	if statusState == "" && workflowStatus == "" && adminID == "" {
+		return nil
+	}
+	ct, err := r.db.Exec(ctx, `UPDATE inbound_submissions
+		SET status_state=CASE WHEN $2='' THEN status_state ELSE $2 END,
+		    workflow_status=CASE WHEN $3='' THEN workflow_status ELSE $3 END,
+		    assigned_admin_id=CASE WHEN $4='' THEN assigned_admin_id ELSE $4 END,
+		    updated_at=NOW()
+		WHERE id=$1`, id, statusState, workflowStatus, adminID)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) ArchiveInboundBySource(ctx context.Context, sourceType, workflowStatus string) error {
+	if workflowStatus == "" {
+		workflowStatus = "archived"
+	}
+	_, err := r.db.Exec(ctx, `UPDATE inbound_submissions
+		SET status_state='archived', workflow_status=$2, updated_at=NOW()
+		WHERE source_type=$1`, sourceType, workflowStatus)
+	return err
+}
+
+func (r *CMSRepo) AddInboundSubmissionNote(ctx context.Context, id, adminID, note string) error {
+	payload, _ := json.Marshal(map[string]string{
+		"id":         "note_" + time.Now().UTC().Format("20060102150405.000000000"),
+		"admin_id":   adminID,
+		"note":       note,
+		"created_at": time.Now().UTC().Format(time.RFC3339),
+	})
+	ct, err := r.db.Exec(ctx, `UPDATE inbound_submissions
+		SET internal_notes = COALESCE(internal_notes, '[]'::jsonb) || jsonb_build_array($2::jsonb),
+		    updated_at=NOW()
+		WHERE id=$1`, id, string(payload))
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r *CMSRepo) ListContactMessages(ctx context.Context, status string, limit, offset int) ([]*models.ContactMessage, int64, error) {
@@ -2247,6 +2399,13 @@ func (r *CMSRepo) UpdateContactMessageStatus(ctx context.Context, id, status str
 		return ErrNotFound
 	}
 	return nil
+}
+
+func nullableText(value string) interface{} {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return strings.TrimSpace(value)
 }
 
 func (r *CMSRepo) DeleteContactMessage(ctx context.Context, id string) error {

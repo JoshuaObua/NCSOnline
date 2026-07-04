@@ -107,6 +107,26 @@ type ContactMessage struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type InboundSubmission struct {
+	ID              string          `json:"id"`
+	SourceType      string          `json:"source_type"`
+	SourceID        string          `json:"source_id,omitempty"`
+	Payload         json.RawMessage `json:"payload"`
+	StatusState     string          `json:"status_state"`
+	WorkflowStatus  string          `json:"workflow_status"`
+	AssignedAdminID *string         `json:"assigned_admin_id,omitempty"`
+	InternalNotes   json.RawMessage `json:"internal_notes"`
+	CreatedAt       time.Time       `json:"created_at"`
+	UpdatedAt       time.Time       `json:"updated_at"`
+}
+
+type InboundSubmissionCounts struct {
+	BlogComments       int64 `json:"blog_comment"`
+	ContactForms       int64 `json:"contact_form"`
+	InvestmentRequests int64 `json:"investment_request"`
+	Total              int64 `json:"total"`
+}
+
 // ── Auth Tokens ───────────────────────────────────────────────────
 
 type RefreshToken struct {

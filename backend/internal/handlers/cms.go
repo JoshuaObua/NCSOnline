@@ -11,8 +11,10 @@ import (
 	"html"
 	"io"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -66,6 +68,10 @@ func notificationTheme(kind string) (string, string) {
 	switch kind {
 	case "new_comment":
 		return "chat", "New Comment"
+	case "contact_form":
+		return "mail", "Contact Message"
+	case "investment_request":
+		return "money", "Investment Request"
 	case "new_sign_in", "unusual_activity":
 		return "shield-alert", "Security Activity"
 	case "password_reset":
@@ -73,6 +79,205 @@ func notificationTheme(kind string) (string, string) {
 	default:
 		return "check", "System Notification"
 	}
+}
+
+func inboundPayload(values map[string]interface{}) json.RawMessage {
+	raw, err := json.Marshal(values)
+	if err != nil {
+		return json.RawMessage(`{}`)
+	}
+	return raw
+}
+
+func (h *CMSHandler) dispatchInbound(ctx context.Context, sourceType, sourceID string, payload map[string]interface{}, statusState, workflowStatus string) {
+	_ = h.repo.UpsertInboundSubmission(ctx, &models.InboundSubmission{
+		ID:             "inbound_" + sourceType + "_" + sourceID,
+		SourceType:     sourceType,
+		SourceID:       sourceID,
+		Payload:        inboundPayload(payload),
+		StatusState:    firstNonEmpty(statusState, "unread"),
+		WorkflowStatus: firstNonEmpty(workflowStatus, "pending_review"),
+		InternalNotes:  json.RawMessage(`[]`),
+	})
+}
+
+func (h *CMSHandler) notifyAdmins(ctx context.Context, kind, message string) {
+	icon, title := notificationTheme(kind)
+	_ = h.repo.CreateNotification(ctx, &models.Notification{
+		ID: uuid.NewString(), Type: kind, Title: title, Message: message,
+		Status: "unread", IconKey: icon,
+	})
+}
+
+var googleAnalyticsIDPattern = regexp.MustCompile(`^G-[A-Za-z0-9]+$`)
+
+type thirdPartySettings struct {
+	GoogleAnalyticsEnabled bool   `json:"google_analytics_enabled"`
+	GoogleAnalyticsID      string `json:"google_analytics_id"`
+}
+
+func normalizeThirdPartySettings(s thirdPartySettings) thirdPartySettings {
+	s.GoogleAnalyticsID = strings.ToUpper(strings.TrimSpace(s.GoogleAnalyticsID))
+	if !s.GoogleAnalyticsEnabled {
+		s.GoogleAnalyticsID = ""
+	}
+	return s
+}
+
+func validateThirdPartySettings(s thirdPartySettings) (thirdPartySettings, map[string]string) {
+	s = normalizeThirdPartySettings(s)
+	errs := map[string]string{}
+	if s.GoogleAnalyticsEnabled && !googleAnalyticsIDPattern.MatchString(s.GoogleAnalyticsID) {
+		errs["google_analytics_id"] = "must start with G- and contain only letters or numbers"
+	}
+	return s, errs
+}
+
+type captchaSettings struct {
+	Provider                string  `json:"captcha_provider"`
+	CloudflareSiteKey       string  `json:"cloudflare_site_key"`
+	CloudflareSecretKey     string  `json:"cloudflare_secret_key,omitempty"`
+	CloudflareSecretSaved   bool    `json:"cloudflare_secret_saved,omitempty"`
+	RecaptchaSiteKey        string  `json:"recaptcha_site_key"`
+	RecaptchaSecretKey      string  `json:"recaptcha_secret_key,omitempty"`
+	RecaptchaSecretSaved    bool    `json:"recaptcha_secret_saved,omitempty"`
+	RecaptchaScoreThreshold float64 `json:"recaptcha_score_threshold"`
+}
+
+func defaultCaptchaSettings() captchaSettings {
+	return captchaSettings{Provider: "none", RecaptchaScoreThreshold: 0.5}
+}
+
+func normalizeCaptchaSettings(s captchaSettings) captchaSettings {
+	s.Provider = strings.TrimSpace(s.Provider)
+	if s.Provider == "" {
+		s.Provider = "none"
+	}
+	if s.Provider != "none" && s.Provider != "cloudflare_turnstile" && s.Provider != "google_recaptcha" {
+		s.Provider = "none"
+	}
+	s.CloudflareSiteKey = strings.TrimSpace(s.CloudflareSiteKey)
+	s.CloudflareSecretKey = strings.TrimSpace(s.CloudflareSecretKey)
+	s.RecaptchaSiteKey = strings.TrimSpace(s.RecaptchaSiteKey)
+	s.RecaptchaSecretKey = strings.TrimSpace(s.RecaptchaSecretKey)
+	if s.RecaptchaScoreThreshold < 0.1 || s.RecaptchaScoreThreshold > 1 {
+		s.RecaptchaScoreThreshold = 0.5
+	}
+	s.CloudflareSecretSaved = s.CloudflareSecretKey != ""
+	s.RecaptchaSecretSaved = s.RecaptchaSecretKey != ""
+	return s
+}
+
+func publicCaptchaSettings(s captchaSettings) captchaSettings {
+	s.CloudflareSecretSaved = s.CloudflareSecretKey != ""
+	s.RecaptchaSecretSaved = s.RecaptchaSecretKey != ""
+	s.CloudflareSecretKey = ""
+	s.RecaptchaSecretKey = ""
+	return s
+}
+
+func (h *CMSHandler) captchaSettings(ctx context.Context) captchaSettings {
+	settings := defaultCaptchaSettings()
+	s, err := h.repo.GetSetting(ctx, "captcha")
+	if err != nil {
+		return settings
+	}
+	_ = json.Unmarshal(s.Value, &settings)
+	return normalizeCaptchaSettings(settings)
+}
+
+func (h *CMSHandler) validateCaptchaSettings(ctx context.Context, incoming captchaSettings) (captchaSettings, map[string]string) {
+	existing := h.captchaSettings(ctx)
+	incoming.Provider = strings.TrimSpace(incoming.Provider)
+	if incoming.Provider == "" {
+		incoming.Provider = "none"
+	}
+	if strings.TrimSpace(incoming.CloudflareSecretKey) == "" || strings.TrimSpace(incoming.CloudflareSecretKey) == "********" {
+		incoming.CloudflareSecretKey = existing.CloudflareSecretKey
+	}
+	if strings.TrimSpace(incoming.RecaptchaSecretKey) == "" || strings.TrimSpace(incoming.RecaptchaSecretKey) == "********" {
+		incoming.RecaptchaSecretKey = existing.RecaptchaSecretKey
+	}
+	incoming = normalizeCaptchaSettings(incoming)
+	errs := map[string]string{}
+	switch incoming.Provider {
+	case "cloudflare_turnstile":
+		if incoming.CloudflareSiteKey == "" {
+			errs["cloudflare_site_key"] = "required"
+		}
+		if incoming.CloudflareSecretKey == "" {
+			errs["cloudflare_secret_key"] = "required"
+		}
+	case "google_recaptcha":
+		if incoming.RecaptchaSiteKey == "" {
+			errs["recaptcha_site_key"] = "required"
+		}
+		if incoming.RecaptchaSecretKey == "" {
+			errs["recaptcha_secret_key"] = "required"
+		}
+	}
+	return incoming, errs
+}
+
+func (h *CMSHandler) verifyCaptcha(ctx context.Context, r *http.Request, token, action string) error {
+	settings := h.captchaSettings(ctx)
+	if settings.Provider == "none" {
+		return nil
+	}
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return errors.New("captcha token required")
+	}
+	client := &http.Client{Timeout: 3 * time.Second}
+	form := url.Values{"response": {token}, "remoteip": {clientIP(r)}}
+	var endpoint string
+	switch settings.Provider {
+	case "cloudflare_turnstile":
+		if settings.CloudflareSecretKey == "" {
+			return errors.New("captcha is not configured")
+		}
+		endpoint = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+		form.Set("secret", settings.CloudflareSecretKey)
+	case "google_recaptcha":
+		if settings.RecaptchaSecretKey == "" {
+			return errors.New("captcha is not configured")
+		}
+		endpoint = "https://www.google.com/recaptcha/api/siteverify"
+		form.Set("secret", settings.RecaptchaSecretKey)
+	default:
+		return nil
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(form.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	var out struct {
+		Success bool     `json:"success"`
+		Score   float64  `json:"score"`
+		Action  string   `json:"action"`
+		Errors  []string `json:"error-codes"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
+		return err
+	}
+	if !out.Success {
+		return errors.New("captcha verification failed")
+	}
+	if settings.Provider == "google_recaptcha" {
+		if out.Score < settings.RecaptchaScoreThreshold {
+			return errors.New("captcha score too low")
+		}
+		if action != "" && out.Action != "" && out.Action != action {
+			return errors.New("captcha action mismatch")
+		}
+	}
+	return nil
 }
 
 func (h *CMSHandler) ListNotifications(w http.ResponseWriter, r *http.Request) {
@@ -141,6 +346,92 @@ func (h *CMSHandler) MarkAllNotificationsRead(w http.ResponseWriter, r *http.Req
 	response.JSONMsg(w, http.StatusOK, "Notifications marked read")
 }
 
+func (h *CMSHandler) ListInboundSubmissions(w http.ResponseWriter, r *http.Request) {
+	limit, offset := paginate(r)
+	items, total, err := h.repo.ListInboundSubmissions(r.Context(), r.URL.Query().Get("source_type"), r.URL.Query().Get("status"), limit, offset)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list inbound submissions")
+		return
+	}
+	response.JSON(w, http.StatusOK, map[string]interface{}{"total": total, "items": items})
+}
+
+func (h *CMSHandler) InboundSubmissionCounts(w http.ResponseWriter, r *http.Request) {
+	counts, err := h.repo.InboundSubmissionCounts(r.Context())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load inbound counters")
+		return
+	}
+	response.JSON(w, http.StatusOK, counts)
+}
+
+func (h *CMSHandler) UpdateInboundSubmission(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		StatusState    string `json:"status_state"`
+		WorkflowStatus string `json:"workflow_status"`
+		AssignToMe     bool   `json:"assign_to_me"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if req.StatusState != "" && req.StatusState != "unread" && req.StatusState != "read" && req.StatusState != "replied" && req.StatusState != "archived" {
+		response.ValidationErr(w, map[string]string{"status_state": "must be unread, read, replied, or archived"})
+		return
+	}
+	if req.WorkflowStatus != "" && !validInboundWorkflow(req.WorkflowStatus) {
+		response.ValidationErr(w, map[string]string{"workflow_status": "unsupported workflow status"})
+		return
+	}
+	adminID := ""
+	if req.AssignToMe {
+		adminID, _ = r.Context().Value(models.CtxUserID).(string)
+	}
+	if err := h.repo.UpdateInboundSubmission(r.Context(), chi.URLParam(r, "id"), req.StatusState, req.WorkflowStatus, adminID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Inbound submission not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update inbound submission")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Inbound submission updated")
+}
+
+func (h *CMSHandler) AddInboundSubmissionNote(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Note string `json:"note"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	note := sanitizePlain(req.Note, 2000)
+	if note == "" {
+		response.ValidationErr(w, map[string]string{"note": "required"})
+		return
+	}
+	adminID, _ := r.Context().Value(models.CtxUserID).(string)
+	if err := h.repo.AddInboundSubmissionNote(r.Context(), chi.URLParam(r, "id"), adminID, note); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Inbound submission not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save note")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Note saved")
+}
+
+func validInboundWorkflow(status string) bool {
+	switch status {
+	case "pending_review", "approved", "under_negotiation", "declined", "spam", "trash":
+		return true
+	default:
+		return false
+	}
+}
+
 func (h *CMSHandler) ListContactMessages(w http.ResponseWriter, r *http.Request) {
 	limit, offset := paginate(r)
 	items, total, err := h.repo.ListContactMessages(r.Context(), r.URL.Query().Get("status"), limit, offset)
@@ -153,11 +444,13 @@ func (h *CMSHandler) ListContactMessages(w http.ResponseWriter, r *http.Request)
 
 func (h *CMSHandler) CreateContactMessage(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name    string `json:"name"`
-		Email   string `json:"email"`
-		Subject string `json:"subject"`
-		Message string `json:"message"`
-		Website string `json:"website"`
+		Name         string `json:"name"`
+		Email        string `json:"email"`
+		Subject      string `json:"subject"`
+		Message      string `json:"message"`
+		Website      string `json:"website"`
+		CaptchaToken string `json:"captcha_token"`
+		CaptchaAction string `json:"captcha_action"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
@@ -165,6 +458,10 @@ func (h *CMSHandler) CreateContactMessage(w http.ResponseWriter, r *http.Request
 	}
 	if strings.TrimSpace(req.Website) != "" {
 		response.JSONMsg(w, http.StatusCreated, "Message submitted")
+		return
+	}
+	if err := h.verifyCaptcha(r.Context(), r, req.CaptchaToken, firstNonEmpty(req.CaptchaAction, "contact_form")); err != nil {
+		response.Err(w, http.StatusUnprocessableEntity, "CAPTCHA_FAILED", "Bot verification failed. Please try again.")
 		return
 	}
 	errs := map[string]string{}
@@ -190,12 +487,80 @@ func (h *CMSHandler) CreateContactMessage(w http.ResponseWriter, r *http.Request
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not submit message")
 		return
 	}
-	icon, title := notificationTheme("system_success")
-	_ = h.repo.CreateNotification(r.Context(), &models.Notification{
-		ID: uuid.NewString(), Type: "system_success", Title: title, Message: "New public contact message received.",
-		Status: "unread", IconKey: icon,
-	})
+	h.dispatchInbound(r.Context(), "contact_form", msg.ID, map[string]interface{}{
+		"message_id": msg.ID,
+		"name":       msg.Name,
+		"email":      msg.Email,
+		"subject":    msg.Subject,
+		"message":    msg.Message,
+	}, "unread", "pending_review")
+	h.notifyAdmins(r.Context(), "contact_form", "New public contact message received.")
 	response.JSON(w, http.StatusCreated, msg)
+}
+
+func (h *CMSHandler) CreateInvestmentRequest(w http.ResponseWriter, r *http.Request) {
+	var req map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if website, _ := req["website"].(string); strings.TrimSpace(website) != "" {
+		response.JSONMsg(w, http.StatusCreated, "Investment request submitted")
+		return
+	}
+	if err := h.verifyCaptcha(r.Context(), r, stringFromMap(req, "captcha_token", "captchaToken"), firstNonEmpty(stringFromMap(req, "captcha_action", "captchaAction"), "investment_request")); err != nil {
+		response.Err(w, http.StatusUnprocessableEntity, "CAPTCHA_FAILED", "Bot verification failed. Please try again.")
+		return
+	}
+	name := sanitizePlain(stringFromMap(req, "name", "full_name", "investor_name"), 180)
+	email := sanitizePlain(stringFromMap(req, "email", "investor_email"), 220)
+	message := sanitizePlain(stringFromMap(req, "message", "proposal", "description"), 5000)
+	if name == "" || !strings.Contains(email, "@") || message == "" {
+		response.ValidationErr(w, map[string]string{"request": "name, valid email, and proposal/message are required"})
+		return
+	}
+	id := uuid.NewString()
+	payload := map[string]interface{}{}
+	for key, value := range req {
+		if key == "website" || key == "captcha_token" || key == "captchaToken" || key == "captcha_action" || key == "captchaAction" {
+			continue
+		}
+		switch typed := value.(type) {
+		case string:
+			payload[key] = sanitizePlain(typed, 5000)
+		default:
+			payload[key] = typed
+		}
+	}
+	payload["id"] = id
+	payload["name"] = name
+	payload["email"] = email
+	h.dispatchInbound(r.Context(), "investment_request", id, payload, "unread", "pending_review")
+	h.notifyAdmins(r.Context(), "investment_request", "New investment or funding request received.")
+	response.JSON(w, http.StatusCreated, map[string]string{"id": id, "status": "submitted"})
+}
+
+func stringFromMap(values map[string]interface{}, keys ...string) string {
+	for _, key := range keys {
+		if value, ok := values[key]; ok {
+			if text := strings.TrimSpace(toString(value)); text != "" {
+				return text
+			}
+		}
+	}
+	return ""
+}
+
+func toString(value interface{}) string {
+	switch v := value.(type) {
+	case string:
+		return v
+	case float64:
+		return strings.TrimRight(strings.TrimRight(strconv.FormatFloat(v, 'f', -1, 64), "0"), ".")
+	default:
+		raw, _ := json.Marshal(v)
+		return string(raw)
+	}
 }
 
 func (h *CMSHandler) UpdateContactMessage(w http.ResponseWriter, r *http.Request) {
@@ -206,8 +571,8 @@ func (h *CMSHandler) UpdateContactMessage(w http.ResponseWriter, r *http.Request
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
 		return
 	}
-	if req.Status != "read" && req.Status != "unread" {
-		response.ValidationErr(w, map[string]string{"status": "must be read or unread"})
+	if req.Status != "read" && req.Status != "unread" && req.Status != "replied" {
+		response.ValidationErr(w, map[string]string{"status": "must be read, unread, or replied"})
 		return
 	}
 	if err := h.repo.UpdateContactMessageStatus(r.Context(), chi.URLParam(r, "id"), req.Status); err != nil {
@@ -218,11 +583,17 @@ func (h *CMSHandler) UpdateContactMessage(w http.ResponseWriter, r *http.Request
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update message")
 		return
 	}
+	inboundState := req.Status
+	if inboundState == "replied" {
+		inboundState = "replied"
+	}
+	_ = h.repo.UpdateInboundSubmission(r.Context(), "inbound_contact_form_"+chi.URLParam(r, "id"), inboundState, "", "")
 	response.JSONMsg(w, http.StatusOK, "Message updated")
 }
 
 func (h *CMSHandler) DeleteContactMessage(w http.ResponseWriter, r *http.Request) {
-	if err := h.repo.DeleteContactMessage(r.Context(), chi.URLParam(r, "id")); err != nil {
+	id := chi.URLParam(r, "id")
+	if err := h.repo.DeleteContactMessage(r.Context(), id); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Message not found")
 			return
@@ -230,6 +601,7 @@ func (h *CMSHandler) DeleteContactMessage(w http.ResponseWriter, r *http.Request
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not delete message")
 		return
 	}
+	_ = h.repo.UpdateInboundSubmission(r.Context(), "inbound_contact_form_"+id, "archived", "trash", "")
 	response.JSONMsg(w, http.StatusOK, "Message deleted")
 }
 
@@ -238,6 +610,7 @@ func (h *CMSHandler) ClearContactMessages(w http.ResponseWriter, r *http.Request
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not clear messages")
 		return
 	}
+	_ = h.repo.ArchiveInboundBySource(r.Context(), "contact_form", "trash")
 	response.JSONMsg(w, http.StatusOK, "Messages cleared")
 }
 
@@ -741,9 +1114,11 @@ func (h *CMSHandler) SubmitPostComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Body     string  `json:"body"`
-		ParentID *string `json:"parent_id"`
-		Website  string  `json:"website"`
+		Body          string  `json:"body"`
+		ParentID      *string `json:"parent_id"`
+		Website       string  `json:"website"`
+		CaptchaToken  string  `json:"captcha_token"`
+		CaptchaAction string  `json:"captcha_action"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
@@ -751,6 +1126,10 @@ func (h *CMSHandler) SubmitPostComment(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.TrimSpace(req.Website) != "" {
 		response.JSONMsg(w, http.StatusCreated, "Comment submitted")
+		return
+	}
+	if err := h.verifyCaptcha(r.Context(), r, req.CaptchaToken, firstNonEmpty(req.CaptchaAction, "blog_comment")); err != nil {
+		response.Err(w, http.StatusUnprocessableEntity, "CAPTCHA_FAILED", "Bot verification failed. Please try again.")
 		return
 	}
 	body := sanitizePlain(req.Body, 1500)
@@ -774,6 +1153,18 @@ func (h *CMSHandler) SubmitPostComment(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not submit comment")
 		return
 	}
+	h.dispatchInbound(r.Context(), "blog_comment", comment.ID, map[string]interface{}{
+		"comment_id":     comment.ID,
+		"post_id":        post.ID,
+		"post_title":     post.Title,
+		"post_slug":      post.Slug,
+		"comment_body":   comment.Body,
+		"comment_status": comment.Status,
+		"user_id":        userID,
+		"ip_address":     comment.IPAddress,
+		"user_agent":     comment.UserAgent,
+	}, "unread", "pending_review")
+	h.notifyAdmins(r.Context(), "new_comment", "A public blog comment is waiting for moderation.")
 	response.JSON(w, http.StatusCreated, comment)
 }
 
@@ -795,7 +1186,8 @@ func (h *CMSHandler) FlagComment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *CMSHandler) moderateComment(w http.ResponseWriter, r *http.Request, status string) {
-	if err := h.repo.ModerateComment(r.Context(), chi.URLParam(r, "id"), status); err != nil {
+	id := chi.URLParam(r, "id")
+	if err := h.repo.ModerateComment(r.Context(), id, status); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Comment not found")
 			return
@@ -803,11 +1195,19 @@ func (h *CMSHandler) moderateComment(w http.ResponseWriter, r *http.Request, sta
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not moderate comment")
 		return
 	}
+	workflowStatus := "approved"
+	statusState := "read"
+	if status == "flagged" {
+		workflowStatus = "spam"
+		statusState = "archived"
+	}
+	_ = h.repo.UpdateInboundSubmission(r.Context(), "inbound_blog_comment_"+id, statusState, workflowStatus, "")
 	response.JSON(w, http.StatusOK, map[string]string{"status": status})
 }
 
 func (h *CMSHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
-	if err := h.repo.DeleteComment(r.Context(), chi.URLParam(r, "id")); err != nil {
+	id := chi.URLParam(r, "id")
+	if err := h.repo.DeleteComment(r.Context(), id); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Comment not found")
 			return
@@ -815,6 +1215,7 @@ func (h *CMSHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not delete comment")
 		return
 	}
+	_ = h.repo.UpdateInboundSubmission(r.Context(), "inbound_blog_comment_"+id, "archived", "trash", "")
 	response.JSONMsg(w, http.StatusOK, "Comment deleted")
 }
 
@@ -1419,6 +1820,13 @@ func (h *CMSHandler) UpdateMenu(w http.ResponseWriter, r *http.Request) {
 // GET /api/v1/cms/settings/{key}
 func (h *CMSHandler) GetSetting(w http.ResponseWriter, r *http.Request) {
 	key := chi.URLParam(r, "key")
+	if key == "captcha" {
+		response.JSON(w, http.StatusOK, map[string]interface{}{
+			"key":   key,
+			"value": publicCaptchaSettings(h.captchaSettings(r.Context())),
+		})
+		return
+	}
 	s, err := h.repo.GetSetting(r.Context(), key)
 	if errors.Is(err, repository.ErrNotFound) {
 		// Treat missing as empty value so the public site can render
@@ -1449,6 +1857,40 @@ func (h *CMSHandler) UpdateSetting(w http.ResponseWriter, r *http.Request) {
 	if err := json.Unmarshal(body, &probe); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Body must be valid JSON")
 		return
+	}
+	if key == "captcha" {
+		var req captchaSettings
+		if err := json.Unmarshal(body, &req); err != nil {
+			response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid captcha settings")
+			return
+		}
+		settings, errs := h.validateCaptchaSettings(r.Context(), req)
+		if len(errs) > 0 {
+			response.ValidationErr(w, errs)
+			return
+		}
+		body, err = json.Marshal(settings)
+		if err != nil {
+			response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid captcha settings")
+			return
+		}
+	}
+	if key == "third_party" {
+		var req thirdPartySettings
+		if err := json.Unmarshal(body, &req); err != nil {
+			response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid third-party settings")
+			return
+		}
+		settings, errs := validateThirdPartySettings(req)
+		if len(errs) > 0 {
+			response.ValidationErr(w, errs)
+			return
+		}
+		body, err = json.Marshal(settings)
+		if err != nil {
+			response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid third-party settings")
+			return
+		}
 	}
 	if err := h.repo.UpdateSetting(r.Context(), key, body); err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save setting")

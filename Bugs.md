@@ -1,89 +1,71 @@
-Here is a comprehensive, production-grade system prompt designed to instruct an AI or developer to rebuild the lost operational modules. It includes the server **Command Center**, a robust database-backed **Maintenance Mode & DB Tooling** system, and a git-integrated **Smart Updates** pipeline.
+Here is a production-grade system prompt designed to instruct an AI or developer to architect and implement a comprehensive **Notification Engine & Administrative Inbound Management System**.
 
 ---
 
-## System Prompt: DevOps Command Center, Maintenance Mode, & Automated Git Deployer
+## System Prompt: Real-Time Event Notification Engine & Administrative Submissions Hub
 
 ### Objective
 
-Re-architect and implement three missing mission-critical administrative modules within the system backend and sidebar wrapper: the server **Command Center**, the dynamic **Maintenance Mode & Database Management Engine**, and the GitHub-integrated **Smart Updates Pipeline**. These modules must feature tight hardware/Docker abstraction, robust fail-safes, and granular permission checks.
+Design and implement a centralized **Notification Engine** paired with a dedicated **Inbound Submissions Hub** in the administrative sidebar dashboard. The system must process real-time system events (security, backups, updates) and user-generated content (comments, contact forms, financial/investment requests), providing administrators with complete management controls (read, unread, reply states).
 
 ---
 
-### 1. Module A: System Command Center (Server & Docker Orchestration)
+### 1. Unified Notification Engine (System Events)
 
-Build a real-time system monitoring and container management interface.
+Create a centralized notification dispatcher capable of routing high-priority system events to the admin dashboard via real-time WebSockets/Server-Sent Events (SSE) and persisting them to a `system_notifications` database table.
 
-* **Metrics Engine (Backend):** Fetch hardware statistics natively via server APIs or system utilities.
-* *Metrics:* CPU Core Utilization %, Memory Consumption (Used/Total), Disk I/O, and Network Throughput.
+Capture, format, and alert administrators immediately on the following triggers:
 
-
-* **Docker Container Orchestration:**
-* Expose a secure bridge to the host machine's Docker daemon socket (or equivalent container architecture).
-* Provide safe admin actions to **Start**, **Stop**, and **Restart** specific application container services directly from the web interface.
-
-
-* **Log Streaming Viewer:**
-* Implement an asynchronous backend stream (e.g., WebSockets or Server-Sent Events) to tail container logs (`docker logs --tail 100 -f`).
-* **UI Requirement:** A scrollable, dark-mode terminal window with auto-scroll toggles, copy-to-clipboard functionality, and keyword log filtering (e.g., `ERROR`, `WARN`).
-
-
+* **Authentication Security Alerts:** Every time an account with administrative or elevated privileges signs in. The notification must include the timestamp, user ID, IP address, and geographical location (City/Country).
+* **Smart Update Alerts:** When the automated Git deployer detects a new commit upstream on the remote repository.
+* **Database Operation Success:** Immediately upon the successful generation and verification of a database schema or data backup file.
+* **System Vulnerability/Failures:** If a background deployment script fails, or if a critical container service goes offline.
 
 ---
 
-### 2. Module B: Maintenance Mode & Database Tooling Engine
+### 2. Administrative Submissions Hub (Sidebar Management)
 
-Create a bulletproof system lock and data redundancy toolkit.
+Extend the administrative sidebar wrapper with dedicated navigation menu items to monitor, filter, and triage public-facing form submissions. Each submission category must have its own isolated management view:
 
-#### Maintenance Control & Routing Middleware
+#### A. Blog Comments Manager
 
-* **Global Toggle:** An instant toggle switch to enter/exit Maintenance Mode.
-* **Bypass Whitelists:** Implement fields to whitelist specific IP addresses (e.g., developer IPs) and logged-in Admin User IDs so they can still browse and test public pages during downtime.
-* **User Experience:** When active, all non-whitelisted traffic must be intercepted at the global middleware layer and served a lightweight, responsive static `503 Service Unavailable` page.
+* **Trigger:** A visitor submits a comment on any public blog post.
+* **Sidebar Menu Item:** `Blog Comments` (with a dynamic, real-time unread counter badge).
+* **Management Actions:** View comment text, see associated blog post, **Approve for Public Display**, **Spam/Trash**, and **Delete**.
 
-#### Database Operations Matrix
+#### B. Contact Inquiries Manager
 
-Provide a specialized sub-panel with full transactional execution for database management:
+* **Trigger:** A visitor submits a form via the public "Contact Us" page.
+* **Sidebar Menu Item:** `Contact Messages` (with unread badge).
+* **Management Actions:** View sender details (Name, Email, Phone, Message body), **Mark as Read/Unread**, **Mark as Replied**, and a quick-text inline reply markdown editor that fires a secure transactional email back to the visitor.
 
-* **Schema & Data Backup:** Trigger a background database dump process (e.g., native SQL dumps or binary backups). Save backups to a protected storage directory with automated timestamped names (`backup_YYYYMMDD_HHMMSS.sql`).
-* **Restore & Import:** Allow administrators to upload an existing `.sql` or zipped dump file, or select a previously saved local backup to restore.
-* *Safety Catch:* The UI must display an explicit text-confirmation modal requiring the admin to type `CONFIRM RESTORE` before overwriting the active live database.
+#### C. Investment Requests Manager
 
-
-* **Verification Tool:** Execute an optimization/integrity check command against the active relational tables (e.g., checking indexes, resolving fragmentation) and display a green/red health status log.
-* **Delete/Purge:** Enable explicit purging of specific stale database snapshots to free up disk space.
-
----
-
-### 3. Module C: Smart Updates & GitHub Deployer
-
-Implement a secure, token-driven continuous deployment pipeline utilizing git.
-
-* **Secure Fine-Grained Access Token Storage:**
-* Store a GitHub Personal Access Token (PAT) securely using standard environmental encryption practices at rest. Never expose this token in plain text anywhere in the frontend UI.
-
-
-* **Automated Remote Update Checker:**
-* Run a background routine or cron check comparing the current local commit hash against the production target branch on GitHub via the GitHub API.
-* **Notification System:** If a mismatch is found (new commits available), dispatch an immediate admin notification alert across the dashboard UI indicating an update is ready.
-
-
-* **One-Click Pull & Deploy Execution Engine:**
-* When the admin clicks "Deploy Update", trigger a controlled deployment sequence:
-1. **Auto-Backup:** Spin up an automated, pre-update database dump.
-2. **Git Execution:** Execute a clean remote fetch and pull (`git fetch && git pull origin <branch>`) leveraging the stored secure access token.
-3. **Dependency & Migration Resolution:** Programmatically trigger application dependency syncs (e.g., `go mod tidy`, `npm install`, or `pip install -r`) followed by any outstanding database schema migrations.
-4. **Graceful Reload:** Restart the application service worker to apply changes smoothly.
-5. **Audit Logs:** Write the complete shell execution output (success or failure trace logs) directly into an admin update deployment ledger for tracing.
-
-
-
-
+* **Trigger:** A user submits a financial, funding, or investment proposal form via the public investment portals.
+* **Sidebar Menu Item:** `Investment Requests` (with high-priority visual indicator).
+* **Management Actions:** View submission parameters (Requested amounts, investor profile details, attached files), **Update Status Dropdown** (*Pending Review, Approved, Under Negotiation, Declined*), and **Assign Internal Staff Note Ledger** for internal administrative audit tracking.
 
 ---
 
-### 4. Security & Architecture Constraints
+### 3. Database Schema & State Management
 
-* **Execution Isolation:** Ensure all shell processes run under highly restricted permission limits to prevent arbitrary code execution vulnerabilities.
-* **State Protection:** If an update pull or migration fails, the engine must halt gracefully, log the exact stack trace, and alert the admin without dropping the database state.
-* **Performance:** Terminal logs and metric polling must use efficient streaming or debounced interval fetching to prevent client-side or server memory exhaustion.
+Ensure the data structures supporting these workflows are optimized for read/write state toggles:
+
+* **`inbound_submissions` Schema:**
+* `id` (UUID)
+* `source_type` (Enum: `blog_comment`, `contact_form`, `investment_request`)
+* `payload` (JSONB block containing flexible form fields unique to each type)
+* `status_state` (Enum: `unread`, `read`, `replied`, `archived`)
+* `assigned_admin_id` (Nullable foreign key)
+* `created_at` / `updated_at`
+
+
+* **Indexing:** Apply composite indexes on `(source_type, status_state)` and B-Tree indexes on `created_at` to keep sidebar badge counters and dashboard lists highly performant.
+
+---
+
+### 4. Technical & UI/UX Expectations
+
+* **Real-Time Badge Syncing:** Use global application state management on the frontend dashboard to update unread counts instantly without requiring the administrator to perform a manual page refresh.
+* **Backend Modularity:** Implement a clean Observer or Event-Listener pattern on the backend. When a form controller successfully validates a submission, it must synchronously dispatch an event to the notification listener, ensuring decoupling between core domain logic and notification delivery.
+* **Security Controls:** Enforce strict middleware checks ensuring that only authenticated administrators can mutate submission states (`mark as read`, `delete`, `change investment status`). Safely sanitize all incoming HTML payload strings to prevent Cross-Site Scripting (XSS) injections within the admin dashboard panels.

@@ -905,6 +905,7 @@
               <div class="cms-actions-inline">
                 <button type="button" @click="selectedMessage = item; markMessage(item, 'read')">View</button>
                 <button type="button" @click="markMessage(item, item.status === 'read' ? 'unread' : 'read')">{{ item.status === 'read' ? 'Unread' : 'Read' }}</button>
+                <button type="button" @click="markMessage(item, 'replied')">Replied</button>
                 <button type="button" @click="removeMessage(item)">Delete</button>
               </div>
             </article>
@@ -915,7 +916,56 @@
             <p><strong>From:</strong> {{ selectedMessage.name }} &lt;{{ selectedMessage.email }}&gt;</p>
             <p><strong>Received:</strong> {{ formatDateTime(selectedMessage.created_at) }}</p>
             <p>{{ selectedMessage.message }}</p>
+            <label class="wide">Quick reply
+              <textarea v-model="contactReplyDraft" class="form-control" placeholder="Draft a short reply for this visitor"></textarea>
+            </label>
+            <div class="cms-actions-inline">
+              <button type="button" @click="markMessage(selectedMessage, 'replied')">Mark Replied</button>
+              <a :href="contactReplyHref(selectedMessage)">Open Email</a>
+            </div>
           </article>
+        </section>
+
+        <section v-else-if="active === 'investment-requests'" class="cms-panel message-center">
+          <div class="cms-panel-head">
+            <h2>Investment Requests</h2>
+            <div class="cms-actions-inline">
+              <select v-model="investmentRequestStatus" class="form-control" @change="loadInboundSubmissions('investment_request')">
+                <option value="">All</option>
+                <option value="unread">Unread</option>
+                <option value="read">Read</option>
+                <option value="replied">Replied</option>
+                <option value="archived">Archived</option>
+              </select>
+              <button type="button" @click="loadInboundSubmissions('investment_request')">Refresh</button>
+            </div>
+          </div>
+          <div class="notification-list">
+            <article v-for="item in investmentRequests" :key="item.id" class="notification-item" :class="{ unread: item.status_state === 'unread' }">
+              <span class="notification-icon warn"><i class="icofont-money-bag"></i></span>
+              <div>
+                <strong>{{ inboundTitle(item) }}</strong>
+                <span>{{ item.workflow_status }} · {{ formatDateTime(item.created_at) }}</span>
+                <p>{{ inboundSummary(item) }}</p>
+                <div class="cms-inbound-meta">
+                  <span v-for="(value, key) in inboundPreview(item)" :key="key"><strong>{{ titleize(key) }}:</strong> {{ value }}</span>
+                </div>
+                <textarea v-model="inboundNoteDrafts[item.id]" class="form-control mt-2" placeholder="Internal staff note"></textarea>
+              </div>
+              <div class="cms-actions-inline">
+                <select :value="item.workflow_status" class="form-control" @change="updateInbound(item, { workflow_status: $event.target.value, status_state: 'read', assign_to_me: true })">
+                  <option value="pending_review">Pending Review</option>
+                  <option value="approved">Approved</option>
+                  <option value="under_negotiation">Under Negotiation</option>
+                  <option value="declined">Declined</option>
+                </select>
+                <button type="button" @click="updateInbound(item, { status_state: item.status_state === 'unread' ? 'read' : 'unread' })">{{ item.status_state === 'unread' ? 'Read' : 'Unread' }}</button>
+                <button type="button" @click="saveInboundNote(item)">Save Note</button>
+                <button type="button" @click="updateInbound(item, { status_state: 'archived' })">Archive</button>
+              </div>
+            </article>
+            <p v-if="!investmentRequests.length" class="cms-empty">No investment requests found.</p>
+          </div>
         </section>
 
         <section v-else-if="active === 'notifications'" class="cms-panel notification-center">
@@ -1355,6 +1405,32 @@
             </div>
           </article>
           <article class="cms-subpanel">
+            <div class="cms-panel-head"><h2>Anti-Bot Protection</h2></div>
+            <div class="captcha-toggle" role="radiogroup" aria-label="Anti-bot protection mode">
+              <label :class="{ active: captchaSettings.captcha_provider === 'none' }">
+                <input v-model="captchaSettings.captcha_provider" type="radio" value="none" />
+                Disabled
+              </label>
+              <label :class="{ active: captchaSettings.captcha_provider === 'cloudflare_turnstile' }">
+                <input v-model="captchaSettings.captcha_provider" type="radio" value="cloudflare_turnstile" />
+                Cloudflare Turnstile
+              </label>
+              <label :class="{ active: captchaSettings.captcha_provider === 'google_recaptcha' }">
+                <input v-model="captchaSettings.captcha_provider" type="radio" value="google_recaptcha" />
+                Google reCAPTCHA v3
+              </label>
+            </div>
+            <div v-if="captchaSettings.captcha_provider === 'cloudflare_turnstile'" class="cms-two">
+              <label>Site key<input v-model="captchaSettings.cloudflare_site_key" class="form-control" autocomplete="off" /></label>
+              <label>Secret key<input v-model="captchaSettings.cloudflare_secret_key" type="password" class="form-control" autocomplete="new-password" :placeholder="captchaSettings.cloudflare_secret_saved ? 'Leave blank to keep saved secret' : 'Turnstile secret key'" /></label>
+            </div>
+            <div v-else-if="captchaSettings.captcha_provider === 'google_recaptcha'" class="cms-two">
+              <label>Site key<input v-model="captchaSettings.recaptcha_site_key" class="form-control" autocomplete="off" /></label>
+              <label>Secret key<input v-model="captchaSettings.recaptcha_secret_key" type="password" class="form-control" autocomplete="new-password" :placeholder="captchaSettings.recaptcha_secret_saved ? 'Leave blank to keep saved secret' : 'reCAPTCHA secret key'" /></label>
+              <label class="wide">Score threshold <span>{{ Number(captchaSettings.recaptcha_score_threshold).toFixed(1) }}</span><input v-model.number="captchaSettings.recaptcha_score_threshold" type="range" min="0.1" max="1" step="0.1" /></label>
+            </div>
+          </article>
+          <article class="cms-subpanel">
             <div class="cms-panel-head"><h2>Footer About NCS</h2></div>
             <div class="cms-two">
               <label class="wide">About NCS footer description<textarea v-model="footer.about" class="form-control"></textarea></label>
@@ -1378,6 +1454,26 @@
               <p v-if="!column.links.length" class="cms-empty">No links in this column yet.</p>
             </div>
             <p v-if="!footer.columns.length" class="cms-empty">No footer columns yet — add one above.</p>
+          </article>
+        </section>
+
+        <section v-else-if="active === 'third-party-integrations'" class="cms-panel">
+          <div class="cms-panel-head">
+            <h2>Third-Party Integrations</h2>
+            <button type="button" :disabled="!thirdPartySettingsValid" @click="saveThirdPartySettings">Save settings</button>
+          </div>
+          <article class="cms-subpanel">
+            <div class="cms-panel-head"><h2>Google Analytics</h2></div>
+            <label class="cms-check">
+              <input v-model="thirdPartySettings.google_analytics_enabled" type="checkbox" />
+              Enable Google Analytics Tracking
+            </label>
+            <div v-if="thirdPartySettings.google_analytics_enabled" class="cms-two">
+              <label class="wide">Google Analytics Measurement ID (GA4)
+                <input v-model.trim="thirdPartySettings.google_analytics_id" class="form-control" placeholder="G-XXXXXXXXXX" autocomplete="off" @input="thirdPartySettings.google_analytics_id = thirdPartySettings.google_analytics_id.toUpperCase()" />
+              </label>
+            </div>
+            <p v-if="thirdPartySettings.google_analytics_enabled && !thirdPartySettingsValid" class="cms-error">Measurement ID must start with G- and contain only letters or numbers.</p>
           </article>
         </section>
 
@@ -1406,7 +1502,7 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onMounted, reactive, ref, watch } from 'vue'
+import { computed, defineComponent, h, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
 import { API_BASE_URL, mediaUrl } from '@/api/client.js'
@@ -1505,8 +1601,9 @@ const notificationItems = computed(() => cmsNotifications.value.slice(0, 5).map(
   unread: item.status === 'unread',
   target: 'notifications',
 })))
-const unreadMessageCount = computed(() => contactMessages.value.filter(m => m.status === 'unread').length)
+const unreadMessageCount = computed(() => inboundCounts.value.total || contactMessages.value.filter(m => m.status === 'unread').length)
 const unreadNotificationCount = computed(() => cmsNotifications.value.filter(n => n.status === 'unread').length)
+const investmentRequests = computed(() => inboundSubmissions.value.filter(item => item.source_type === 'investment_request'))
 
 const topSections = [
   { id:'overview', label:'Dashboard', icon:'icofont-dashboard-web' },
@@ -1608,12 +1705,14 @@ const newsletterSections = [
   { id:'newsletter', label:'Subscribers', icon:'icofont-email' },
 ]
 const contentSections = [
-  { id:'messages', label:'Messages', icon:'icofont-envelope' },
+  { id:'messages', label:'Contact Messages', icon:'icofont-envelope' },
+  { id:'investment-requests', label:'Investment Requests', icon:'icofont-money-bag' },
   { id:'notifications', label:'Notifications', icon:'icofont-notification' },
-  { id:'comments', label:'Comment Moderation', icon:'icofont-speech-comments' },
+  { id:'comments', label:'Blog Comments', icon:'icofont-speech-comments' },
   { id:'audit-logs', label:'Audit Logs', icon:'icofont-shield-alt' },
   { id:'menus', label:'Main Menu', icon:'icofont-navigation-menu' },
   { id:'settings', label:'Contact Details', icon:'icofont-contacts' },
+  { id:'third-party-integrations', label:'Third-Party Integrations', icon:'icofont-plugin' },
   { id:'website-settings', label:'Website Settings', icon:'icofont-globe' },
   { id:'sitemap', label:'Sitemap', icon:'icofont-site-map' },
   { id:'appearance', label:'Appearance', icon:'icofont-paint' },
@@ -1694,11 +1793,13 @@ const sectionPermissionMap = {
   'manage-facts':['fun_facts:read'],
   newsletter:['newsletter:read'],
   messages:['messages:read'],
+  'investment-requests':['inbound_submissions:read'],
   notifications:['notifications:read'],
   comments:['comments:read'],
   'audit-logs':['audit:read'],
   menus:['menus:read'],
   settings:['settings:read'],
+  'third-party-integrations':['settings:read'],
   'website-settings':['settings:read'],
   sitemap:['settings:read'],
   storage:['storage:read'],
@@ -1716,7 +1817,7 @@ const resourceLabels = {
   federations:'Federations', federation_categories:'Federation Categories', fun_facts:'Fun Facts', newsletter:'Newsletter',
   comments:'Comments', menus:'Main Menu', settings:'Contact Details', storage:'Storage Settings', users:'Users',
   roles:'Roles', audit:'Audit Logs', dashboard:'Dashboard', cms:'Legacy CMS', applications:'Applications',
-  messages:'Messages', notifications:'Notifications',
+  messages:'Contact Messages', notifications:'Notifications', inbound_submissions:'Inbound Submissions',
 }
 const actionOrder = ['read', 'create', 'update', 'write', 'delete', 'activate', 'assign', 'roles', 'reset_password', 'export']
 
@@ -1762,6 +1863,24 @@ const contact = reactive({
   social:{ facebook:'', twitter:'', linkedin:'', instagram:'', youtube:'' },
 })
 const footer = reactive({ about:'', copyright:'', columns:[] })
+const captchaSettings = reactive({
+  captcha_provider: 'none',
+  cloudflare_site_key: '',
+  cloudflare_secret_key: '',
+  cloudflare_secret_saved: false,
+  recaptcha_site_key: '',
+  recaptcha_secret_key: '',
+  recaptcha_secret_saved: false,
+  recaptcha_score_threshold: 0.5,
+})
+const thirdPartySettings = reactive({
+  google_analytics_enabled: false,
+  google_analytics_id: '',
+})
+const thirdPartySettingsValid = computed(() => {
+  if (!thirdPartySettings.google_analytics_enabled) return true
+  return /^G-[A-Z0-9]+$/.test(String(thirdPartySettings.google_analytics_id || '').trim())
+})
 function addFooterColumn() {
   footer.columns.push({ title:'New column', links:[] })
 }
@@ -1783,6 +1902,8 @@ const newsletterSubscribers = ref([])
 const contactMessages = ref([])
 const cmsNotifications = ref([])
 const comments = ref([])
+const inboundSubmissions = ref([])
+const inboundCounts = ref({ blog_comment: 0, contact_form: 0, investment_request: 0, total: 0 })
 const users = ref([])
 const roles = ref([])
 const permissions = ref([])
@@ -1797,6 +1918,9 @@ const commentStatus = ref('pending')
 const messageStatus = ref('')
 const notificationStatus = ref('')
 const selectedMessage = ref(null)
+const contactReplyDraft = ref('')
+const investmentRequestStatus = ref('')
+const inboundNoteDrafts = reactive({})
 const slideshow = reactive({ id:'homepage-hero', name:'Homepage Hero', slug:'homepage-hero', transition_effect:'fade', transition_duration:700, autoplay_speed:6500, pause_on_hover:true, is_active:true })
 const mainMenuTree = ref([]), footerMenuTree = ref([])
 const savingMenus = ref(false)
@@ -1997,6 +2121,7 @@ const sampleAuditLogs = [
   { id:'preview-login', user_name:'cms-admin', action:'preview_login', method:'POST', endpoint:'/api/v1/auth/login', ip_address:'127.0.0.1', response_code:200, response_time_ms:31, event_status:'success', severity_level:'low', created_at:new Date().toISOString(), details:{ mode:'local-preview' } },
   { id:'preview-audit', user_name:'audit-monitor', action:'view_audit_logs', method:'GET', endpoint:'/api/v1/admin/audit-logs', ip_address:'127.0.0.1', response_code:200, response_time_ms:18, event_status:'success', severity_level:'low', created_at:new Date().toISOString(), details:{ source:'sample-data' } },
 ]
+let inboundRefreshTimer = null
 
 onMounted(() => {
   if (!localStorage.getItem('ncsms_access_token')) {
@@ -2018,6 +2143,15 @@ onMounted(() => {
     }
   }
   loadAll()
+  inboundRefreshTimer = window.setInterval(() => {
+    loadInboundCounts()
+    loadNotifications()
+    if (active.value === 'investment-requests') loadInboundSubmissions('investment_request')
+  }, 15000)
+})
+
+onUnmounted(() => {
+  if (inboundRefreshTimer) window.clearInterval(inboundRefreshTimer)
 })
 
 // Mirror the active panel into the URL (?section=) so it survives a refresh and
@@ -2156,6 +2290,7 @@ function selectSection(id) {
   profileOpen.value = false
   if (id === 'audit-logs' && !auditLogs.value.length) loadAuditLogs()
   if (id === 'messages' && !contactMessages.value.length) loadContactMessages()
+  if (id === 'investment-requests') loadInboundSubmissions('investment_request')
   if (id === 'notifications' && !cmsNotifications.value.length) loadNotifications()
   if (['roles', 'manage-roles'].includes(id) && (!roles.value.length || !permissions.value.length)) loadRoles()
   if (['users', 'manage-users'].includes(id) && !users.value.length) loadUsers()
@@ -2238,6 +2373,46 @@ function addSportsCounter() {
   homepage.milestones.push({ value:'0+', label:'New counter', description:'', icon:'icofont-chart-growth' })
 }
 
+function applyCaptchaSettings(value = {}) {
+  Object.assign(captchaSettings, {
+    captcha_provider: value.captcha_provider || 'none',
+    cloudflare_site_key: value.cloudflare_site_key || '',
+    cloudflare_secret_key: '',
+    cloudflare_secret_saved: !!value.cloudflare_secret_saved,
+    recaptcha_site_key: value.recaptcha_site_key || '',
+    recaptcha_secret_key: '',
+    recaptcha_secret_saved: !!value.recaptcha_secret_saved,
+    recaptcha_score_threshold: Number(value.recaptcha_score_threshold || 0.5),
+  })
+}
+
+function captchaSavePayload() {
+  return {
+    captcha_provider: captchaSettings.captcha_provider || 'none',
+    cloudflare_site_key: captchaSettings.cloudflare_site_key || '',
+    cloudflare_secret_key: captchaSettings.cloudflare_secret_key || '',
+    recaptcha_site_key: captchaSettings.recaptcha_site_key || '',
+    recaptcha_secret_key: captchaSettings.recaptcha_secret_key || '',
+    recaptcha_score_threshold: Math.min(1, Math.max(0.1, Number(captchaSettings.recaptcha_score_threshold || 0.5))),
+  }
+}
+
+function applyThirdPartySettings(value = {}) {
+  Object.assign(thirdPartySettings, {
+    google_analytics_enabled: !!value.google_analytics_enabled,
+    google_analytics_id: String(value.google_analytics_id || '').trim().toUpperCase(),
+  })
+}
+
+function thirdPartySavePayload() {
+  return {
+    google_analytics_enabled: !!thirdPartySettings.google_analytics_enabled,
+    google_analytics_id: thirdPartySettings.google_analytics_enabled
+      ? String(thirdPartySettings.google_analytics_id || '').trim().toUpperCase()
+      : '',
+  }
+}
+
 async function loadAll() {
   try {
     apiAvailable.value = null
@@ -2263,6 +2438,7 @@ async function loadAll() {
       cms.adminListFacilityCategories(), cms.adminListEventCategories(), cms.adminListInvestCategories(), cms.adminListFederationCategories(), cms.adminListNewsletterSubscribers({ per_page:200 }),
       cms.listInstitutionalDepartments(), cms.adminGetAnalytics({ days: 30 }),
       cms.listMessages({ status:'', per_page:100 }), cms.listNotifications({ status:'', per_page:100 }),
+      cms.listInboundSubmissions({ per_page:100 }), cms.getInboundSubmissionCounts(), cms.getSettings('captcha'), cms.getSettings('third_party'),
     ])
     Object.assign(homepage, data(results[0].value)?.value || {})
     mergeHomepageDefaults(homepage)
@@ -2308,6 +2484,10 @@ async function loadAll() {
     analytics.value = data(results[37].value) || null
     contactMessages.value = listData(results[38].value)
     cmsNotifications.value = listData(results[39].value)
+    inboundSubmissions.value = listData(results[40].value)
+    inboundCounts.value = data(results[41].value) || inboundCounts.value
+    applyCaptchaSettings(data(results[42].value)?.value || {})
+    applyThirdPartySettings(data(results[43].value)?.value || {})
   } catch (err) { setErr(err) }
 }
 
@@ -2354,7 +2534,31 @@ async function discardMenuChanges() {
     setMsg('Menu changes discarded')
   } catch (err) { setErr(err) }
 }
-async function saveSettings() { try { await cms.adminUpdateSettings('contact', { ...contact }); await cms.adminUpdateSettings('footer', { ...footer }); setMsg('Settings saved') } catch (err) { setErr(err) } }
+async function saveSettings() {
+  try {
+    await cms.adminUpdateSettings('contact', { ...contact })
+    await cms.adminUpdateSettings('footer', { ...footer })
+    await cms.adminUpdateSettings('captcha', captchaSavePayload())
+    captchaSettings.cloudflare_secret_key = ''
+    captchaSettings.recaptcha_secret_key = ''
+    const latest = await cms.getSettings('captcha')
+    applyCaptchaSettings(data(latest)?.value || {})
+    setMsg('Settings saved')
+  } catch (err) { setErr(err) }
+}
+
+async function saveThirdPartySettings() {
+  if (!thirdPartySettingsValid.value) {
+    setErr(new Error('Enter a valid Google Analytics Measurement ID.'))
+    return
+  }
+  try {
+    await cms.adminUpdateSettings('third_party', thirdPartySavePayload())
+    const latest = await cms.getSettings('third_party')
+    applyThirdPartySettings(data(latest)?.value || {})
+    setMsg('Third-party integration settings saved')
+  } catch (err) { setErr(err) }
+}
 async function createSlide() { try { await cms.adminCreateSlide({ title:'New slide', subtitle:'National Council of Sports', description:'', image_url:'', button_text:'Learn More', button_url:'/', sort_order:slides.value.length + 1, is_active:true }); await loadAll(); setMsg('Slide added') } catch (err) { setErr(err) } }
 function editSlide(item) { active.value = 'homepage'; Object.assign(homepage, { hero_quick_edit: item.title }) }
 async function removeSlide(item) {
@@ -2636,7 +2840,101 @@ async function markMessage(item, status) {
     }
     await cms.updateMessage(item.id, { status })
     await loadContactMessages()
+    await loadInboundCounts()
   } catch (err) { setErr(err) }
+}
+
+function contactReplyHref(item) {
+  if (!item) return '#'
+  const subject = encodeURIComponent(`Re: ${item.subject || 'Contact Us Message'}`)
+  const body = encodeURIComponent(contactReplyDraft.value || '')
+  return `mailto:${item.email || ''}?subject=${subject}&body=${body}`
+}
+
+async function loadInboundCounts() {
+  try {
+    if (!(await canReachApi())) return
+    const res = await cms.getInboundSubmissionCounts()
+    inboundCounts.value = data(res) || inboundCounts.value
+  } catch {}
+}
+
+async function loadInboundSubmissions(sourceType = '') {
+  try {
+    if (!(await canReachApi())) {
+      if (sourceType === 'investment_request' && !investmentRequests.value.length) {
+        inboundSubmissions.value = [
+          {
+            id: 'preview-investment-request',
+            source_type: 'investment_request',
+            payload: { name: 'Prospective Investor', email: 'investor@example.com', requested_amount: 'UGX 50,000,000', message: 'Preview funding proposal for sports infrastructure.' },
+            status_state: 'unread',
+            workflow_status: 'pending_review',
+            internal_notes: [],
+            created_at: new Date().toISOString(),
+          },
+        ]
+      }
+      return
+    }
+    const status = sourceType === 'investment_request' ? investmentRequestStatus.value : ''
+    const res = await cms.listInboundSubmissions({ source_type: sourceType, status, per_page: 100 })
+    const rows = listData(res)
+    if (sourceType) {
+      inboundSubmissions.value = [...inboundSubmissions.value.filter(item => item.source_type !== sourceType), ...rows]
+    } else {
+      inboundSubmissions.value = rows
+    }
+    await loadInboundCounts()
+  } catch (err) { setErr(err) }
+}
+
+async function updateInbound(item, payload) {
+  try {
+    if (!(await canReachApi())) {
+      Object.assign(item, payload)
+      return
+    }
+    await cms.updateInboundSubmission(item.id, payload)
+    await loadInboundSubmissions(item.source_type)
+    setMsg('Inbound submission updated')
+  } catch (err) { setErr(err) }
+}
+
+async function saveInboundNote(item) {
+  const note = (inboundNoteDrafts[item.id] || '').trim()
+  if (!note) return
+  try {
+    if (!(await canReachApi())) {
+      item.internal_notes = [...(item.internal_notes || []), { note, created_at: new Date().toISOString() }]
+      inboundNoteDrafts[item.id] = ''
+      return
+    }
+    await cms.addInboundSubmissionNote(item.id, note)
+    inboundNoteDrafts[item.id] = ''
+    await loadInboundSubmissions(item.source_type)
+    setMsg('Internal note saved')
+  } catch (err) { setErr(err) }
+}
+
+function inboundPayload(item) {
+  return item?.payload && typeof item.payload === 'object' ? item.payload : {}
+}
+
+function inboundTitle(item) {
+  const payload = inboundPayload(item)
+  return payload.subject || payload.title || payload.name || payload.investor_name || 'Inbound submission'
+}
+
+function inboundSummary(item) {
+  const payload = inboundPayload(item)
+  return payload.message || payload.proposal || payload.description || payload.comment_body || 'No summary provided.'
+}
+
+function inboundPreview(item) {
+  const payload = inboundPayload(item)
+  const keys = ['name', 'email', 'phone', 'requested_amount', 'amount', 'investor_profile', 'company']
+  return Object.fromEntries(keys.filter(key => payload[key]).map(key => [key, payload[key]]))
 }
 
 async function removeMessage(item) {
@@ -2648,6 +2946,7 @@ async function removeMessage(item) {
     }
     await cms.deleteMessage(item.id)
     await loadContactMessages()
+    await loadInboundCounts()
     setMsg('Message deleted')
   } catch (err) { setErr(err) }
 }
@@ -2661,6 +2960,7 @@ async function markAllMessagesRead() {
     const unread = contactMessages.value.filter(item => item.status === 'unread')
     await Promise.all(unread.map(item => cms.updateMessage(item.id, { status: 'read' })))
     await loadContactMessages()
+    await loadInboundCounts()
     setMsg('Messages marked read')
   } catch (err) { setErr(err) }
 }
@@ -2674,6 +2974,7 @@ async function clearAllMessages() {
     }
     await cms.clearMessages()
     await loadContactMessages()
+    await loadInboundCounts()
     setMsg('Messages cleared')
   } catch (err) { setErr(err) }
 }
@@ -2741,6 +3042,8 @@ async function markAllNotifications() {
 function notificationIcon(item) {
   const key = item.icon_key || item.type
   if (key === 'chat' || item.type === 'new_comment') return 'icofont-speech-comments'
+  if (key === 'mail' || item.type === 'contact_form') return 'icofont-envelope'
+  if (key === 'money' || item.type === 'investment_request') return 'icofont-money-bag'
   if (key === 'shield-alert' || item.type === 'unusual_activity' || item.type === 'new_sign_in') return 'icofont-shield-alt'
   if (key === 'key' || item.type === 'password_reset') return 'icofont-key'
   return 'icofont-check-circled'
@@ -2748,6 +3051,7 @@ function notificationIcon(item) {
 
 function notificationThemeClass(item) {
   if (['unusual_activity', 'new_sign_in', 'password_reset'].includes(item.type)) return 'warn'
+  if (item.type === 'investment_request') return 'warn'
   if (item.type === 'system_success') return 'success'
   return 'info'
 }
@@ -3268,4 +3572,6 @@ const EditorForm = defineComponent({
 .homepage-card-list{display:grid;gap:16px}.homepage-dynamic-card{display:grid;gap:12px;border:1px solid #e4e6fc;border-radius:3px;background:#fdfdff;padding:18px;box-shadow:0 4px 25px rgba(0,0,0,.04)}.homepage-dynamic-card .cms-panel-head{margin-bottom:0}.homepage-dynamic-card h3,.cms-subpanel h3{font-size:15px!important;color:#34395e!important}.cms-row input.form-control{height:42px;border:1px solid #e4e6fc;border-radius:3px;background:#fff;color:#34395e;padding:10px 15px}.cms-check{display:flex!important;grid-column:1/-1;align-items:center!important;gap:10px!important;text-transform:none!important}.cms-check input{width:18px!important;height:18px!important;accent-color:#6777ef}:global(.dark) .homepage-dynamic-card{background:#111827!important;border-color:#334155!important}:global(.dark) .homepage-dynamic-card h3,:global(.dark) .cms-subpanel h3{color:#f8fafc!important}:global(.dark) .cms-row input.form-control{background:#111827!important;color:#f8fafc!important;border-color:#475569!important}
 .otika-form-card .card{border:0!important;border-radius:3px!important;box-shadow:none!important;margin-bottom:0!important}.otika-form-card .card-header{border-bottom:1px solid #f9f9f9!important;padding:18px 25px!important}.otika-form-card .card-header h4{font-size:16px!important;font-weight:700!important;color:#34395e!important;margin:0!important}.otika-form-card .card-body{padding:25px!important}.otika-form-card .card-footer{border-top:1px solid #f9f9f9!important;background:#fff!important;padding:18px 25px!important}.otika-form-card .section-title{margin:18px 0 16px!important;font-size:13px!important;font-weight:700!important;color:#34395e!important}.otika-form-card .form-group{margin-bottom:18px!important}.otika-form-card label{font-size:12px!important;font-weight:600!important;color:#34395e!important;margin-bottom:7px!important}.otika-form-card .form-control{height:42px!important;border:1px solid #e4e6fc!important;border-radius:3px!important;background:#fdfdff!important;color:#495057!important;padding:10px 15px!important;box-shadow:none!important}.otika-form-card .form-control:focus{border-color:#6777ef!important;box-shadow:0 2px 6px #acb5f6!important}.otika-form-card textarea.form-control,.otika-form-card .otika-textarea{height:auto!important;min-height:110px!important}.otika-form-card .custom-control-label{line-height:1.8!important}.otika-form-card .btn-primary{border:0!important;border-radius:30px!important;background:#6777ef!important;box-shadow:0 2px 6px #acb5f6!important;font-size:12px!important;font-weight:600!important;padding:8px 18px!important}.otika-form-card .form-check{padding-left:1.5rem;min-height:auto;margin-bottom:.35rem}.otika-form-card .form-check-input{width:16px;height:16px;accent-color:#6777ef}.otika-form-card .form-check-label{font-weight:500!important;margin-bottom:0!important;line-height:1.6}:global(.dark) .otika-form-card .card,:global(.dark) .otika-form-card .card-footer{background:#1f2937!important;border-color:#334155!important}:global(.dark) .otika-form-card .card-header h4,:global(.dark) .otika-form-card .section-title,:global(.dark) .otika-form-card label{color:#f8fafc!important}:global(.dark) .otika-form-card .form-control{background:#111827!important;color:#f8fafc!important;border-color:#475569!important}
 .notification-list{display:grid;gap:12px}.notification-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:3px;background:#fff;box-shadow:0 4px 25px rgba(0,0,0,.08);border-left:3px solid transparent;color:#6c757d}.notification-item.unread{background:#f4f7ff;border-left-color:#6777ef}.notification-item strong{display:block;color:#34395e;font-size:14px}.notification-item span{display:block;color:#98a6ad;font-size:12px}.notification-item p{margin:6px 0 0;color:#6c757d}.notification-dot{width:10px;height:10px;margin-top:7px;border-radius:50%;background:#6777ef}.notification-icon{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:#eaf4ff;color:#3abaf4}.notification-icon.warn{background:#fff4e6;color:#ffa426}.notification-icon.success{background:#e8f7f0;color:#47c363}.notification-icon.info{background:#eaf4ff;color:#3abaf4}.notification-item:not(.unread){opacity:.82}:global(.dark) .notification-item{background:#1f2937;box-shadow:0 4px 25px rgba(0,0,0,.28)}:global(.dark) .notification-item.unread{background:#111827}:global(.dark) .notification-item strong{color:#f8fafc}:global(.dark) .notification-item p{color:#cbd5e1}@media(max-width:768px){.notification-item{grid-template-columns:auto minmax(0,1fr)}.notification-item>.cms-actions-inline{grid-column:1/-1}}
+.cms-inbound-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.cms-inbound-meta span{display:inline-flex;gap:4px;border-radius:3px;background:#f4f6f9;padding:5px 8px;color:#6c757d!important}.cms-inbound-meta strong{display:inline!important;font-size:12px!important}:global(.dark) .cms-inbound-meta span{background:#111827!important;color:#cbd5e1!important}
+.captcha-toggle{display:flex;flex-wrap:wrap;gap:8px}.captcha-toggle label{display:flex;align-items:center;gap:8px;border:1px solid #e4e6fc;border-radius:30px;background:#fdfdff;padding:9px 14px;color:#34395e;font-size:12px;font-weight:700;cursor:pointer}.captcha-toggle label.active{border-color:#6777ef;background:#eef2ff;color:#6777ef}.captcha-toggle input{width:16px;height:16px;accent-color:#6777ef}:global(.dark) .captcha-toggle label{background:#111827;border-color:#475569;color:#e5e7eb}:global(.dark) .captcha-toggle label.active{background:#1e1b4b;border-color:#818cf8;color:#c7d2fe}
 </style>

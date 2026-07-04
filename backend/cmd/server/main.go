@@ -171,6 +171,7 @@ func main() {
 			r.Get("/facilities", h.CMS.ListFacilities)
 			r.Get("/associations", h.CMS.ListAssociations)
 			r.Get("/invest", h.CMS.ListInvest)
+			r.With(publicFormRL.Middleware).Post("/invest/requests", h.CMS.CreateInvestmentRequest)
 			r.Get("/team", h.CMS.ListTeam)
 			r.Get("/departments", h.CMS.ListInstitutionalDepartments)
 			r.With(publicFormRL.Middleware).Post("/messages", h.CMS.CreateContactMessage)
@@ -193,6 +194,13 @@ func main() {
 				r.Delete("/{id}", h.CMS.DeleteNotification)
 				r.Delete("/clear-all", h.CMS.ClearNotifications)
 				r.Put("/mark-all-read", h.CMS.MarkAllNotificationsRead)
+			})
+
+			r.Route("/inbound-submissions", func(r chi.Router) {
+				r.Get("/", h.CMS.ListInboundSubmissions)
+				r.Get("/counts", h.CMS.InboundSubmissionCounts)
+				r.Put("/{id}", h.CMS.UpdateInboundSubmission)
+				r.Post("/{id}/notes", h.CMS.AddInboundSubmissionNote)
 			})
 
 			r.Route("/messages", func(r chi.Router) {

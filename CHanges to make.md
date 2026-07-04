@@ -1,65 +1,66 @@
-Here is a production-grade system prompt designed to instruct an AI or a developer to architect and implement a comprehensive, privacy-conscious Web Analytics and Visitor Statistics engine using a combined frontend/backend approach.
+Here is a production-grade system prompt designed to instruct an AI or developer to implement an admin-configurable Google Analytics engine that gracefully integrates with your application's public pages.
 
 ---
 
-## System Prompt: Full-Stack Web Analytics & Visitor Tracking Engine
+## System Prompt: Configurable Google Analytics Integration Module
 
 ### Objective
 
-Design and implement a robust, self-hosted **Web Analytics and Visitor Statistics Subsystem**. The solution must capture metrics from both the frontend (user interactions, screen specs) and backend (secure IP parsing, geolocation, performance) without relying on heavy third-party trackers like Google Analytics. The data must be aggregated and visualized inside an administrative dashboard.
+Design and implement an admin-configurable **Google Analytics Integration Module** within the administrative dashboard settings. This module must give administrators the ability to toggle Google Analytics tracking on or off globally across all public-facing pages, input their Google Measurement ID (Google Analytics 4), and ensure the tracking scripts are dynamically injected or entirely omitted based on the configuration state.
 
 ---
 
-### 1. Data Collection Strategy
+### 1. Database Configuration Schema
 
-#### Frontend Collection (Client-Side)
+Create or extend a persistent configuration structure (such as a single-row `third_party_settings` table or global settings key-value store) to maintain the state:
 
-Implement a lightweight, non-blocking JavaScript tracker payload or API middleware that hooks into public page loads to capture:
-
-* **Session Lifecycle:** Page entry/exit timestamps, session duration, bounce detection (e.g., active session duration under 10 seconds with no interactions).
-* **Device Profiles:** User-Agent string, platform/OS (Windows, macOS, Linux, iOS, Android), browser engine, device type (Desktop, Mobile, Tablet, Smart TV), and screen resolution.
-* **Referral Data:** Document referrer (`document.referrer`) to categorize traffic sources (Direct, Social Media, Search Engines, External Links).
-* **Behavioral Flow:** Visited URL path names, link clicks, and time-on-page metrics.
-
-#### Backend Collection & Enrichment (Server-Side)
-
-Upon processing the frontend's tracking request, the backend controller must capture and securely process:
-
-* **Network Metadata:** Request IP address (accurately parsing proxy headers like `X-Forwarded-For` or `CF-Connecting-IP` behind a load balancer/Cloudflare).
-* **Geolocation Parsing:** Process the parsed IP using a reliable, self-hosted database lookup tool (e.g., MaxMind GeoIP2 Lite or an integrated GeoIP library) to resolve location down to **Country, Region/State, and City**.
-* **Anonymization & Privacy Compliance:** To maintain compliance with international data privacy frameworks (like GDPR/CCPA), raw IP addresses must be immediately anonymized (e.g., hashing the IP combined with a daily rotating salt) before writing to the persistent database. Never store raw PII (Personally Identifiable Information).
+* **`google_analytics_enabled`** (Boolean: `true` or `false`, default `false`)
+* **`google_analytics_id`** (String, null allowed, strictly validated to match the GA4 format: `G-XXXXXXXXXX`)
 
 ---
 
-### 2. Database Schema & High-Throughput Modeling
+### 2. Admin Settings Interface (UI/UX)
 
-Because analytics tables grow rapidly, design an optimized schema separating high-frequency raw logs from pre-aggregated reporting tables:
+Provide a clear, dedicated configuration section within the administrative dashboard under "Third-Party Integrations":
 
-* **`page_views_raw` (TimescaleDB / Partitioned SQL):** Captures atomic events.
-* `id`, `session_id` (UUID), `visitor_hash` (anonymized signature), `path`, `referrer`, `country`, `region`, `city`, `browser`, `os`, `device_type`, `created_at`.
+* **Global Toggle:** A toggle switch or checkbox labeled **"Enable Google Analytics Tracking"**.
+* **Conditional Inputs:**
+* When the toggle is flipped to **Off**, the Measurement ID input field is disabled or hidden.
+* When the toggle is flipped to **On**, display a text input field labeled **"Google Analytics Measurement ID (GA4)"** with a placeholder text showing `G-XXXXXXXXXX`.
 
 
-* **`analytics_snapshots_daily` (Aggregated Cache):** A background worker or cron job must aggregate raw data nightly into summary tables to keep admin dashboard queries lightning-fast.
-* Metrics: Total Views, Unique Visitors, Bounces, Average Session Length per day, per city, and per device.
+* **Frontend Validation:** Enforce regex validation on the frontend to ensure the ID starts with `G-` followed by alphanumeric characters before allowing the administrator to click "Save Settings".
+
+---
+
+### 3. Frontend Script Injection Layout (Public Pages)
+
+Develop a clean script rendering engine inside the root template layout file (e.g., in the main layout `<head>` block of your public-facing pages) that respects the configuration flag:
+
+* **State Execution Logic:**
+* **Case `false` (Disabled):** The backend must not output *any* Google Analytics tracking code to the browser. The page source must remain entirely free of GA scripts.
+* **Case `true` (Enabled):** If the toggle is active and the `google_analytics_id` is populated, dynamically compile and inject the official Google Analytics async tag directly into the public `<head>` block:
+
+
+```html
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id={{GOOGLE_ANALYTICS_ID}}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', '{{GOOGLE_ANALYTICS_ID}}');
+</script>
+
+```
 
 
 
 ---
 
-### 3. Core Analytical Metrics & Requirements
+### 4. Technical Architecture & Edge Cases
 
-The analytics engine must compute and serve the following key performance indicators (KPIs) through an API endpoint:
-
-1. **Traffic Overviews:** Total Page Views, Unique Visitors (calculated via unique visitor hashes within a 24-hour window), and Bounce Rate.
-2. **Geographic Distribution:** A ranked breakdown of top-performing Countries, Regions, and **Cities** by traffic volume.
-3. **Technographic Platforms:** Percentage distribution of Browsers, Operating Systems, and Device Types.
-4. **Content Performance:** Top entry pages, top exit pages, and most visited content URLs.
-5. **Acquisition Channels:** Breakdown of traffic sources (e.g., organic search traffic vs. direct navigation).
-
----
-
-### 4. Technical Stack Expectations
-
-* **Backend Middleware:** Implement the tracking intake endpoint in a highly performant, asynchronous language environment (such as Go, Python with FastAPI, or optimized Node.js handlers). It must return a `204 No Content` response instantly to the frontend to ensure zero impact on user experience, processing data storage asynchronously (e.g., using background workers, channel queues, or Redis).
-* **Data Vis Frontend:** Build a modern, reactive analytics dashboard component (e.g., using Vue.js or React) utilizing clean charting tools (like Chart.js or D3.js) to display data timelines, bar charts for platforms, and sorted data tables for top cities/pages.
-* **Performance Constraint:** Querying dashboard analytics for a 30-day time window must take less than 500ms. Utilize proper indexing on `created_at`, `path`, and geographical columns (`country`, `city`) to achieve this.
+* **Server-Side Rendering (SSR) Optimization:** Ensure that the database call to check the analytics configuration state is heavily cached globally (e.g., using Redis or internal application memory caching). This avoids querying the database on every single public page visit just to check if the analytics tag should load.
+* **Sanitization:** Strictly sanitize the `google_analytics_id` string on both the backend and frontend before rendering it to prevent any raw string manipulation or Cross-Site Scripting (XSS) injection vectors inside the public template layout.
+* **Dynamic State Shifts:** If the administrator toggles the tracking engine from **On** to **Off**, the script must disappear on the very next page refresh without requiring a server reboot or complex manual cache clearing.

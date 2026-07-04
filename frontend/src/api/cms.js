@@ -30,6 +30,10 @@ export function submitContactMessage(data) {
   return apiClient.post('/api/v1/cms/messages', data)
 }
 
+export function submitInvestmentRequest(data) {
+  return apiClient.post('/api/v1/cms/invest/requests', data)
+}
+
 export function listEvents(params = {}) {
   return apiClient.get('/api/v1/cms/events', { params })
 }
@@ -405,6 +409,18 @@ export function clearNotifications() {
 }
 export function markAllNotificationsRead() {
   return apiClient.put('/api/v1/notifications/mark-all-read')
+}
+export function listInboundSubmissions(params = {}) {
+  return apiClient.get('/api/v1/inbound-submissions', { params })
+}
+export function getInboundSubmissionCounts() {
+  return apiClient.get('/api/v1/inbound-submissions/counts')
+}
+export function updateInboundSubmission(id, data) {
+  return apiClient.put(`/api/v1/inbound-submissions/${id}`, data)
+}
+export function addInboundSubmissionNote(id, note) {
+  return apiClient.post(`/api/v1/inbound-submissions/${id}/notes`, { note })
 }
 export function listMessages(params = {}) {
   return apiClient.get('/api/v1/messages', { params })

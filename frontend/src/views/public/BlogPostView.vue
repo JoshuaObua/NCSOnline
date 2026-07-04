@@ -129,6 +129,7 @@ import Swal from 'sweetalert2'
 import { getPost, listPostComments, submitPostComment } from '@/api/cms.js'
 import { loginWithGoogleCredential } from '@/api/auth.js'
 import { mediaUrl } from '@/api/client.js'
+import { captchaPayload } from '@/utils/captcha.js'
 import { sanitizePlainText, sanitizeRichHtml } from '@/utils/sanitize.js'
 
 const route = useRoute()
@@ -186,7 +187,8 @@ async function submitComment(parentId) {
   submitting.value = true
   try {
     const cleanBody = sanitizePlainText(body).slice(0, 1500)
-    await submitPostComment(route.params.slug, { body: cleanBody, parent_id: parentId, website: website.value })
+    const captcha = await captchaPayload('blog_comment')
+    await submitPostComment(route.params.slug, { body: cleanBody, parent_id: parentId, website: website.value, ...captcha })
     if (parentId) {
       replyBody.value = ''
       replyTo.value = ''

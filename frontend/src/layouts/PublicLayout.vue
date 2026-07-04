@@ -353,6 +353,7 @@ import { getMaintenanceStatus, getMenu, getSettings, getTypography, listFonts } 
 import { injectTypographyCSS } from '@/utils/typography.js'
 import { mediaUrl } from '@/api/client.js'
 import { installAnalyticsTracker, trackPageView, uninstallAnalyticsTracker } from '@/utils/analyticsTracker.js'
+import { installGoogleAnalytics, trackGoogleAnalyticsPageView, uninstallGoogleAnalytics } from '@/utils/googleAnalytics.js'
 import PublicAccessibilityMenu from '@/components/public/PublicAccessibilityMenu.vue'
 import AppPreloader from '@/components/public/AppPreloader.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
@@ -407,6 +408,7 @@ watch(() => route.fullPath, async () => {
   mobileOpen.value = false
   accountOpen.value = false
   trackPageView(route.path)
+  trackGoogleAnalyticsPageView(route.path)
   await nextTick()
   document.getElementById('main-content')?.focus({ preventScroll: true })
 })
@@ -717,6 +719,15 @@ async function loadTypography() {
   } catch { /* leave default site typography untouched */ }
 }
 
+async function loadThirdPartyIntegrations() {
+  try {
+    const r = await getSettings('third_party')
+    installGoogleAnalytics(r.data?.data?.value || {})
+  } catch {
+    uninstallGoogleAnalytics()
+  }
+}
+
 async function loadFooterSettings() {
   try {
     const r = await getSettings('footer')
@@ -805,8 +816,12 @@ onMounted(() => {
   loadSiteIdentity()
   loadSeoDefaults()
   loadTypography()
+  loadThirdPartyIntegrations()
 })
-onUnmounted(() => uninstallAnalyticsTracker())
+onUnmounted(() => {
+  uninstallAnalyticsTracker()
+  uninstallGoogleAnalytics()
+})
 </script>
 
 <style scoped>
