@@ -42,7 +42,7 @@
 
           <!-- Logo (bare image, no container) -->
           <router-link to="/" class="flex items-center gap-3 group flex-shrink-0" :aria-label="`${siteIdentity.name || 'NCS'} home`">
-            <img :src="resolveAsset(siteIdentity.logoUrl) || '/main-logo.png'" :alt="`${siteIdentity.name || 'NCS'} - National Council of Sports`" class="h-14 md:h-16 w-auto object-contain" />
+            <img :src="headerLogo" :alt="`${siteIdentity.name || 'NCS'} - National Council of Sports`" class="h-14 md:h-16 w-auto object-contain" />
           </router-link>
 
           <!-- Desktop nav -->
@@ -349,6 +349,7 @@ import { installAnalyticsTracker, trackPageView, uninstallAnalyticsTracker } fro
 import PublicAccessibilityMenu from '@/components/public/PublicAccessibilityMenu.vue'
 import AppPreloader from '@/components/public/AppPreloader.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
+import { useTheme } from '@/composables/useTheme.js'
 
 const mobileOpen = ref(false)
 const searchOpen = ref(false)
@@ -358,6 +359,7 @@ const scrolled = ref(false)
 const accountUser = ref(readAccountUser())
 const route = useRoute()
 const router = useRouter()
+const { isDark } = useTheme()
 // Priority: explicit intranet URL, then the browser host plus VITE_INTRANET_PORT.
 // Mirrors resolveApiBase() in api/client.js so neither URL is pinned to a
 // specific host at build time.
@@ -572,12 +574,36 @@ const footerLogo = computed(() => {
   for (const p of chain) { if (p) return resolveAsset(p) }
   return '/main-logo.png'
 })
+// Header logo swaps with the light/dark toggle: white logo on dark backgrounds,
+// main logo on light — falling back to the other if only one has been uploaded.
+const headerLogo = computed(() => {
+  const chain = isDark.value
+    ? [siteIdentity.whiteLogoUrl, siteIdentity.logoUrl]
+    : [siteIdentity.logoUrl, siteIdentity.whiteLogoUrl]
+  for (const p of chain) { if (p) return resolveAsset(p) }
+  return '/main-logo.png'
+})
 function applyFavicon(url) {
   if (!url) return
   const href = resolveAsset(url) || url
   let link = document.querySelector('link[rel="icon"]')
   if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link) }
   link.href = href
+}
+function setMetaTag(selector, attrs) {
+  let tag = document.querySelector(selector)
+  if (!tag) { tag = document.createElement('meta'); document.head.appendChild(tag) }
+  Object.entries(attrs).forEach(([k, v]) => tag.setAttribute(k, v))
+}
+async function loadSeoDefaults() {
+  try {
+    const r = await getSettings('seo')
+    const v = r.data?.data?.value
+    if (!v || typeof v !== 'object') return
+    if (v.meta_description) setMetaTag('meta[name="description"]', { name: 'description', content: v.meta_description })
+    if (v.meta_keywords) setMetaTag('meta[name="keywords"]', { name: 'keywords', content: v.meta_keywords })
+    if (v.meta_image_url) setMetaTag('meta[property="og:image"]', { property: 'og:image', content: resolveAsset(v.meta_image_url) })
+  } catch { /* no SEO defaults saved yet */ }
 }
 const socialDefaults = {
   facebook:  'https://facebook.com/NCSUganda',
@@ -754,6 +780,7 @@ onMounted(() => {
   loadContact()
   loadHeaderSettings()
   loadSiteIdentity()
+  loadSeoDefaults()
   loadTypography()
 })
 onUnmounted(() => uninstallAnalyticsTracker())

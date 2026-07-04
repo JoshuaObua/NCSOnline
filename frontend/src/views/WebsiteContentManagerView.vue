@@ -1381,6 +1381,8 @@
           </article>
         </section>
 
+              <WebsiteSettingsPanel v-else-if="active === 'website-settings'" @message="setMsg" @error="setErr" />
+              <SitemapPanel v-else-if="active === 'sitemap'" @message="setMsg" @error="setErr" />
               <AppearanceSettingsPanel v-else-if="active === 'appearance'" @message="setMsg" @error="setErr" />
               <ProfileSettingsPanel v-else-if="active === 'my-profile'" @message="setMsg" @error="setErr" @profile-updated="refreshStoredUser" />
               <StorageSettingsPanel v-else-if="active === 'storage'" @message="setMsg" @error="setErr" />
@@ -1417,6 +1419,8 @@ import SlideshowManager from '@/components/cms/SlideshowManager.vue'
 import StaticPageBuilder from '@/components/cms/StaticPageBuilder.vue'
 import StorageSettingsPanel from '@/components/cms/StorageSettingsPanel.vue'
 import AppearanceSettingsPanel from '@/components/cms/AppearanceSettingsPanel.vue'
+import WebsiteSettingsPanel from '@/components/cms/WebsiteSettingsPanel.vue'
+import SitemapPanel from '@/components/cms/SitemapPanel.vue'
 import ProfileSettingsPanel from '@/components/cms/ProfileSettingsPanel.vue'
 import SystemCommandCenterPanel from '@/components/cms/SystemCommandCenterPanel.vue'
 import MaintenanceModePanel from '@/components/cms/MaintenanceModePanel.vue'
@@ -1610,6 +1614,8 @@ const contentSections = [
   { id:'audit-logs', label:'Audit Logs', icon:'icofont-shield-alt' },
   { id:'menus', label:'Main Menu', icon:'icofont-navigation-menu' },
   { id:'settings', label:'Contact Details', icon:'icofont-contacts' },
+  { id:'website-settings', label:'Website Settings', icon:'icofont-globe' },
+  { id:'sitemap', label:'Sitemap', icon:'icofont-sitemap' },
   { id:'appearance', label:'Appearance', icon:'icofont-paint' },
   { id:'storage', label:'Storage Settings', icon:'icofont-cloud-upload' },
   { id:'command-center', label:'Command Center', icon:'icofont-layers' },
@@ -1693,6 +1699,8 @@ const sectionPermissionMap = {
   'audit-logs':['audit:read'],
   menus:['menus:read'],
   settings:['settings:read'],
+  'website-settings':['settings:read'],
+  sitemap:['settings:read'],
   storage:['storage:read'],
   'command-center':['dashboard:read'],
   maintenance:['dashboard:read'],
@@ -1863,13 +1871,16 @@ const facilityCategoryFields = fields(['name','slug','sort_order','is_active'], 
 const eventCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
 const investCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
 const federationCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
-const eventFields = fields(['title','slug','category','location','event_date','status'], ['description'])
-const facilityFields = fields(['name','slug','category','image_url','sort_order','is_active'], ['description'])
-const associationFields = fields(['name','slug','category','president','secretary','phone','website_url','logo_url','sort_order','is_active'], ['description'])
-const factFields = fields(['label','value','icon','sort_order','is_active'])
-const faqFields = fields(['question','category','sort_order','is_active'], ['answer'])
-const resourceFields = fields(['title','category','file_url','sort_order','is_active'], ['description'])
-const careerFields = fields(['title','department','location','job_type','category','salary_range','status','deadline_at'], ['description','requirements'])
+// Renders the given field as a category dropdown sourced from that content
+// type's own scoped category list, instead of a free-text input that has no
+// connection to the category management screens for that type.
+function withCategoryOptions(fieldDefs, categoriesRef) {
+  return computed(() => fieldDefs.map(f => f.name === 'category' ? { ...f, type: 'select', options: categoriesRef.value } : f))
+}
+const facilityFields = withCategoryOptions(fields(['name','slug','category','image_url','sort_order','is_active'], ['description']), facilityCategories)
+const associationFields = withCategoryOptions(fields(['name','slug','category','president','secretary','phone','website_url','logo_url','sort_order','is_active'], ['description']), federationCategories)
+const factFields = fields(['label','value','sort_order','is_active'])
+const resourceFields = withCategoryOptions(fields(['title','category','file_url','sort_order','is_active'], ['description']), resourceCategories)
 const investFields = fields(['title','subtitle','image_url','sort_order','is_active'], ['content'])
 const teamFields = fields(['full_name','designation','image_url','sort_order','is_active'], ['bio'])
 
@@ -2434,15 +2445,16 @@ function editEvent(item) {
   copyInto(eventForm, item)
   if (item.event_date) eventForm.event_date = item.event_date.slice(0, 16)
   if (item.end_date) eventForm.end_date = item.end_date.slice(0, 16)
+  active.value = 'events'
 }
-function editFacility(item) { copyInto(facilityForm, item) }
-function editAssociation(item) { copyInto(associationForm, item) }
-function editFact(item) { copyInto(factForm, item) }
-function editFAQ(item) { copyInto(faqForm, item) }
-function editResource(item) { copyInto(resourceForm, item) }
-function editCareer(item) { copyInto(careerForm, item); if (item.deadline_at) careerForm.deadline_at = item.deadline_at }
-function editInvest(item) { copyInto(investForm, item) }
-function editTeam(item) { copyInto(teamForm, item) }
+function editFacility(item) { copyInto(facilityForm, item); active.value = 'facilities' }
+function editAssociation(item) { copyInto(associationForm, item); active.value = 'associations' }
+function editFact(item) { copyInto(factForm, item); active.value = 'facts' }
+function editFAQ(item) { copyInto(faqForm, item); active.value = 'faqs' }
+function editResource(item) { copyInto(resourceForm, item); active.value = 'resources' }
+function editCareer(item) { copyInto(careerForm, item); if (item.deadline_at) careerForm.deadline_at = item.deadline_at; active.value = 'careers' }
+function editInvest(item) { copyInto(investForm, item); active.value = 'invest' }
+function editTeam(item) { copyInto(teamForm, item); active.value = 'team' }
 
 async function removePost(item) { await removeEntity(item, cms.adminDeletePost) }
 async function removeBlogCategory(item) { await removeEntity(item, cms.adminDeleteBlogCategory) }
@@ -3196,6 +3208,12 @@ const EditorForm = defineComponent({
           accept: 'image/png,image/jpeg,image/webp,image/svg+xml',
           onError: error => emit('error', error),
         })
+      }
+      if (field.type === 'select') {
+        return h('select', { class: 'form-control selectric', value: props.model[field.name], onChange: e => props.model[field.name] = e.target.value }, [
+          h('option', { value: '' }, 'None'),
+          ...(field.options || []).map(o => h('option', { key: o.id || o.slug, value: o.slug || o.value }, o.name || o.label)),
+        ])
       }
       if (field.type === 'textarea') {
         return h('textarea', { class: 'form-control', rows: 4, value: props.model[field.name], onInput: e => props.model[field.name] = e.target.value })
