@@ -1,5 +1,12 @@
 <template>
-  <div class="public-site min-h-screen flex flex-col">
+  <div v-if="maintenanceActive" class="maintenance-screen">
+    <div class="maintenance-card">
+      <img v-if="siteIdentity.logoUrl || siteIdentity.whiteLogoUrl" :src="headerLogo" :alt="siteIdentity.name || 'NCS'" class="maintenance-logo" />
+      <h1>{{ maintenanceInfo.display_meta?.custom_title || 'Scheduled Maintenance' }}</h1>
+      <p>{{ maintenanceInfo.display_meta?.custom_message || maintenanceInfo.reason || 'We are performing scheduled maintenance and will be back online shortly. Thank you for your patience.' }}</p>
+    </div>
+  </div>
+  <div v-else class="public-site min-h-screen flex flex-col">
 
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <a href="#public-footer" class="skip-link skip-link-secondary">Skip to footer</a>
@@ -342,7 +349,7 @@
 import { ref, computed, nextTick, onMounted, onUnmounted, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
-import { getMenu, getSettings, getTypography, listFonts } from '@/api/cms.js'
+import { getMaintenanceStatus, getMenu, getSettings, getTypography, listFonts } from '@/api/cms.js'
 import { injectTypographyCSS } from '@/utils/typography.js'
 import { mediaUrl } from '@/api/client.js'
 import { installAnalyticsTracker, trackPageView, uninstallAnalyticsTracker } from '@/utils/analyticsTracker.js'
@@ -360,6 +367,8 @@ const accountUser = ref(readAccountUser())
 const route = useRoute()
 const router = useRouter()
 const { isDark } = useTheme()
+const maintenanceActive = ref(false)
+const maintenanceInfo = ref({})
 // Priority: explicit intranet URL, then the browser host plus VITE_INTRANET_PORT.
 // Mirrors resolveApiBase() in api/client.js so neither URL is pinned to a
 // specific host at build time.
@@ -771,7 +780,21 @@ async function loadSiteIdentity() {
   } catch { /* first-time, no record yet */ }
 }
 
+async function loadMaintenanceStatus() {
+  try {
+    const r = await getMaintenanceStatus()
+    const scoped = r.data?.data?.public_cms
+    // Staff already signed into the CMS can keep browsing the public site
+    // normally while maintenance is on, so they can verify it live.
+    if (scoped?.is_active && !localStorage.getItem('ncsms_access_token')) {
+      maintenanceInfo.value = scoped
+      maintenanceActive.value = true
+    }
+  } catch { /* if the status check fails, fail open and show the site */ }
+}
+
 onMounted(() => {
+  loadMaintenanceStatus()
   installAnalyticsTracker()
   trackPageView(route.path)
   loadMenu()
@@ -787,6 +810,11 @@ onUnmounted(() => uninstallAnalyticsTracker())
 </script>
 
 <style scoped>
+.maintenance-screen { min-height: 100vh; display: grid; place-items: center; background: #1a365d; color: white; padding: 2rem; }
+.maintenance-card { max-width: 34rem; text-align: center; }
+.maintenance-logo { height: 3.5rem; width: auto; object-fit: contain; margin: 0 auto 2rem; display: block; }
+.maintenance-card h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: 1rem; }
+.maintenance-card p { color: rgb(255 255 255 / 0.75); line-height: 1.7; }
 .public-site > main { padding-top: 7rem; }
 .newsletter-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .account-menu{position:relative}.account-trigger{width:38px;height:38px;border:1px solid #e5e7eb;border-radius:999px;background:white;color:#112b4e;display:grid;place-items:center;overflow:hidden;font-weight:900}.account-trigger img{width:100%;height:100%;object-fit:cover}.account-dropdown{position:absolute;right:0;top:calc(100% + 10px);width:230px;background:white;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 18px 40px rgba(15,23,42,.16);padding:.45rem;z-index:70}.account-dropdown a,.account-dropdown button{display:block;width:100%;border:0;background:transparent;border-radius:6px;padding:.7rem .75rem;text-align:left;color:#112b4e;font-size:.88rem;font-weight:800}.account-dropdown a:hover,.account-dropdown button:hover{background:#f8fafc;color:#f48c06}

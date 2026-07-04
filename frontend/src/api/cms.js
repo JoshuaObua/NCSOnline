@@ -2,6 +2,10 @@ import apiClient from './client.js'
 
 // ── Public CMS (no auth required) ────────────────────────────────
 
+export function getMaintenanceStatus() {
+  return apiClient.get('/api/v1/system/maintenance-status')
+}
+
 export function listPosts(params = {}) {
   return apiClient.get('/api/v1/cms/posts', { params })
 }

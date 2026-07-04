@@ -1530,7 +1530,7 @@ const blogSections = [
 ]
 const staticPageSections = [
   { id:'static-pages', label:'Create Static Page', icon:'icofont-page' },
-  { id:'manage-pages', label:'Manage Static Pages', icon:'icofont-copy-alt' },
+  { id:'manage-pages', label:'Manage Static Pages', icon:'icofont-copy' },
 ]
 const projectSections = [
   { id:'projects', label:'Add New Project', icon:'icofont-plus-circle' },
