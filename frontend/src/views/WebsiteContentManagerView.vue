@@ -1615,7 +1615,7 @@ const contentSections = [
   { id:'menus', label:'Main Menu', icon:'icofont-navigation-menu' },
   { id:'settings', label:'Contact Details', icon:'icofont-contacts' },
   { id:'website-settings', label:'Website Settings', icon:'icofont-globe' },
-  { id:'sitemap', label:'Sitemap', icon:'icofont-sitemap' },
+  { id:'sitemap', label:'Sitemap', icon:'icofont-site-map' },
   { id:'appearance', label:'Appearance', icon:'icofont-paint' },
   { id:'storage', label:'Storage Settings', icon:'icofont-cloud-upload' },
   { id:'command-center', label:'Command Center', icon:'icofont-layers' },
