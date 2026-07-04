@@ -73,9 +73,6 @@
       </section>
     </Transition>
 
-    <Teleport to="body">
-      <div v-if="preferences.readingGuide" class="a11y-reading-guide" :style="{ top: `${pointerY}px` }" aria-hidden="true"></div>
-    </Teleport>
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
   </div>
 </template>
@@ -95,7 +92,6 @@ const defaults = {
   largeCursor: false,
   hideImages: false,
   reduceMotion: false,
-  readingGuide: false,
 }
 const tools = [
   { key: 'highContrast', label: 'High contrast' },
@@ -107,14 +103,12 @@ const tools = [
   { key: 'largeCursor', label: 'Large cursor' },
   { key: 'hideImages', label: 'Hide images' },
   { key: 'reduceMotion', label: 'Reduce motion' },
-  { key: 'readingGuide', label: 'Reading guide' },
 ]
 
 const open = ref(false)
 const panel = ref(null)
 const menuRoot = ref(null)
 const announcement = ref('')
-const pointerY = ref(window.innerHeight / 2)
 const preferences = reactive({ ...defaults })
 // True when any accessibility adjustment is active (text size changed or any
 // toggle on). Drives the FAB's master on/off behaviour + active styling.
@@ -162,7 +156,7 @@ function openPanel() {
 }
 // The FAB is a master on/off control so visitors can bail out with one click:
 // - panel open        → close it
-// - features active    → turn everything off (quick reset, incl. reading guide)
+// - features active    → turn everything off (quick reset)
 // - nothing active     → open the panel to choose adjustments
 function onTrigger() {
   cancelScheduledClose()
@@ -203,7 +197,6 @@ function trapFocus(event) {
 }
 function onKeydown(event) { if (event.key === 'Escape' && open.value) closePanel(true) }
 function onPointerDown(event) { if (open.value && menuRoot.value && !menuRoot.value.contains(event.target)) closePanel() }
-function onPointerMove(event) { if (preferences.readingGuide) pointerY.value = event.clientY }
 function readSelectedText() {
   const text = window.getSelection()?.toString().trim() || document.querySelector('main')?.innerText?.slice(0, 3000) || ''
   if (!text || !('speechSynthesis' in window)) { announcement.value = 'No readable text is selected'; return }
@@ -234,7 +227,6 @@ onMounted(() => {
   applyPreferences()
   document.addEventListener('keydown', onKeydown)
   document.addEventListener('pointerdown', onPointerDown)
-  document.addEventListener('pointermove', onPointerMove, { passive: true })
   window.addEventListener('open-accessibility-menu', onOpenRequest)
 })
 onBeforeUnmount(() => {
@@ -242,7 +234,6 @@ onBeforeUnmount(() => {
   document.documentElement.style.fontSize = ''
   document.removeEventListener('keydown', onKeydown)
   document.removeEventListener('pointerdown', onPointerDown)
-  document.removeEventListener('pointermove', onPointerMove)
   window.removeEventListener('open-accessibility-menu', onOpenRequest)
 })
 </script>
