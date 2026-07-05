@@ -44,82 +44,74 @@ const apiClient = axios.create({
   }
 })
 
-let isRefreshing = false
-let failedQueue = []
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/google', '/auth/refresh', '/auth/logout']
+const isAuthEndpoint = url => AUTH_ENDPOINTS.some(path => url?.includes(path))
 
-function processQueue(error, token = null) {
-  failedQueue.forEach(prom => {
-    if (error) {
-      prom.reject(error)
-    } else {
-      prom.resolve(token)
-    }
-  })
-  failedQueue = []
+function decodeJwtExpMs(token) {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(atob(base64))
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null
+  } catch {
+    return null
+  }
 }
 
-// Request interceptor — attach auth token
+// Single-flight refresh: concurrent callers all await the same in-flight
+// request instead of each firing their own POST /auth/refresh.
+let refreshPromise = null
+function refreshAccessToken() {
+  if (!refreshPromise) {
+    refreshPromise = axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true })
+      .then(res => {
+        const { access_token } = res.data.data
+        localStorage.setItem('ncsms_access_token', access_token)
+        apiClient.defaults.headers.common.Authorization = `Bearer ${access_token}`
+        return access_token
+      })
+      .finally(() => { refreshPromise = null })
+  }
+  return refreshPromise
+}
+
+// Request interceptor — attach the auth token, refreshing it first if it's
+// within 30s of expiring. Access tokens are short-lived (15m), so without
+// this every CMS action after that window would fire with a stale token,
+// hit a 401, and only then refresh-and-retry — visible in the browser
+// console as a failed request even though the retry silently succeeds.
 apiClient.interceptors.request.use(
-  config => {
-    const token = localStorage.getItem('ncsms_access_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+  async config => {
+    let token = localStorage.getItem('ncsms_access_token')
+    if (token && token !== 'local-cms-preview-token' && !isAuthEndpoint(config.url)) {
+      const expMs = decodeJwtExpMs(token)
+      if (expMs && expMs - Date.now() < 30_000) {
+        try { token = await refreshAccessToken() } catch { /* let the request go; the response interceptor will handle the 401 */ }
+      }
     }
+    if (token) config.headers.Authorization = `Bearer ${token}`
     return config
   },
   error => Promise.reject(error)
 )
 
-// Response interceptor — handle 401 and auto-refresh
+// Response interceptor — fallback for the rare case a request still hits a
+// 401 (e.g. clock skew, or a request already in flight when the token
+// expired): refresh once and retry, sharing the same single-flight refresh.
 apiClient.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config
-
-    // Skip refresh logic for auth endpoints themselves
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/login') &&
-      !originalRequest.url?.includes('/auth/google') &&
-      !originalRequest.url?.includes('/auth/refresh') &&
-      !originalRequest.url?.includes('/auth/logout')
-    ) {
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject })
-        })
-          .then(token => {
-            originalRequest.headers.Authorization = `Bearer ${token}`
-            return apiClient(originalRequest)
-          })
-          .catch(err => Promise.reject(err))
-      }
-
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint(originalRequest.url)) {
       originalRequest._retry = true
-      isRefreshing = true
-
       try {
-		const response = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true })
-		const { access_token } = response.data.data
-
-        localStorage.setItem('ncsms_access_token', access_token)
-
-        apiClient.defaults.headers.common.Authorization = `Bearer ${access_token}`
-        originalRequest.headers.Authorization = `Bearer ${access_token}`
-
-        processQueue(null, access_token)
-        isRefreshing = false
-
+        const token = await refreshAccessToken()
+        originalRequest.headers.Authorization = `Bearer ${token}`
         return apiClient(originalRequest)
       } catch (refreshError) {
-        processQueue(refreshError, null)
-        isRefreshing = false
         clearAuthAndRedirect()
         return Promise.reject(refreshError)
       }
     }
-
     return Promise.reject(error)
   }
 )

@@ -433,6 +433,10 @@ const defaultMenu = [
   { label: 'Facilities',      url: '/facilities' },
   { label: 'Associations',    url: '/associations' },
   { label: 'Resource Centre', url: '/resource-centre' },
+  { label: 'Sports Rules',    url: '/sports-rules' },
+  { label: 'Press Releases',  url: '/press-releases' },
+  { label: 'NCS Reports',     url: '/reports' },
+  { label: 'NCS Speeches',    url: '/speeches' },
   { label: 'Invest with Us',  url: '/invest' },
 ]
 

@@ -1032,6 +1032,10 @@ func (h *CMSHandler) CreateBlogCategory(w http.ResponseWriter, r *http.Request) 
 	}
 	cat := &models.BlogCategory{ID: uuid.NewString(), Name: sanitizePlain(req.Name, 120), Slug: slug, Description: sanitizePlain(req.Description, 500), ContentType: contentType, SortOrder: req.SortOrder, IsActive: req.IsActive}
 	if err := h.repo.CreateBlogCategory(r.Context(), cat); err != nil {
+		if errors.Is(err, repository.ErrDuplicate) {
+			response.Err(w, http.StatusConflict, "DUPLICATE_SLUG", "A category with this slug already exists for this section")
+			return
+		}
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create blog category")
 		return
 	}
@@ -1064,6 +1068,10 @@ func (h *CMSHandler) UpdateBlogCategory(w http.ResponseWriter, r *http.Request) 
 	if err := h.repo.UpdateBlogCategory(r.Context(), cat); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Category not found")
+			return
+		}
+		if errors.Is(err, repository.ErrDuplicate) {
+			response.Err(w, http.StatusConflict, "DUPLICATE_SLUG", "A category with this slug already exists for this section")
 			return
 		}
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update blog category")
@@ -2663,6 +2671,130 @@ func (h *CMSHandler) DeleteResource(w http.ResponseWriter, r *http.Request) {
 	response.JSONMsg(w, http.StatusOK, "Deleted")
 }
 
+// ── Documents (Sports Rules, Press Releases, Reports, Speeches) ────
+
+func validDocType(t string) bool {
+	switch t {
+	case "sports_rule", "press_release", "report", "speech":
+		return true
+	default:
+		return false
+	}
+}
+
+// GET /api/v1/cms/documents?doc_type=sports_rule&category=...
+func (h *CMSHandler) ListDocuments(w http.ResponseWriter, r *http.Request) {
+	docType := r.URL.Query().Get("doc_type")
+	if !validDocType(docType) {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid or missing doc_type")
+		return
+	}
+	category := r.URL.Query().Get("category")
+	activeOnly := r.URL.Query().Get("active") != "false"
+	items, err := h.repo.ListDocuments(r.Context(), docType, category, activeOnly)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list documents")
+		return
+	}
+	if items == nil {
+		items = []*models.CMSDocument{}
+	}
+	response.JSON(w, http.StatusOK, items)
+}
+
+func (h *CMSHandler) CreateDocument(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		DocType     string `json:"doc_type"`
+		Title       string `json:"title"`
+		Category    string `json:"category"`
+		FileURL     string `json:"file_url"`
+		VideoURL    string `json:"video_url"`
+		Description string `json:"description"`
+		SortOrder   int    `json:"sort_order"`
+		IsActive    bool   `json:"is_active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
+		return
+	}
+	if !validDocType(req.DocType) {
+		response.ValidationErr(w, map[string]string{"doc_type": "invalid"})
+		return
+	}
+	if req.Title == "" {
+		response.ValidationErr(w, map[string]string{"title": "required"})
+		return
+	}
+	if req.Category == "" {
+		req.Category = "general"
+	}
+	d := &models.CMSDocument{
+		ID: uuid.NewString(), DocType: req.DocType, Title: req.Title, Category: req.Category,
+		FileURL: req.FileURL, VideoURL: req.VideoURL, Description: req.Description,
+		SortOrder: req.SortOrder, IsActive: req.IsActive,
+	}
+	if err := h.repo.CreateDocument(r.Context(), d); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create document")
+		return
+	}
+	response.JSON(w, http.StatusCreated, d)
+}
+
+func (h *CMSHandler) UpdateDocument(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	existing, err := h.repo.GetDocumentByID(r.Context(), id)
+	if errors.Is(err, repository.ErrNotFound) {
+		response.Err(w, http.StatusNotFound, "NOT_FOUND", "Document not found")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not get document")
+		return
+	}
+	var req struct {
+		Title       string `json:"title"`
+		Category    string `json:"category"`
+		FileURL     string `json:"file_url"`
+		VideoURL    string `json:"video_url"`
+		Description string `json:"description"`
+		SortOrder   int    `json:"sort_order"`
+		IsActive    bool   `json:"is_active"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
+		return
+	}
+	if req.Title != "" {
+		existing.Title = req.Title
+	}
+	if req.Category != "" {
+		existing.Category = req.Category
+	}
+	// Overwritten unconditionally (unlike Title/Category): press releases toggle
+	// between a PDF upload and a YouTube URL, so clearing one when setting the
+	// other must actually persist.
+	existing.FileURL = req.FileURL
+	existing.VideoURL = req.VideoURL
+	if req.Description != "" {
+		existing.Description = req.Description
+	}
+	existing.SortOrder = req.SortOrder
+	existing.IsActive = req.IsActive
+	if err := h.repo.UpdateDocument(r.Context(), existing); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update document")
+		return
+	}
+	response.JSON(w, http.StatusOK, existing)
+}
+
+func (h *CMSHandler) DeleteDocument(w http.ResponseWriter, r *http.Request) {
+	if err := h.repo.DeleteDocument(r.Context(), chi.URLParam(r, "id")); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not delete document")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Deleted")
+}
+
 // ── Facilities ────────────────────────────────────────────────────
 
 func (h *CMSHandler) ListFacilities(w http.ResponseWriter, r *http.Request) {
@@ -2785,18 +2917,19 @@ func (h *CMSHandler) ListAssociations(w http.ResponseWriter, r *http.Request) {
 
 func (h *CMSHandler) CreateAssociation(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name        string `json:"name"`
-		Slug        string `json:"slug"`
-		Description string `json:"description"`
-		LogoURL     string `json:"logo_url"`
-		WebsiteURL  string `json:"website_url"`
-		Category    string `json:"category"`
-		President   string `json:"president"`
-		Secretary   string `json:"secretary"`
-		Address     string `json:"address"`
-		Phone       string `json:"phone"`
-		SortOrder   int    `json:"sort_order"`
-		IsActive    bool   `json:"is_active"`
+		Name         string `json:"name"`
+		Slug         string `json:"slug"`
+		Abbreviation string `json:"abbreviation"`
+		Description  string `json:"description"`
+		LogoURL      string `json:"logo_url"`
+		WebsiteURL   string `json:"website_url"`
+		Category     string `json:"category"`
+		President    string `json:"president"`
+		Secretary    string `json:"secretary"`
+		Address      string `json:"address"`
+		Phone        string `json:"phone"`
+		SortOrder    int    `json:"sort_order"`
+		IsActive     bool   `json:"is_active"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
@@ -2811,7 +2944,7 @@ func (h *CMSHandler) CreateAssociation(w http.ResponseWriter, r *http.Request) {
 		slug = toSlug(req.Name)
 	}
 	a := &models.CMSAssociation{
-		ID: uuid.NewString(), Name: req.Name, Slug: slug,
+		ID: uuid.NewString(), Name: req.Name, Slug: slug, Abbreviation: req.Abbreviation,
 		Description: req.Description, LogoURL: req.LogoURL, WebsiteURL: req.WebsiteURL,
 		Category: req.Category, President: req.President, Secretary: req.Secretary, Address: req.Address, Phone: req.Phone,
 		SortOrder: req.SortOrder, IsActive: req.IsActive,
@@ -2839,17 +2972,18 @@ func (h *CMSHandler) UpdateAssociation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		LogoURL     string `json:"logo_url"`
-		WebsiteURL  string `json:"website_url"`
-		Category    string `json:"category"`
-		President   string `json:"president"`
-		Secretary   string `json:"secretary"`
-		Address     string `json:"address"`
-		Phone       string `json:"phone"`
-		SortOrder   int    `json:"sort_order"`
-		IsActive    bool   `json:"is_active"`
+		Name         string `json:"name"`
+		Abbreviation string `json:"abbreviation"`
+		Description  string `json:"description"`
+		LogoURL      string `json:"logo_url"`
+		WebsiteURL   string `json:"website_url"`
+		Category     string `json:"category"`
+		President    string `json:"president"`
+		Secretary    string `json:"secretary"`
+		Address      string `json:"address"`
+		Phone        string `json:"phone"`
+		SortOrder    int    `json:"sort_order"`
+		IsActive     bool   `json:"is_active"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
@@ -2866,6 +3000,9 @@ func (h *CMSHandler) UpdateAssociation(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.WebsiteURL != "" {
 		existing.WebsiteURL = req.WebsiteURL
+	}
+	if req.Abbreviation != "" {
+		existing.Abbreviation = req.Abbreviation
 	}
 	existing.Category = req.Category
 	existing.President = req.President

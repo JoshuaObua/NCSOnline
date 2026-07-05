@@ -471,6 +471,20 @@ type CMSResource struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+type CMSDocument struct {
+	ID          string    `json:"id"`
+	DocType     string    `json:"doc_type"`
+	Title       string    `json:"title"`
+	Category    string    `json:"category"`
+	FileURL     string    `json:"file_url,omitempty"`
+	VideoURL    string    `json:"video_url,omitempty"`
+	Description string    `json:"description,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 type CMSFacility struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
@@ -485,21 +499,22 @@ type CMSFacility struct {
 }
 
 type CMSAssociation struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Slug        string    `json:"slug"`
-	Description string    `json:"description,omitempty"`
-	LogoURL     string    `json:"logo_url,omitempty"`
-	WebsiteURL  string    `json:"website_url,omitempty"`
-	Category    string    `json:"category,omitempty"`
-	President   string    `json:"president,omitempty"`
-	Secretary   string    `json:"secretary,omitempty"`
-	Address     string    `json:"address,omitempty"`
-	Phone       string    `json:"phone,omitempty"`
-	SortOrder   int       `json:"sort_order"`
-	IsActive    bool      `json:"is_active"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Slug         string    `json:"slug"`
+	Abbreviation string    `json:"abbreviation,omitempty"`
+	Description  string    `json:"description,omitempty"`
+	LogoURL      string    `json:"logo_url,omitempty"`
+	WebsiteURL   string    `json:"website_url,omitempty"`
+	Category     string    `json:"category,omitempty"`
+	President    string    `json:"president,omitempty"`
+	Secretary    string    `json:"secretary,omitempty"`
+	Address      string    `json:"address,omitempty"`
+	Phone        string    `json:"phone,omitempty"`
+	SortOrder    int       `json:"sort_order"`
+	IsActive     bool      `json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type CMSInvest struct {

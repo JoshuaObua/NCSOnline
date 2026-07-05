@@ -168,6 +168,7 @@ func main() {
 			r.Get("/fonts", h.CMS.ListFonts)
 			r.Get("/faqs", h.CMS.ListFAQs)
 			r.Get("/resources", h.CMS.ListResources)
+			r.Get("/documents", h.CMS.ListDocuments)
 			r.Get("/facilities", h.CMS.ListFacilities)
 			r.Get("/associations", h.CMS.ListAssociations)
 			r.Get("/invest", h.CMS.ListInvest)
@@ -498,6 +499,13 @@ func main() {
 					r.Post("/", h.CMS.CreateResource)
 					r.Put("/{id}", h.CMS.UpdateResource)
 					r.Delete("/{id}", h.CMS.DeleteResource)
+				})
+
+				r.Route("/admin/cms/documents", func(r chi.Router) {
+					r.Get("/", h.CMS.ListDocuments)
+					r.Post("/", h.CMS.CreateDocument)
+					r.Put("/{id}", h.CMS.UpdateDocument)
+					r.Delete("/{id}", h.CMS.DeleteDocument)
 				})
 
 				r.Route("/admin/cms/facilities", func(r chi.Router) {

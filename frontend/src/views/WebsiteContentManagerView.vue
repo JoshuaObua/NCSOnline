@@ -186,6 +186,30 @@
                   <li v-for="item in visibleItems(federationSections)" :key="item.id" :class="{ active: active === item.id }"><button type="button" class="nav-link" @click="selectSection(item.id)">{{ item.label }}</button></li>
                 </ul>
               </li>
+              <li v-if="visibleItems(sportsRuleSections).length" class="dropdown" :class="{ active: sportsRulesGroupOpen || groupHasActive(sportsRuleSections) }">
+                <button type="button" class="menu-toggle nav-link has-dropdown" @click="sportsRulesGroupOpen = !sportsRulesGroupOpen"><i class="icofont-read-book"></i><span>Sports Rules</span></button>
+                <ul class="dropdown-menu" :style="{ display: sportsRulesGroupOpen ? 'block' : 'none' }">
+                  <li v-for="item in visibleItems(sportsRuleSections)" :key="item.id" :class="{ active: active === item.id }"><button type="button" class="nav-link" @click="selectSection(item.id)">{{ item.label }}</button></li>
+                </ul>
+              </li>
+              <li v-if="visibleItems(pressReleaseSections).length" class="dropdown" :class="{ active: pressReleasesGroupOpen || groupHasActive(pressReleaseSections) }">
+                <button type="button" class="menu-toggle nav-link has-dropdown" @click="pressReleasesGroupOpen = !pressReleasesGroupOpen"><i class="icofont-newspaper"></i><span>Press Releases</span></button>
+                <ul class="dropdown-menu" :style="{ display: pressReleasesGroupOpen ? 'block' : 'none' }">
+                  <li v-for="item in visibleItems(pressReleaseSections)" :key="item.id" :class="{ active: active === item.id }"><button type="button" class="nav-link" @click="selectSection(item.id)">{{ item.label }}</button></li>
+                </ul>
+              </li>
+              <li v-if="visibleItems(reportSections).length" class="dropdown" :class="{ active: reportsGroupOpen || groupHasActive(reportSections) }">
+                <button type="button" class="menu-toggle nav-link has-dropdown" @click="reportsGroupOpen = !reportsGroupOpen"><i class="icofont-file-pdf"></i><span>NCS Reports</span></button>
+                <ul class="dropdown-menu" :style="{ display: reportsGroupOpen ? 'block' : 'none' }">
+                  <li v-for="item in visibleItems(reportSections)" :key="item.id" :class="{ active: active === item.id }"><button type="button" class="nav-link" @click="selectSection(item.id)">{{ item.label }}</button></li>
+                </ul>
+              </li>
+              <li v-if="visibleItems(speechSections).length" class="dropdown" :class="{ active: speechesGroupOpen || groupHasActive(speechSections) }">
+                <button type="button" class="menu-toggle nav-link has-dropdown" @click="speechesGroupOpen = !speechesGroupOpen"><i class="icofont-speech-comments"></i><span>NCS Speeches</span></button>
+                <ul class="dropdown-menu" :style="{ display: speechesGroupOpen ? 'block' : 'none' }">
+                  <li v-for="item in visibleItems(speechSections)" :key="item.id" :class="{ active: active === item.id }"><button type="button" class="nav-link" @click="selectSection(item.id)">{{ item.label }}</button></li>
+                </ul>
+              </li>
               <li v-if="visibleItems(funFactSections).length" class="dropdown" :class="{ active: funFactsGroupOpen || groupHasActive(funFactSections) }">
                 <button type="button" class="menu-toggle nav-link has-dropdown" @click="funFactsGroupOpen = !funFactsGroupOpen"><i class="icofont-chart-bar-graph"></i><span>Fun Facts</span></button>
                 <ul class="dropdown-menu" :style="{ display: funFactsGroupOpen ? 'block' : 'none' }">
@@ -1012,6 +1036,78 @@
           <ContentTable :items="resourceCategories" title-key="name" subtitle-key="slug" @edit="editResourceCategory" @delete="removeResourceCategory" />
         </section>
 
+        <section v-else-if="active === 'sports-rules'" class="cms-panel">
+          <EditorForm title="Add Sports Rule" :model="sportsRuleForm" :fields="sportsRuleFields" @save="saveSportsRule" @error="setErr" />
+        </section>
+
+        <section v-else-if="active === 'manage-sports-rules'" class="cms-panel">
+          <div class="cms-panel-head"><h2>Manage Sports Rules</h2><button type="button" @click="resetSportsRuleForm(); active = 'sports-rules'">New rule</button></div>
+          <ContentTable :items="sportsRules" title-key="title" subtitle-key="category" @edit="editSportsRule" @delete="removeSportsRule" />
+        </section>
+
+        <section v-else-if="active === 'create-sports-rule-categories'" class="cms-panel">
+          <EditorForm title="Create Sports Rule Category" :model="sportsRuleCategoryForm" :fields="sportsRuleCategoryFields" @save="saveSportsRuleCategory" />
+        </section>
+
+        <section v-else-if="active === 'manage-sports-rule-categories'" class="cms-panel">
+          <div class="cms-panel-head"><h2>Manage Sports Rule Categories</h2><button type="button" @click="resetSportsRuleCategoryForm(); active = 'create-sports-rule-categories'">New category</button></div>
+          <ContentTable :items="sportsRuleCategories" title-key="name" subtitle-key="slug" @edit="editSportsRuleCategory" @delete="removeSportsRuleCategory" />
+        </section>
+
+        <section v-else-if="active === 'press-releases'" class="cms-panel">
+          <EditorForm title="Add Press Release" :model="pressReleaseForm" :fields="pressReleaseFields" @save="savePressRelease" @error="setErr" />
+        </section>
+
+        <section v-else-if="active === 'manage-press-releases'" class="cms-panel">
+          <div class="cms-panel-head"><h2>Manage Press Releases</h2><button type="button" @click="resetPressReleaseForm(); active = 'press-releases'">New release</button></div>
+          <ContentTable :items="pressReleases" title-key="title" subtitle-key="category" @edit="editPressRelease" @delete="removePressRelease" />
+        </section>
+
+        <section v-else-if="active === 'create-press-release-categories'" class="cms-panel">
+          <EditorForm title="Create Press Release Category" :model="pressReleaseCategoryForm" :fields="pressReleaseCategoryFields" @save="savePressReleaseCategory" />
+        </section>
+
+        <section v-else-if="active === 'manage-press-release-categories'" class="cms-panel">
+          <div class="cms-panel-head"><h2>Manage Press Release Categories</h2><button type="button" @click="resetPressReleaseCategoryForm(); active = 'create-press-release-categories'">New category</button></div>
+          <ContentTable :items="pressReleaseCategories" title-key="name" subtitle-key="slug" @edit="editPressReleaseCategory" @delete="removePressReleaseCategory" />
+        </section>
+
+        <section v-else-if="active === 'reports'" class="cms-panel">
+          <EditorForm title="Add NCS Report" :model="reportForm" :fields="reportFields" @save="saveReport" @error="setErr" />
+        </section>
+
+        <section v-else-if="active === 'manage-reports'" class="cms-panel">
+          <div class="cms-panel-head"><h2>Manage NCS Reports</h2><button type="button" @click="resetReportForm(); active = 'reports'">New report</button></div>
+          <ContentTable :items="reports" title-key="title" subtitle-key="category" @edit="editReport" @delete="removeReport" />
+        </section>
+
+        <section v-else-if="active === 'create-report-categories'" class="cms-panel">
+          <EditorForm title="Create Report Category" :model="reportCategoryForm" :fields="reportCategoryFields" @save="saveReportCategory" />
+        </section>
+
+        <section v-else-if="active === 'manage-report-categories'" class="cms-panel">
+          <div class="cms-panel-head"><h2>Manage Report Categories</h2><button type="button" @click="resetReportCategoryForm(); active = 'create-report-categories'">New category</button></div>
+          <ContentTable :items="reportCategories" title-key="name" subtitle-key="slug" @edit="editReportCategory" @delete="removeReportCategory" />
+        </section>
+
+        <section v-else-if="active === 'speeches'" class="cms-panel">
+          <EditorForm title="Add NCS Speech" :model="speechForm" :fields="speechFields" @save="saveSpeech" @error="setErr" />
+        </section>
+
+        <section v-else-if="active === 'manage-speeches'" class="cms-panel">
+          <div class="cms-panel-head"><h2>Manage NCS Speeches</h2><button type="button" @click="resetSpeechForm(); active = 'speeches'">New speech</button></div>
+          <ContentTable :items="speeches" title-key="title" subtitle-key="category" @edit="editSpeech" @delete="removeSpeech" />
+        </section>
+
+        <section v-else-if="active === 'create-speech-categories'" class="cms-panel">
+          <EditorForm title="Create Speech Category" :model="speechCategoryForm" :fields="speechCategoryFields" @save="saveSpeechCategory" />
+        </section>
+
+        <section v-else-if="active === 'manage-speech-categories'" class="cms-panel">
+          <div class="cms-panel-head"><h2>Manage Speech Categories</h2><button type="button" @click="resetSpeechCategoryForm(); active = 'create-speech-categories'">New category</button></div>
+          <ContentTable :items="speechCategories" title-key="name" subtitle-key="slug" @edit="editSpeechCategory" @delete="removeSpeechCategory" />
+        </section>
+
         <section v-else-if="active === 'careers'" class="cms-panel">
           <form class="otika-form-card" @submit.prevent="saveCareer">
             <div class="card">
@@ -1041,6 +1137,42 @@
         <section v-else-if="active === 'manage-careers'" class="cms-panel">
           <div class="cms-panel-head"><h2>Manage Career Posts</h2><button type="button" @click="resetCareerForm(); active = 'careers'">New post</button></div>
           <ContentTable :items="careers" title-key="title" subtitle-key="status" @edit="editCareer" @delete="removeCareer" />
+        </section>
+
+        <section v-else-if="active === 'career-page-ui'" class="cms-panel">
+          <div class="cms-panel-head"><h2>Careers Page UI</h2><button type="button" @click="saveCareerPageSettings">Save page UI</button></div>
+          <div class="cms-two">
+            <label>Hero eyebrow<input v-model="careersPage.eyebrow" class="form-control" /></label>
+            <label>Open roles eyebrow<input v-model="careersPage.jobs_eyebrow" class="form-control" /></label>
+            <label class="wide">Hero title<input v-model="careersPage.title" class="form-control" /></label>
+            <label class="wide">Hero intro<textarea v-model="careersPage.intro" class="form-control"></textarea></label>
+            <label class="wide">Open roles title<input v-model="careersPage.jobs_title" class="form-control" /></label>
+            <label class="wide">Open roles intro<textarea v-model="careersPage.jobs_intro" class="form-control"></textarea></label>
+            <label>Empty state title<input v-model="careersPage.empty_title" class="form-control" /></label>
+            <label>Recruitment process eyebrow<input v-model="careersPage.process_eyebrow" class="form-control" /></label>
+            <label class="wide">Empty state text<textarea v-model="careersPage.empty_text" class="form-control"></textarea></label>
+            <label class="wide">Recruitment process title<input v-model="careersPage.process_title" class="form-control" /></label>
+            <label>CTA eyebrow<input v-model="careersPage.cta_eyebrow" class="form-control" /></label>
+            <label>CTA title<input v-model="careersPage.cta_title" class="form-control" /></label>
+            <label class="wide">CTA text<textarea v-model="careersPage.cta_text" class="form-control"></textarea></label>
+          </div>
+          <article class="cms-subpanel">
+            <div class="cms-panel-head"><h2>Stat Cards</h2><button type="button" @click="careersPage.stats.push({ value:'', label:'', text:'' })">Add stat</button></div>
+            <div v-for="(stat, index) in careersPage.stats" :key="`career-stat-${index}`" class="career-page-repeater">
+              <input v-model="stat.value" class="form-control" placeholder="Value" />
+              <input v-model="stat.label" class="form-control" placeholder="Label" />
+              <textarea v-model="stat.text" class="form-control" placeholder="Short description"></textarea>
+              <button type="button" class="footer-remove-btn" @click="careersPage.stats.splice(index, 1)">Remove</button>
+            </div>
+          </article>
+          <article class="cms-subpanel">
+            <div class="cms-panel-head"><h2>Process Steps</h2><button type="button" @click="careersPage.process.push({ title:'', text:'' })">Add step</button></div>
+            <div v-for="(step, index) in careersPage.process" :key="`career-step-${index}`" class="career-page-repeater career-page-repeater--steps">
+              <input v-model="step.title" class="form-control" placeholder="Step title" />
+              <textarea v-model="step.text" class="form-control" placeholder="Step description"></textarea>
+              <button type="button" class="footer-remove-btn" @click="careersPage.process.splice(index, 1)">Remove</button>
+            </div>
+          </article>
         </section>
 
         <section v-else-if="active === 'create-career-categories'" class="cms-panel">
@@ -1547,6 +1679,10 @@ const facilitiesGroupOpen = ref(false)
 const eventsGroupOpen = ref(false)
 const investGroupOpen = ref(false)
 const federationsGroupOpen = ref(false)
+const sportsRulesGroupOpen = ref(false)
+const pressReleasesGroupOpen = ref(false)
+const reportsGroupOpen = ref(false)
+const speechesGroupOpen = ref(false)
 const funFactsGroupOpen = ref(false)
 const newsletterGroupOpen = ref(false)
 const messagesOpen = ref(false)
@@ -1656,6 +1792,7 @@ const resourceSections = [
 const careerSections = [
   { id:'careers', label:'Add New Post', icon:'icofont-plus-circle' },
   { id:'manage-careers', label:'Manage Posts', icon:'icofont-list' },
+  { id:'career-page-ui', label:'Page UI', icon:'icofont-layout' },
   { id:'create-career-categories', label:'Create Category', icon:'icofont-folder-open' },
   { id:'manage-career-categories', label:'Manage Categories', icon:'icofont-tags' },
 ]
@@ -1697,6 +1834,30 @@ const federationSections = [
   { id:'create-federation-categories', label:'Create Federation Category', icon:'icofont-folder-open' },
   { id:'manage-federation-categories', label:'Manage Federation Categories', icon:'icofont-tags' },
 ]
+const sportsRuleSections = [
+  { id:'sports-rules', label:'Add New Rule', icon:'icofont-plus-circle' },
+  { id:'manage-sports-rules', label:'Manage Rules', icon:'icofont-list' },
+  { id:'create-sports-rule-categories', label:'Create Rule Category', icon:'icofont-folder-open' },
+  { id:'manage-sports-rule-categories', label:'Manage Rule Categories', icon:'icofont-tags' },
+]
+const pressReleaseSections = [
+  { id:'press-releases', label:'Add New Release', icon:'icofont-plus-circle' },
+  { id:'manage-press-releases', label:'Manage Releases', icon:'icofont-list' },
+  { id:'create-press-release-categories', label:'Create Release Category', icon:'icofont-folder-open' },
+  { id:'manage-press-release-categories', label:'Manage Release Categories', icon:'icofont-tags' },
+]
+const reportSections = [
+  { id:'reports', label:'Add New Report', icon:'icofont-plus-circle' },
+  { id:'manage-reports', label:'Manage Reports', icon:'icofont-list' },
+  { id:'create-report-categories', label:'Create Report Category', icon:'icofont-folder-open' },
+  { id:'manage-report-categories', label:'Manage Report Categories', icon:'icofont-tags' },
+]
+const speechSections = [
+  { id:'speeches', label:'Add New Speech', icon:'icofont-plus-circle' },
+  { id:'manage-speeches', label:'Manage Speeches', icon:'icofont-list' },
+  { id:'create-speech-categories', label:'Create Speech Category', icon:'icofont-folder-open' },
+  { id:'manage-speech-categories', label:'Manage Speech Categories', icon:'icofont-tags' },
+]
 const funFactSections = [
   { id:'facts', label:'Create Article', icon:'icofont-edit' },
   { id:'manage-facts', label:'Manage Articles', icon:'icofont-list' },
@@ -1727,7 +1888,7 @@ const contentSections = [
 const profileSections = [
   { id:'my-profile', label:'Profile Settings', icon:'far fa-user' },
 ]
-const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections]
+const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections]
 const currentSection = computed(() => sections.find(s => s.id === active.value) || sections[0])
 
 const sectionPermissionMap = {
@@ -1763,6 +1924,7 @@ const sectionPermissionMap = {
   'manage-resource-categories':['resource_categories:read'],
   careers:['careers:create'],
   'manage-careers':['careers:read'],
+  'career-page-ui':['settings:read'],
   'create-career-categories':['career_categories:create'],
   'manage-career-categories':['career_categories:read'],
   team:['team_members:create'],
@@ -1863,6 +2025,32 @@ const contact = reactive({
   social:{ facebook:'', twitter:'', linkedin:'', instagram:'', youtube:'' },
 })
 const footer = reactive({ about:'', copyright:'', columns:[] })
+const careersPageDefaults = {
+  eyebrow:'Careers at NCS',
+  title:'Join the team shaping Uganda sport',
+  intro:'Work with the National Council of Sports to strengthen federations, support athletes, and build a more active Uganda.',
+  jobs_eyebrow:'Open opportunities',
+  jobs_title:'Current vacancies',
+  jobs_intro:'Explore published career opportunities and review the role details before contacting the recruitment team.',
+  empty_title:'No open positions at this time',
+  empty_text:'Please check back later for new opportunities with the National Council of Sports.',
+  process_eyebrow:'Recruitment process',
+  process_title:'What to expect',
+  cta_eyebrow:'Need support?',
+  cta_title:'Have a question about a vacancy?',
+  cta_text:'Our team can help with application guidance, deadlines, and role-specific enquiries.',
+  stats:[
+    { value:'1964', label:'Established', text:'Serving Uganda sport through a statutory national mandate.' },
+    { value:'50+', label:'Sports bodies', text:'Working alongside recognised national associations.' },
+    { value:'1', label:'National mission', text:'Maximising opportunities for all Ugandans in sport.' },
+  ],
+  process:[
+    { title:'Review the role', text:'Read the job description, requirements, deadline, and department details.' },
+    { title:'Prepare documents', text:'Match your CV, references, and supporting documents to the published requirements.' },
+    { title:'Contact recruitment', text:'Use the listed role details and official NCS contacts for application guidance.' },
+  ],
+}
+const careersPage = reactive(JSON.parse(JSON.stringify(careersPageDefaults)))
 const captchaSettings = reactive({
   captcha_provider: 'none',
   cloudflare_site_key: '',
@@ -1898,6 +2086,14 @@ const facilityCategories = ref([])
 const eventCategories = ref([])
 const investCategories = ref([])
 const federationCategories = ref([])
+const sportsRules = ref([])
+const pressReleases = ref([])
+const reports = ref([])
+const speeches = ref([])
+const sportsRuleCategories = ref([])
+const pressReleaseCategories = ref([])
+const reportCategories = ref([])
+const speechCategories = ref([])
 const newsletterSubscribers = ref([])
 const contactMessages = ref([])
 const cmsNotifications = ref([])
@@ -1936,6 +2132,10 @@ const STATIC_SITE_PAGES = [
   { url: '/resource-centre', label: 'Resource Centre' },
   { url: '/facilities', label: 'Facilities' },
   { url: '/associations', label: 'Associations' },
+  { url: '/sports-rules', label: 'Sports Rules' },
+  { url: '/press-releases', label: 'Press Releases' },
+  { url: '/reports', label: 'NCS Reports' },
+  { url: '/speeches', label: 'NCS Speeches' },
   { url: '/invest', label: 'Invest with NCS' },
   { url: '/faqs', label: 'FAQs' },
   { url: '/contact-us', label: 'Contact Us' },
@@ -1972,12 +2172,20 @@ const facilityCategoryForm = reactive({ id:'', name:'', slug:'', description:'',
 const eventCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'event' })
 const investCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'investment' })
 const federationCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'federation' })
+const sportsRuleCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'sports_rule' })
+const pressReleaseCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'press_release' })
+const reportCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'report' })
+const speechCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'speech' })
 const eventForm = reactive({ id:'', title:'', slug:'', category:'', location:'', event_date:'', end_date:'', cover_image_url:'', description:'', status:'published' })
 const facilityForm = reactive({ id:'', name:'', slug:'', category:'', description:'', image_url:'', sort_order:0, is_active:true })
-const associationForm = reactive({ id:'', name:'', slug:'', category:'', president:'', secretary:'', phone:'', website_url:'', description:'', logo_url:'', sort_order:0, is_active:true })
+const associationForm = reactive({ id:'', name:'', slug:'', abbreviation:'', category:'', president:'', secretary:'', phone:'', address:'', website_url:'', description:'', logo_url:'', sort_order:0, is_active:true })
 const factForm = reactive({ id:'', label:'', value:'', icon:'icofont-chart-growth', sort_order:0, is_active:true })
 const faqForm = reactive({ id:'', question:'', answer:'', category:'General', sort_order:0, is_active:true })
 const resourceForm = reactive({ id:'', title:'', category:'Guidelines', file_url:'', description:'', sort_order:0, is_active:true })
+const sportsRuleForm = reactive({ id:'', doc_type:'sports_rule', title:'', category:'', file_url:'', description:'', sort_order:0, is_active:true })
+const pressReleaseForm = reactive({ id:'', doc_type:'press_release', title:'', category:'', file_url:'', video_url:'', description:'', sort_order:0, is_active:true })
+const reportForm = reactive({ id:'', doc_type:'report', title:'', category:'', file_url:'', description:'', sort_order:0, is_active:true })
+const speechForm = reactive({ id:'', doc_type:'speech', title:'', category:'', file_url:'', description:'', sort_order:0, is_active:true })
 const careerForm = reactive({ id:'', title:'', department:'', department_id:'', location:'', job_type:'full_time', category:'jobs', description:'', requirements:'', salary_range:'', status:'draft', deadline_at:'' })
 const investForm = reactive({ id:'', title:'', subtitle:'', content:'', image_url:'', sort_order:0, is_active:true })
 const teamForm = reactive({ id:'', full_name:'', designation:'', department_id:'', image_url:'', bio:'', sort_order:0, is_active:true })
@@ -1995,6 +2203,10 @@ const facilityCategoryFields = fields(['name','slug','sort_order','is_active'], 
 const eventCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
 const investCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
 const federationCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
+const sportsRuleCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
+const pressReleaseCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
+const reportCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
+const speechCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
 // Renders the given field as a category dropdown sourced from that content
 // type's own scoped category list, instead of a free-text input that has no
 // connection to the category management screens for that type.
@@ -2002,9 +2214,16 @@ function withCategoryOptions(fieldDefs, categoriesRef) {
   return computed(() => fieldDefs.map(f => f.name === 'category' ? { ...f, type: 'select', options: categoriesRef.value } : f))
 }
 const facilityFields = withCategoryOptions(fields(['name','slug','category','image_url','sort_order','is_active'], ['description']), facilityCategories)
-const associationFields = withCategoryOptions(fields(['name','slug','category','president','secretary','phone','website_url','logo_url','sort_order','is_active'], ['description']), federationCategories)
+const associationFields = withCategoryOptions(fields(['name','slug','abbreviation','category','president','secretary','phone','address','website_url','logo_url','sort_order','is_active'], ['description']), federationCategories)
 const factFields = fields(['label','value','sort_order','is_active'])
 const resourceFields = withCategoryOptions(fields(['title','category','file_url','sort_order','is_active'], ['description']), resourceCategories)
+const sportsRuleFields = withCategoryOptions(fields(['title','category','file_url','sort_order','is_active'], ['description']), sportsRuleCategories)
+// Press releases carry either an uploaded PDF (file_url) or an embedded
+// YouTube link (video_url) — both fields are left editable so admins can
+// switch between the two; the public page picks whichever is set.
+const pressReleaseFields = withCategoryOptions(fields(['title','category','file_url','video_url','sort_order','is_active'], ['description']), pressReleaseCategories)
+const reportFields = withCategoryOptions(fields(['title','category','file_url','sort_order','is_active'], ['description']), reportCategories)
+const speechFields = withCategoryOptions(fields(['title','category','file_url','sort_order','is_active'], ['description']), speechCategories)
 const investFields = fields(['title','subtitle','image_url','sort_order','is_active'], ['content'])
 const teamFields = fields(['full_name','designation','image_url','sort_order','is_active'], ['bio'])
 
@@ -2233,9 +2452,13 @@ function clean(payload) {
   // "Invalid JSON body" (400). This is the single serialization point for every
   // saveEntity create/update, so coercing here fixes them all at once.
   const isNumericField = k => k === 'sort_order' || k.endsWith('_order') || k === 'transition_duration' || k === 'autoplay_speed'
+  // Go decodes these as *time.Time; an empty string from an untouched datetime-local
+  // input isn't valid RFC3339 and fails json decode with "Invalid JSON body" (400).
+  // Omitting them (like empty _id fields) leaves the pointer nil / value unchanged.
+  const isNullableDateField = k => k.endsWith('_at') || k.endsWith('_date')
   return Object.fromEntries(
     Object.entries(payload)
-      .filter(([k, v]) => k !== 'id' && !(k.endsWith('_id') && v === ''))
+      .filter(([k, v]) => k !== 'id' && !(k.endsWith('_id') && v === '') && !(isNullableDateField(k) && v === ''))
       .map(([k, v]) => {
         if (isNumericField(k)) { const n = Number(v); return [k, Number.isFinite(n) ? n : 0] }
         return [k, v]
@@ -2439,6 +2662,9 @@ async function loadAll() {
       cms.listInstitutionalDepartments(), cms.adminGetAnalytics({ days: 30 }),
       cms.listMessages({ status:'', per_page:100 }), cms.listNotifications({ status:'', per_page:100 }),
       cms.listInboundSubmissions({ per_page:100 }), cms.getInboundSubmissionCounts(), cms.getSettings('captcha'), cms.getSettings('third_party'),
+      cms.adminListDocuments({ doc_type:'sports_rule', per_page:200 }), cms.adminListDocuments({ doc_type:'press_release', per_page:200 }),
+      cms.adminListDocuments({ doc_type:'report', per_page:200 }), cms.adminListDocuments({ doc_type:'speech', per_page:200 }),
+      cms.adminListSportsRuleCategories(), cms.adminListPressReleaseCategories(), cms.adminListReportCategories(), cms.adminListSpeechCategories(),
     ])
     Object.assign(homepage, data(results[0].value)?.value || {})
     mergeHomepageDefaults(homepage)
@@ -2488,6 +2714,15 @@ async function loadAll() {
     inboundCounts.value = data(results[41].value) || inboundCounts.value
     applyCaptchaSettings(data(results[42].value)?.value || {})
     applyThirdPartySettings(data(results[43].value)?.value || {})
+    sportsRules.value = listData(results[44].value)
+    pressReleases.value = listData(results[45].value)
+    reports.value = listData(results[46].value)
+    speeches.value = listData(results[47].value)
+    sportsRuleCategories.value = listData(results[48].value)
+    pressReleaseCategories.value = listData(results[49].value)
+    reportCategories.value = listData(results[50].value)
+    speechCategories.value = listData(results[51].value)
+    await loadCareerPageSettings()
   } catch (err) { setErr(err) }
 }
 
@@ -2559,6 +2794,32 @@ async function saveThirdPartySettings() {
     setMsg('Third-party integration settings saved')
   } catch (err) { setErr(err) }
 }
+
+function applyCareerPageSettings(value = {}) {
+  Object.assign(careersPage, JSON.parse(JSON.stringify(careersPageDefaults)), value || {})
+  careersPage.stats = Array.isArray(value?.stats) && value.stats.length ? value.stats : JSON.parse(JSON.stringify(careersPageDefaults.stats))
+  careersPage.process = Array.isArray(value?.process) && value.process.length ? value.process : JSON.parse(JSON.stringify(careersPageDefaults.process))
+}
+
+async function loadCareerPageSettings() {
+  try {
+    const res = await cms.getSettings('careers_page')
+    applyCareerPageSettings(data(res)?.value || {})
+  } catch {
+    applyCareerPageSettings({})
+  }
+}
+
+async function saveCareerPageSettings() {
+  try {
+    const payload = JSON.parse(JSON.stringify(careersPage))
+    payload.stats = payload.stats.filter(item => item.value || item.label || item.text)
+    payload.process = payload.process.filter(item => item.title || item.text)
+    await cms.adminUpdateSettings('careers_page', payload)
+    applyCareerPageSettings(payload)
+    setMsg('Careers page UI saved')
+  } catch (err) { setErr(err) }
+}
 async function createSlide() { try { await cms.adminCreateSlide({ title:'New slide', subtitle:'National Council of Sports', description:'', image_url:'', button_text:'Learn More', button_url:'/', sort_order:slides.value.length + 1, is_active:true }); await loadAll(); setMsg('Slide added') } catch (err) { setErr(err) } }
 function editSlide(item) { active.value = 'homepage'; Object.assign(homepage, { hero_quick_edit: item.title }) }
 async function removeSlide(item) {
@@ -2619,12 +2880,32 @@ async function saveFederationCategory() {
   federationCategoryForm.content_type = 'federation'
   await saveEntity(federationCategoryForm, cms.adminCreateFederationCategory, cms.adminUpdateFederationCategory, 'Federation category saved')
 }
+async function saveSportsRuleCategory() {
+  sportsRuleCategoryForm.content_type = 'sports_rule'
+  await saveEntity(sportsRuleCategoryForm, cms.adminCreateSportsRuleCategory, cms.adminUpdateSportsRuleCategory, 'Rule category saved')
+}
+async function savePressReleaseCategory() {
+  pressReleaseCategoryForm.content_type = 'press_release'
+  await saveEntity(pressReleaseCategoryForm, cms.adminCreatePressReleaseCategory, cms.adminUpdatePressReleaseCategory, 'Release category saved')
+}
+async function saveReportCategory() {
+  reportCategoryForm.content_type = 'report'
+  await saveEntity(reportCategoryForm, cms.adminCreateReportCategory, cms.adminUpdateReportCategory, 'Report category saved')
+}
+async function saveSpeechCategory() {
+  speechCategoryForm.content_type = 'speech'
+  await saveEntity(speechCategoryForm, cms.adminCreateSpeechCategory, cms.adminUpdateSpeechCategory, 'Speech category saved')
+}
 async function saveEvent() { await saveEntity(eventForm, cms.adminCreateEvent, cms.adminUpdateEvent, 'Event saved') }
 async function saveFacility() { await saveEntity(facilityForm, cms.adminCreateFacility, cms.adminUpdateFacility, 'Facility saved') }
 async function saveAssociation() { await saveEntity(associationForm, cms.adminCreateAssociation, cms.adminUpdateAssociation, 'Association saved') }
 async function saveFact() { await saveEntity(factForm, cms.adminCreateFunFact, cms.adminUpdateFunFact, 'Fact saved') }
 async function saveFAQ() { await saveEntity(faqForm, cms.adminCreateFAQ, cms.adminUpdateFAQ, 'FAQ saved') }
 async function saveResource() { await saveEntity(resourceForm, cms.adminCreateResource, cms.adminUpdateResource, 'Resource saved') }
+async function saveSportsRule() { await saveEntity(sportsRuleForm, cms.adminCreateDocument, cms.adminUpdateDocument, 'Rule saved') }
+async function savePressRelease() { await saveEntity(pressReleaseForm, cms.adminCreateDocument, cms.adminUpdateDocument, 'Release saved') }
+async function saveReport() { await saveEntity(reportForm, cms.adminCreateDocument, cms.adminUpdateDocument, 'Report saved') }
+async function saveSpeech() { await saveEntity(speechForm, cms.adminCreateDocument, cms.adminUpdateDocument, 'Speech saved') }
 async function saveCareer() { syncCareerDepartment(); await saveEntity(careerForm, cms.adminCreateCareer, cms.adminUpdateCareer, 'Career post saved') }
 async function saveInvest() { await saveEntity(investForm, cms.adminCreateInvest, cms.adminUpdateInvest, 'Investment item saved') }
 async function saveTeam() { await saveEntity(teamForm, cms.adminCreateTeam, cms.adminUpdateTeam, 'Team member saved') }
@@ -2645,6 +2926,10 @@ function editFacilityCategory(item) { copyInto(facilityCategoryForm, item); faci
 function editEventCategory(item) { copyInto(eventCategoryForm, item); eventCategoryForm.content_type = 'event'; active.value = 'create-event-categories' }
 function editInvestCategory(item) { copyInto(investCategoryForm, item); investCategoryForm.content_type = 'investment'; active.value = 'create-invest-categories' }
 function editFederationCategory(item) { copyInto(federationCategoryForm, item); federationCategoryForm.content_type = 'federation'; active.value = 'create-federation-categories' }
+function editSportsRuleCategory(item) { copyInto(sportsRuleCategoryForm, item); sportsRuleCategoryForm.content_type = 'sports_rule'; active.value = 'create-sports-rule-categories' }
+function editPressReleaseCategory(item) { copyInto(pressReleaseCategoryForm, item); pressReleaseCategoryForm.content_type = 'press_release'; active.value = 'create-press-release-categories' }
+function editReportCategory(item) { copyInto(reportCategoryForm, item); reportCategoryForm.content_type = 'report'; active.value = 'create-report-categories' }
+function editSpeechCategory(item) { copyInto(speechCategoryForm, item); speechCategoryForm.content_type = 'speech'; active.value = 'create-speech-categories' }
 function editEvent(item) {
   copyInto(eventForm, item)
   if (item.event_date) eventForm.event_date = item.event_date.slice(0, 16)
@@ -2656,6 +2941,10 @@ function editAssociation(item) { copyInto(associationForm, item); active.value =
 function editFact(item) { copyInto(factForm, item); active.value = 'facts' }
 function editFAQ(item) { copyInto(faqForm, item); active.value = 'faqs' }
 function editResource(item) { copyInto(resourceForm, item); active.value = 'resources' }
+function editSportsRule(item) { copyInto(sportsRuleForm, item); sportsRuleForm.doc_type = 'sports_rule'; active.value = 'sports-rules' }
+function editPressRelease(item) { copyInto(pressReleaseForm, item); pressReleaseForm.doc_type = 'press_release'; active.value = 'press-releases' }
+function editReport(item) { copyInto(reportForm, item); reportForm.doc_type = 'report'; active.value = 'reports' }
+function editSpeech(item) { copyInto(speechForm, item); speechForm.doc_type = 'speech'; active.value = 'speeches' }
 function editCareer(item) { copyInto(careerForm, item); if (item.deadline_at) careerForm.deadline_at = item.deadline_at; active.value = 'careers' }
 function editInvest(item) { copyInto(investForm, item); active.value = 'invest' }
 function editTeam(item) { copyInto(teamForm, item); active.value = 'team' }
@@ -2672,12 +2961,20 @@ async function removeFacilityCategory(item) { await removeEntity(item, cms.admin
 async function removeEventCategory(item) { await removeEntity(item, cms.adminDeleteEventCategory) }
 async function removeInvestCategory(item) { await removeEntity(item, cms.adminDeleteInvestCategory) }
 async function removeFederationCategory(item) { await removeEntity(item, cms.adminDeleteFederationCategory) }
+async function removeSportsRuleCategory(item) { await removeEntity(item, cms.adminDeleteSportsRuleCategory) }
+async function removePressReleaseCategory(item) { await removeEntity(item, cms.adminDeletePressReleaseCategory) }
+async function removeReportCategory(item) { await removeEntity(item, cms.adminDeleteReportCategory) }
+async function removeSpeechCategory(item) { await removeEntity(item, cms.adminDeleteSpeechCategory) }
 async function removeEvent(item) { await removeEntity(item, cms.adminDeleteEvent) }
 async function removeFacility(item) { await removeEntity(item, cms.adminDeleteFacility) }
 async function removeAssociation(item) { await removeEntity(item, cms.adminDeleteAssociation) }
 async function removeFact(item) { await removeEntity(item, cms.adminDeleteFunFact) }
 async function removeFAQ(item) { await removeEntity(item, cms.adminDeleteFAQ) }
 async function removeResource(item) { await removeEntity(item, cms.adminDeleteResource) }
+async function removeSportsRule(item) { await removeEntity(item, cms.adminDeleteDocument) }
+async function removePressRelease(item) { await removeEntity(item, cms.adminDeleteDocument) }
+async function removeReport(item) { await removeEntity(item, cms.adminDeleteDocument) }
+async function removeSpeech(item) { await removeEntity(item, cms.adminDeleteDocument) }
 async function removeCareer(item) { await removeEntity(item, cms.adminDeleteCareer) }
 async function removeInvest(item) { await removeEntity(item, cms.adminDeleteInvest) }
 async function removeTeam(item) { await removeEntity(item, cms.adminDeleteTeam) }
@@ -3414,11 +3711,43 @@ function resetInvestCategoryForm() {
 }
 
 function resetFederationForm() {
-  Object.assign(associationForm, { id:'', name:'', slug:'', category:'', president:'', secretary:'', phone:'', website_url:'', description:'', logo_url:'', sort_order:0, is_active:true })
+  Object.assign(associationForm, { id:'', name:'', slug:'', abbreviation:'', category:'', president:'', secretary:'', phone:'', address:'', website_url:'', description:'', logo_url:'', sort_order:0, is_active:true })
 }
 
 function resetFederationCategoryForm() {
   Object.assign(federationCategoryForm, { id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'federation' })
+}
+
+function resetSportsRuleForm() {
+  Object.assign(sportsRuleForm, { id:'', doc_type:'sports_rule', title:'', category:'', file_url:'', description:'', sort_order:0, is_active:true })
+}
+
+function resetSportsRuleCategoryForm() {
+  Object.assign(sportsRuleCategoryForm, { id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'sports_rule' })
+}
+
+function resetPressReleaseForm() {
+  Object.assign(pressReleaseForm, { id:'', doc_type:'press_release', title:'', category:'', file_url:'', video_url:'', description:'', sort_order:0, is_active:true })
+}
+
+function resetPressReleaseCategoryForm() {
+  Object.assign(pressReleaseCategoryForm, { id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'press_release' })
+}
+
+function resetReportForm() {
+  Object.assign(reportForm, { id:'', doc_type:'report', title:'', category:'', file_url:'', description:'', sort_order:0, is_active:true })
+}
+
+function resetReportCategoryForm() {
+  Object.assign(reportCategoryForm, { id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'report' })
+}
+
+function resetSpeechForm() {
+  Object.assign(speechForm, { id:'', doc_type:'speech', title:'', category:'', file_url:'', description:'', sort_order:0, is_active:true })
+}
+
+function resetSpeechCategoryForm() {
+  Object.assign(speechCategoryForm, { id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'speech' })
 }
 
 function resetFactForm() {
@@ -3564,7 +3893,7 @@ const EditorForm = defineComponent({
 .cms-shell{display:grid;grid-template-columns:18rem 1fr;min-height:100vh;transition:grid-template-columns 200ms ease}.cms-sidebar{position:sticky;top:0;height:100vh;background:#10233f;color:white;padding:1rem;display:flex;flex-direction:column;min-width:0;overflow:hidden}.cms-sidebar-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:1rem}.cms-brand{display:flex;align-items:center;gap:.7rem;color:white;font-weight:800;min-width:0;overflow:hidden}.cms-brand img{flex:0 0 auto;width:2.6rem;height:2.6rem;object-fit:contain;background:white;border-radius:.35rem}.cms-collapse-toggle{flex:0 0 auto;display:flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border-radius:.4rem;background:rgb(255 255 255/.08);color:white;border:1px solid rgb(255 255 255/.14)}.cms-collapse-toggle:hover,.cms-collapse-toggle:focus-visible{background:#f5a623;color:#10233f}.cms-nav{display:grid;gap:.25rem;overflow:auto}.cms-nav button,.cms-logout{display:flex;align-items:center;gap:.65rem;border-radius:.45rem;padding:.65rem .75rem;color:rgb(255 255 255/.78);text-align:left}.cms-nav button.active,.cms-nav button:hover,.cms-nav button:focus-visible{background:#f5a623;color:#10233f}.cms-nav-group{display:grid}.cms-nav-parent{width:100%;justify-content:space-between}.cms-nav-submenu{display:grid;gap:.25rem;max-height:0;opacity:0;overflow:hidden;transform:translateZ(0);transition:max-height 220ms ease,opacity 180ms ease,padding 220ms ease;padding-left:.75rem}.cms-nav-group.expanded .cms-nav-submenu{max-height:24rem;opacity:1;padding-top:.25rem;padding-bottom:.25rem}.cms-nav-submenu button{font-size:.86rem;padding-left:1rem}.cms-logout{margin-top:auto;background:rgb(255 255 255/.08)}.cms-main{padding:2rem;min-width:0}.cms-header{display:flex;justify-content:space-between;gap:1rem;align-items:center;margin-bottom:1.5rem}.cms-kicker{text-transform:uppercase;letter-spacing:.18em;color:#d88700;font-size:.72rem;font-weight:800}.cms-header h1{font-size:2rem;font-weight:850;color:#1a365d}.cms-actions{display:flex;gap:.5rem;align-items:center}.cms-actions a,.cms-actions button,.cms-panel-head button,.cms-list-editor>button,.cms-editor button{border-radius:.45rem;background:#1a365d;color:white;padding:.6rem .9rem;font-size:.85rem;font-weight:700}.cms-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}.cms-card,.cms-panel{background:white;border:1px solid #e5e7eb;border-radius:.5rem;padding:1rem}.metric span{color:#64748b;font-size:.8rem}.metric strong{display:block;color:#1a365d;font-size:2rem}.cms-panel{display:grid;gap:1rem}.cms-panel-head{display:flex;justify-content:space-between;align-items:center;gap:1rem}.cms-panel h2{font-size:1.15rem;font-weight:800;color:#1a365d}.menu-save-bar{position:sticky;bottom:0;display:flex;align-items:center;justify-content:flex-end;gap:.75rem;margin-top:1rem;padding:.85rem 1rem;background:#fff;border-top:1px solid #e5e7eb;box-shadow:0 -4px 16px rgba(15,23,42,.06)}.menu-save-bar__status{margin-right:auto;font-size:.8rem;font-weight:700;color:#64748b}.menu-save-bar__status--dirty{color:#b45309}.menu-save-bar button{border-radius:.45rem;border:1px solid #d1d5db;padding:.6rem 1rem;font-weight:700;font-size:.85rem}.menu-save-bar button:disabled{opacity:.5;cursor:not-allowed}.menu-save-bar__save{background:#1a365d;color:#fff;border-color:#1a365d}:global(.dark) .menu-save-bar{background:#111827;border-color:#334155}:global(.dark) .menu-save-bar__status{color:#94a3b8}:global(.dark) .menu-save-bar__status--dirty{color:#fdba74}:global(.dark) .menu-save-bar button{border-color:#475569;color:#e5e7eb}.cms-menu-builder-grid{display:grid;gap:1rem}.cms-menu-builder-grid article{display:grid;gap:.75rem;border:1px solid #e5e7eb;border-radius:.5rem;padding:1rem}.cms-menu-builder-grid h3{font-weight:800;color:#1a365d}.cms-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.cms-two label{display:grid;gap:.35rem;font-size:.76rem;font-weight:800;text-transform:capitalize;color:#475569}.cms-two .wide{grid-column:1/-1}.cms-two input,.cms-two textarea,.cms-list-editor textarea{width:100%;border:1px solid #cbd5e1;border-radius:.45rem;padding:.65rem;text-transform:none;font-weight:500;color:#111827}.cms-two textarea,.cms-list-editor textarea{min-height:6rem}.cms-list-editor{display:grid;gap:.75rem}.cms-row{display:grid;grid-template-columns:1fr auto;gap:.75rem}.cms-row button,.cms-table-row button{border:1px solid #d1d5db;border-radius:.4rem;padding:.45rem .7rem}.cms-table{display:grid;gap:.5rem}.cms-table-row{display:flex;justify-content:space-between;gap:1rem;align-items:center;border:1px solid #e5e7eb;border-radius:.45rem;padding:.75rem}.cms-table-row strong{display:block;color:#1a365d}.cms-table-row span{font-size:.8rem;color:#64748b}.cms-table-row div:last-child{display:flex;gap:.4rem}.cms-message{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;border-radius:.45rem;padding:.75rem}.cms-error{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:.45rem;padding:.75rem}:global(.dark .cms-main){background:#0f172a;color:#e5e7eb}:global(.dark .cms-card),:global(.dark .cms-panel),:global(.dark .cms-menu-builder-grid article){background:#111827;border-color:#334155}:global(.dark .cms-header h1),:global(.dark .cms-panel h2),:global(.dark .cms-menu-builder-grid h3),:global(.dark .cms-table-row strong),:global(.dark .metric strong){color:#f8fafc}:global(.dark .cms-two input),:global(.dark .cms-two textarea),:global(.dark .cms-list-editor textarea){background:#0f172a;color:#f8fafc;border-color:#475569}@media(max-width:900px){.cms-shell{grid-template-columns:1fr}.cms-sidebar{position:relative;height:auto}.cms-grid,.cms-two{grid-template-columns:1fr}.cms-header{align-items:flex-start;flex-direction:column}}
 @media(min-width:901px){.cms-shell.collapsed{grid-template-columns:4.5rem 1fr}.cms-shell.collapsed .cms-sidebar{padding:1rem .6rem}.cms-shell.collapsed .cms-brand span,.cms-shell.collapsed .cms-nav button span,.cms-shell.collapsed .cms-logout span,.cms-shell.collapsed .cms-nav-parent .icofont-rounded-down,.cms-shell.collapsed .cms-nav-submenu{display:none}.cms-shell.collapsed .cms-nav button,.cms-shell.collapsed .cms-nav-parent,.cms-shell.collapsed .cms-logout{justify-content:center}.cms-shell.collapsed .cms-sidebar-head{justify-content:center;flex-direction:column;gap:.6rem}}
 .cms-panel-head select,.cms-two select{border:1px solid #cbd5e1;border-radius:.45rem;padding:.65rem;color:#111827;background:white}.cms-empty{color:#64748b;border:1px dashed #cbd5e1;border-radius:.45rem;padding:1rem;text-align:center}.comment-row span{max-width:54rem;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}:deep(.blog-editor){display:grid;gap:1rem}:deep(.inline-field){display:flex;gap:.5rem;align-items:center;text-transform:none}:deep(.inline-field input){width:auto}:deep(.counter){float:right;color:#64748b;font-weight:700}:deep(.counter.warn){color:#b45309}:deep(.editor-toolbar button){border-radius:.4rem;border:1px solid #cbd5e1;padding:.55rem .8rem;font-weight:800}:deep(.editor-toolbar){display:flex;flex-wrap:wrap;gap:.4rem}:deep(.editor-toolbar .active){background:#1a365d;color:white}:deep(.rich-editor){border:1px solid #cbd5e1;border-radius:.5rem;background:white;padding:1rem;min-height:18rem}:deep(.rich-editor .ProseMirror){min-height:16rem;outline:none}:deep(.rich-editor h2){font-size:1.5rem}:deep(.rich-editor ul){list-style:disc;padding-left:1.25rem}:deep(.rich-editor img){max-width:100%;border-radius:.5rem}:deep(.draft-state){font-size:.8rem;color:#64748b}
-.cms-admin-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(18rem,.85fr);gap:1rem}.cms-subpanel{display:grid;gap:.85rem;border:1px solid #e5e7eb;border-radius:.5rem;padding:1rem}.cms-subpanel h3{font-weight:800;color:#1a365d}.footer-columns-hint{color:#6c757d;font-size:.82rem;margin:0}.footer-column-editor{display:grid;gap:.6rem;border:1px solid #e5e7eb;border-radius:.5rem;padding:1rem;margin-bottom:1rem}.footer-column-editor .cms-panel-head{border:0;margin:0;padding:0;align-items:flex-end}.footer-column-title{display:grid;gap:.4rem;flex:1 1 auto;font-size:.78rem;font-weight:700;color:#34395e}.footer-column-title input{border:1px solid #e4e6fc;border-radius:.35rem;padding:.5rem .7rem;font-weight:600}.footer-link-row{display:grid;grid-template-columns:1fr 1fr auto;gap:.6rem;align-items:center}.footer-link-row input{border:1px solid #e4e6fc;border-radius:.35rem;padding:.5rem .7rem}.footer-remove-btn{border:0;border-radius:.4rem;background:#fc544b;color:#fff;padding:.45rem .8rem;font-size:.78rem;font-weight:700;white-space:nowrap}:global(.dark .footer-column-editor){background:#111827;border-color:#334155}:global(.dark .footer-column-title){color:#f8fafc}:global(.dark .footer-column-title input),:global(.dark .footer-link-row input){background:#0f172a;color:#f8fafc;border-color:#475569}@media(max-width:700px){.footer-link-row{grid-template-columns:1fr}}.cms-actions-inline{display:flex;flex-wrap:wrap;gap:.6rem}.cms-actions-inline button,.cms-search button,.audit-row button{border-radius:.45rem;background:#1a365d;color:white;padding:.55rem .8rem;font-weight:800;font-size:.82rem}.cms-actions-inline button:last-child{background:#991b1b}.cms-table.compact{max-height:28rem;overflow:auto}.cms-table-row.selected{border-color:#f5a623;background:#fff7ed}.permission-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}.permission-group{display:grid;align-content:start;gap:.5rem;border:1px solid #e5e7eb;border-radius:.5rem;padding:.85rem}.permission-group h3{text-transform:capitalize}.permission-row{display:grid;grid-template-columns:auto 1fr;gap:.55rem;align-items:start;text-transform:none!important;font-size:.82rem!important}.permission-row input{margin-top:.2rem}.permission-row strong{display:block;color:#1a365d;text-transform:capitalize}.permission-row small{display:block;color:#64748b;font-weight:500;text-transform:none}.cms-search{display:flex;gap:.5rem;align-items:center}.cms-search input{min-width:18rem;border:1px solid #cbd5e1;border-radius:.45rem;padding:.6rem;color:#111827}.audit-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}.audit-summary article{border:1px solid #e5e7eb;border-radius:.5rem;padding:.85rem}.audit-summary span{display:block;color:#64748b;font-size:.76rem}.audit-summary strong{display:block;color:#1a365d;font-size:1.5rem}.audit-table{display:grid;gap:.5rem}.audit-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1rem;align-items:center;border:1px solid #e5e7eb;border-radius:.45rem;padding:.75rem}.audit-row strong{display:block;color:#1a365d}.audit-row span{font-size:.78rem;color:#64748b}.audit-row>div:last-child{display:flex;align-items:center;gap:.5rem}.audit-code{border-radius:999px;padding:.25rem .55rem;font-weight:800}.audit-code.ok{background:#ecfdf5;color:#047857}.audit-code.warn{background:#fff7ed;color:#b45309}.audit-code.danger{background:#fef2f2;color:#b91c1c}.audit-detail pre{max-height:26rem;overflow:auto;border-radius:.45rem;background:#0f172a;color:#e5e7eb;padding:1rem;font-size:.78rem;white-space:pre-wrap}:global(.dark .cms-subpanel),:global(.dark .permission-group),:global(.dark .audit-summary article),:global(.dark .audit-row){background:#111827;border-color:#334155}:global(.dark .permission-row strong),:global(.dark .audit-row strong),:global(.dark .audit-summary strong),:global(.dark .cms-subpanel h3){color:#f8fafc}:global(.dark .cms-search input){background:#0f172a;color:#f8fafc;border-color:#475569}:global(.dark .cms-table-row.selected){background:#422006;border-color:#f5a623}@media(max-width:1100px){.cms-admin-grid,.permission-grid{grid-template-columns:1fr}.audit-row{grid-template-columns:1fr}.audit-row>div:last-child{flex-wrap:wrap}.audit-summary{grid-template-columns:1fr}.cms-search{width:100%;flex-wrap:wrap}.cms-search input{min-width:0;flex:1 1 14rem}}
+.cms-admin-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(18rem,.85fr);gap:1rem}.cms-subpanel{display:grid;gap:.85rem;border:1px solid #e5e7eb;border-radius:.5rem;padding:1rem}.cms-subpanel h3{font-weight:800;color:#1a365d}.footer-columns-hint{color:#6c757d;font-size:.82rem;margin:0}.footer-column-editor{display:grid;gap:.6rem;border:1px solid #e5e7eb;border-radius:.5rem;padding:1rem;margin-bottom:1rem}.footer-column-editor .cms-panel-head{border:0;margin:0;padding:0;align-items:flex-end}.footer-column-title{display:grid;gap:.4rem;flex:1 1 auto;font-size:.78rem;font-weight:700;color:#34395e}.footer-column-title input{border:1px solid #e4e6fc;border-radius:.35rem;padding:.5rem .7rem;font-weight:600}.footer-link-row,.career-page-repeater{display:grid;grid-template-columns:1fr 1fr auto;gap:.6rem;align-items:center}.career-page-repeater{grid-template-columns:minmax(7rem,.35fr) minmax(9rem,.45fr) minmax(14rem,1fr) auto}.career-page-repeater--steps{grid-template-columns:minmax(12rem,.45fr) minmax(18rem,1fr) auto}.career-page-repeater textarea{min-height:42px}.footer-link-row input{border:1px solid #e4e6fc;border-radius:.35rem;padding:.5rem .7rem}.footer-remove-btn{border:0;border-radius:.4rem;background:#fc544b;color:#fff;padding:.45rem .8rem;font-size:.78rem;font-weight:700;white-space:nowrap}:global(.dark .footer-column-editor){background:#111827;border-color:#334155}:global(.dark .footer-column-title){color:#f8fafc}:global(.dark .footer-column-title input),:global(.dark .footer-link-row input){background:#0f172a;color:#f8fafc;border-color:#475569}@media(max-width:700px){.footer-link-row,.career-page-repeater,.career-page-repeater--steps{grid-template-columns:1fr}}.cms-actions-inline{display:flex;flex-wrap:wrap;gap:.6rem}.cms-actions-inline button,.cms-search button,.audit-row button{border-radius:.45rem;background:#1a365d;color:white;padding:.55rem .8rem;font-weight:800;font-size:.82rem}.cms-actions-inline button:last-child{background:#991b1b}.cms-table.compact{max-height:28rem;overflow:auto}.cms-table-row.selected{border-color:#f5a623;background:#fff7ed}.permission-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}.permission-group{display:grid;align-content:start;gap:.5rem;border:1px solid #e5e7eb;border-radius:.5rem;padding:.85rem}.permission-group h3{text-transform:capitalize}.permission-row{display:grid;grid-template-columns:auto 1fr;gap:.55rem;align-items:start;text-transform:none!important;font-size:.82rem!important}.permission-row input{margin-top:.2rem}.permission-row strong{display:block;color:#1a365d;text-transform:capitalize}.permission-row small{display:block;color:#64748b;font-weight:500;text-transform:none}.cms-search{display:flex;gap:.5rem;align-items:center}.cms-search input{min-width:18rem;border:1px solid #cbd5e1;border-radius:.45rem;padding:.6rem;color:#111827}.audit-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}.audit-summary article{border:1px solid #e5e7eb;border-radius:.5rem;padding:.85rem}.audit-summary span{display:block;color:#64748b;font-size:.76rem}.audit-summary strong{display:block;color:#1a365d;font-size:1.5rem}.audit-table{display:grid;gap:.5rem}.audit-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1rem;align-items:center;border:1px solid #e5e7eb;border-radius:.45rem;padding:.75rem}.audit-row strong{display:block;color:#1a365d}.audit-row span{font-size:.78rem;color:#64748b}.audit-row>div:last-child{display:flex;align-items:center;gap:.5rem}.audit-code{border-radius:999px;padding:.25rem .55rem;font-weight:800}.audit-code.ok{background:#ecfdf5;color:#047857}.audit-code.warn{background:#fff7ed;color:#b45309}.audit-code.danger{background:#fef2f2;color:#b91c1c}.audit-detail pre{max-height:26rem;overflow:auto;border-radius:.45rem;background:#0f172a;color:#e5e7eb;padding:1rem;font-size:.78rem;white-space:pre-wrap}:global(.dark .cms-subpanel),:global(.dark .permission-group),:global(.dark .audit-summary article),:global(.dark .audit-row){background:#111827;border-color:#334155}:global(.dark .permission-row strong),:global(.dark .audit-row strong),:global(.dark .audit-summary strong),:global(.dark .cms-subpanel h3){color:#f8fafc}:global(.dark .cms-search input){background:#0f172a;color:#f8fafc;border-color:#475569}:global(.dark .cms-table-row.selected){background:#422006;border-color:#f5a623}@media(max-width:1100px){.cms-admin-grid,.permission-grid{grid-template-columns:1fr}.audit-row{grid-template-columns:1fr}.audit-row>div:last-child{flex-wrap:wrap}.audit-summary{grid-template-columns:1fr}.cms-search{width:100%;flex-wrap:wrap}.cms-search input{min-width:0;flex:1 1 14rem}}
 .otika-cms{min-height:100vh;background:#f4f6f9;color:#34395e}.otika-cms :deep(.main-navbar){box-shadow:0 4px 25px 0 rgba(0,0,0,.1)}.otika-cms :deep(.navbar-bg){background:#6777ef;position:fixed}.otika-cms button{font-family:inherit}.otika-cms .main-sidebar{position:fixed;width:260px;height:100vh;overflow:hidden}.otika-cms .sidebar-mini .main-sidebar{width:65px}.otika-cms #sidebar-wrapper{display:flex;flex-direction:column;height:100vh;min-height:0}.otika-cms .main-content{padding-top:80px}.otika-cms .sidebar-brand{display:flex;align-items:center;justify-content:center;flex:0 0 70px;height:70px}.otika-cms .sidebar-brand a{display:flex;align-items:center;justify-content:center;width:100%}.otika-cms .header-logo{max-width:84px;max-height:48px;object-fit:contain}.sidebar-user{display:flex;gap:10px;align-items:center;flex:0 0 auto;min-width:0;margin:8px 14px 12px;padding:12px;border-radius:8px;background:#f8f9fa}.sidebar-user img{width:38px;height:38px;flex:0 0 38px}.sidebar-user div{min-width:0}.sidebar-user strong{display:block;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#34395e;font-size:13px}.sidebar-user span{display:block;color:#98a6ad;font-size:11px}.sidebar-menu{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding-bottom:18px;scrollbar-width:thin}.sidebar-menu::-webkit-scrollbar{width:6px}.sidebar-menu::-webkit-scrollbar-thumb{background:#d7dbea;border-radius:999px}.sidebar-menu button{border:0;background:transparent;width:100%;min-width:0;text-align:left}.sidebar-menu .nav-link{display:flex!important;align-items:center;gap:10px;width:100%;height:auto!important;min-height:38px;padding:9px 18px!important;line-height:1.2!important}.sidebar-menu .nav-link i{flex:0 0 18px;width:18px;text-align:center}.sidebar-menu .nav-link span,.sidebar-menu .dropdown-menu .nav-link{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}.sidebar-menu .dropdown-menu{position:static!important;width:100%!important;min-width:0!important;float:none!important;box-shadow:none!important;background:transparent!important;padding:0 0 6px 32px!important}.sidebar-menu .menu-header{white-space:nowrap}.sidebar-menu li.active>button,.sidebar-menu li.active>a{color:#6777ef!important;font-weight:600}.sidebar-menu li.active>button i{color:#6777ef!important}.main-navbar button.nav-link{border:0;background:transparent}.cms-top-icon{display:inline-flex!important;align-items:center;justify-content:center;color:#111827!important}.cms-top-icon i{color:#111827!important;font-size:18px}.search-element .btn i{color:#111827!important}.navbar .dropdown-menu.show{display:block;position:absolute}.navbar .dropdown-item{border:0;background:transparent;text-align:left}.navbar .dropdown-item.has-icon{width:100%;text-align:left;border:0;background:transparent}.link-button{border:0;background:transparent;color:#6777ef;font:inherit;font-weight:600;padding:0}.search-element{display:flex;align-items:center;gap:8px}.search-element .form-control{border-radius:30px!important;margin-right:0}.search-element .btn{border-radius:30px;-webkit-appearance:none;appearance:none;transition:background-color .15s ease,color .15s ease}.search-element .btn:hover,.search-element .btn:focus-visible{background:#f5a623}.search-element .btn i{color:#111827!important;transition:color .15s ease}.search-element .btn:hover i,.search-element .btn:focus-visible i{color:#10233f!important}.headerBadge1,.headerBadge2{position:absolute;top:8px;right:4px;background:#ffa426;color:#fff}.otika-page-actions{display:flex!important;justify-content:flex-end;gap:10px;margin:-12px 0 18px}.cms-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:25px!important}.cms-card,.cms-panel,.cms-subpanel,.permission-group,.audit-summary article,.audit-row{background:#fff!important;border:0!important;border-radius:3px!important;box-shadow:0 4px 25px 0 rgba(0,0,0,.1)!important}.cms-card.metric{position:relative;padding:25px!important;min-height:118px}.metric span{color:#98a6ad!important;font-size:13px!important;font-weight:500}.metric strong{color:#34395e!important;font-size:30px!important;font-weight:700}.cms-panel{display:grid;gap:20px;padding:25px!important}.cms-panel-head{border-bottom:1px solid #f9f9f9;margin:-4px -4px 8px;padding-bottom:15px}.cms-panel h2,.cms-subpanel h3,.permission-group h3{color:#34395e!important;font-size:16px!important;font-weight:700}.cms-panel-head button,.cms-list-editor>button,.cms-editor button,.cms-actions-inline button,.cms-search button,.audit-row button,.cms-table-row button{border:0!important;border-radius:30px!important;background:#6777ef!important;color:#fff!important;padding:8px 18px!important;font-size:12px!important;font-weight:600!important;box-shadow:0 2px 6px #acb5f6}.cms-actions-inline button:last-child,.cms-table-row button:last-child{background:#fc544b!important;box-shadow:0 2px 6px #fd9b96!important}.cms-two label,.cms-list-editor label{color:#34395e!important;font-size:12px!important;font-weight:600!important;text-transform:none!important}.cms-two input,.cms-two textarea,.cms-list-editor textarea,.cms-panel-head select,.cms-two select,.cms-search input{height:auto!important;border:1px solid #e4e6fc!important;border-radius:3px!important;background:#fdfdff!important;color:#495057!important;padding:10px 15px!important;box-shadow:none!important}.cms-two textarea,.cms-list-editor textarea{min-height:120px!important}.cms-two input:focus,.cms-two textarea:focus,.cms-search input:focus{border-color:#6777ef!important;box-shadow:0 2px 6px #acb5f6!important}.cms-table,.audit-table{display:block!important;overflow-x:auto}.cms-table-row,.audit-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;margin-bottom:12px;padding:15px 18px!important}.cms-table-row strong,.audit-row strong,.permission-row strong{color:#34395e!important;font-size:14px}.cms-table-row span,.audit-row span,.permission-row small{color:#6c757d!important}.cms-message{border:0!important;border-radius:3px!important;background:#e8f7f0!important;color:#3abaf4!important;box-shadow:0 4px 25px rgba(0,0,0,.05)}.cms-error{border:0!important;border-radius:3px!important;background:#fdeaea!important;color:#fc544b!important;box-shadow:0 4px 25px rgba(0,0,0,.05)}.permission-grid{gap:25px!important}.permission-row input[type=checkbox]{width:18px;height:18px;accent-color:#6777ef}.audit-summary article{padding:18px 22px!important}.audit-code{border-radius:30px!important}.audit-code.ok{background:#e8f7f0!important;color:#47c363!important}.audit-code.warn{background:#fff4e6!important;color:#ffa426!important}.audit-code.danger{background:#fdeaea!important;color:#fc544b!important}:deep(.blog-editor),:deep(.menu-builder){background:#fff;border-radius:3px}:deep(.editor-toolbar button){border:0!important;border-radius:30px!important;background:#f4f6f9!important;color:#34395e!important;padding:8px 15px!important}:deep(.editor-toolbar .active){background:#6777ef!important;color:white!important}:deep(.rich-editor){border:1px solid #e4e6fc!important;border-radius:3px!important;box-shadow:none!important}.cms-menu-builder-grid article{border:0!important;box-shadow:0 4px 25px rgba(0,0,0,.08)!important}.cms-empty{border:1px dashed #e4e6fc!important;border-radius:3px!important;background:#fdfdff;color:#98a6ad!important}.cms-panel :deep(.otika-form-card .card){border:0!important;box-shadow:none!important;border-radius:3px!important;margin-bottom:0!important}.cms-panel :deep(.blog-editor-card){box-shadow:none!important;border-radius:3px!important;margin-bottom:0!important}.sidebar-mini .sidebar-user strong,.sidebar-mini .sidebar-user span,.sidebar-mini .sidebar-menu .nav-link span,.sidebar-mini .sidebar-menu .menu-header,.sidebar-mini .sidebar-menu .dropdown-menu{display:none!important}.sidebar-mini .sidebar-user{justify-content:center;margin:8px 8px 12px;padding:10px 6px}.sidebar-mini .sidebar-menu .nav-link{justify-content:center;padding:10px!important}.sidebar-mini .sidebar-menu .nav-link i{margin:0!important}@media(max-width:1200px){.cms-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.permission-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media(max-width:991px){.otika-cms .navbar-bg{height:116px}.otika-cms .main-navbar{left:0;right:0;min-height:70px;padding:8px 14px;flex-wrap:wrap}.otika-cms .main-navbar .form-inline.mr-auto{flex:1 1 auto;min-width:0}.otika-cms .main-navbar .navbar-nav{flex-direction:row;align-items:center;gap:4px;margin-right:0!important}.otika-cms .navbar-right{margin-left:auto;flex-direction:row}.otika-cms .main-sidebar{position:relative!important;width:100%!important;height:auto!important;left:0!important;top:0!important;z-index:1;box-shadow:none}.otika-cms #sidebar-wrapper{height:auto;max-height:none}.otika-cms .main-content{margin-left:0!important;padding:24px 16px!important;padding-top:24px!important}.otika-cms .sidebar-menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 8px;max-height:60vh;padding-bottom:18px}.otika-cms .sidebar-menu .menu-header{grid-column:1/-1}.otika-cms .sidebar-user{margin:8px 16px 14px}.section-header{align-items:flex-start!important;gap:10px;flex-direction:column}.section-header-breadcrumb{margin-left:0!important}.cms-admin-grid,.cms-two,.cms-menu-builder-grid{grid-template-columns:1fr!important}.otika-page-actions{justify-content:flex-start!important;flex-wrap:wrap}.cms-panel-head{align-items:flex-start;flex-direction:column}.cms-search{width:100%;flex-wrap:wrap}.cms-search input{min-width:0!important;flex:1 1 12rem}}@media(max-width:768px){.navbar .search-element{display:none}.cms-grid,.permission-grid,.audit-summary{grid-template-columns:1fr!important}.cms-table-row,.audit-row{grid-template-columns:1fr!important}.cms-table-row>div:last-child,.audit-row>div:last-child{justify-content:flex-start;flex-wrap:wrap}.cms-row{grid-template-columns:1fr}.cms-panel{padding:18px!important}.cms-card.metric{min-height:auto}.navbar .dropdown-menu.show{position:fixed!important;top:62px!important;left:12px!important;right:12px!important;width:auto!important;max-width:none}}@media(max-width:575px){.otika-cms .main-navbar{padding:6px 10px}.otika-cms .sidebar-menu{grid-template-columns:1fr}.otika-cms .main-content{padding:18px 12px!important}.otika-cms .section-header h1{font-size:20px!important;line-height:1.25}.cms-panel,.cms-card.metric{padding:16px!important}.cms-actions a,.cms-actions button,.cms-panel-head button,.cms-list-editor>button,.cms-editor button{width:100%;justify-content:center;text-align:center}.cms-two input,.cms-two textarea,.cms-list-editor textarea,.cms-panel-head select,.cms-two select,.cms-search input{font-size:14px!important}.permission-row{grid-template-columns:24px 1fr!important}.comment-row span{white-space:normal}}
 .otika-cms button:focus,.otika-cms a:focus,.otika-cms input:focus,.otika-cms textarea:focus,.otika-cms select:focus{outline:none!important}.otika-cms button:focus-visible,.otika-cms a:focus-visible,.otika-cms input:focus-visible,.otika-cms textarea:focus-visible,.otika-cms select:focus-visible{outline:2px solid rgba(103,119,239,.45)!important;outline-offset:2px!important}.otika-cms .sidebar-menu button:focus-visible,.otika-cms .main-navbar button:focus-visible{outline:0!important;box-shadow:0 0 0 3px rgba(103,119,239,.22)!important}.otika-cms .cms-table-row button:focus,.otika-cms .audit-row button:focus,.otika-cms .cms-actions button:focus,.otika-cms .cms-actions a:focus{box-shadow:0 2px 6px #acb5f6!important}.otika-cms .sidebar-menu .nav-link{position:relative}.otika-cms .sidebar-mini .main-sidebar,.otika-cms .sidebar-mini #sidebar-wrapper{overflow:visible!important}.otika-cms .sidebar-mini .sidebar-menu{overflow-y:auto!important;overflow-x:visible!important}.otika-cms .sidebar-mini .sidebar-user strong,.otika-cms .sidebar-mini .sidebar-user span,.otika-cms .sidebar-mini .sidebar-menu .menu-header,.otika-cms .sidebar-mini .sidebar-menu .dropdown-menu{display:none!important}.otika-cms .sidebar-mini .sidebar-menu .nav-link span{display:block!important;position:absolute;left:62px;top:50%;z-index:1200;max-width:220px;padding:8px 12px;border-radius:4px;background:#111827;color:#fff!important;box-shadow:0 8px 24px rgba(15,23,42,.22);font-size:12px;line-height:1;opacity:0;pointer-events:none;transform:translateY(-50%) translateX(-6px);transition:opacity 140ms ease,transform 140ms ease;visibility:hidden}.otika-cms .sidebar-mini .sidebar-menu .nav-link:hover span,.otika-cms .sidebar-mini .sidebar-menu .nav-link:focus-visible span{opacity:1;transform:translateY(-50%) translateX(0);visibility:visible}.otika-cms .sidebar-mini .sidebar-menu .nav-link span::before{content:"";position:absolute;left:-5px;top:50%;width:10px;height:10px;background:#111827;transform:translateY(-50%) rotate(45deg)}:global(.dark .otika-cms){background:#0f172a!important;color:#e5e7eb!important}:global(.dark .otika-cms .main-content),:global(.dark .otika-cms .section-body){background:#0f172a!important;color:#e5e7eb!important}:global(.dark .otika-cms :deep(.navbar-bg)){background:#111827!important}:global(.dark .otika-cms :deep(.main-navbar)){background:#111827!important;box-shadow:0 4px 24px rgba(0,0,0,.35)!important}:global(.dark .otika-cms .main-sidebar),:global(.dark .otika-cms #sidebar-wrapper){background:#111827!important}:global(.dark .otika-cms .sidebar-brand),:global(.dark .otika-cms .sidebar-user){background:#1f2937!important}:global(.dark .otika-cms .sidebar-user strong),:global(.dark .otika-cms .section-header h1),:global(.dark .otika-cms .cms-panel h2),:global(.dark .otika-cms .cms-subpanel h3),:global(.dark .otika-cms .permission-group h3),:global(.dark .otika-cms .cms-table-row strong),:global(.dark .otika-cms .audit-row strong),:global(.dark .otika-cms .permission-row strong),:global(.dark .otika-cms .metric strong),:global(.dark .otika-cms label){color:#f8fafc!important}:global(.dark .otika-cms .sidebar-user span),:global(.dark .otika-cms .cms-table-row span),:global(.dark .otika-cms .audit-row span),:global(.dark .otika-cms .permission-row small),:global(.dark .otika-cms .metric span),:global(.dark .otika-cms .cms-empty),:global(.dark .otika-cms .section-header-breadcrumb),:global(.dark .otika-cms .breadcrumb-item){color:#cbd5e1!important}:global(.dark .otika-cms .cms-card),:global(.dark .otika-cms .cms-panel),:global(.dark .otika-cms .cms-subpanel),:global(.dark .otika-cms .permission-group),:global(.dark .otika-cms .audit-summary article),:global(.dark .otika-cms .audit-row),:global(.dark .otika-cms .cms-table-row),:global(.dark .otika-cms .cms-menu-builder-grid article){background:#1f2937!important;border-color:#334155!important;box-shadow:0 4px 25px rgba(0,0,0,.28)!important}:global(.dark .otika-cms input),:global(.dark .otika-cms textarea),:global(.dark .otika-cms select),:global(.dark .otika-cms .form-control),:global(.dark .otika-cms :deep(.rich-editor)),:global(.dark .otika-cms :deep(.ProseMirror)){background:#111827!important;color:#f8fafc!important;border-color:#475569!important}:global(.dark .otika-cms input::placeholder),:global(.dark .otika-cms textarea::placeholder){color:#94a3b8!important}:global(.dark .otika-cms .cms-top-icon),:global(.dark .otika-cms .cms-top-icon i),:global(.dark .otika-cms .search-element .btn i),:global(.dark .otika-cms .navbar .nav-link){color:#f8fafc!important}:global(.dark .otika-cms .dropdown-menu){background:#1f2937!important;border-color:#334155!important;color:#e5e7eb!important}:global(.dark .otika-cms .dropdown-header),:global(.dark .otika-cms .dropdown-title),:global(.dark .otika-cms .dropdown-item),:global(.dark .otika-cms .dropdown-item span){color:#e5e7eb!important}:global(.dark .otika-cms .dropdown-item:hover){background:#111827!important}:global(.dark .otika-cms .sidebar-menu li.active>button),:global(.dark .otika-cms .sidebar-menu li.active>a),:global(.dark .otika-cms .sidebar-menu button:hover){background:#1f2937!important;color:#93c5fd!important}:global(.dark .otika-cms .sidebar-menu li.active>button i),:global(.dark .otika-cms .sidebar-menu button:hover i){color:#93c5fd!important}:global(.dark .otika-cms .cms-message){background:#052e2b!important;color:#6ee7b7!important}:global(.dark .otika-cms .cms-error){background:#3b1218!important;color:#fca5a5!important}:global(.dark .otika-cms .cms-empty){background:#111827!important;border-color:#334155!important}:global(.dark .otika-cms .audit-code.ok){background:#052e2b!important;color:#86efac!important}:global(.dark .otika-cms .audit-code.warn){background:#422006!important;color:#fdba74!important}:global(.dark .otika-cms .audit-code.danger){background:#450a0a!important;color:#fca5a5!important}:global(.dark .otika-cms :deep(.theme-toggle)){color:#f8fafc!important;background:#1f2937!important}:global(.dark .otika-cms :deep(.editor-toolbar button)){background:#111827!important;color:#e5e7eb!important}:global(.dark .otika-cms :deep(.editor-toolbar .active)){background:#6777ef!important;color:#fff!important}
 .otika-dashboard .card{border:0!important;border-radius:3px!important;box-shadow:0 4px 25px 0 rgba(0,0,0,.1)!important}.otika-dashboard .card-header{border-bottom-color:#f9f9f9!important}.otika-dashboard .card-header h4{font-size:16px!important;font-weight:700!important;color:#34395e!important}.otika-dashboard .card-statistic-4{position:relative;color:#34395e;padding:15px;border-radius:3px;overflow:hidden}.otika-dashboard .card-statistic-4 .card-content{padding:8px 0 8px 10px}.otika-dashboard .card-statistic-4 h5{color:#6c757d;font-weight:600}.otika-dashboard .card-statistic-4 h2{color:#34395e;font-weight:700}.cms-stat-icon{display:flex!important;align-items:center;justify-content:center;width:72px;height:72px;margin:22px auto 0;border-radius:50%;background:#f4f6f9;font-size:36px}.cms-chart-bars{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;min-height:260px;padding:12px 4px}.cms-chart-bar{display:grid;grid-template-rows:auto 1fr auto;gap:8px;min-width:44px;height:250px;text-align:center;color:#6c757d}.cms-chart-bar__value{font-size:12px;font-weight:700;color:#34395e}.cms-chart-bar__track{display:flex;align-items:flex-end;width:100%;height:190px;border-radius:30px;background:#f4f6f9;overflow:hidden}.cms-chart-bar__track span{display:block;width:100%;border-radius:30px 30px 0 0;background:#6777ef}.cms-chart-bar strong{font-size:12px}.cms-kpi-row,.cms-source-row,.cms-progress-item>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;color:#6c757d}.cms-kpi-row strong,.cms-source-row strong,.cms-progress-item strong{color:#34395e}.cms-progress-item{margin-bottom:18px}.cms-progress-item .progress,.otika-dashboard .progress{height:6px!important;border-radius:30px;background:#f4f6f9}.cms-source-row{padding:10px 0;border-bottom:1px solid #f4f6f9}.cms-source-row i{width:22px;color:#6777ef}.cms-donut{--first:44%;--second:72%;display:grid;place-content:center;width:190px;height:190px;margin:0 auto 18px;border-radius:50%;background:conic-gradient(#6777ef 0 var(--first),#47c363 var(--first) var(--second),#ffa426 var(--second) 100%);color:#34395e;position:relative}.cms-donut::before{content:"";position:absolute;inset:28px;border-radius:50%;background:#fff}.cms-donut span,.cms-donut small{position:relative;z-index:1;text-align:center}.cms-donut span{font-size:28px;font-weight:800}.cms-donut small{font-size:12px;color:#6c757d}.cms-donut-legend{display:grid;gap:8px}.cms-donut-legend span{display:flex;align-items:center;gap:8px;color:#6c757d}.cms-donut-legend i{display:inline-block;width:10px;height:10px;border-radius:50%}.otika-dashboard .table td,.otika-dashboard .table th{vertical-align:middle}.otika-dashboard .order-list{display:flex;align-items:center}.otika-dashboard .team-member img{width:32px;height:32px;object-fit:cover}.cms-inline-link{border:0;background:transparent;color:#6777ef;font-weight:700;padding:0 0 0 8px}.cms-analytics-snapshot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.cms-analytics-snapshot article{display:flex;align-items:center;gap:12px;padding:18px;border-radius:3px;background:#f4f6f9}.cms-analytics-snapshot i{font-size:30px}.cms-analytics-snapshot span{display:block;color:#6c757d;font-size:12px}.cms-analytics-snapshot strong{display:block;color:#34395e;font-size:20px}.cms-main-footer{margin-top:0!important}:global(.dark) .otika-dashboard .card-header h4,:global(.dark) .otika-dashboard .card-statistic-4 h2,:global(.dark) .cms-kpi-row strong,:global(.dark) .cms-source-row strong,:global(.dark) .cms-progress-item strong,:global(.dark) .cms-chart-bar__value,:global(.dark) .cms-donut span,:global(.dark) .cms-analytics-snapshot strong{color:#f8fafc!important}:global(.dark) .otika-dashboard .card-statistic-4 h5,:global(.dark) .cms-kpi-row,:global(.dark) .cms-source-row,:global(.dark) .cms-progress-item>div:first-child,:global(.dark) .cms-chart-bar,:global(.dark) .cms-donut small,:global(.dark) .cms-donut-legend span,:global(.dark) .cms-analytics-snapshot span{color:#cbd5e1!important}:global(.dark) .otika-dashboard .card{background:#1f2937!important;border-color:#334155!important;box-shadow:0 4px 25px rgba(0,0,0,.28)!important}:global(.dark) .cms-donut::before,:global(.dark) .cms-stat-icon,:global(.dark) .cms-chart-bar__track,:global(.dark) .cms-analytics-snapshot article{background:#111827!important}@media(max-width:768px){.cms-chart-bars{gap:8px;overflow-x:auto}.cms-chart-bar{min-width:40px}.cms-analytics-snapshot{grid-template-columns:1fr}.cms-main-footer{display:block;text-align:center}.cms-main-footer .footer-right{float:none;margin-top:6px}}

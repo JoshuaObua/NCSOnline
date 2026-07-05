@@ -1123,7 +1123,11 @@ func (r *CMSRepo) ListBlogCategories(ctx context.Context, activeOnly bool, conte
 func (r *CMSRepo) CreateBlogCategory(ctx context.Context, c *models.BlogCategory) error {
 	const q = `INSERT INTO blog_categories (id, name, slug, description, content_type, sort_order, is_active)
 	           VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING created_at, updated_at`
-	return r.db.QueryRow(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.ContentType, c.SortOrder, c.IsActive).Scan(&c.CreatedAt, &c.UpdatedAt)
+	err := r.db.QueryRow(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.ContentType, c.SortOrder, c.IsActive).Scan(&c.CreatedAt, &c.UpdatedAt)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
 }
 
 func (r *CMSRepo) UpdateBlogCategory(ctx context.Context, c *models.BlogCategory) error {
@@ -1131,6 +1135,9 @@ func (r *CMSRepo) UpdateBlogCategory(ctx context.Context, c *models.BlogCategory
 	           WHERE id=$1`
 	tag, err := r.db.Exec(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.ContentType, c.SortOrder, c.IsActive)
 	if err != nil {
+		if isDuplicate(err) {
+			return ErrDuplicate
+		}
 		return err
 	}
 	if tag.RowsAffected() == 0 {
@@ -1842,6 +1849,64 @@ func (r *CMSRepo) DeleteResource(ctx context.Context, id string) error {
 	return err
 }
 
+// ── Documents (Sports Rules, Press Releases, Reports, Speeches) ────
+
+func (r *CMSRepo) ListDocuments(ctx context.Context, docType, category string, activeOnly bool) ([]*models.CMSDocument, error) {
+	q := `SELECT id, doc_type, title, category, COALESCE(file_url,''), COALESCE(video_url,''), COALESCE(description,''),
+	             sort_order, is_active, created_at, updated_at
+	      FROM cms_documents WHERE doc_type=$1 AND ($2='' OR category=$2)`
+	if activeOnly {
+		q += ` AND is_active=true`
+	}
+	q += ` ORDER BY sort_order ASC, created_at DESC`
+	rows, err := r.db.Query(ctx, q, docType, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*models.CMSDocument{}
+	for rows.Next() {
+		d := &models.CMSDocument{}
+		if err := rows.Scan(&d.ID, &d.DocType, &d.Title, &d.Category, &d.FileURL, &d.VideoURL, &d.Description,
+			&d.SortOrder, &d.IsActive, &d.CreatedAt, &d.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, d)
+	}
+	return items, rows.Err()
+}
+
+func (r *CMSRepo) CreateDocument(ctx context.Context, d *models.CMSDocument) error {
+	const q = `INSERT INTO cms_documents (id, doc_type, title, category, file_url, video_url, description, sort_order, is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING created_at, updated_at`
+	return r.db.QueryRow(ctx, q, d.ID, d.DocType, d.Title, d.Category, d.FileURL, d.VideoURL, d.Description, d.SortOrder, d.IsActive).Scan(&d.CreatedAt, &d.UpdatedAt)
+}
+
+func (r *CMSRepo) GetDocumentByID(ctx context.Context, id string) (*models.CMSDocument, error) {
+	const q = `SELECT id, doc_type, title, category, COALESCE(file_url,''), COALESCE(video_url,''), COALESCE(description,''),
+	                  sort_order, is_active, created_at, updated_at
+	           FROM cms_documents WHERE id=$1`
+	d := &models.CMSDocument{}
+	err := r.db.QueryRow(ctx, q, id).Scan(&d.ID, &d.DocType, &d.Title, &d.Category, &d.FileURL, &d.VideoURL, &d.Description,
+		&d.SortOrder, &d.IsActive, &d.CreatedAt, &d.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return d, err
+}
+
+func (r *CMSRepo) UpdateDocument(ctx context.Context, d *models.CMSDocument) error {
+	const q = `UPDATE cms_documents SET title=$2, category=$3, file_url=$4, video_url=$5, description=$6,
+	           sort_order=$7, is_active=$8, updated_at=NOW() WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, d.ID, d.Title, d.Category, d.FileURL, d.VideoURL, d.Description, d.SortOrder, d.IsActive)
+	return err
+}
+
+func (r *CMSRepo) DeleteDocument(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM cms_documents WHERE id=$1`, id)
+	return err
+}
+
 // ── Facilities ────────────────────────────────────────────────────
 
 func (r *CMSRepo) ListFacilities(ctx context.Context, activeOnly bool) ([]*models.CMSFacility, error) {
@@ -1907,7 +1972,7 @@ func (r *CMSRepo) DeleteFacility(ctx context.Context, id string) error {
 // ── Associations ──────────────────────────────────────────────────
 
 func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*models.CMSAssociation, error) {
-	q := `SELECT id, name, slug, COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
+	q := `SELECT id, name, slug, COALESCE(abbreviation,''), COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
 	             COALESCE(category,'Other'), COALESCE(president,''), COALESCE(secretary,''), COALESCE(address,''), COALESCE(phone,''),
 	             sort_order, is_active, created_at, updated_at
 	      FROM cms_associations`
@@ -1923,7 +1988,7 @@ func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*mod
 	items := []*models.CMSAssociation{}
 	for rows.Next() {
 		a := &models.CMSAssociation{}
-		if err := rows.Scan(&a.ID, &a.Name, &a.Slug, &a.Description, &a.LogoURL, &a.WebsiteURL,
+		if err := rows.Scan(&a.ID, &a.Name, &a.Slug, &a.Abbreviation, &a.Description, &a.LogoURL, &a.WebsiteURL,
 			&a.Category, &a.President, &a.Secretary, &a.Address, &a.Phone,
 			&a.SortOrder, &a.IsActive, &a.CreatedAt, &a.UpdatedAt); err != nil {
 			return nil, err
@@ -1934,12 +1999,12 @@ func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*mod
 }
 
 func (r *CMSRepo) GetAssociationByID(ctx context.Context, id string) (*models.CMSAssociation, error) {
-	const q = `SELECT id, name, slug, COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
+	const q = `SELECT id, name, slug, COALESCE(abbreviation,''), COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
 	                  COALESCE(category,'Other'), COALESCE(president,''), COALESCE(secretary,''), COALESCE(address,''), COALESCE(phone,''),
 	                  sort_order, is_active, created_at, updated_at
 	           FROM cms_associations WHERE id=$1`
 	a := &models.CMSAssociation{}
-	err := r.db.QueryRow(ctx, q, id).Scan(&a.ID, &a.Name, &a.Slug, &a.Description, &a.LogoURL, &a.WebsiteURL,
+	err := r.db.QueryRow(ctx, q, id).Scan(&a.ID, &a.Name, &a.Slug, &a.Abbreviation, &a.Description, &a.LogoURL, &a.WebsiteURL,
 		&a.Category, &a.President, &a.Secretary, &a.Address, &a.Phone,
 		&a.SortOrder, &a.IsActive, &a.CreatedAt, &a.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -1949,9 +2014,9 @@ func (r *CMSRepo) GetAssociationByID(ctx context.Context, id string) (*models.CM
 }
 
 func (r *CMSRepo) CreateAssociation(ctx context.Context, a *models.CMSAssociation) error {
-	const q = `INSERT INTO cms_associations (id, name, slug, description, logo_url, website_url, category, president, secretary, address, phone, sort_order, is_active)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING created_at, updated_at`
-	err := r.db.QueryRow(ctx, q, a.ID, a.Name, a.Slug, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive).Scan(&a.CreatedAt, &a.UpdatedAt)
+	const q = `INSERT INTO cms_associations (id, name, slug, abbreviation, description, logo_url, website_url, category, president, secretary, address, phone, sort_order, is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING created_at, updated_at`
+	err := r.db.QueryRow(ctx, q, a.ID, a.Name, a.Slug, a.Abbreviation, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive).Scan(&a.CreatedAt, &a.UpdatedAt)
 	if err != nil && isDuplicate(err) {
 		return ErrDuplicate
 	}
@@ -1959,10 +2024,10 @@ func (r *CMSRepo) CreateAssociation(ctx context.Context, a *models.CMSAssociatio
 }
 
 func (r *CMSRepo) UpdateAssociation(ctx context.Context, a *models.CMSAssociation) error {
-	const q = `UPDATE cms_associations SET name=$2, slug=$3, description=$4, logo_url=$5,
-	           website_url=$6, category=$7, president=$8, secretary=$9, address=$10, phone=$11,
-	           sort_order=$12, is_active=$13, updated_at=NOW() WHERE id=$1`
-	_, err := r.db.Exec(ctx, q, a.ID, a.Name, a.Slug, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive)
+	const q = `UPDATE cms_associations SET name=$2, slug=$3, abbreviation=$4, description=$5, logo_url=$6,
+	           website_url=$7, category=$8, president=$9, secretary=$10, address=$11, phone=$12,
+	           sort_order=$13, is_active=$14, updated_at=NOW() WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, a.ID, a.Name, a.Slug, a.Abbreviation, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive)
 	return err
 }
 
