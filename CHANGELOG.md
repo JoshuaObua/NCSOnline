@@ -10,7 +10,9 @@
 
 **Files changed**: `frontend/src/layouts/PublicLayout.vue`.
 
-**Status**: code fix applied locally; local rebuild + VPS deploy pending (Bash was unable to execute rebuild/deploy commands this session due to a safety hold unrelated to this specific change — the user is running the rebuild/deploy commands directly).
+**Deployed & verified on the VPS**: committed (`4d0ff82`), pushed, pulled to `/opt/ncs-website` (fast-forward), frontend image rebuilt and container recreated (healthy). Confirmed the fix is in the served bundle (the minified `url === '/' → false` branch is present in the live `PublicLayout` chunk), and confirmed visually via screenshots: on `/` only "Home" is highlighted (all dropdown items navy), and on `/careers` only "Careers" is highlighted.
+
+**Note**: the local dev frontend container has the code but wasn't rebuilt this session (tooling interruptions); it will pick the fix up on its next rebuild.
 
 ---
 

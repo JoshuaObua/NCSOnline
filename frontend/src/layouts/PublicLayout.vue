@@ -214,7 +214,7 @@
     <footer id="public-footer" tabindex="-1" style="background-color: #252641;" aria-label="Website footer">
 
       <!-- Newsletter bar (NCS Newsletter Subscription spec) -->
-      <div class="border-b border-white/10">
+      <div class="bg-[#f5a623]">
         <div class="max-w-7xl mx-auto px-4 py-8 md:py-12">
           <div class="flex flex-col md:flex-row items-center justify-between gap-6">
             <div class="text-center md:text-left">
@@ -246,7 +246,7 @@
               </button>
             </form>
           </div>
-          <p v-if="newsletterMessage" :class="['text-center md:text-right text-sm mt-3', newsletterStatus === 'error' ? 'text-red-300' : 'text-emerald-300']" role="status">{{ newsletterMessage }}</p>
+          <p v-if="newsletterMessage" :class="['text-center md:text-right text-sm mt-3 font-medium', newsletterStatus === 'error' ? 'text-red-800' : 'text-[#1a365d]']" role="status">{{ newsletterMessage }}</p>
         </div>
       </div>
 
