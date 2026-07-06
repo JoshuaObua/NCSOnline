@@ -105,7 +105,7 @@ func (h *OperatorHandler) SetMaintenance(w http.ResponseWriter, r *http.Request)
 	if input.DisplayMeta.CustomTitle != "" || input.DisplayMeta.CustomMessage != "" {
 		current.DisplayMeta = input.DisplayMeta
 	}
-	if len(input.BypassRules.AllowedRoles) > 0 || len(input.BypassRules.AllowedIPRanges) > 0 || input.BypassRules.SecretQueryParam != "" {
+	if len(input.BypassRules.AllowedRoles) > 0 || len(input.BypassRules.AllowedUserIDs) > 0 || len(input.BypassRules.AllowedIPRanges) > 0 || input.BypassRules.SecretQueryParam != "" {
 		current.BypassRules = input.BypassRules
 	}
 	s, err := h.repo.SaveMaintenanceScope(r.Context(), scope, current, actor)
@@ -156,6 +156,57 @@ func (h *OperatorHandler) ServiceLogs(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, map[string]any{"service": service, "lines": splitLogLines(out)})
 }
 
+func (h *OperatorHandler) ServiceLogStream(w http.ResponseWriter, r *http.Request) {
+	service := strings.TrimSpace(r.URL.Query().Get("service"))
+	if !allowedOpsService(service) {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Unknown service")
+		return
+	}
+	if !dockerAvailable() {
+		response.Err(w, http.StatusFailedDependency, "SERVICE_LOGS_UNAVAILABLE", "docker socket or docker CLI is unavailable")
+		return
+	}
+	lines := "100"
+	if raw := r.URL.Query().Get("lines"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 && parsed <= 500 {
+			lines = strconv.Itoa(parsed)
+		}
+	}
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		response.Err(w, http.StatusInternalServerError, "STREAM_UNAVAILABLE", "Streaming is not supported")
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	composeProject := strings.TrimSpace(os.Getenv("COMPOSE_PROJECT_NAME"))
+	if composeProject == "" {
+		composeProject = "ncs-online"
+	}
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "docker", "compose", "-p", composeProject, "logs", "--tail", lines, "-f", service)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "STREAM_FAILED", err.Error())
+		return
+	}
+	cmd.Stderr = cmd.Stdout
+	if err := cmd.Start(); err != nil {
+		response.Err(w, http.StatusFailedDependency, "STREAM_FAILED", err.Error())
+		return
+	}
+	defer cmd.Wait()
+	scanner := bufio.NewScanner(stdout)
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line, _ := json.Marshal(scanner.Text())
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", line)
+		flusher.Flush()
+	}
+}
+
 func (h *OperatorHandler) ServiceAction(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Service      string `json:"service"`
@@ -169,7 +220,7 @@ func (h *OperatorHandler) ServiceAction(w http.ResponseWriter, r *http.Request) 
 	input.Service = strings.TrimSpace(input.Service)
 	input.Action = strings.ToLower(strings.TrimSpace(input.Action))
 	expected := strings.ToUpper(input.Action + " " + input.Service)
-	if !allowedOpsService(input.Service) || (input.Action != "restart" && input.Action != "stop") {
+	if !allowedOpsService(input.Service) || (input.Action != "restart" && input.Action != "stop" && input.Action != "start") {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Unsupported service action")
 		return
 	}
@@ -180,6 +231,9 @@ func (h *OperatorHandler) ServiceAction(w http.ResponseWriter, r *http.Request) 
 	args := []string{input.Action, input.Service}
 	if input.Action == "restart" {
 		args = []string{"up", "-d", "--no-deps", "--force-recreate", input.Service}
+	}
+	if input.Action == "start" {
+		args = []string{"up", "-d", "--no-deps", input.Service}
 	}
 	out, err := dockerComposeOutput(r.Context(), args...)
 	if err != nil {
@@ -481,7 +535,7 @@ func serviceStatuses() []map[string]any {
 		composeProject = "ncs-online"
 	}
 	for _, svc := range services {
-		out = append(out, map[string]any{"name": svc, "display_name": serviceDisplayName(svc), "status": "unknown", "health": "unknown", "actions": []string{"restart", "stop", "logs"}})
+		out = append(out, map[string]any{"name": svc, "display_name": serviceDisplayName(svc), "status": "unknown", "health": "unknown", "actions": []string{"start", "restart", "stop", "logs"}})
 	}
 	if !dockerAvailable() {
 		return out

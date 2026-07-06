@@ -7,3 +7,7 @@ export function loginWithGoogleCredential(credential) {
 export function getCurrentUser() {
   return apiClient.get('/api/v1/auth/me')
 }
+
+export function updateMyProfile(data) {
+  return apiClient.put('/api/v1/auth/me', data)
+}

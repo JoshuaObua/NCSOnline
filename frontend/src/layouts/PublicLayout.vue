@@ -1,5 +1,12 @@
 <template>
-  <div class="public-site min-h-screen flex flex-col">
+  <div v-if="maintenanceActive" class="maintenance-screen">
+    <div class="maintenance-card">
+      <img v-if="siteIdentity.logoUrl || siteIdentity.whiteLogoUrl" :src="headerLogo" :alt="siteIdentity.name || 'NCS'" class="maintenance-logo" />
+      <h1>{{ maintenanceInfo.display_meta?.custom_title || 'Scheduled Maintenance' }}</h1>
+      <p>{{ maintenanceInfo.display_meta?.custom_message || maintenanceInfo.reason || 'We are performing scheduled maintenance and will be back online shortly. Thank you for your patience.' }}</p>
+    </div>
+  </div>
+  <div v-else class="public-site min-h-screen flex flex-col">
 
     <a href="#main-content" class="skip-link">Skip to main content</a>
     <a href="#public-footer" class="skip-link skip-link-secondary">Skip to footer</a>
@@ -42,7 +49,7 @@
 
           <!-- Logo (bare image, no container) -->
           <router-link to="/" class="flex items-center gap-3 group flex-shrink-0" :aria-label="`${siteIdentity.name || 'NCS'} home`">
-            <img :src="resolveAsset(siteIdentity.logoUrl) || '/main-logo.png'" :alt="`${siteIdentity.name || 'NCS'} - National Council of Sports`" class="h-14 md:h-16 w-auto object-contain" />
+            <img :src="headerLogo" :alt="`${siteIdentity.name || 'NCS'} - National Council of Sports`" class="h-14 md:h-16 w-auto object-contain" />
           </router-link>
 
           <!-- Desktop nav -->
@@ -54,17 +61,35 @@
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 group-hover:rotate-180 transition-transform duration-200" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                 </button>
                 <div class="absolute left-0 top-full pt-1 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition-all duration-200 min-w-[220px] z-50">
-                  <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2 overflow-hidden">
-                    <component
-                      :is="isExternalNavLink(sub) ? 'a' : 'router-link'"
-                      v-for="sub in (item.children || item.megaItems || [])"
-                      :key="sub.id || sub.label"
-                      v-bind="linkAttrs(sub)"
-                      class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors"
-                    >
-                      <span v-if="sub.icon" class="text-base">{{ sub.icon }}</span>
-                      {{ sub.label }}
-                    </component>
+                  <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2">
+                    <template v-for="sub in (item.children || item.megaItems || [])" :key="sub.id || sub.label">
+                      <div v-if="sub.children?.length" class="relative group/sub">
+                        <button type="button" class="w-full flex items-center justify-between gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors" aria-haspopup="menu" aria-expanded="false">
+                          <span class="flex items-center gap-2"><span v-if="sub.icon" class="text-base">{{ sub.icon }}</span>{{ sub.label }}</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+                        </button>
+                        <div class="absolute left-full top-0 pl-1 opacity-0 invisible group-hover/sub:opacity-100 group-hover/sub:visible group-focus-within/sub:opacity-100 group-focus-within/sub:visible transition-all duration-200 min-w-[200px] z-50">
+                          <div class="bg-white rounded-xl shadow-xl border border-gray-100 py-2">
+                            <component
+                              :is="isExternalNavLink(grandsub) ? 'a' : 'router-link'"
+                              v-for="grandsub in sub.children"
+                              :key="grandsub.id || grandsub.label"
+                              v-bind="linkAttrs(grandsub)"
+                              class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors"
+                            >{{ grandsub.label }}</component>
+                          </div>
+                        </div>
+                      </div>
+                      <component
+                        v-else
+                        :is="isExternalNavLink(sub) ? 'a' : 'router-link'"
+                        v-bind="linkAttrs(sub)"
+                        class="flex items-center gap-2 px-4 py-2.5 text-sm text-[#1a365d] hover:bg-[#f5a623]/10 hover:text-[#f5a623] transition-colors"
+                      >
+                        <span v-if="sub.icon" class="text-base">{{ sub.icon }}</span>
+                        {{ sub.label }}
+                      </component>
+                    </template>
                   </div>
                 </div>
               </div>
@@ -129,14 +154,31 @@
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 group-open:rotate-180 transition-transform" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
                 <div class="pl-4 mt-1 space-y-1">
-                  <component
-                    :is="isExternalNavLink(sub) ? 'a' : 'router-link'"
-                    v-for="sub in (item.children || item.megaItems || [])"
-                    :key="sub.id || sub.label"
-                    v-bind="linkAttrs(sub)"
-                    class="block px-4 py-2 text-[#1a365d]/80 hover:text-[#f5a623] transition-colors text-sm"
-                    @click="mobileOpen = false"
-                  >{{ sub.label }}</component>
+                  <template v-for="sub in (item.children || item.megaItems || [])" :key="sub.id || sub.label">
+                    <details v-if="sub.children?.length" class="group/sub">
+                      <summary class="flex items-center justify-between px-4 py-2 text-[#1a365d]/90 font-medium text-sm cursor-pointer hover:text-[#f5a623]">
+                        {{ sub.label }}
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 group-open/sub:rotate-180 transition-transform" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                      </summary>
+                      <div class="pl-4 mt-1 space-y-1">
+                        <component
+                          :is="isExternalNavLink(grandsub) ? 'a' : 'router-link'"
+                          v-for="grandsub in sub.children"
+                          :key="grandsub.id || grandsub.label"
+                          v-bind="linkAttrs(grandsub)"
+                          class="block px-4 py-2 text-[#1a365d]/70 hover:text-[#f5a623] transition-colors text-sm"
+                          @click="mobileOpen = false"
+                        >{{ grandsub.label }}</component>
+                      </div>
+                    </details>
+                    <component
+                      v-else
+                      :is="isExternalNavLink(sub) ? 'a' : 'router-link'"
+                      v-bind="linkAttrs(sub)"
+                      class="block px-4 py-2 text-[#1a365d]/80 hover:text-[#f5a623] transition-colors text-sm"
+                      @click="mobileOpen = false"
+                    >{{ sub.label }}</component>
+                  </template>
                 </div>
               </details>
             </div>
@@ -210,7 +252,7 @@
 
       <!-- Links grid (NCS Footer Section Design spec) -->
       <div class="max-w-7xl mx-auto px-4 py-12 md:py-16">
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-8">
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-10 md:gap-8">
 
           <!-- Column 1 — Brand + about + social -->
           <div>
@@ -252,13 +294,15 @@
             </a>
           </div>
 
-          <!-- Column 3 — Quick Links (dynamic from footerSettings.columns[0]) -->
-          <div>
+          <!-- Columns 3+ — fully dynamic footer link columns (title + links both
+               editable in the CMS under Settings → Footer Columns). Any number
+               of columns can exist; each renders identically. -->
+          <div v-for="(column, colIdx) in footerSettings.columns" :key="colIdx">
             <h4 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
-              <span class="w-8 h-0.5 bg-[#f5a623]"></span>{{ quickLinksColumn.title || 'Quick Links' }}
+              <span class="w-8 h-0.5 bg-[#f5a623]"></span>{{ column.title || 'Links' }}
             </h4>
             <ul class="space-y-3">
-              <li v-for="(link, idx) in quickLinksColumn.links" :key="idx">
+              <li v-for="(link, idx) in column.links" :key="idx">
                 <component
                   :is="isExternalLink(link.url) ? 'a' : 'router-link'"
                   v-bind="isExternalLink(link.url) ? { href: link.url, target: '_blank', rel: 'noopener' } : { to: link.url || '/' }"
@@ -268,24 +312,7 @@
                   {{ link.label }}
                 </component>
               </li>
-              <li v-if="!quickLinksColumn.links?.length" class="text-xs text-white/40 italic">No quick links configured yet.</li>
-            </ul>
-          </div>
-
-          <!-- Column 4 — Documents (dynamic from footerSettings.columns[1]) -->
-          <div>
-            <h4 class="text-lg font-bold mb-6 flex items-center gap-2 text-white">
-              <span class="w-8 h-0.5 bg-[#f5a623]"></span>{{ documentsColumn.title || 'Documents' }}
-            </h4>
-            <ul class="space-y-3">
-              <li v-for="(doc, idx) in documentsColumn.links" :key="idx">
-                <a :href="doc.url" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm text-white/80 hover:text-[#f5a623] transition-colors group">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-red-400 flex-shrink-0" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
-                  <span class="flex-1 line-clamp-1">{{ doc.label }}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" aria-hidden="true"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-                </a>
-              </li>
-              <li v-if="!documentsColumn.links?.length" class="text-xs text-white/40 italic">No documents added yet.</li>
+              <li v-if="!column.links?.length" class="text-xs text-white/40 italic">No links configured yet.</li>
             </ul>
           </div>
         </div>
@@ -296,8 +323,19 @@
         <div class="max-w-screen-xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <span>&copy; {{ currentYear }} {{ footerSettings.copyright }}</span>
           <div class="flex gap-5">
-            <router-link to="/faqs" class="hover:text-gray-300 transition-colors">FAQs</router-link>
-            <router-link to="/contact-us" class="hover:text-gray-300 transition-colors">Contact</router-link>
+            <template v-if="footerMenuItems.length">
+              <component
+                :is="isExternalNavLink(item) ? 'a' : 'router-link'"
+                v-for="(item, idx) in footerMenuItems"
+                :key="idx"
+                v-bind="linkAttrs(item)"
+                class="hover:text-gray-300 transition-colors"
+              >{{ item.label }}</component>
+            </template>
+            <template v-else>
+              <router-link to="/faqs" class="hover:text-gray-300 transition-colors">FAQs</router-link>
+              <router-link to="/contact-us" class="hover:text-gray-300 transition-colors">Contact</router-link>
+            </template>
           </div>
         </div>
       </div>
@@ -311,11 +349,15 @@
 import { ref, computed, nextTick, onMounted, onUnmounted, reactive, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
-import { getMenu, getSettings } from '@/api/cms.js'
+import { getMaintenanceStatus, getMenu, getSettings, getTypography, listFonts } from '@/api/cms.js'
+import { injectTypographyCSS } from '@/utils/typography.js'
 import { mediaUrl } from '@/api/client.js'
+import { installAnalyticsTracker, trackPageView, uninstallAnalyticsTracker } from '@/utils/analyticsTracker.js'
+import { installGoogleAnalytics, trackGoogleAnalyticsPageView, uninstallGoogleAnalytics } from '@/utils/googleAnalytics.js'
 import PublicAccessibilityMenu from '@/components/public/PublicAccessibilityMenu.vue'
 import AppPreloader from '@/components/public/AppPreloader.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
+import { useTheme } from '@/composables/useTheme.js'
 
 const mobileOpen = ref(false)
 const searchOpen = ref(false)
@@ -325,7 +367,24 @@ const scrolled = ref(false)
 const accountUser = ref(readAccountUser())
 const route = useRoute()
 const router = useRouter()
-const intranetUrl = (import.meta.env?.VITE_INTRANET_URL || 'http://localhost:9081').replace(/\/$/, '')
+const { isDark } = useTheme()
+const maintenanceActive = ref(false)
+const maintenanceInfo = ref({})
+// Priority: explicit intranet URL, then the browser host plus VITE_INTRANET_PORT.
+// Mirrors resolveApiBase() in api/client.js so neither URL is pinned to a
+// specific host at build time.
+function resolveIntranetUrl() {
+  const envBase = import.meta.env?.VITE_INTRANET_URL
+  if (envBase) return envBase.replace(/\/$/, '')
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const port = import.meta.env?.VITE_INTRANET_PORT
+    return port
+      ? `${window.location.protocol}//${window.location.hostname}:${port}`
+      : window.location.origin
+  }
+  return ''
+}
+const intranetUrl = resolveIntranetUrl()
 const currentYear = computed(() => new Date().getFullYear())
 const currentUser = computed(() => accountUser.value)
 const accountName = computed(() => {
@@ -348,6 +407,8 @@ watch(() => route.fullPath, async () => {
   accountUser.value = readAccountUser()
   mobileOpen.value = false
   accountOpen.value = false
+  trackPageView(route.path)
+  trackGoogleAnalyticsPageView(route.path)
   await nextTick()
   document.getElementById('main-content')?.focus({ preventScroll: true })
 })
@@ -372,6 +433,10 @@ const defaultMenu = [
   { label: 'Facilities',      url: '/facilities' },
   { label: 'Associations',    url: '/associations' },
   { label: 'Resource Centre', url: '/resource-centre' },
+  { label: 'Sports Rules',    url: '/sports-rules' },
+  { label: 'Press Releases',  url: '/press-releases' },
+  { label: 'NCS Reports',     url: '/reports' },
+  { label: 'NCS Speeches',    url: '/speeches' },
   { label: 'Invest with Us',  url: '/invest' },
 ]
 
@@ -401,11 +466,8 @@ const defaultFooter = {
 }
 
 const menuItems = ref(defaultMenu)
+const footerMenuItems = ref([])
 const footerSettings = reactive({ ...defaultFooter, columns: [...defaultFooter.columns] })
-
-// Quick Links uses the first dynamic column (CMS), Documents uses the second
-const quickLinksColumn = computed(() => footerSettings.columns?.[0] || defaultFooter.columns[0])
-const documentsColumn = computed(() => footerSettings.columns?.[1] || defaultFooter.columns[1])
 
 // Address rendered as multi-line block: split contact.address on newlines (or commas),
 // then append postal_address as a separate line if present.
@@ -527,12 +589,36 @@ const footerLogo = computed(() => {
   for (const p of chain) { if (p) return resolveAsset(p) }
   return '/main-logo.png'
 })
+// Header logo swaps with the light/dark toggle: white logo on dark backgrounds,
+// main logo on light — falling back to the other if only one has been uploaded.
+const headerLogo = computed(() => {
+  const chain = isDark.value
+    ? [siteIdentity.whiteLogoUrl, siteIdentity.logoUrl]
+    : [siteIdentity.logoUrl, siteIdentity.whiteLogoUrl]
+  for (const p of chain) { if (p) return resolveAsset(p) }
+  return '/main-logo.png'
+})
 function applyFavicon(url) {
   if (!url) return
   const href = resolveAsset(url) || url
   let link = document.querySelector('link[rel="icon"]')
   if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link) }
   link.href = href
+}
+function setMetaTag(selector, attrs) {
+  let tag = document.querySelector(selector)
+  if (!tag) { tag = document.createElement('meta'); document.head.appendChild(tag) }
+  Object.entries(attrs).forEach(([k, v]) => tag.setAttribute(k, v))
+}
+async function loadSeoDefaults() {
+  try {
+    const r = await getSettings('seo')
+    const v = r.data?.data?.value
+    if (!v || typeof v !== 'object') return
+    if (v.meta_description) setMetaTag('meta[name="description"]', { name: 'description', content: v.meta_description })
+    if (v.meta_keywords) setMetaTag('meta[name="keywords"]', { name: 'keywords', content: v.meta_keywords })
+    if (v.meta_image_url) setMetaTag('meta[property="og:image"]', { property: 'og:image', content: resolveAsset(v.meta_image_url) })
+  } catch { /* no SEO defaults saved yet */ }
 }
 const socialDefaults = {
   facebook:  'https://facebook.com/NCSUganda',
@@ -582,7 +668,7 @@ function isActiveLink(item) {
 }
 function isActiveTopLevel(item) {
   const children = item.children || item.megaItems || []
-  return children.some(c => c.url && route.path.startsWith(c.url))
+  return children.some(c => (c.url && route.path.startsWith(c.url)) || isActiveTopLevel(c))
 }
 
 function filterVisible(items) {
@@ -618,6 +704,32 @@ async function loadMenu() {
     const items = r.data?.data?.items || r.data?.data?.Items || []
     if (items.length) menuItems.value = items
   } catch { /* keep defaults */ }
+}
+
+async function loadFooterMenu() {
+  try {
+    const r = await getMenu('footer')
+    const items = r.data?.data?.items || r.data?.data?.Items || []
+    footerMenuItems.value = items.filter(item => !item.hidden)
+  } catch { /* keep empty, bottom bar falls back to defaults */ }
+}
+
+async function loadTypography() {
+  try {
+    const [settingsRes, fontsRes] = await Promise.all([getTypography(), listFonts()])
+    const value = settingsRes.data?.data?.value || {}
+    const fonts = fontsRes.data?.data || []
+    injectTypographyCSS(value, fonts)
+  } catch { /* leave default site typography untouched */ }
+}
+
+async function loadThirdPartyIntegrations() {
+  try {
+    const r = await getSettings('third_party')
+    installGoogleAnalytics(r.data?.data?.value || {})
+  } catch {
+    uninstallGoogleAnalytics()
+  }
 }
 
 async function loadFooterSettings() {
@@ -683,16 +795,45 @@ async function loadSiteIdentity() {
   } catch { /* first-time, no record yet */ }
 }
 
+async function loadMaintenanceStatus() {
+  try {
+    const r = await getMaintenanceStatus()
+    const scoped = r.data?.data?.public_cms
+    // Staff already signed into the CMS can keep browsing the public site
+    // normally while maintenance is on, so they can verify it live.
+    if (scoped?.is_active && !localStorage.getItem('ncsms_access_token')) {
+      maintenanceInfo.value = scoped
+      maintenanceActive.value = true
+    }
+  } catch { /* if the status check fails, fail open and show the site */ }
+}
+
 onMounted(() => {
+  loadMaintenanceStatus()
+  installAnalyticsTracker()
+  trackPageView(route.path)
   loadMenu()
+  loadFooterMenu()
   loadFooterSettings()
   loadContact()
   loadHeaderSettings()
   loadSiteIdentity()
+  loadSeoDefaults()
+  loadTypography()
+  loadThirdPartyIntegrations()
+})
+onUnmounted(() => {
+  uninstallAnalyticsTracker()
+  uninstallGoogleAnalytics()
 })
 </script>
 
 <style scoped>
+.maintenance-screen { min-height: 100vh; display: grid; place-items: center; background: #1a365d; color: white; padding: 2rem; }
+.maintenance-card { max-width: 34rem; text-align: center; }
+.maintenance-logo { height: 3.5rem; width: auto; object-fit: contain; margin: 0 auto 2rem; display: block; }
+.maintenance-card h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: 1rem; }
+.maintenance-card p { color: rgb(255 255 255 / 0.75); line-height: 1.7; }
 .public-site > main { padding-top: 7rem; }
 .newsletter-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .account-menu{position:relative}.account-trigger{width:38px;height:38px;border:1px solid #e5e7eb;border-radius:999px;background:white;color:#112b4e;display:grid;place-items:center;overflow:hidden;font-weight:900}.account-trigger img{width:100%;height:100%;object-fit:cover}.account-dropdown{position:absolute;right:0;top:calc(100% + 10px);width:230px;background:white;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 18px 40px rgba(15,23,42,.16);padding:.45rem;z-index:70}.account-dropdown a,.account-dropdown button{display:block;width:100%;border:0;background:transparent;border-radius:6px;padding:.7rem .75rem;text-align:left;color:#112b4e;font-size:.88rem;font-weight:800}.account-dropdown a:hover,.account-dropdown button:hover{background:#f8fafc;color:#f48c06}

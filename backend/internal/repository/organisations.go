@@ -111,7 +111,7 @@ func (r *OrganisationRepo) ApproveAndProvision(ctx context.Context, app *models.
 			return nil, err
 		}
 		payload, _ := json.Marshal(map[string]string{"organisation_name": name, "activation_path": "/accept-organisation-invite?token=" + rawToken})
-		_, err = tx.Exec(ctx, `INSERT INTO notifications(id,template_code,recipient_address,channel,related_type,related_id,payload) VALUES($1,'ORGANISATION_INVITATION',$2,'EMAIL','ORGANISATION_INVITATION',$3,$4)`, uuid.NewString(), strings.ToLower(email), invitationID, payload)
+		_, err = tx.Exec(ctx, `INSERT INTO notification_deliveries(id,template_code,recipient_address,channel,related_type,related_id,payload) VALUES($1,'ORGANISATION_INVITATION',$2,'EMAIL','ORGANISATION_INVITATION',$3,$4)`, uuid.NewString(), strings.ToLower(email), invitationID, payload)
 		if err != nil {
 			return nil, err
 		}

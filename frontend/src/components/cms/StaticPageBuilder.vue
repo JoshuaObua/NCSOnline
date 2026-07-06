@@ -27,7 +27,7 @@
             </div>
             <div class="form-group col-lg-8">
               <label>Slug</label>
-              <input v-model="model.slug" class="form-control" :readonly="!manualSlug" pattern="^[a-z0-9-_]+$" required placeholder="clear-page-name" />
+              <input v-model="model.slug" class="form-control" :readonly="!manualSlug" pattern="^[a-z0-9_\-]+$" required placeholder="clear-page-name" />
               <small class="form-text text-muted">Public URL: /pages/{{ model.slug || 'clear-page-name' }}</small>
             </div>
             <div class="form-group col-lg-4 page-check-field">

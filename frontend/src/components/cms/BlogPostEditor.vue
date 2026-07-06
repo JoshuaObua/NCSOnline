@@ -19,13 +19,14 @@
             </div>
             <div class="form-group col-lg-4">
               <label>Category</label>
-              <select v-model="model.category" class="form-control selectric">
+              <select v-model="model[categoryField]" class="form-control selectric">
+                <option value="">None</option>
                 <option v-for="cat in categories" :key="cat.slug || cat.value" :value="cat.slug || cat.value">{{ cat.name || cat.label }}</option>
               </select>
             </div>
             <div class="form-group col-lg-8">
               <label>Slug</label>
-              <input v-model="model.slug" class="form-control" :readonly="!manualSlug" pattern="^[a-z0-9-_]+$" required placeholder="post-url-slug" />
+              <input v-model="model.slug" class="form-control" :readonly="!manualSlug" pattern="^[a-z0-9_\-]+$" required placeholder="post-url-slug" />
             </div>
             <div class="form-group col-lg-4 blog-check-field">
               <label class="d-block">Slug Control</label>
@@ -128,7 +129,7 @@ import { debounce } from '@/utils/menuTree.js'
 import { sanitizeRichHtml } from '@/utils/sanitize.js'
 import DropzoneUpload from '@/components/cms/DropzoneUpload.vue'
 
-const props = defineProps({ model: { type: Object, required: true }, categories: { type: Array, default: () => [] } })
+const props = defineProps({ model: { type: Object, required: true }, categories: { type: Array, default: () => [] }, categoryField: { type: String, default: 'category' } })
 const emit = defineEmits(['save'])
 const manualSlug = ref(false)
 const draftState = ref('')
@@ -220,10 +221,15 @@ function restoreDraft(showMessage = true) {
   } catch {}
 }
 
+// Only the CSS is loaded — class names like .summernote-toolbar/.summernote-editable
+// are reused purely for visual consistency with the original theme, but the actual
+// editor below is TipTap (EditorContent), not Summernote. The real summernote-bs4.js
+// bundle expects a global jQuery to attach itself to (`$.fn.summernote = ...`), which
+// this app never loads, so including it here only threw an uncaught TypeError on
+// every mount without doing anything.
 function ensureSummernoteAssets() {
   addAsset('link', '/otika-assets/bundles/summernote/summernote-bs4.css')
   addAsset('link', '/otika-assets/bundles/jquery-selectric/selectric.css')
-  addAsset('script', '/otika-assets/bundles/summernote/summernote-bs4.js')
 }
 
 function addAsset(tag, href) {

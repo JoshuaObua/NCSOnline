@@ -2,6 +2,10 @@ import apiClient from './client.js'
 
 // ── Public CMS (no auth required) ────────────────────────────────
 
+export function getMaintenanceStatus() {
+  return apiClient.get('/api/v1/system/maintenance-status')
+}
+
 export function listPosts(params = {}) {
   return apiClient.get('/api/v1/cms/posts', { params })
 }
@@ -14,6 +18,10 @@ export function listBlogCategories(active = true) {
   return apiClient.get('/api/v1/cms/blog/categories', { params: { active: active ? 'true' : 'false' } })
 }
 
+export function listCategoriesByType(contentType) {
+  return apiClient.get('/api/v1/cms/blog/categories', { params: { active: 'true', content_type: contentType } })
+}
+
 export function listPostComments(slug) {
   return apiClient.get(`/api/v1/cms/posts/${slug}/comments`)
 }
@@ -24,6 +32,10 @@ export function submitPostComment(slug, data) {
 
 export function submitContactMessage(data) {
   return apiClient.post('/api/v1/cms/messages', data)
+}
+
+export function submitInvestmentRequest(data) {
+  return apiClient.post('/api/v1/cms/invest/requests', data)
 }
 
 export function listEvents(params = {}) {
@@ -152,6 +164,22 @@ export function adminListFederationCategories() { return adminListScopedCategori
 export function adminCreateFederationCategory(data) { return adminCreateScopedCategory('federation', data) }
 export function adminUpdateFederationCategory(id, data) { return adminUpdateScopedCategory('federation', id, data) }
 export function adminDeleteFederationCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListSportsRuleCategories() { return adminListScopedCategories('sports_rule') }
+export function adminCreateSportsRuleCategory(data) { return adminCreateScopedCategory('sports_rule', data) }
+export function adminUpdateSportsRuleCategory(id, data) { return adminUpdateScopedCategory('sports_rule', id, data) }
+export function adminDeleteSportsRuleCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListPressReleaseCategories() { return adminListScopedCategories('press_release') }
+export function adminCreatePressReleaseCategory(data) { return adminCreateScopedCategory('press_release', data) }
+export function adminUpdatePressReleaseCategory(id, data) { return adminUpdateScopedCategory('press_release', id, data) }
+export function adminDeletePressReleaseCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListReportCategories() { return adminListScopedCategories('report') }
+export function adminCreateReportCategory(data) { return adminCreateScopedCategory('report', data) }
+export function adminUpdateReportCategory(id, data) { return adminUpdateScopedCategory('report', id, data) }
+export function adminDeleteReportCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListSpeechCategories() { return adminListScopedCategories('speech') }
+export function adminCreateSpeechCategory(data) { return adminCreateScopedCategory('speech', data) }
+export function adminUpdateSpeechCategory(id, data) { return adminUpdateScopedCategory('speech', id, data) }
+export function adminDeleteSpeechCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
 
 export function adminListNewsletterSubscribers(params = {}) {
   return apiClient.get('/api/v1/admin/cms/newsletter/subscribers', { params })
@@ -281,6 +309,23 @@ export function adminCreateFunFact(data) { return apiClient.post('/api/v1/admin/
 export function adminUpdateFunFact(id, data) { return apiClient.put(`/api/v1/admin/cms/fun-facts/${id}`, data) }
 export function adminDeleteFunFact(id) { return apiClient.delete(`/api/v1/admin/cms/fun-facts/${id}`) }
 
+// ── Appearance: custom fonts + typography mapping ──────────────────
+
+export function listFonts() { return apiClient.get('/api/v1/cms/fonts') }
+export function adminListFonts() { return apiClient.get('/api/v1/admin/cms/fonts') }
+export function adminUploadFont(file, displayName) {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('display_name', displayName)
+  return apiClient.post('/api/v1/admin/cms/fonts', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+export function adminDeleteFont(id) { return apiClient.delete(`/api/v1/admin/cms/fonts/${id}`) }
+
+export function getTypography() { return apiClient.get('/api/v1/cms/settings/typography') }
+export function adminUpdateTypography(value) { return apiClient.put('/api/v1/admin/cms/settings/typography', value) }
+
 // ── FAQs ──────────────────────────────────────────────────────────
 
 export function listFAQs(params = {}) { return apiClient.get('/api/v1/cms/faqs', { params }) }
@@ -296,6 +341,14 @@ export function adminListResources(params = {}) { return apiClient.get('/api/v1/
 export function adminCreateResource(data) { return apiClient.post('/api/v1/admin/cms/resources', data) }
 export function adminUpdateResource(id, data) { return apiClient.put(`/api/v1/admin/cms/resources/${id}`, data) }
 export function adminDeleteResource(id) { return apiClient.delete(`/api/v1/admin/cms/resources/${id}`) }
+
+// ── Documents (Sports Rules, Press Releases, Reports, Speeches) ────
+
+export function listDocuments(params = {}) { return apiClient.get('/api/v1/cms/documents', { params }) }
+export function adminListDocuments(params = {}) { return apiClient.get('/api/v1/admin/cms/documents', { params }) }
+export function adminCreateDocument(data) { return apiClient.post('/api/v1/admin/cms/documents', data) }
+export function adminUpdateDocument(id, data) { return apiClient.put(`/api/v1/admin/cms/documents/${id}`, data) }
+export function adminDeleteDocument(id) { return apiClient.delete(`/api/v1/admin/cms/documents/${id}`) }
 
 // ── Facilities ────────────────────────────────────────────────────
 
@@ -366,6 +419,10 @@ export function adminGetAuditLog(id) {
   return apiClient.get(`/api/v1/admin/audit-logs/${id}`)
 }
 
+export function adminGetAnalytics(params = {}) {
+  return apiClient.get('/api/v1/admin/analytics', { params })
+}
+
 export function listNotifications(params = {}) {
   return apiClient.get('/api/v1/notifications', { params })
 }
@@ -380,6 +437,18 @@ export function clearNotifications() {
 }
 export function markAllNotificationsRead() {
   return apiClient.put('/api/v1/notifications/mark-all-read')
+}
+export function listInboundSubmissions(params = {}) {
+  return apiClient.get('/api/v1/inbound-submissions', { params })
+}
+export function getInboundSubmissionCounts() {
+  return apiClient.get('/api/v1/inbound-submissions/counts')
+}
+export function updateInboundSubmission(id, data) {
+  return apiClient.put(`/api/v1/inbound-submissions/${id}`, data)
+}
+export function addInboundSubmissionNote(id, note) {
+  return apiClient.post(`/api/v1/inbound-submissions/${id}/notes`, { note })
 }
 export function listMessages(params = {}) {
   return apiClient.get('/api/v1/messages', { params })

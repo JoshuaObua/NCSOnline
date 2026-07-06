@@ -142,17 +142,17 @@ WHERE f.is_active AND f.deleted_at IS NULL ON CONFLICT(federation_id,reporting_p
 	return res.RowsAffected(), nil
 }
 func (r *NSMISRepo) queueDeadlineReminders(ctx context.Context) (int64, error) {
-	res, err := r.db.Exec(ctx, `INSERT INTO notifications(template_code,recipient_user_id,recipient_address,channel,related_type,related_id,payload)
+	res, err := r.db.Exec(ctx, `INSERT INTO notification_deliveries(template_code,recipient_user_id,recipient_address,channel,related_type,related_id,payload)
 SELECT 'REPORT_DEADLINE',fm.user_id,u.email,'EMAIL','report_obligation',o.id,jsonb_build_object('federation',f.name,'report_type',o.report_type,'due_on',o.due_on,'days_until',o.due_on-CURRENT_DATE)
 FROM report_obligations o JOIN federations f ON f.id=o.federation_id JOIN federation_memberships fm ON fm.federation_id=f.id AND fm.is_active JOIN users u ON u.id=fm.user_id AND u.is_active
-WHERE o.status NOT IN('ACCEPTED','EXEMPT') AND (o.due_on-CURRENT_DATE)=ANY(ARRAY[14,7,3,1,0,-1,-3,-7,-14]) AND NOT EXISTS(SELECT 1 FROM notifications n WHERE n.template_code='REPORT_DEADLINE' AND n.related_id=o.id AND n.recipient_user_id=fm.user_id AND n.created_at::date=CURRENT_DATE)`)
+WHERE o.status NOT IN('ACCEPTED','EXEMPT') AND (o.due_on-CURRENT_DATE)=ANY(ARRAY[14,7,3,1,0,-1,-3,-7,-14]) AND NOT EXISTS(SELECT 1 FROM notification_deliveries n WHERE n.template_code='REPORT_DEADLINE' AND n.related_id=o.id AND n.recipient_user_id=fm.user_id AND n.created_at::date=CURRENT_DATE)`)
 	if err != nil {
 		return 0, err
 	}
 	return res.RowsAffected(), nil
 }
 func (r *NSMISRepo) queueCredentialExpiry(ctx context.Context) (int64, error) {
-	res, err := r.db.Exec(ctx, `WITH exp AS(SELECT federation_id,'COACH' kind,id,full_name,expiry_date expires FROM coaches WHERE status='ACTIVE' AND expiry_date-CURRENT_DATE=ANY(ARRAY[90,30,14,7,1,0,-1]) UNION ALL SELECT federation_id,'OFFICIAL',id,full_name,valid_until FROM technical_officials WHERE status='ACTIVE' AND valid_until-CURRENT_DATE=ANY(ARRAY[90,30,14,7,1,0,-1])) INSERT INTO notifications(template_code,recipient_user_id,recipient_address,channel,related_type,related_id,payload) SELECT 'CREDENTIAL_EXPIRY',fm.user_id,u.email,'EMAIL',e.kind,e.id,jsonb_build_object('name',e.full_name,'expires_on',e.expires) FROM exp e JOIN federation_memberships fm ON fm.federation_id=e.federation_id AND fm.is_active JOIN users u ON u.id=fm.user_id WHERE NOT EXISTS(SELECT 1 FROM notifications n WHERE n.template_code='CREDENTIAL_EXPIRY' AND n.related_id=e.id AND n.recipient_user_id=fm.user_id AND n.created_at::date=CURRENT_DATE)`)
+	res, err := r.db.Exec(ctx, `WITH exp AS(SELECT federation_id,'COACH' kind,id,full_name,expiry_date expires FROM coaches WHERE status='ACTIVE' AND expiry_date-CURRENT_DATE=ANY(ARRAY[90,30,14,7,1,0,-1]) UNION ALL SELECT federation_id,'OFFICIAL',id,full_name,valid_until FROM technical_officials WHERE status='ACTIVE' AND valid_until-CURRENT_DATE=ANY(ARRAY[90,30,14,7,1,0,-1])) INSERT INTO notification_deliveries(template_code,recipient_user_id,recipient_address,channel,related_type,related_id,payload) SELECT 'CREDENTIAL_EXPIRY',fm.user_id,u.email,'EMAIL',e.kind,e.id,jsonb_build_object('name',e.full_name,'expires_on',e.expires) FROM exp e JOIN federation_memberships fm ON fm.federation_id=e.federation_id AND fm.is_active JOIN users u ON u.id=fm.user_id WHERE NOT EXISTS(SELECT 1 FROM notification_deliveries n WHERE n.template_code='CREDENTIAL_EXPIRY' AND n.related_id=e.id AND n.recipient_user_id=fm.user_id AND n.created_at::date=CURRENT_DATE)`)
 	if err != nil {
 		return 0, err
 	}

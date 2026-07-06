@@ -16,7 +16,10 @@ CREATE TABLE IF NOT EXISTS notification_templates (
  channel TEXT NOT NULL DEFAULT 'EMAIL' CHECK(channel IN('EMAIL','IN_APP')), subject_template TEXT NOT NULL,
  body_template TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, is_active BOOLEAN NOT NULL DEFAULT TRUE,
  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), UNIQUE(code,channel,version));
-CREATE TABLE IF NOT EXISTS notifications (
+-- Named "notification_deliveries" (not "notifications") because migration 037
+-- later creates an unrelated CMS-facing "notifications" table (in-app feed for
+-- CMS users); the two are different features and must not share a table name.
+CREATE TABLE IF NOT EXISTS notification_deliveries (
  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT, template_code TEXT NOT NULL,
  recipient_user_id TEXT REFERENCES users(id) ON DELETE SET NULL, recipient_address TEXT NOT NULL DEFAULT '',
  channel TEXT NOT NULL CHECK(channel IN('EMAIL','IN_APP')), related_type TEXT NOT NULL DEFAULT '', related_id TEXT NOT NULL DEFAULT '',
@@ -24,7 +27,7 @@ CREATE TABLE IF NOT EXISTS notifications (
  CHECK(status IN('PENDING','SENDING','DELIVERED','FAILED','DEAD_LETTER','SUPPRESSED')),
  attempt_count INTEGER NOT NULL DEFAULT 0, next_attempt_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
  delivered_at TIMESTAMPTZ, last_error TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
-CREATE INDEX IF NOT EXISTS idx_notifications_delivery ON notifications(status,next_attempt_at);
+CREATE INDEX IF NOT EXISTS idx_notification_deliveries_delivery ON notification_deliveries(status,next_attempt_at);
 
 CREATE TABLE IF NOT EXISTS background_jobs (
  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT, job_type TEXT NOT NULL, idempotency_key TEXT NOT NULL UNIQUE,

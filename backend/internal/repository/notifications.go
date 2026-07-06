@@ -26,7 +26,7 @@ func (r *NotificationRepo) ClaimEmail(ctx context.Context) (*Notification, error
 	}
 	defer tx.Rollback(ctx)
 	var n Notification
-	err = tx.QueryRow(ctx, `SELECT id,template_code,recipient_address,payload,attempt_count FROM notifications
+	err = tx.QueryRow(ctx, `SELECT id,template_code,recipient_address,payload,attempt_count FROM notification_deliveries
 		WHERE channel='EMAIL' AND status IN('PENDING','FAILED') AND next_attempt_at<=NOW() AND attempt_count<5
 		ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1`).Scan(&n.ID, &n.TemplateCode, &n.RecipientAddress, &n.Payload, &n.AttemptCount)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -35,7 +35,7 @@ func (r *NotificationRepo) ClaimEmail(ctx context.Context) (*Notification, error
 	if err != nil {
 		return nil, err
 	}
-	if _, err = tx.Exec(ctx, `UPDATE notifications SET status='SENDING',attempt_count=attempt_count+1,updated_at=NOW() WHERE id=$1`, n.ID); err != nil {
+	if _, err = tx.Exec(ctx, `UPDATE notification_deliveries SET status='SENDING',attempt_count=attempt_count+1,updated_at=NOW() WHERE id=$1`, n.ID); err != nil {
 		return nil, err
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -45,7 +45,7 @@ func (r *NotificationRepo) ClaimEmail(ctx context.Context) (*Notification, error
 }
 
 func (r *NotificationRepo) Delivered(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx, `UPDATE notifications SET status='DELIVERED',delivered_at=NOW(),last_error='',updated_at=NOW() WHERE id=$1`, id)
+	_, err := r.db.Exec(ctx, `UPDATE notification_deliveries SET status='DELIVERED',delivered_at=NOW(),last_error='',updated_at=NOW() WHERE id=$1`, id)
 	return err
 }
 func (r *NotificationRepo) Failed(ctx context.Context, id, message string, attempt int) error {
@@ -53,6 +53,6 @@ func (r *NotificationRepo) Failed(ctx context.Context, id, message string, attem
 	if attempt+1 >= 5 {
 		status = "DEAD_LETTER"
 	}
-	_, err := r.db.Exec(ctx, `UPDATE notifications SET status=$2,last_error=$3,next_attempt_at=NOW()+(LEAST(attempt_count,5)*INTERVAL '5 minutes'),updated_at=NOW() WHERE id=$1`, id, status, message)
+	_, err := r.db.Exec(ctx, `UPDATE notification_deliveries SET status=$2,last_error=$3,next_attempt_at=NOW()+(LEAST(attempt_count,5)*INTERVAL '5 minutes'),updated_at=NOW() WHERE id=$1`, id, status, message)
 	return err
 }

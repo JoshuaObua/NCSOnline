@@ -116,6 +116,9 @@ func hasMaintenanceBypass(w http.ResponseWriter, r *http.Request, scoped mainten
 	if claims := bearerClaims(r, jwtSecret); hasAnyRole(claims, scoped.BypassRules.AllowedRoles) {
 		return true
 	}
+	if claims := bearerClaims(r, jwtSecret); userAllowed(claims, scoped.BypassRules.AllowedUserIDs) {
+		return true
+	}
 	if ipAllowed(realIP(r), scoped.BypassRules.AllowedIPRanges) {
 		return true
 	}
@@ -161,6 +164,18 @@ func hasAnyRole(claims *Claims, allowed []string) bool {
 			if strings.EqualFold(strings.TrimSpace(role), strings.TrimSpace(allowedRole)) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+func userAllowed(claims *Claims, allowed []string) bool {
+	if claims == nil || claims.UserID == "" {
+		return false
+	}
+	for _, userID := range allowed {
+		if strings.EqualFold(strings.TrimSpace(userID), claims.UserID) {
+			return true
 		}
 	}
 	return false

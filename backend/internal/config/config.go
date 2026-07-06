@@ -40,6 +40,7 @@ type Config struct {
 	GoogleTokenInfoURL   string
 	LogDir               string
 	MaintenanceEnabled   bool
+	AnalyticsHashSecret  string
 }
 
 func Load() (*Config, error) {
@@ -89,6 +90,7 @@ func Load() (*Config, error) {
 		GoogleTokenInfoURL:   getEnv("GOOGLE_TOKENINFO_URL", "https://oauth2.googleapis.com/tokeninfo"),
 		LogDir:               getEnv("LOG_DIR", "/var/log/app"),
 		MaintenanceEnabled:   !strings.EqualFold(getEnv("MAINTENANCE_MIDDLEWARE_ENABLED", "true"), "false"),
+		AnalyticsHashSecret:  getEnv("ANALYTICS_HASH_SECRET", jwtSecret),
 	}, nil
 }
 

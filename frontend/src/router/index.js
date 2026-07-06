@@ -16,6 +16,7 @@ const ResourceCentreView = () => import('@/views/public/ResourceCentreView.vue')
 const FacilitiesView = () => import('@/views/public/FacilitiesView.vue')
 const FacilityDetailView = () => import('@/views/public/FacilityDetailView.vue')
 const AssociationsView = () => import('@/views/public/AssociationsView.vue')
+const DocumentsView = () => import('@/views/public/DocumentsView.vue')
 const InvestView = () => import('@/views/public/InvestView.vue')
 const FAQsView = () => import('@/views/public/FAQsView.vue')
 const ContactUsView = () => import('@/views/public/ContactUsView.vue')
@@ -46,6 +47,58 @@ const routes = [
       { path: 'facilities', name: 'Facilities', component: FacilitiesView },
       { path: 'facilities/:slug', name: 'FacilityDetail', component: FacilityDetailView },
       { path: 'associations', name: 'Associations', component: AssociationsView },
+      {
+        path: 'sports-rules',
+        name: 'SportsRules',
+        component: DocumentsView,
+        props: {
+          docType: 'sports_rule',
+          heroLead: 'Sports',
+          heroAccent: 'Rules',
+          subtitle: 'Official rules and regulations governing sports disciplines recognised by the National Council of Sports Uganda.',
+          icon: 'icofont-read-book',
+          emptyText: 'No sports rules published yet.',
+        },
+      },
+      {
+        path: 'press-releases',
+        name: 'PressReleases',
+        component: DocumentsView,
+        props: {
+          docType: 'press_release',
+          heroLead: 'Press',
+          heroAccent: 'Releases',
+          subtitle: 'Official statements, announcements and media coverage from the National Council of Sports Uganda.',
+          icon: 'icofont-newspaper',
+          emptyText: 'No press releases published yet.',
+        },
+      },
+      {
+        path: 'reports',
+        name: 'Reports',
+        component: DocumentsView,
+        props: {
+          docType: 'report',
+          heroLead: 'NCS',
+          heroAccent: 'Reports',
+          subtitle: 'Annual reports, audits and other official publications from the National Council of Sports Uganda.',
+          icon: 'icofont-file-pdf',
+          emptyText: 'No reports published yet.',
+        },
+      },
+      {
+        path: 'speeches',
+        name: 'Speeches',
+        component: DocumentsView,
+        props: {
+          docType: 'speech',
+          heroLead: 'NCS',
+          heroAccent: 'Speeches',
+          subtitle: 'Official speeches and addresses delivered by National Council of Sports Uganda leadership.',
+          icon: 'icofont-speech-comments',
+          emptyText: 'No speeches published yet.',
+        },
+      },
       { path: 'invest', name: 'Invest', component: InvestView },
       { path: 'faqs', name: 'FAQs', component: FAQsView },
       { path: 'contact-us', name: 'ContactUs', component: ContactUsView },
@@ -88,6 +141,10 @@ const publicPageTitles = {
   Facilities: 'Sports Facilities',
   FacilityDetail: 'Facility Details',
   Associations: 'Sports Associations',
+  SportsRules: 'Sports Rules',
+  PressReleases: 'Press Releases',
+  Reports: 'NCS Reports',
+  Speeches: 'NCS Speeches',
   Invest: 'Invest with NCS',
   FAQs: 'Frequently Asked Questions',
   ContactUs: 'Contact Us',

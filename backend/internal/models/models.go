@@ -107,6 +107,26 @@ type ContactMessage struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type InboundSubmission struct {
+	ID              string          `json:"id"`
+	SourceType      string          `json:"source_type"`
+	SourceID        string          `json:"source_id,omitempty"`
+	Payload         json.RawMessage `json:"payload"`
+	StatusState     string          `json:"status_state"`
+	WorkflowStatus  string          `json:"workflow_status"`
+	AssignedAdminID *string         `json:"assigned_admin_id,omitempty"`
+	InternalNotes   json.RawMessage `json:"internal_notes"`
+	CreatedAt       time.Time       `json:"created_at"`
+	UpdatedAt       time.Time       `json:"updated_at"`
+}
+
+type InboundSubmissionCounts struct {
+	BlogComments       int64 `json:"blog_comment"`
+	ContactForms       int64 `json:"contact_form"`
+	InvestmentRequests int64 `json:"investment_request"`
+	Total              int64 `json:"total"`
+}
+
 // ── Auth Tokens ───────────────────────────────────────────────────
 
 type RefreshToken struct {
@@ -244,6 +264,7 @@ type CMSPost struct {
 	Content         string     `json:"content"`
 	Excerpt         string     `json:"excerpt"`
 	Category        string     `json:"category"`
+	CategoryTag     string     `json:"category_tag,omitempty"`
 	Status          string     `json:"status"`
 	CoverImageURL   string     `json:"cover_image_url,omitempty"`
 	AuthorID        *string    `json:"author_id,omitempty"`
@@ -263,6 +284,7 @@ type BlogCategory struct {
 	Name        string    `json:"name"`
 	Slug        string    `json:"slug"`
 	Description string    `json:"description,omitempty"`
+	ContentType string    `json:"content_type"`
 	SortOrder   int       `json:"sort_order"`
 	IsActive    bool      `json:"is_active"`
 	CreatedAt   time.Time `json:"created_at"`
@@ -407,6 +429,15 @@ type CMSFunFact struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+type CMSCustomFont struct {
+	ID          string    `json:"id"`
+	FontName    string    `json:"font_name"`
+	DisplayName string    `json:"display_name"`
+	FileURL     string    `json:"file_url"`
+	FontFormat  string    `json:"font_format"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
 type CMSFAQ struct {
 	ID        string    `json:"id"`
 	Question  string    `json:"question"`
@@ -440,6 +471,20 @@ type CMSResource struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
+type CMSDocument struct {
+	ID          string    `json:"id"`
+	DocType     string    `json:"doc_type"`
+	Title       string    `json:"title"`
+	Category    string    `json:"category"`
+	FileURL     string    `json:"file_url,omitempty"`
+	VideoURL    string    `json:"video_url,omitempty"`
+	Description string    `json:"description,omitempty"`
+	SortOrder   int       `json:"sort_order"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
 type CMSFacility struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
@@ -454,21 +499,22 @@ type CMSFacility struct {
 }
 
 type CMSAssociation struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Slug        string    `json:"slug"`
-	Description string    `json:"description,omitempty"`
-	LogoURL     string    `json:"logo_url,omitempty"`
-	WebsiteURL  string    `json:"website_url,omitempty"`
-	Category    string    `json:"category,omitempty"`
-	President   string    `json:"president,omitempty"`
-	Secretary   string    `json:"secretary,omitempty"`
-	Address     string    `json:"address,omitempty"`
-	Phone       string    `json:"phone,omitempty"`
-	SortOrder   int       `json:"sort_order"`
-	IsActive    bool      `json:"is_active"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	Slug         string    `json:"slug"`
+	Abbreviation string    `json:"abbreviation,omitempty"`
+	Description  string    `json:"description,omitempty"`
+	LogoURL      string    `json:"logo_url,omitempty"`
+	WebsiteURL   string    `json:"website_url,omitempty"`
+	Category     string    `json:"category,omitempty"`
+	President    string    `json:"president,omitempty"`
+	Secretary    string    `json:"secretary,omitempty"`
+	Address      string    `json:"address,omitempty"`
+	Phone        string    `json:"phone,omitempty"`
+	SortOrder    int       `json:"sort_order"`
+	IsActive     bool      `json:"is_active"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 type CMSInvest struct {

@@ -31,6 +31,7 @@ type Repos struct {
 	Forms         *FormRepo
 	Departments   *DepartmentRepo
 	Security      *SecurityRepo
+	Analytics     *AnalyticsRepo
 }
 
 func New(db *pgxpool.Pool) *Repos {
@@ -50,6 +51,7 @@ func New(db *pgxpool.Pool) *Repos {
 		Forms:         &FormRepo{db: db},
 		Departments:   &DepartmentRepo{db: db},
 		Security:      &SecurityRepo{db: db},
+		Analytics:     &AnalyticsRepo{db: db},
 	}
 }
 
@@ -191,9 +193,9 @@ func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mod
 }
 
 func (r *UserRepo) Update(ctx context.Context, u *models.User) error {
-	const q = `UPDATE users SET first_name=$2, last_name=$3, phone=$4, updated_at=NOW()
+	const q = `UPDATE users SET first_name=$2, last_name=$3, phone=$4, avatar_url=$5, updated_at=NOW()
 	           WHERE id=$1 AND deleted_at IS NULL`
-	_, err := r.db.Exec(ctx, q, u.ID, u.FirstName, u.LastName, u.Phone)
+	_, err := r.db.Exec(ctx, q, u.ID, u.FirstName, u.LastName, u.Phone, u.AvatarURL)
 	return err
 }
 
@@ -995,10 +997,10 @@ type CMSRepo struct{ db *pgxpool.Pool }
 // Posts
 
 func (r *CMSRepo) CreatePost(ctx context.Context, p *models.CMSPost) error {
-	const q = `INSERT INTO cms_posts (id, title, slug, content, excerpt, category, status, cover_image_url, author_id, published_at, meta_title, meta_description, focus_keywords, approved_at)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING created_at, updated_at`
+	const q = `INSERT INTO cms_posts (id, title, slug, content, excerpt, category, category_tag, status, cover_image_url, author_id, published_at, meta_title, meta_description, focus_keywords, approved_at)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING created_at, updated_at`
 	return r.db.QueryRow(ctx, q,
-		p.ID, p.Title, p.Slug, p.Content, p.Excerpt, p.Category, p.Status,
+		p.ID, p.Title, p.Slug, p.Content, p.Excerpt, p.Category, p.CategoryTag, p.Status,
 		p.CoverImageURL, p.AuthorID, p.PublishedAt, p.MetaTitle, p.MetaDescription,
 		p.FocusKeywords, p.ApprovedAt,
 	).Scan(&p.CreatedAt, &p.UpdatedAt)
@@ -1006,7 +1008,7 @@ func (r *CMSRepo) CreatePost(ctx context.Context, p *models.CMSPost) error {
 
 func (r *CMSRepo) GetPostBySlug(ctx context.Context, slug string) (*models.CMSPost, error) {
 	_, _ = r.db.Exec(ctx, `UPDATE cms_posts SET view_count = COALESCE(view_count,0)+1 WHERE slug=$1`, slug)
-	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, p.status,
+	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, COALESCE(p.category_tag,''), p.status,
 	                  COALESCE(p.cover_image_url,''), p.author_id,
 	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
 	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
@@ -1017,7 +1019,7 @@ func (r *CMSRepo) GetPostBySlug(ctx context.Context, slug string) (*models.CMSPo
 	           WHERE p.slug=$1`
 	p := &models.CMSPost{}
 	err := r.db.QueryRow(ctx, q, slug).Scan(
-		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.Status,
+		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.CategoryTag, &p.Status,
 		&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
 		&p.FocusKeywords, &p.ViewCount, &p.ApprovedAt, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
 	)
@@ -1028,7 +1030,7 @@ func (r *CMSRepo) GetPostBySlug(ctx context.Context, slug string) (*models.CMSPo
 }
 
 func (r *CMSRepo) GetPostByID(ctx context.Context, id string) (*models.CMSPost, error) {
-	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, p.status,
+	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, COALESCE(p.category_tag,''), p.status,
 	                  COALESCE(p.cover_image_url,''), p.author_id,
 	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
 	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
@@ -1039,7 +1041,7 @@ func (r *CMSRepo) GetPostByID(ctx context.Context, id string) (*models.CMSPost, 
 	           WHERE p.id=$1`
 	p := &models.CMSPost{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
-		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.Status,
+		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.CategoryTag, &p.Status,
 		&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
 		&p.FocusKeywords, &p.ViewCount, &p.ApprovedAt, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
 	)
@@ -1052,7 +1054,7 @@ func (r *CMSRepo) GetPostByID(ctx context.Context, id string) (*models.CMSPost, 
 func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit, offset int) ([]*models.CMSPost, int64, error) {
 	const countQ = `SELECT COUNT(*) FROM cms_posts p
 	                WHERE ($1='' OR p.category=$1) AND ($2='' OR p.status=$2)`
-	const q = `SELECT p.id, p.title, p.slug, p.excerpt, p.category, p.status,
+	const q = `SELECT p.id, p.title, p.slug, p.excerpt, p.category, COALESCE(p.category_tag,''), p.status,
 	                  COALESCE(p.cover_image_url,''), p.author_id,
 	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
 	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
@@ -1074,7 +1076,7 @@ func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit,
 	posts := []*models.CMSPost{}
 	for rows.Next() {
 		p := &models.CMSPost{}
-		if err := rows.Scan(&p.ID, &p.Title, &p.Slug, &p.Excerpt, &p.Category, &p.Status,
+		if err := rows.Scan(&p.ID, &p.Title, &p.Slug, &p.Excerpt, &p.Category, &p.CategoryTag, &p.Status,
 			&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
 			&p.FocusKeywords, &p.ViewCount, &p.ApprovedAt, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, 0, err
@@ -1085,11 +1087,11 @@ func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit,
 }
 
 func (r *CMSRepo) UpdatePost(ctx context.Context, p *models.CMSPost) error {
-	const q = `UPDATE cms_posts SET title=$2, slug=$3, content=$4, excerpt=$5, category=$6,
+	const q = `UPDATE cms_posts SET title=$2, slug=$3, content=$4, excerpt=$5, category=$6, category_tag=$14,
 	           status=$7, cover_image_url=$8, published_at=$9,
 	           meta_title=$10, meta_description=$11, focus_keywords=$12, approved_at=$13, updated_at=NOW() WHERE id=$1`
 	_, err := r.db.Exec(ctx, q, p.ID, p.Title, p.Slug, p.Content, p.Excerpt,
-		p.Category, p.Status, p.CoverImageURL, p.PublishedAt, p.MetaTitle, p.MetaDescription, p.FocusKeywords, p.ApprovedAt)
+		p.Category, p.Status, p.CoverImageURL, p.PublishedAt, p.MetaTitle, p.MetaDescription, p.FocusKeywords, p.ApprovedAt, p.CategoryTag)
 	return err
 }
 
@@ -1098,11 +1100,11 @@ func (r *CMSRepo) DeletePost(ctx context.Context, id string) error {
 	return err
 }
 
-func (r *CMSRepo) ListBlogCategories(ctx context.Context, activeOnly bool) ([]*models.BlogCategory, error) {
-	q := `SELECT id, name, slug, COALESCE(description,''), sort_order, is_active, created_at, updated_at
-	      FROM blog_categories WHERE ($1=FALSE OR is_active=TRUE)
+func (r *CMSRepo) ListBlogCategories(ctx context.Context, activeOnly bool, contentType string) ([]*models.BlogCategory, error) {
+	q := `SELECT id, name, slug, COALESCE(description,''), content_type, sort_order, is_active, created_at, updated_at
+	      FROM blog_categories WHERE ($1=FALSE OR is_active=TRUE) AND content_type=$2
 	      ORDER BY sort_order, name`
-	rows, err := r.db.Query(ctx, q, activeOnly)
+	rows, err := r.db.Query(ctx, q, activeOnly, contentType)
 	if err != nil {
 		return nil, err
 	}
@@ -1110,7 +1112,7 @@ func (r *CMSRepo) ListBlogCategories(ctx context.Context, activeOnly bool) ([]*m
 	out := []*models.BlogCategory{}
 	for rows.Next() {
 		c := &models.BlogCategory{}
-		if err := rows.Scan(&c.ID, &c.Name, &c.Slug, &c.Description, &c.SortOrder, &c.IsActive, &c.CreatedAt, &c.UpdatedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.Slug, &c.Description, &c.ContentType, &c.SortOrder, &c.IsActive, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -1119,16 +1121,23 @@ func (r *CMSRepo) ListBlogCategories(ctx context.Context, activeOnly bool) ([]*m
 }
 
 func (r *CMSRepo) CreateBlogCategory(ctx context.Context, c *models.BlogCategory) error {
-	const q = `INSERT INTO blog_categories (id, name, slug, description, sort_order, is_active)
-	           VALUES ($1,$2,$3,$4,$5,$6) RETURNING created_at, updated_at`
-	return r.db.QueryRow(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.SortOrder, c.IsActive).Scan(&c.CreatedAt, &c.UpdatedAt)
+	const q = `INSERT INTO blog_categories (id, name, slug, description, content_type, sort_order, is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING created_at, updated_at`
+	err := r.db.QueryRow(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.ContentType, c.SortOrder, c.IsActive).Scan(&c.CreatedAt, &c.UpdatedAt)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
 }
 
 func (r *CMSRepo) UpdateBlogCategory(ctx context.Context, c *models.BlogCategory) error {
-	const q = `UPDATE blog_categories SET name=$2, slug=$3, description=$4, sort_order=$5, is_active=$6, updated_at=NOW()
+	const q = `UPDATE blog_categories SET name=$2, slug=$3, description=$4, content_type=$5, sort_order=$6, is_active=$7, updated_at=NOW()
 	           WHERE id=$1`
-	tag, err := r.db.Exec(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.SortOrder, c.IsActive)
+	tag, err := r.db.Exec(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.ContentType, c.SortOrder, c.IsActive)
 	if err != nil {
+		if isDuplicate(err) {
+			return ErrDuplicate
+		}
 		return err
 	}
 	if tag.RowsAffected() == 0 {
@@ -1618,6 +1627,42 @@ func (r *CMSRepo) UpdateSetting(ctx context.Context, key string, value []byte) e
 	return err
 }
 
+// ── Custom Fonts ────────────────────────────────────────────────────
+
+func (r *CMSRepo) ListCustomFonts(ctx context.Context) ([]*models.CMSCustomFont, error) {
+	const q = `SELECT id, font_name, display_name, file_url, font_format, created_at
+	           FROM cms_custom_fonts ORDER BY created_at ASC`
+	rows, err := r.db.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*models.CMSCustomFont{}
+	for rows.Next() {
+		f := &models.CMSCustomFont{}
+		if err := rows.Scan(&f.ID, &f.FontName, &f.DisplayName, &f.FileURL, &f.FontFormat, &f.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, f)
+	}
+	return items, rows.Err()
+}
+
+func (r *CMSRepo) CreateCustomFont(ctx context.Context, f *models.CMSCustomFont) error {
+	const q = `INSERT INTO cms_custom_fonts (id, font_name, display_name, file_url, font_format)
+	           VALUES ($1,$2,$3,$4,$5) RETURNING created_at`
+	err := r.db.QueryRow(ctx, q, f.ID, f.FontName, f.DisplayName, f.FileURL, f.FontFormat).Scan(&f.CreatedAt)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
+}
+
+func (r *CMSRepo) DeleteCustomFont(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM cms_custom_fonts WHERE id=$1`, id)
+	return err
+}
+
 // ── Fun Facts ─────────────────────────────────────────────────────
 
 func (r *CMSRepo) ListFunFacts(ctx context.Context, activeOnly bool) ([]*models.CMSFunFact, error) {
@@ -1804,6 +1849,64 @@ func (r *CMSRepo) DeleteResource(ctx context.Context, id string) error {
 	return err
 }
 
+// ── Documents (Sports Rules, Press Releases, Reports, Speeches) ────
+
+func (r *CMSRepo) ListDocuments(ctx context.Context, docType, category string, activeOnly bool) ([]*models.CMSDocument, error) {
+	q := `SELECT id, doc_type, title, category, COALESCE(file_url,''), COALESCE(video_url,''), COALESCE(description,''),
+	             sort_order, is_active, created_at, updated_at
+	      FROM cms_documents WHERE doc_type=$1 AND ($2='' OR category=$2)`
+	if activeOnly {
+		q += ` AND is_active=true`
+	}
+	q += ` ORDER BY sort_order ASC, created_at DESC`
+	rows, err := r.db.Query(ctx, q, docType, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*models.CMSDocument{}
+	for rows.Next() {
+		d := &models.CMSDocument{}
+		if err := rows.Scan(&d.ID, &d.DocType, &d.Title, &d.Category, &d.FileURL, &d.VideoURL, &d.Description,
+			&d.SortOrder, &d.IsActive, &d.CreatedAt, &d.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, d)
+	}
+	return items, rows.Err()
+}
+
+func (r *CMSRepo) CreateDocument(ctx context.Context, d *models.CMSDocument) error {
+	const q = `INSERT INTO cms_documents (id, doc_type, title, category, file_url, video_url, description, sort_order, is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING created_at, updated_at`
+	return r.db.QueryRow(ctx, q, d.ID, d.DocType, d.Title, d.Category, d.FileURL, d.VideoURL, d.Description, d.SortOrder, d.IsActive).Scan(&d.CreatedAt, &d.UpdatedAt)
+}
+
+func (r *CMSRepo) GetDocumentByID(ctx context.Context, id string) (*models.CMSDocument, error) {
+	const q = `SELECT id, doc_type, title, category, COALESCE(file_url,''), COALESCE(video_url,''), COALESCE(description,''),
+	                  sort_order, is_active, created_at, updated_at
+	           FROM cms_documents WHERE id=$1`
+	d := &models.CMSDocument{}
+	err := r.db.QueryRow(ctx, q, id).Scan(&d.ID, &d.DocType, &d.Title, &d.Category, &d.FileURL, &d.VideoURL, &d.Description,
+		&d.SortOrder, &d.IsActive, &d.CreatedAt, &d.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return d, err
+}
+
+func (r *CMSRepo) UpdateDocument(ctx context.Context, d *models.CMSDocument) error {
+	const q = `UPDATE cms_documents SET title=$2, category=$3, file_url=$4, video_url=$5, description=$6,
+	           sort_order=$7, is_active=$8, updated_at=NOW() WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, d.ID, d.Title, d.Category, d.FileURL, d.VideoURL, d.Description, d.SortOrder, d.IsActive)
+	return err
+}
+
+func (r *CMSRepo) DeleteDocument(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM cms_documents WHERE id=$1`, id)
+	return err
+}
+
 // ── Facilities ────────────────────────────────────────────────────
 
 func (r *CMSRepo) ListFacilities(ctx context.Context, activeOnly bool) ([]*models.CMSFacility, error) {
@@ -1869,7 +1972,7 @@ func (r *CMSRepo) DeleteFacility(ctx context.Context, id string) error {
 // ── Associations ──────────────────────────────────────────────────
 
 func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*models.CMSAssociation, error) {
-	q := `SELECT id, name, slug, COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
+	q := `SELECT id, name, slug, COALESCE(abbreviation,''), COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
 	             COALESCE(category,'Other'), COALESCE(president,''), COALESCE(secretary,''), COALESCE(address,''), COALESCE(phone,''),
 	             sort_order, is_active, created_at, updated_at
 	      FROM cms_associations`
@@ -1885,7 +1988,7 @@ func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*mod
 	items := []*models.CMSAssociation{}
 	for rows.Next() {
 		a := &models.CMSAssociation{}
-		if err := rows.Scan(&a.ID, &a.Name, &a.Slug, &a.Description, &a.LogoURL, &a.WebsiteURL,
+		if err := rows.Scan(&a.ID, &a.Name, &a.Slug, &a.Abbreviation, &a.Description, &a.LogoURL, &a.WebsiteURL,
 			&a.Category, &a.President, &a.Secretary, &a.Address, &a.Phone,
 			&a.SortOrder, &a.IsActive, &a.CreatedAt, &a.UpdatedAt); err != nil {
 			return nil, err
@@ -1896,12 +1999,12 @@ func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*mod
 }
 
 func (r *CMSRepo) GetAssociationByID(ctx context.Context, id string) (*models.CMSAssociation, error) {
-	const q = `SELECT id, name, slug, COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
+	const q = `SELECT id, name, slug, COALESCE(abbreviation,''), COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
 	                  COALESCE(category,'Other'), COALESCE(president,''), COALESCE(secretary,''), COALESCE(address,''), COALESCE(phone,''),
 	                  sort_order, is_active, created_at, updated_at
 	           FROM cms_associations WHERE id=$1`
 	a := &models.CMSAssociation{}
-	err := r.db.QueryRow(ctx, q, id).Scan(&a.ID, &a.Name, &a.Slug, &a.Description, &a.LogoURL, &a.WebsiteURL,
+	err := r.db.QueryRow(ctx, q, id).Scan(&a.ID, &a.Name, &a.Slug, &a.Abbreviation, &a.Description, &a.LogoURL, &a.WebsiteURL,
 		&a.Category, &a.President, &a.Secretary, &a.Address, &a.Phone,
 		&a.SortOrder, &a.IsActive, &a.CreatedAt, &a.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -1911,9 +2014,9 @@ func (r *CMSRepo) GetAssociationByID(ctx context.Context, id string) (*models.CM
 }
 
 func (r *CMSRepo) CreateAssociation(ctx context.Context, a *models.CMSAssociation) error {
-	const q = `INSERT INTO cms_associations (id, name, slug, description, logo_url, website_url, category, president, secretary, address, phone, sort_order, is_active)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING created_at, updated_at`
-	err := r.db.QueryRow(ctx, q, a.ID, a.Name, a.Slug, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive).Scan(&a.CreatedAt, &a.UpdatedAt)
+	const q = `INSERT INTO cms_associations (id, name, slug, abbreviation, description, logo_url, website_url, category, president, secretary, address, phone, sort_order, is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING created_at, updated_at`
+	err := r.db.QueryRow(ctx, q, a.ID, a.Name, a.Slug, a.Abbreviation, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive).Scan(&a.CreatedAt, &a.UpdatedAt)
 	if err != nil && isDuplicate(err) {
 		return ErrDuplicate
 	}
@@ -1921,10 +2024,10 @@ func (r *CMSRepo) CreateAssociation(ctx context.Context, a *models.CMSAssociatio
 }
 
 func (r *CMSRepo) UpdateAssociation(ctx context.Context, a *models.CMSAssociation) error {
-	const q = `UPDATE cms_associations SET name=$2, slug=$3, description=$4, logo_url=$5,
-	           website_url=$6, category=$7, president=$8, secretary=$9, address=$10, phone=$11,
-	           sort_order=$12, is_active=$13, updated_at=NOW() WHERE id=$1`
-	_, err := r.db.Exec(ctx, q, a.ID, a.Name, a.Slug, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive)
+	const q = `UPDATE cms_associations SET name=$2, slug=$3, abbreviation=$4, description=$5, logo_url=$6,
+	           website_url=$7, category=$8, president=$9, secretary=$10, address=$11, phone=$12,
+	           sort_order=$13, is_active=$14, updated_at=NOW() WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, a.ID, a.Name, a.Slug, a.Abbreviation, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive)
 	return err
 }
 
@@ -2145,7 +2248,27 @@ func (r *CMSRepo) ListNotifications(ctx context.Context, userID, status string, 
 
 func (r *CMSRepo) CreateNotification(ctx context.Context, n *models.Notification) error {
 	const q = `INSERT INTO notifications (id, user_id, type, title, message, status, icon_key) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING created_at`
-	return r.db.QueryRow(ctx, q, n.ID, n.UserID, n.Type, n.Title, n.Message, n.Status, n.IconKey).Scan(&n.CreatedAt)
+	if err := r.db.QueryRow(ctx, q, n.ID, n.UserID, n.Type, n.Title, n.Message, n.Status, n.IconKey).Scan(&n.CreatedAt); err != nil {
+		return err
+	}
+	_, _ = r.db.Exec(ctx, `INSERT INTO system_notifications (id,user_id,event_type,title,message,severity,payload,status,created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9)
+		ON CONFLICT (id) DO NOTHING`,
+		n.ID, n.UserID, n.Type, n.Title, n.Message, notificationSeverity(n.Type), `{}`, n.Status, n.CreatedAt)
+	return nil
+}
+
+func notificationSeverity(kind string) string {
+	switch kind {
+	case "new_sign_in", "unusual_activity", "deploy_failed", "service_offline":
+		return "warning"
+	case "system_failure", "security_alert":
+		return "critical"
+	case "system_success", "backup_success":
+		return "success"
+	default:
+		return "info"
+	}
 }
 
 func (r *CMSRepo) UpdateNotificationStatus(ctx context.Context, id, userID, status string) error {
@@ -2167,6 +2290,138 @@ func (r *CMSRepo) ClearNotifications(ctx context.Context, userID string) error {
 func (r *CMSRepo) MarkAllNotificationsRead(ctx context.Context, userID string) error {
 	_, err := r.db.Exec(ctx, `UPDATE notifications SET status='read' WHERE status='unread' AND ($1='' OR user_id=$1 OR user_id IS NULL)`, userID)
 	return err
+}
+
+func (r *CMSRepo) UpsertInboundSubmission(ctx context.Context, s *models.InboundSubmission) error {
+	if s.ID == "" {
+		return errors.New("inbound submission id required")
+	}
+	if s.Payload == nil {
+		s.Payload = json.RawMessage(`{}`)
+	}
+	if s.InternalNotes == nil {
+		s.InternalNotes = json.RawMessage(`[]`)
+	}
+	if s.StatusState == "" {
+		s.StatusState = "unread"
+	}
+	if s.WorkflowStatus == "" {
+		s.WorkflowStatus = "pending_review"
+	}
+	const q = `INSERT INTO inbound_submissions (id,source_type,source_id,payload,status_state,workflow_status,assigned_admin_id,internal_notes)
+	           VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8::jsonb)
+	           ON CONFLICT (source_type, source_id) DO UPDATE SET
+	             payload=EXCLUDED.payload,
+	             status_state=EXCLUDED.status_state,
+	             workflow_status=EXCLUDED.workflow_status,
+	             assigned_admin_id=COALESCE(EXCLUDED.assigned_admin_id, inbound_submissions.assigned_admin_id),
+	             updated_at=NOW()
+	           RETURNING created_at, updated_at`
+	return r.db.QueryRow(ctx, q, s.ID, s.SourceType, nullableText(s.SourceID), s.Payload, s.StatusState, s.WorkflowStatus, s.AssignedAdminID, s.InternalNotes).Scan(&s.CreatedAt, &s.UpdatedAt)
+}
+
+func (r *CMSRepo) ListInboundSubmissions(ctx context.Context, sourceType, status string, limit, offset int) ([]*models.InboundSubmission, int64, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	const countQ = `SELECT COUNT(*) FROM inbound_submissions WHERE ($1='' OR source_type=$1) AND ($2='' OR status_state=$2)`
+	const q = `SELECT id,source_type,COALESCE(source_id,''),payload,status_state,workflow_status,assigned_admin_id,internal_notes,created_at,updated_at
+	           FROM inbound_submissions
+	           WHERE ($1='' OR source_type=$1) AND ($2='' OR status_state=$2)
+	           ORDER BY created_at DESC LIMIT $3 OFFSET $4`
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, sourceType, status).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.db.Query(ctx, q, sourceType, status, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := []*models.InboundSubmission{}
+	for rows.Next() {
+		s := &models.InboundSubmission{}
+		if err := rows.Scan(&s.ID, &s.SourceType, &s.SourceID, &s.Payload, &s.StatusState, &s.WorkflowStatus, &s.AssignedAdminID, &s.InternalNotes, &s.CreatedAt, &s.UpdatedAt); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, s)
+	}
+	return out, total, rows.Err()
+}
+
+func (r *CMSRepo) InboundSubmissionCounts(ctx context.Context) (*models.InboundSubmissionCounts, error) {
+	rows, err := r.db.Query(ctx, `SELECT source_type, COUNT(*) FROM inbound_submissions WHERE status_state='unread' GROUP BY source_type`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	counts := &models.InboundSubmissionCounts{}
+	for rows.Next() {
+		var source string
+		var count int64
+		if err := rows.Scan(&source, &count); err != nil {
+			return nil, err
+		}
+		switch source {
+		case "blog_comment":
+			counts.BlogComments = count
+		case "contact_form":
+			counts.ContactForms = count
+		case "investment_request":
+			counts.InvestmentRequests = count
+		}
+		counts.Total += count
+	}
+	return counts, rows.Err()
+}
+
+func (r *CMSRepo) UpdateInboundSubmission(ctx context.Context, id, statusState, workflowStatus, adminID string) error {
+	if statusState == "" && workflowStatus == "" && adminID == "" {
+		return nil
+	}
+	ct, err := r.db.Exec(ctx, `UPDATE inbound_submissions
+		SET status_state=CASE WHEN $2='' THEN status_state ELSE $2 END,
+		    workflow_status=CASE WHEN $3='' THEN workflow_status ELSE $3 END,
+		    assigned_admin_id=CASE WHEN $4='' THEN assigned_admin_id ELSE $4 END,
+		    updated_at=NOW()
+		WHERE id=$1`, id, statusState, workflowStatus, adminID)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) ArchiveInboundBySource(ctx context.Context, sourceType, workflowStatus string) error {
+	if workflowStatus == "" {
+		workflowStatus = "archived"
+	}
+	_, err := r.db.Exec(ctx, `UPDATE inbound_submissions
+		SET status_state='archived', workflow_status=$2, updated_at=NOW()
+		WHERE source_type=$1`, sourceType, workflowStatus)
+	return err
+}
+
+func (r *CMSRepo) AddInboundSubmissionNote(ctx context.Context, id, adminID, note string) error {
+	payload, _ := json.Marshal(map[string]string{
+		"id":         "note_" + time.Now().UTC().Format("20060102150405.000000000"),
+		"admin_id":   adminID,
+		"note":       note,
+		"created_at": time.Now().UTC().Format(time.RFC3339),
+	})
+	ct, err := r.db.Exec(ctx, `UPDATE inbound_submissions
+		SET internal_notes = COALESCE(internal_notes, '[]'::jsonb) || jsonb_build_array($2::jsonb),
+		    updated_at=NOW()
+		WHERE id=$1`, id, string(payload))
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r *CMSRepo) ListContactMessages(ctx context.Context, status string, limit, offset int) ([]*models.ContactMessage, int64, error) {
@@ -2209,6 +2464,13 @@ func (r *CMSRepo) UpdateContactMessageStatus(ctx context.Context, id, status str
 		return ErrNotFound
 	}
 	return nil
+}
+
+func nullableText(value string) interface{} {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return strings.TrimSpace(value)
 }
 
 func (r *CMSRepo) DeleteContactMessage(ctx context.Context, id string) error {

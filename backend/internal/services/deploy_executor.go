@@ -15,6 +15,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +23,7 @@ import (
 
 type DeployStatus struct {
 	State     string    `json:"state"` // idle | running | success | failed
+	LedgerID  string    `json:"ledger_id,omitempty"`
 	StartedAt time.Time `json:"started_at,omitempty"`
 	EndedAt   time.Time `json:"ended_at,omitempty"`
 	ExitCode  int       `json:"exit_code"`
@@ -40,6 +42,11 @@ type DeployOptions struct {
 	ComposeProject string
 	Services       []string
 	Script         string
+	RepoSlug       string
+	GithubToken    string
+	TargetBranch   string
+	WorkTree       string
+	PreBackupJobID string
 }
 
 func NewDeployer() *Deployer {
@@ -122,6 +129,20 @@ func (d *Deployer) run(parent context.Context, opts DeployOptions) {
 		return
 	}
 
+	if opts.PreBackupJobID != "" {
+		d.append("Pre-deploy database backup queued: " + opts.PreBackupJobID)
+	}
+	if workTree := strings.TrimSpace(opts.WorkTree); workTree != "" {
+		if err := d.gitUpdate(ctx, opts); err != nil {
+			d.finish("failed", 1, err.Error())
+			return
+		}
+		if err := d.syncDependencies(ctx, workTree); err != nil {
+			d.finish("failed", 1, err.Error())
+			return
+		}
+	}
+
 	steps := [][]string{
 		// Snapshot the current images by re-tagging :latest -> :previous so a
 		// rollback can pin back to them.
@@ -146,6 +167,98 @@ func (d *Deployer) run(parent context.Context, opts DeployOptions) {
 	}
 	d.append("──▶ Deploy complete. New containers up.")
 	d.finish("success", exitCode, "")
+}
+
+func (d *Deployer) gitUpdate(ctx context.Context, opts DeployOptions) error {
+	workTree := strings.TrimSpace(opts.WorkTree)
+	branch := strings.TrimSpace(opts.TargetBranch)
+	if branch == "" {
+		branch = "main"
+	}
+	if _, err := os.Stat(filepath.Join(workTree, ".git")); err != nil {
+		d.append("Git work tree not found at " + workTree + "; skipping git pull.")
+		return nil
+	}
+	if _, err := exec.LookPath("git"); err != nil {
+		return fmt.Errorf("git CLI unavailable: %w", err)
+	}
+	repo := strings.TrimSpace(opts.RepoSlug)
+	if repo != "" {
+		remote := "https://github.com/" + strings.TrimSuffix(repo, ".git") + ".git"
+		if opts.GithubToken != "" {
+			remote = "https://x-access-token:" + opts.GithubToken + "@github.com/" + strings.TrimSuffix(repo, ".git") + ".git"
+		}
+		if err := d.runGit(ctx, workTree, opts.GithubToken, "remote", "set-url", "origin", remote); err != nil {
+			return err
+		}
+	}
+	d.append("Fetching origin/" + branch)
+	if err := d.runGit(ctx, workTree, opts.GithubToken, "fetch", "--prune", "origin", branch); err != nil {
+		return err
+	}
+	if err := d.runGit(ctx, workTree, opts.GithubToken, "checkout", branch); err != nil {
+		return err
+	}
+	d.append("Applying fast-forward update from origin/" + branch)
+	return d.runGit(ctx, workTree, opts.GithubToken, "pull", "--ff-only", "origin", branch)
+}
+
+func (d *Deployer) runGit(ctx context.Context, dir, token string, args ...string) error {
+	cmd := exec.CommandContext(ctx, "git", args...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if len(out) > 0 {
+		d.append(maskSecret(strings.TrimSpace(string(out)), token))
+	}
+	if err != nil {
+		return fmt.Errorf("git %s failed: %w", strings.Join(args, " "), err)
+	}
+	return nil
+}
+
+func (d *Deployer) syncDependencies(ctx context.Context, workTree string) error {
+	if _, err := os.Stat(filepath.Join(workTree, "backend", "go.mod")); err == nil {
+		if _, err := exec.LookPath("go"); err == nil {
+			d.append("Syncing backend Go modules")
+			if err := d.runDirCmd(ctx, workTree, filepath.Join(workTree, "backend"), "go", "mod", "download"); err != nil {
+				return err
+			}
+		}
+	}
+	if _, err := os.Stat(filepath.Join(workTree, "frontend", "package-lock.json")); err == nil {
+		if _, err := exec.LookPath("npm"); err == nil {
+			d.append("Syncing frontend npm dependencies")
+			if err := d.runDirCmd(ctx, workTree, filepath.Join(workTree, "frontend"), "npm", "ci", "--ignore-scripts"); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (d *Deployer) runDirCmd(ctx context.Context, workTree, dir, name string, args ...string) error {
+	cleanRoot, _ := filepath.Abs(workTree)
+	cleanDir, _ := filepath.Abs(dir)
+	if !strings.HasPrefix(cleanDir, cleanRoot) {
+		return fmt.Errorf("refusing to run outside work tree: %s", dir)
+	}
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Dir = cleanDir
+	out, err := cmd.CombinedOutput()
+	if len(out) > 0 {
+		d.append(strings.TrimSpace(string(out)))
+	}
+	if err != nil {
+		return fmt.Errorf("%s %s failed: %w", name, strings.Join(args, " "), err)
+	}
+	return nil
+}
+
+func maskSecret(value, secret string) string {
+	if secret == "" {
+		return value
+	}
+	return strings.ReplaceAll(value, secret, "[redacted]")
 }
 
 func (d *Deployer) runCmd(ctx context.Context, argv []string) error {
