@@ -21,6 +21,7 @@ const InvestView = () => import('@/views/public/InvestView.vue')
 const FAQsView = () => import('@/views/public/FAQsView.vue')
 const ContactUsView = () => import('@/views/public/ContactUsView.vue')
 const TeamView = () => import('@/views/public/TeamView.vue')
+const GoverningCouncilView = () => import('@/views/public/GoverningCouncilView.vue')
 const CMSLoginView = () => import('@/views/CMSLoginView.vue')
 const WebsiteContentManagerView = () => import('@/views/WebsiteContentManagerView.vue')
 const AccountProfileView = () => import('@/views/account/AccountProfileView.vue')
@@ -103,6 +104,7 @@ const routes = [
       { path: 'faqs', name: 'FAQs', component: FAQsView },
       { path: 'contact-us', name: 'ContactUs', component: ContactUsView },
       { path: 'team', name: 'Team', component: TeamView },
+      { path: 'governing-council', name: 'GoverningCouncil', component: GoverningCouncilView },
       { path: 'account/profile', name: 'AccountProfile', component: AccountProfileView },
       { path: 'account/settings', name: 'AccountSettings', component: AccountSettingsView },
       { path: 'account/activities', name: 'AccountActivities', component: AccountActivitiesView },
@@ -149,6 +151,7 @@ const publicPageTitles = {
   FAQs: 'Frequently Asked Questions',
   ContactUs: 'Contact Us',
   Team: 'NCS Membership',
+  GoverningCouncil: 'Governing Council',
   AccountProfile: 'Profile Overview',
   AccountSettings: 'Settings & Security',
   AccountActivities: 'My Audit Activities',

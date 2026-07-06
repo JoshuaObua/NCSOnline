@@ -383,6 +383,14 @@ export function adminUpdateTeam(id, data) { return apiClient.put(`/api/v1/admin/
 export function adminDeleteTeam(id) { return apiClient.delete(`/api/v1/admin/cms/team/${id}`) }
 export function listInstitutionalDepartments() { return apiClient.get('/api/v1/cms/departments') }
 
+// ── Governing Council (shares the team_members table; member_group='council') ──
+
+export function listCouncil() { return apiClient.get('/api/v1/cms/team', { params: { group: 'council' } }) }
+export function adminListCouncil(params = {}) { return apiClient.get('/api/v1/admin/cms/team', { params: { active: 'false', group: 'council', ...params } }) }
+export function adminCreateCouncil(data) { return apiClient.post('/api/v1/admin/cms/team', { ...data, member_group: 'council' }) }
+export function adminUpdateCouncil(id, data) { return apiClient.put(`/api/v1/admin/cms/team/${id}`, data) }
+export function adminDeleteCouncil(id) { return apiClient.delete(`/api/v1/admin/cms/team/${id}`) }
+
 // ── Admin RBAC / Roles ────────────────────────────────────────────────
 
 export function adminListRoles() { return apiClient.get('/api/v1/admin/roles') }

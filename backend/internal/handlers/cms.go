@@ -3121,11 +3121,30 @@ func (h *CMSHandler) DeleteInvest(w http.ResponseWriter, r *http.Request) {
 	response.JSONMsg(w, http.StatusOK, "Deleted")
 }
 
-// ── Team Members ──────────────────────────────────────────────────
+// ── Team Members & Governing Council ────────────────────────────────
+// Both share the cms_team_members table; member_group ('team' | 'council')
+// discriminates which directory a profile belongs to, same pattern as
+// cms_documents.doc_type.
+
+func validMemberGroup(g string) bool {
+	switch g {
+	case "team", "council":
+		return true
+	default:
+		return false
+	}
+}
 
 func (h *CMSHandler) ListTeam(w http.ResponseWriter, r *http.Request) {
+	group := r.URL.Query().Get("group")
+	if group == "" {
+		group = "team"
+	} else if !validMemberGroup(group) {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid group")
+		return
+	}
 	activeOnly := r.URL.Query().Get("active") != "false"
-	items, err := h.repo.ListTeamMembers(r.Context(), activeOnly)
+	items, err := h.repo.ListTeamMembers(r.Context(), group, activeOnly)
 	if err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list team members")
 		return
@@ -3144,6 +3163,7 @@ func (h *CMSHandler) CreateTeamMember(w http.ResponseWriter, r *http.Request) {
 		Bio          string  `json:"bio"`
 		SortOrder    int     `json:"sort_order"`
 		IsActive     bool    `json:"is_active"`
+		MemberGroup  string  `json:"member_group"`
 		DepartmentID *string `json:"department_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -3154,10 +3174,16 @@ func (h *CMSHandler) CreateTeamMember(w http.ResponseWriter, r *http.Request) {
 		response.ValidationErr(w, map[string]string{"full_name": "required"})
 		return
 	}
+	if req.MemberGroup == "" {
+		req.MemberGroup = "team"
+	} else if !validMemberGroup(req.MemberGroup) {
+		response.ValidationErr(w, map[string]string{"member_group": "invalid"})
+		return
+	}
 	m := &models.CMSTeamMember{
 		ID: uuid.NewString(), FullName: req.FullName, Designation: req.Designation,
 		ImageURL: req.ImageURL, Bio: req.Bio, SortOrder: req.SortOrder, IsActive: req.IsActive,
-		DepartmentID: nullableID(req.DepartmentID),
+		MemberGroup: req.MemberGroup, DepartmentID: nullableID(req.DepartmentID),
 	}
 	if err := h.repo.CreateTeamMember(r.Context(), m); err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create team member")

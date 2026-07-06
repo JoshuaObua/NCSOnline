@@ -2092,17 +2092,19 @@ func (r *CMSRepo) DeleteInvest(ctx context.Context, id string) error {
 
 // ── Team Members ─────────────────────────────────────────────────
 
-func (r *CMSRepo) ListTeamMembers(ctx context.Context, activeOnly bool) ([]*models.CMSTeamMember, error) {
+func (r *CMSRepo) ListTeamMembers(ctx context.Context, group string, activeOnly bool) ([]*models.CMSTeamMember, error) {
 	q := `SELECT m.id, m.full_name, COALESCE(m.designation,''), COALESCE(m.image_url,''), COALESCE(m.bio,''),
-	             m.sort_order, m.is_active, m.department_id, COALESCE(d.name,''),
+	             m.sort_order, m.is_active, m.member_group, m.department_id, COALESCE(d.name,''),
 	             m.created_at, m.updated_at
 	      FROM cms_team_members m
-	      LEFT JOIN departments d ON d.id = m.department_id`
+	      LEFT JOIN departments d ON d.id = m.department_id
+	      WHERE m.member_group=$1`
+	args := []any{group}
 	if activeOnly {
-		q += ` WHERE m.is_active=TRUE`
+		q += ` AND m.is_active=TRUE`
 	}
 	q += ` ORDER BY m.sort_order ASC, m.created_at ASC`
-	rows, err := r.db.Query(ctx, q)
+	rows, err := r.db.Query(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -2111,7 +2113,7 @@ func (r *CMSRepo) ListTeamMembers(ctx context.Context, activeOnly bool) ([]*mode
 	for rows.Next() {
 		m := &models.CMSTeamMember{}
 		if err := rows.Scan(&m.ID, &m.FullName, &m.Designation, &m.ImageURL, &m.Bio,
-			&m.SortOrder, &m.IsActive, &m.DepartmentID, &m.DepartmentName,
+			&m.SortOrder, &m.IsActive, &m.MemberGroup, &m.DepartmentID, &m.DepartmentName,
 			&m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -2123,13 +2125,13 @@ func (r *CMSRepo) ListTeamMembers(ctx context.Context, activeOnly bool) ([]*mode
 func (r *CMSRepo) GetTeamMemberByID(ctx context.Context, id string) (*models.CMSTeamMember, error) {
 	m := &models.CMSTeamMember{}
 	err := r.db.QueryRow(ctx, `SELECT m.id, m.full_name, COALESCE(m.designation,''), COALESCE(m.image_url,''), COALESCE(m.bio,''),
-	                                  m.sort_order, m.is_active, m.department_id, COALESCE(d.name,''),
+	                                  m.sort_order, m.is_active, m.member_group, m.department_id, COALESCE(d.name,''),
 	                                  m.created_at, m.updated_at
 	                           FROM cms_team_members m
 	                           LEFT JOIN departments d ON d.id = m.department_id
 	                           WHERE m.id=$1`, id).
 		Scan(&m.ID, &m.FullName, &m.Designation, &m.ImageURL, &m.Bio,
-			&m.SortOrder, &m.IsActive, &m.DepartmentID, &m.DepartmentName,
+			&m.SortOrder, &m.IsActive, &m.MemberGroup, &m.DepartmentID, &m.DepartmentName,
 			&m.CreatedAt, &m.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -2139,9 +2141,9 @@ func (r *CMSRepo) GetTeamMemberByID(ctx context.Context, id string) (*models.CMS
 
 func (r *CMSRepo) CreateTeamMember(ctx context.Context, m *models.CMSTeamMember) error {
 	return r.db.QueryRow(ctx,
-		`INSERT INTO cms_team_members (id, full_name, designation, image_url, bio, sort_order, is_active, department_id)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING created_at, updated_at`,
-		m.ID, m.FullName, m.Designation, m.ImageURL, m.Bio, m.SortOrder, m.IsActive, m.DepartmentID,
+		`INSERT INTO cms_team_members (id, full_name, designation, image_url, bio, sort_order, is_active, member_group, department_id)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING created_at, updated_at`,
+		m.ID, m.FullName, m.Designation, m.ImageURL, m.Bio, m.SortOrder, m.IsActive, m.MemberGroup, m.DepartmentID,
 	).Scan(&m.CreatedAt, &m.UpdatedAt)
 }
 

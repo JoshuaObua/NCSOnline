@@ -537,6 +537,7 @@ type CMSTeamMember struct {
 	Bio            string    `json:"bio,omitempty"`
 	SortOrder      int       `json:"sort_order"`
 	IsActive       bool      `json:"is_active"`
+	MemberGroup    string    `json:"member_group"`
 	DepartmentID   *string   `json:"department_id,omitempty"`
 	DepartmentName string    `json:"department_name,omitempty"`
 	CreatedAt      time.Time `json:"created_at"`

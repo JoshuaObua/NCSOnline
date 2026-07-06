@@ -150,6 +150,12 @@
                   <li v-for="item in visibleItems(teamSections)" :key="item.id" :class="{ active: active === item.id }"><button type="button" class="nav-link" @click="selectSection(item.id)">{{ item.label }}</button></li>
                 </ul>
               </li>
+              <li v-if="visibleItems(councilSections).length" class="dropdown" :class="{ active: councilGroupOpen || groupHasActive(councilSections) }">
+                <button type="button" class="menu-toggle nav-link has-dropdown" @click="councilGroupOpen = !councilGroupOpen"><i class="icofont-users-social"></i><span>Governing Council</span></button>
+                <ul class="dropdown-menu" :style="{ display: councilGroupOpen ? 'block' : 'none' }">
+                  <li v-for="item in visibleItems(councilSections)" :key="item.id" :class="{ active: active === item.id }"><button type="button" class="nav-link" @click="selectSection(item.id)">{{ item.label }}</button></li>
+                </ul>
+              </li>
               <li v-if="visibleItems(roleSections).length" class="dropdown" :class="{ active: rolesGroupOpen || groupHasActive(roleSections) }">
                 <button type="button" class="menu-toggle nav-link has-dropdown" @click="rolesGroupOpen = !rolesGroupOpen"><i class="icofont-key"></i><span>Roles</span></button>
                 <ul class="dropdown-menu" :style="{ display: rolesGroupOpen ? 'block' : 'none' }">
@@ -595,10 +601,20 @@
             <label>Mandate button label<input v-model="homepage.about.mandate_label" /></label>
             <label class="wide">Core functions intro<textarea v-model="homepage.about.core_intro"></textarea></label>
             <label>Mandate button URL<input v-model="homepage.about.mandate_url" /></label>
-            <label>Chairperson name<input v-model="homepage.leadership.chairperson_name" /></label>
-            <label>General Secretary name<input v-model="homepage.leadership.secretary_name" /></label>
-            <label class="wide">Chairperson image URL<input v-model="homepage.leadership.chairperson_image" /></label>
           </div>
+          <article class="cms-subpanel">
+            <div class="cms-panel-head"><h3>Current Leadership Members</h3><button type="button" @click="addHomepageLeadershipMember">Add member</button></div>
+            <div class="homepage-card-list">
+              <div v-for="(member, index) in homepage.leadership.members" :key="index" class="homepage-dynamic-card">
+                <div class="cms-two">
+                  <label>Name<input v-model="member.name" /></label>
+                  <label>Title<input v-model="member.title" placeholder="e.g. Chairperson" /></label>
+                  <label class="wide">Photo<DropzoneUpload v-model="member.image_url" label="member photo" accept="image/png,image/jpeg,image/webp" @error="setErr" /></label>
+                </div>
+                <button type="button" class="btn btn-sm btn-danger" @click="homepage.leadership.members.splice(index, 1)">Remove</button>
+              </div>
+            </div>
+          </article>
           <article class="cms-subpanel">
             <div class="cms-panel-head"><h3>About Value Cards</h3><button type="button" @click="addHomepageValue">Add value card</button></div>
             <div class="homepage-card-list">
@@ -1271,6 +1287,35 @@
           <ContentTable :items="teamMembers" title-key="full_name" subtitle-key="designation" @edit="editTeam" @delete="removeTeam" />
         </section>
 
+        <section v-else-if="active === 'council'" class="cms-panel">
+          <form class="otika-form-card" @submit.prevent="saveCouncil">
+            <div class="card">
+              <div class="card-header"><h4>{{ councilForm.id ? 'Edit Council Member' : 'Add Council Member' }}</h4></div>
+              <div class="card-body">
+                <div class="section-title mt-0">Member Details</div>
+                <div class="row">
+                  <div class="form-group col-lg-6"><label>Full Name</label><input v-model="councilForm.full_name" class="form-control" required /></div>
+                  <div class="form-group col-lg-6"><label>Designation</label><input v-model="councilForm.designation" class="form-control" placeholder="e.g. Chairperson" /></div>
+                  <div class="form-group col-lg-3"><label>Sort Order</label><input v-model.number="councilForm.sort_order" type="number" class="form-control" /></div>
+                  <div class="form-group col-lg-3"><label class="d-block">Visibility</label><div class="custom-control custom-checkbox mt-2"><input id="council-active" v-model="councilForm.is_active" type="checkbox" class="custom-control-input" /><label class="custom-control-label" for="council-active">Active member</label></div></div>
+                  <div class="form-group col-12">
+                    <label>Profile Image</label>
+                    <DropzoneUpload v-model="councilForm.image_url" label="council member image" accept="image/png,image/jpeg,image/webp" @error="setErr" />
+                  </div>
+                </div>
+                <div class="section-title">Bio</div>
+                <CmsRichTextEditor v-model="councilForm.bio" />
+              </div>
+              <div class="card-footer text-right"><button type="submit" class="btn btn-primary mr-1">{{ councilForm.id ? 'Update Council Member' : 'Create Council Member' }}</button></div>
+            </div>
+          </form>
+        </section>
+
+        <section v-else-if="active === 'manage-council'" class="cms-panel">
+          <div class="cms-panel-head"><h2>Manage Council Members</h2><button type="button" @click="resetCouncilForm(); active = 'council'">New council member</button></div>
+          <ContentTable :items="councilMembers" title-key="full_name" subtitle-key="designation" @edit="editCouncil" @delete="removeCouncil" />
+        </section>
+
         <section v-else-if="active === 'create-team-departments'" class="cms-panel">
           <form class="otika-form-card" @submit.prevent="saveTeamDepartment">
             <div class="card">
@@ -1673,6 +1718,7 @@ const faqsGroupOpen = ref(false)
 const resourcesGroupOpen = ref(false)
 const careersGroupOpen = ref(false)
 const teamGroupOpen = ref(false)
+const councilGroupOpen = ref(false)
 const rolesGroupOpen = ref(false)
 const usersGroupOpen = ref(false)
 const facilitiesGroupOpen = ref(false)
@@ -1802,6 +1848,10 @@ const teamSections = [
   { id:'create-team-departments', label:'Create Department', icon:'icofont-building-alt' },
   { id:'manage-team-departments', label:'Manage Departments', icon:'icofont-tags' },
 ]
+const councilSections = [
+  { id:'council', label:'Add Council Member', icon:'icofont-user-suited' },
+  { id:'manage-council', label:'Manage Council Members', icon:'icofont-list' },
+]
 const roleSections = [
   { id:'roles', label:'Add New Role', icon:'icofont-plus-circle' },
   { id:'manage-roles', label:'Manage Roles', icon:'icofont-list' },
@@ -1888,7 +1938,7 @@ const contentSections = [
 const profileSections = [
   { id:'my-profile', label:'Profile Settings', icon:'far fa-user' },
 ]
-const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections]
+const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections]
 const currentSection = computed(() => sections.find(s => s.id === active.value) || sections[0])
 
 const sectionPermissionMap = {
@@ -1931,6 +1981,8 @@ const sectionPermissionMap = {
   'manage-team':['team_members:read'],
   'create-team-departments':['team_departments:create'],
   'manage-team-departments':['team_departments:read'],
+  council:['team_members:create'],
+  'manage-council':['team_members:read'],
   roles:['roles:write'],
   'manage-roles':['roles:read'],
   users:['users:create'],
@@ -1987,7 +2039,7 @@ const homepageDefaults = {
   stats_title:'Sports Excellence in Numbers',
   stats_intro:'Driving the development of sports across Uganda through dedicated programs and world-class facilities',
   about:{eyebrow:'About NCS',title:'Developing Sports Excellence Since 1964',intro:'The National Council of Sports (NCS) is a statutory body established to develop, promote, and control sports in Uganda under the Ministry of Education and Sports.',body:'Established under the <strong>National Council of Sports Act (Chapter 48)</strong>, assented on 22 June 1964 and commenced on 25 June 1964, NCS serves as the apex regulator for sports development in Uganda, now updated by the <strong>National Sports Act, 2023</strong>.',leadership_label:'View Current Membership',leadership_url:'/team',core_title:'Core Functions of NCS',core_intro:'As mandated by the National Sports Act, NCS performs the following key functions:',mandate_label:'Read Full Mandate',mandate_url:'/pages/the-mandate'},
-  leadership:{chairperson_name:'Mr. Ambrose Tashobya',chairperson_image:'',secretary_name:'Dr. Bernard Patrick Ogwel'},
+  leadership:{members:[{name:'Mr. Ambrose Tashobya',title:'Chairperson',image_url:''},{name:'Dr. Bernard Patrick Ogwel',title:'General Secretary',image_url:''}]},
   milestones:[
     {value:'60+',label:'Years of Excellence',description:'Established in 1964 and still driving national sport.',icon:'icofont-award'},
     {value:'54+',label:'Sports Associations',description:'Recognised bodies supported across Uganda.',icon:'icofont-trophy'},
@@ -2073,7 +2125,7 @@ function addFooterColumn() {
   footer.columns.push({ title:'New column', links:[] })
 }
 
-const posts = ref([]), pages = ref([]), projects = ref([]), caseStudies = ref([]), events = ref([]), slides = ref([]), facilities = ref([]), associations = ref([]), facts = ref([]), faqs = ref([]), resources = ref([]), careers = ref([]), investItems = ref([]), teamMembers = ref([])
+const posts = ref([]), pages = ref([]), projects = ref([]), caseStudies = ref([]), events = ref([]), slides = ref([]), facilities = ref([]), associations = ref([]), facts = ref([]), faqs = ref([]), resources = ref([]), careers = ref([]), investItems = ref([]), teamMembers = ref([]), councilMembers = ref([])
 const blogCategories = ref([])
 const projectCategories = ref([])
 const caseStudyCategories = ref([])
@@ -2140,6 +2192,7 @@ const STATIC_SITE_PAGES = [
   { url: '/faqs', label: 'FAQs' },
   { url: '/contact-us', label: 'Contact Us' },
   { url: '/team', label: 'Team' },
+  { url: '/governing-council', label: 'Governing Council' },
 ]
 
 const internalPageOptions = computed(() => [
@@ -2189,6 +2242,7 @@ const speechForm = reactive({ id:'', doc_type:'speech', title:'', category:'', f
 const careerForm = reactive({ id:'', title:'', department:'', department_id:'', location:'', job_type:'full_time', category:'jobs', description:'', requirements:'', salary_range:'', status:'draft', deadline_at:'' })
 const investForm = reactive({ id:'', title:'', subtitle:'', content:'', image_url:'', sort_order:0, is_active:true })
 const teamForm = reactive({ id:'', full_name:'', designation:'', department_id:'', image_url:'', bio:'', sort_order:0, is_active:true })
+const councilForm = reactive({ id:'', full_name:'', designation:'', image_url:'', bio:'', sort_order:0, is_active:true })
 const roleForm = reactive({ id:'', name:'', description:'', is_system:false })
 const userForm = reactive({ id:'', first_name:'', last_name:'', email:'', phone:'', password:'' })
 
@@ -2592,6 +2646,10 @@ function addHomepageValue() {
   homepage.values.push({ title:'New value', text:'', icon:'icofont-star', featured:false })
 }
 
+function addHomepageLeadershipMember() {
+  homepage.leadership.members.push({ name:'New member', title:'', image_url:'' })
+}
+
 function addSportsCounter() {
   homepage.milestones.push({ value:'0+', label:'New counter', description:'', icon:'icofont-chart-growth' })
 }
@@ -2665,6 +2723,7 @@ async function loadAll() {
       cms.adminListDocuments({ doc_type:'sports_rule', per_page:200 }), cms.adminListDocuments({ doc_type:'press_release', per_page:200 }),
       cms.adminListDocuments({ doc_type:'report', per_page:200 }), cms.adminListDocuments({ doc_type:'speech', per_page:200 }),
       cms.adminListSportsRuleCategories(), cms.adminListPressReleaseCategories(), cms.adminListReportCategories(), cms.adminListSpeechCategories(),
+      cms.adminListCouncil({ per_page:200 }),
     ])
     Object.assign(homepage, data(results[0].value)?.value || {})
     mergeHomepageDefaults(homepage)
@@ -2722,6 +2781,7 @@ async function loadAll() {
     pressReleaseCategories.value = listData(results[49].value)
     reportCategories.value = listData(results[50].value)
     speechCategories.value = listData(results[51].value)
+    councilMembers.value = listData(results[52].value)
     await loadCareerPageSettings()
   } catch (err) { setErr(err) }
 }
@@ -2909,6 +2969,7 @@ async function saveSpeech() { await saveEntity(speechForm, cms.adminCreateDocume
 async function saveCareer() { syncCareerDepartment(); await saveEntity(careerForm, cms.adminCreateCareer, cms.adminUpdateCareer, 'Career post saved') }
 async function saveInvest() { await saveEntity(investForm, cms.adminCreateInvest, cms.adminUpdateInvest, 'Investment item saved') }
 async function saveTeam() { await saveEntity(teamForm, cms.adminCreateTeam, cms.adminUpdateTeam, 'Team member saved') }
+async function saveCouncil() { await saveEntity(councilForm, cms.adminCreateCouncil, cms.adminUpdateCouncil, 'Council member saved') }
 async function saveEntity(form, createFn, updateFn, ok) { try { form.id ? await updateFn(form.id, clean(form)) : await createFn(clean(form)); await loadAll(); setMsg(ok) } catch (err) { setErr(err) } }
 
 function editPost(item) { copyInto(postForm, item); active.value = 'create-post' }
@@ -2948,6 +3009,7 @@ function editSpeech(item) { copyInto(speechForm, item); speechForm.doc_type = 's
 function editCareer(item) { copyInto(careerForm, item); if (item.deadline_at) careerForm.deadline_at = item.deadline_at; active.value = 'careers' }
 function editInvest(item) { copyInto(investForm, item); active.value = 'invest' }
 function editTeam(item) { copyInto(teamForm, item); active.value = 'team' }
+function editCouncil(item) { copyInto(councilForm, item); active.value = 'council' }
 
 async function removePost(item) { await removeEntity(item, cms.adminDeletePost) }
 async function removeBlogCategory(item) { await removeEntity(item, cms.adminDeleteBlogCategory) }
@@ -2978,6 +3040,7 @@ async function removeSpeech(item) { await removeEntity(item, cms.adminDeleteDocu
 async function removeCareer(item) { await removeEntity(item, cms.adminDeleteCareer) }
 async function removeInvest(item) { await removeEntity(item, cms.adminDeleteInvest) }
 async function removeTeam(item) { await removeEntity(item, cms.adminDeleteTeam) }
+async function removeCouncil(item) { await removeEntity(item, cms.adminDeleteCouncil) }
 async function removeEntity(item, fn) {
   if (!(await confirmAction('Delete this item?'))) return
   try {
@@ -3680,6 +3743,10 @@ function resetCareerCategoryForm() {
 
 function resetTeamForm() {
   Object.assign(teamForm, { id:'', full_name:'', designation:'', department_id:'', image_url:'', bio:'', sort_order:0, is_active:true })
+}
+
+function resetCouncilForm() {
+  Object.assign(councilForm, { id:'', full_name:'', designation:'', image_url:'', bio:'', sort_order:0, is_active:true })
 }
 
 function resetTeamDepartmentForm() {

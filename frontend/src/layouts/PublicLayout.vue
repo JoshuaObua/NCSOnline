@@ -666,9 +666,14 @@ function isActiveLink(item) {
   if (!item?.url) return false
   return route.path === item.url
 }
+function urlMatchesRoute(url) {
+  if (!url) return false
+  if (url === '/') return route.path === '/'
+  return route.path === url || route.path.startsWith(`${url}/`)
+}
 function isActiveTopLevel(item) {
   const children = item.children || item.megaItems || []
-  return children.some(c => (c.url && route.path.startsWith(c.url)) || isActiveTopLevel(c))
+  return children.some(c => urlMatchesRoute(c.url) || isActiveTopLevel(c))
 }
 
 function filterVisible(items) {

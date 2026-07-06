@@ -1,7 +1,7 @@
 <template>
   <div class="home-redesign">
     <template v-for="section in visibleSections" :key="section.id">
-      <section v-if="section.id === 'hero'" id="section-hero" class="-mt-28">
+      <section v-if="section.id === 'hero'" id="section-hero">
         <PublicSlideshow :slideshow="slideshow" :slides="displaySlides" />
       </section>
 
@@ -22,12 +22,11 @@
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#f5a623]" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
                   Current Leadership
                 </h3>
-                <div class="grid gap-4 md:grid-cols-[auto,1fr] md:items-center">
-                  <img v-if="home.leadership.chairperson_image" :src="mediaUrl(home.leadership.chairperson_image)" :alt="home.leadership.chairperson_name" class="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md" />
-                  <div v-else class="w-20 h-20 rounded-full bg-[#1a365d]/10 flex items-center justify-center text-[#1a365d] border-2 border-white shadow-md"><i class="icofont-user-alt-3 text-2xl" aria-hidden="true"></i></div>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div><p class="text-sm text-gray-500">Chairperson</p><p class="font-medium text-[#1a365d]">{{ home.leadership.chairperson_name }}</p></div>
-                    <div><p class="text-sm text-gray-500">General Secretary</p><p class="font-medium text-[#1a365d]">{{ home.leadership.secretary_name }}</p></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div v-for="(member, index) in home.leadership.members" :key="index" class="flex items-center gap-3">
+                    <img v-if="member.image_url" :src="mediaUrl(member.image_url)" :alt="member.name" class="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md flex-shrink-0" />
+                    <div v-else class="w-16 h-16 rounded-full bg-[#1a365d]/10 flex items-center justify-center text-[#1a365d] border-2 border-white shadow-md flex-shrink-0"><i class="icofont-user-alt-3 text-xl" aria-hidden="true"></i></div>
+                    <div class="min-w-0"><p class="text-sm text-gray-500">{{ member.title }}</p><p class="font-medium text-[#1a365d] truncate">{{ member.name }}</p></div>
                   </div>
                 </div>
                 <div class="mt-4">
@@ -211,7 +210,7 @@ const defaultSections = ['hero','about','stats','news','find_sport','get_involve
 const home = reactive({
   sections: defaultSections,
   about:{eyebrow:'About NCS',title:'Developing Sports Excellence Since 1964',intro:'The National Council of Sports (NCS) is a statutory body established to develop, promote, and control sports in Uganda under the Ministry of Education and Sports.',body:'Established under the <strong>National Council of Sports Act (Chapter 48)</strong>, assented on 22 June 1964 and commenced on 25 June 1964, NCS serves as the apex regulator for sports development in Uganda, now updated by the <strong>National Sports Act, 2023</strong>.',leadership_label:'View Current Membership',leadership_url:'/team',core_title:'Core Functions of NCS',core_intro:'As mandated by the National Sports Act, NCS performs the following key functions:',mandate_label:'Read Full Mandate',mandate_url:'/pages/the-mandate'},
-  leadership:{chairperson_name:'Mr. Ambrose Tashobya',chairperson_image:'',secretary_name:'Dr. Bernard Patrick Ogwel'},
+  leadership:{members:[{name:'Mr. Ambrose Tashobya',title:'Chairperson',image_url:''},{name:'Dr. Bernard Patrick Ogwel',title:'General Secretary',image_url:''}]},
   milestones:[{value:'60+',label:'Years of Excellence',description:'Established in 1964 and still driving national sport.',icon:'icofont-award'},{value:'54+',label:'Sports Associations',description:'Recognised bodies supported across Uganda.',icon:'icofont-trophy'},{value:'32+',label:'Sports Facilities',description:'Facilities and venues supporting athletes and federations.',icon:'icofont-building-alt'},{value:'100K+',label:'Athletes Reached',description:'Athletes, coaches, and administrators served through NCS programs.',icon:'icofont-users-alt-5'}],
   values:[{title:'Our Mission',text:'Maximizing opportunities for all Ugandans to participate and excel in Sports.',icon:'icofont-dart',featured:true},{title:'Our Vision',text:'A centre of excellence for promotion and development of Sports.',icon:'icofont-eye'},{title:'Integrity',text:'Upholding the highest standards of ethics and fair play in all sporting activities.',icon:'icofont-shield'},{title:'Inclusivity',text:'Ensuring sports opportunities are accessible to all Ugandans regardless of background.',icon:'icofont-people'},{title:'Excellence',text:'Striving for the highest standards in athlete development and sports administration.',icon:'icofont-award'},{title:'Global Recognition',text:'Positioning Uganda as a leading sports nation on the African and world stage.',icon:'icofont-globe',featured:true}],
   core_functions:['Developing, promoting, and controlling sports on a national basis, including training and staffing','Recognizing sports disciplines and registering national sports organizations','Regulating associations and federations, awarding medals, certificates, trophies, and incentives','Approving international and national competitions and festivals','Facilitating Ugandan athletes participation in international competitions','Encouraging cooperation among associations and stimulating interest at all levels','Sponsoring scholarships for coaches and organizers','Advising on external sports relations and promoting sportsmanship','Arranging facilities with local authorities'],
@@ -261,10 +260,11 @@ function pauseFacts(){stopFactRotation()}
 function resumeFacts(){startFactRotation()}
 function goToFact(index){factIndex.value=index;startFactRotation()}
 function mergeHome(value){if(!value||typeof value!=='object')return;for(const [key,val] of Object.entries(value)){if(val&&typeof val==='object'&&!Array.isArray(val)&&home[key]&&typeof home[key]==='object')Object.assign(home[key],val);else home[key]=val}}
+const NON_NEWS_CATEGORIES = ['page', 'case_study', 'project']
 function dataOf(result){return result.status==='fulfilled'?result.value.data?.data:null}
 function itemsOf(result){const value=dataOf(result);return Array.isArray(value)?value:(value?.items||[])}
 watch(displayedFacts, animateCounters, { immediate:true, deep:true })
-onMounted(async()=>{const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),getSlideshow('homepage-hero'),listFunFacts(),listFAQs(),listAssociations(),getSettings('homepage'),getSettings('contact')]);posts.value=dataOf(results[0])?.items||[];events.value=dataOf(results[1])?.items||[];const show=dataOf(results[2])||{};Object.assign(slideshow,show);slides.value=show.slides||[];facts.value=itemsOf(results[3]);faqs.value=itemsOf(results[4]);associations.value=itemsOf(results[5]);mergeHome(dataOf(results[6])?.value);Object.assign(contact,dataOf(results[7])?.value||{});startFactRotation();if(faqs.value.length)openFaqIds.value=new Set([faqs.value[0].id])})
+onMounted(async()=>{const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),getSlideshow('homepage-hero'),listFunFacts(),listFAQs(),listAssociations(),getSettings('homepage'),getSettings('contact')]);posts.value=(dataOf(results[0])?.items||[]).filter(p=>!NON_NEWS_CATEGORIES.includes(p.category));events.value=dataOf(results[1])?.items||[];const show=dataOf(results[2])||{};Object.assign(slideshow,show);slides.value=show.slides||[];facts.value=itemsOf(results[3]);faqs.value=itemsOf(results[4]);associations.value=itemsOf(results[5]);mergeHome(dataOf(results[6])?.value);Object.assign(contact,dataOf(results[7])?.value||{});startFactRotation();if(faqs.value.length)openFaqIds.value=new Set([faqs.value[0].id])})
 onBeforeUnmount(stopFactRotation)
 </script>
 
