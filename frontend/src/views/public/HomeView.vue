@@ -37,13 +37,6 @@
                 </div>
               </div>
 
-              <!-- Milestones -->
-              <div class="flex flex-wrap gap-8">
-                <div v-for="item in home.milestones" :key="item.label">
-                  <div class="text-4xl font-bold text-[#1a365d]">{{ stripPlus(item.value) }}<span class="text-[#f5a623]">+</span></div>
-                  <div class="text-gray-500 text-sm">{{ item.label }}</div>
-                </div>
-              </div>
             </div>
 
             <!-- RIGHT 50% — value cards 2x3 -->
@@ -249,7 +242,6 @@ const displayEvents=computed(() => events.value.length ? events.value : fallback
 const sportCategories=computed(() => ['All Sports',...new Set(associations.value.map(item=>item.category).filter(Boolean))])
 const filteredAssociations=computed(() => { const q=sportQuery.value.trim().toLowerCase(); return associations.value.filter(item => (activeCategory.value==='All Sports'||item.category===activeCategory.value) && (!q||[item.name,item.category,item.description].some(value=>String(value||'').toLowerCase().includes(q)))) })
 function formatDate(value){return value?new Date(value).toLocaleDateString('en-UG',{day:'numeric',month:'short',year:'numeric'}):'Date TBA'}
-function stripPlus(value){return String(value||'').replace(/\+\s*$/,'')}
 function parseCounter(value){const raw=String(value||'0');const match=raw.match(/^([\d,.]+)\s*(.*)$/);return {number:Number((match?.[1]||'0').replace(/,/g,''))||0,suffix:match?.[2]||''}}
 function animateCounters(){const targets=displayedFacts.value.map(item=>parseCounter(item.value));const started=performance.now();const duration=1100;function tick(now){const progress=Math.min((now-started)/duration,1);const eased=1-Math.pow(1-progress,3);animatedCounterValues.value=targets.map(item=>Math.round(item.number*eased));if(progress<1)requestAnimationFrame(tick)};requestAnimationFrame(tick)}
 function counterValue(fact,index){const parsed=parseCounter(fact.value);const value=animatedCounterValues.value[index];return `${value ?? parsed.number}${parsed.suffix}`}

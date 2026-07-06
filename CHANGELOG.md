@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026-07-07 — Removed milestones counter from the homepage About NCS section
+
+Removed the counter row (60+ Years of Excellence / 54+ Sports Associations / 32+ Sports Facilities / 100K+ Athletes Reached) that sat below the Current Leadership card in the homepage's About NCS section (`HomeView.vue`), per request — the block is gone entirely, along with the now-unused `stripPlus()` helper it was the only consumer of.
+
+**Kept**: the `home.milestones` data itself and the separate navy "Sports Excellence in Numbers" stats band further down the page — that section shares the same data source and was not part of the request. The "Sports Excellence" CMS admin panel still edits those numbers for the stats band.
+
+**Files changed**: `frontend/src/views/public/HomeView.vue`.
+
+---
+
+## 2026-07-07 — Footer newsletter band restyled to amber (reference match)
+
+Restyled the footer's "Stay Updated with NCS" newsletter bar (`PublicLayout.vue`) to match the provided reference exactly:
+
+- **Band background**: now solid amber (`bg-[#f5a623]`) instead of transparent-on-navy with a `border-b border-white/10` divider (the reference has no border).
+- Everything inside already matched the reference verbatim (white bold heading, `white/90` subtitle, frosted `bg-white/20 border-white/30` email input that turns solid white on focus, navy `#1a365d` send button with the lucide Send icon) — no changes needed there.
+- **Status message colors** adjusted for the amber background: success now navy (`#1a365d`), error now `red-800` (previously `emerald-300`/`red-300`, which were tuned for the old navy background and would have been unreadable on amber).
+
+**Deployed & verified on the VPS**: committed (`658590f`), pushed, pulled to `/opt/ncs-website`, frontend rebuilt and container recreated (healthy). Screenshot-verified on the live site: the amber band renders between the page content and the navy footer, exactly as in the reference.
+
+---
+
 ## 2026-07-07 — Fix: home page keeps other nav dropdown items highlighted
 
 **Bug**: on the home page (`/`), dropdown menu items other than "Home" (e.g. "About Us", "Events") could also show highlighted.
