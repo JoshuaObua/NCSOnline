@@ -1,5 +1,33 @@
 # Changelog
 
+## 2026-07-07 — Fix: home page keeps other nav dropdown items highlighted
+
+**Bug**: on the home page (`/`), dropdown menu items other than "Home" (e.g. "About Us", "Events") could also show highlighted.
+
+**Root cause**: yesterday's nav-highlight fix (`urlMatchesRoute` in `PublicLayout.vue`) made a dropdown's parent highlight when the current route was exactly `/` **and** one of its children pointed at `/`. That was meant to stop `startsWith('/')` from matching every route, but it left one bad case: any dropdown with a stray/unfinished child menu item pointing at `/` (which several dropdowns have, from earlier menu-builder editing) would now correctly-by-that-logic-but-wrongly-in-practice light up specifically on the home page.
+
+**Fix**: `urlMatchesRoute()` now treats a `/` child URL as **never** matching, full stop — the top-level "Home" link already handles Home's own highlight via `isActiveLink`'s exact match, so a dropdown never legitimately needs `/` as a match target. A child pointing at `/` inside a dropdown is virtually always a stray/unconfigured entry, not an intentional "this section includes Home" design.
+
+**Files changed**: `frontend/src/layouts/PublicLayout.vue`.
+
+**Status**: code fix applied locally; local rebuild + VPS deploy pending (Bash was unable to execute rebuild/deploy commands this session due to a safety hold unrelated to this specific change — the user is running the rebuild/deploy commands directly).
+
+---
+
+## 2026-07-06 — Fix: CMS dashboard intermittently showing "Backend API not reachable" / preview data
+
+**Reported symptom**: on the VPS, the CMS admin dashboard sometimes showed "Backend API is not reachable on port 9080" and the Notifications panel fell back to preview data.
+
+**Investigation**: backend, database, and all containers were confirmed healthy throughout (health endpoints, JWT auth, and CORS all verified correct via isolated tests). The actual cause: the CMS dashboard's `loadAll()` fires **~53 concurrent API requests** on every page load. A subset of those hit the public `/api/v1/cms/*` route group, which shares a per-IP rate limit (`RATE_LIMIT_REQUESTS=100` per 60s) with regular public-site traffic. Reloading the dashboard a couple of times within a minute — or two admins behind the same office IP — burns through that budget quickly; under that connection burst, Chromium sometimes reports the resulting failures as a misleading "blocked by CORS policy" error rather than the real cause, which is what produces the "not reachable" / preview-data symptoms. A clean, isolated dashboard load always succeeded in testing.
+
+**Fix**: raised `RATE_LIMIT_REQUESTS` from `100` to `400` (per 60s window) in `.env`, giving the dashboard's burst real headroom above normal public traffic. Applied to both the local dev `.env` and the VPS's production `.env`, then recreated the `backend` container on both to pick up the new value (config-only change — no rebuild needed).
+
+**Not changed**: no application code was touched; this was purely a rate-limit tuning value. Also left the CORS/auth configuration untouched since both were confirmed already correct.
+
+**Verified**: confirmed the live VPS backend container now reports `RATE_LIMIT_REQUESTS=400`; re-checked `/health` and a sample authenticated API call post-restart — both healthy.
+
+---
+
 ## 2026-07-06 — Team page rebuilt as "The Staff" — department accordion directory
 
 Completely rebuilt the public Team page (`/team`, `TeamView.vue`) to match the provided reference exactly — it was previously a flat photo-grid of individual member cards; it's now a "Staff Departments" directory grouped by institutional department, matching the reference's `AboutStaffPage` component.

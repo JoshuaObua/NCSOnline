@@ -667,8 +667,11 @@ function isActiveLink(item) {
   return route.path === item.url
 }
 function urlMatchesRoute(url) {
-  if (!url) return false
-  if (url === '/') return route.path === '/'
+  // A dropdown's own highlighted state should never be driven by a child
+  // pointing at "/" — the Home link already handles that via isActiveLink,
+  // and a "/" child inside a dropdown is virtually always a stray/unfinished
+  // menu entry, not an intentional "this section includes Home" case.
+  if (!url || url === '/') return false
   return route.path === url || route.path.startsWith(`${url}/`)
 }
 function isActiveTopLevel(item) {
