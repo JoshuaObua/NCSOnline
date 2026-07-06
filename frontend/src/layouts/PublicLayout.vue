@@ -320,27 +320,19 @@
 
       <!-- Bottom bar -->
       <div class="border-t border-white/10">
-        <div class="max-w-screen-xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
-          <span>&copy; {{ currentYear }} {{ footerSettings.copyright }}</span>
-          <div class="flex gap-5">
-            <template v-if="footerMenuItems.length">
-              <component
-                :is="isExternalNavLink(item) ? 'a' : 'router-link'"
-                v-for="(item, idx) in footerMenuItems"
-                :key="idx"
-                v-bind="linkAttrs(item)"
-                class="hover:text-gray-300 transition-colors"
-              >{{ item.label }}</component>
-            </template>
-            <template v-else>
-              <router-link to="/faqs" class="hover:text-gray-300 transition-colors">FAQs</router-link>
-              <router-link to="/contact-us" class="hover:text-gray-300 transition-colors">Contact</router-link>
-            </template>
+        <div class="max-w-7xl mx-auto px-4 py-6">
+          <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+            <p class="text-sm text-white/60 text-center md:text-left">&copy; 1964 - {{ currentYear }} National Council of Sports. All Rights Reserved.</p>
+            <div class="flex items-center gap-2 text-sm text-white/60">
+              <span>Designed &amp; Developed by</span>
+              <span class="text-[#f5a623] font-medium">NCS Uganda</span>
+            </div>
           </div>
         </div>
       </div>
     </footer>
     <PublicAccessibilityMenu />
+    <ChatBotWidget />
     <AppPreloader />
   </div>
 </template>
@@ -356,6 +348,7 @@ import { installAnalyticsTracker, trackPageView, uninstallAnalyticsTracker } fro
 import { installGoogleAnalytics, trackGoogleAnalyticsPageView, uninstallGoogleAnalytics } from '@/utils/googleAnalytics.js'
 import PublicAccessibilityMenu from '@/components/public/PublicAccessibilityMenu.vue'
 import AppPreloader from '@/components/public/AppPreloader.vue'
+import ChatBotWidget from '@/components/public/ChatBotWidget.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import { useTheme } from '@/composables/useTheme.js'
 

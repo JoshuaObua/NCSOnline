@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-07-07 — NCS Bot chat widget + footer bottom bar redesign (reference match)
+
+**1. New site-wide chatbot UI** (`ChatBotWidget.vue`, mounted in `PublicLayout.vue` so it appears on every public page):
+- **Floating toggle button**: amber circle (bottom-right, above the fold), MessageCircle icon, pulsing green "online" dot, and an "Ask NCS Bot" tooltip on hover — matching the reference exactly, including hover scale/color.
+- **Chat panel** (replaces the button when open): navy gradient header with an amber Sparkles avatar + green status dot, "NCS Bot / Online • Ask me anything", and a close button; a gray message area with the reference's welcome state (gradient Sparkles badge, "Hi! I'm NCS Bot", intro copy, and the four suggested prompts); a textarea + round amber send button (grey/disabled when empty); and the "Powered by Claude • Replies may occasionally be inaccurate" footnote. Escape closes the panel.
+- **Behavior**: clicking a suggested prompt or sending a message renders it as a chat bubble (user right/navy, bot left/white). Since no AI backend is wired up yet, the bot reply is an honest placeholder that says it isn't connected to its knowledge base yet and points to the real contact channels (email, phone, contact form) — no fabricated answers. Swap `STUB_REPLY`/`sendMessage` for a real API call when the backend exists.
+
+**2. Footer bottom bar** rebuilt to match the reference exactly:
+- Left: "© 1964 - {current year} National Council of Sports. All Rights Reserved." (year is computed, not hardcoded).
+- Right: "Designed & Developed by" + amber "NCS Uganda".
+- Removed the old bottom-bar contents (CMS-driven copyright text + FAQs/Contact footer-menu links) since the reference's bottom bar has neither; the footer's main link columns above are unchanged. The footer-menu loading code was left in place (the CMS feature still exists) — only the bottom-bar rendering of it was removed.
+
+**Files changed**: `frontend/src/components/public/ChatBotWidget.vue` (new), `frontend/src/layouts/PublicLayout.vue`.
+
+---
+
 ## 2026-07-07 — Removed milestones counter from the homepage About NCS section
 
 Removed the counter row (60+ Years of Excellence / 54+ Sports Associations / 32+ Sports Facilities / 100K+ Athletes Reached) that sat below the Current Leadership card in the homepage's About NCS section (`HomeView.vue`), per request — the block is gone entirely, along with the now-unused `stripPlus()` helper it was the only consumer of.
