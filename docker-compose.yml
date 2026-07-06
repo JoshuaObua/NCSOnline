@@ -67,8 +67,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:9080}
-        VITE_INTRANET_URL: ${VITE_INTRANET_URL:-http://localhost:9081}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_INTRANET_URL: ${VITE_INTRANET_URL}
     restart: unless-stopped
     expose: ["80"]
     healthcheck:
