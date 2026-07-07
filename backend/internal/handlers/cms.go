@@ -971,6 +971,10 @@ func (h *CMSHandler) UpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.repo.UpdatePost(r.Context(), post); err != nil {
+		if errors.Is(err, repository.ErrDuplicate) {
+			response.Err(w, http.StatusConflict, "DUPLICATE_SLUG", "A post with this slug already exists")
+			return
+		}
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update post")
 		return
 	}

@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-07-07 — Backend 500-error audit: fixed duplicate-slug 500 on posts, full endpoint sweep
+
+Audited every 500-level response recorded in both environments' `audit_logs` tables (which persist across container restarts, unlike container logs) plus the live container logs.
+
+**Fixed — POST/PUT `/api/v1/admin/cms/posts` returning 500 on duplicate slugs** (the one *recurring, active* bug — 6 occurrences on the VPS yesterday evening, an admin repeatedly failing to create a post):
+- **Root cause**: `cms_posts.slug` has a global UNIQUE constraint, and while the `CreatePost` *handler* already had a 409 branch for `repository.ErrDuplicate`, the *repository* never mapped Postgres duplicate-key errors to `ErrDuplicate` — so the branch was dead code and duplicates fell through to a generic 500. (This is the exact `cms_posts` bug class flagged as "related but not fixed" in the 2026-07-05 category-slug entry; it has now produced real failures, so it's fixed.)
+- **Fix**: `repository.go`'s `CreatePost`/`UpdatePost` now map duplicate-key violations to `ErrDuplicate` (same pattern as `CreateBlogCategory`), and the `UpdatePost` handler gained the matching 409 branch (`DUPLICATE_SLUG` — "A post with this slug already exists"). Create already had one. Unlike categories, the slug stays globally unique — public routing looks posts up by slug alone, so per-category slug reuse would be ambiguous; a clean 409 is the correct behavior here.
+
+**Investigated, no code change needed** (all historical, none recurring in the current containers):
+- `POST /auth/login` 500 ×13: ten were from 2026-07-03 when a debug `panic()` was sitting uncommitted in the VPS's login handler (removed by the 07-06 redeploy from git); the other three were isolated one-offs — every login since the current deploy is 200.
+- The large clusters of GET 500s (blog/categories ×38, posts ×14, documents ×12, etc.) all last occurred in one window on 07-06 morning during that morning's docker-compose/rebuild work on the VPS — infrastructure downtime, not code bugs.
+- Local `inbound-submissions` ×127 / `analytics` ×4 500s: all pre-dated migrations 040/043 being applied locally; resolved once applied.
+- `POST /media/upload` 500s: three total across both environments, all before the current deploys; 20+ uploads since are all 200.
+
+**Verified**: full endpoint smoke test (55 endpoints: health, every public CMS list/settings/menus/documents endpoint, and every admin list endpoint incl. analytics, audit logs, notifications, inbound submissions) — all 200s on both local and VPS after deploy; duplicate-slug regression test returns 409 with a clear message on both.
+
+**Files changed**: `backend/internal/repository/repository.go`, `backend/internal/handlers/cms.go`.
+
+---
+
 ## 2026-07-07 — NCS Bot chat widget + footer bottom bar redesign (reference match)
 
 **1. New site-wide chatbot UI** (`ChatBotWidget.vue`, mounted in `PublicLayout.vue` so it appears on every public page):

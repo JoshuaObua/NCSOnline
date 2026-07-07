@@ -999,11 +999,15 @@ type CMSRepo struct{ db *pgxpool.Pool }
 func (r *CMSRepo) CreatePost(ctx context.Context, p *models.CMSPost) error {
 	const q = `INSERT INTO cms_posts (id, title, slug, content, excerpt, category, category_tag, status, cover_image_url, author_id, published_at, meta_title, meta_description, focus_keywords, approved_at)
 	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING created_at, updated_at`
-	return r.db.QueryRow(ctx, q,
+	err := r.db.QueryRow(ctx, q,
 		p.ID, p.Title, p.Slug, p.Content, p.Excerpt, p.Category, p.CategoryTag, p.Status,
 		p.CoverImageURL, p.AuthorID, p.PublishedAt, p.MetaTitle, p.MetaDescription,
 		p.FocusKeywords, p.ApprovedAt,
 	).Scan(&p.CreatedAt, &p.UpdatedAt)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
 }
 
 func (r *CMSRepo) GetPostBySlug(ctx context.Context, slug string) (*models.CMSPost, error) {
@@ -1092,6 +1096,9 @@ func (r *CMSRepo) UpdatePost(ctx context.Context, p *models.CMSPost) error {
 	           meta_title=$10, meta_description=$11, focus_keywords=$12, approved_at=$13, updated_at=NOW() WHERE id=$1`
 	_, err := r.db.Exec(ctx, q, p.ID, p.Title, p.Slug, p.Content, p.Excerpt,
 		p.Category, p.Status, p.CoverImageURL, p.PublishedAt, p.MetaTitle, p.MetaDescription, p.FocusKeywords, p.ApprovedAt, p.CategoryTag)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
 	return err
 }
 
