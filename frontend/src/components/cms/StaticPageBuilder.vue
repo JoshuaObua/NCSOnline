@@ -162,7 +162,14 @@ function hydrateBuilder() {
 }
 function normalizeNode(node) {
   if (node.props && Array.isArray(node.children)) return node
-  const migrated = createNode(node.type === 'row' ? 'grid' : node.type === 'icon-card' ? 'card' : node.type || 'paragraph')
+  const type = node.type === 'row'
+    ? 'grid'
+    : node.type === 'icon-card'
+      ? 'card'
+      : node.type === 'html'
+        ? 'raw_html'
+        : node.type || 'paragraph'
+  const migrated = createNode(type)
   migrated.id = node.id || migrated.id
   migrated.props = { ...migrated.props, ...legacyProps(node) }
   if (node.columns) migrated.children = node.columns.map(column => ({ ...createNode('column'), props: { width: '1fr' }, children: [legacyTextNode(column.title, column.text)] }))

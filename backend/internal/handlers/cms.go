@@ -1658,6 +1658,19 @@ type slideReq struct {
 	IsActive      bool                     `json:"is_active"`
 }
 
+var slideAnimationTypes = map[string]struct{}{
+	"fade-in":     {},
+	"slide-up":    {},
+	"slide-left":  {},
+	"slide-right": {},
+	"zoom-in":     {},
+	"zoom-out":    {},
+	"flip-in":     {},
+	"blur-in":     {},
+	"bounce-in":   {},
+	"ken-burns":   {},
+}
+
 type slideshowReq struct {
 	Name               string `json:"name"`
 	TransitionEffect   string `json:"transition_effect"`
@@ -1692,8 +1705,8 @@ func normalizeSlidePayload(req *slideReq) (*models.CMSSlide, map[string]string) 
 	if req.AnimationType == "" {
 		req.AnimationType = "fade-in"
 	}
-	if req.AnimationType != "fade-in" && req.AnimationType != "slide-up" && req.AnimationType != "zoom-in" {
-		errs["animation_type"] = "must be fade-in, slide-up, or zoom-in"
+	if _, ok := slideAnimationTypes[req.AnimationType]; !ok {
+		errs["animation_type"] = "unsupported animation type"
 	}
 	buttons := req.Buttons
 	if len(buttons) == 0 && (req.ButtonText != "" || req.ButtonURL != "") {

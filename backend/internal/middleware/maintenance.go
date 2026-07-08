@@ -54,7 +54,7 @@ func MaintenanceMode(state *maintenance.State, enabled bool, jwtSecret string) f
 			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = fmt.Fprintf(w, `<!doctype html><html lang="en"><meta name="viewport" content="width=device-width"><title>NCS maintenance</title><body style="font-family:system-ui;background:#112b4e;color:white;display:grid;place-items:center;min-height:100vh;margin:0"><main style="max-width:38rem;text-align:center;padding:2rem"><h1>%s</h1><p>%s</p></main></body></html>`, htmlEscape(scoped.DisplayMeta.CustomTitle), htmlEscape(publicMaintenanceMessage(scoped)))
+			_, _ = fmt.Fprint(w, publicMaintenanceHTML(scoped))
 		})
 	}
 }
@@ -63,7 +63,7 @@ func isMaintenanceAlwaysAllowed(path string) bool {
 	switch path {
 	case "/health", "/healthz", "/readyz", "/metrics", "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/system/maintenance-status":
 		return true
-	case "/favicon.ico", "/favicon.png", "/robots.txt", "/manifest.json", "/manifest.webmanifest", "/sw.js":
+	case "/favicon.ico", "/favicon.png", "/main-logo.png", "/main-logo-white.png", "/robots.txt", "/manifest.json", "/manifest.webmanifest", "/sw.js":
 		return true
 	}
 	// Static SPA bundles must never be gated — without them the SPA cannot
@@ -100,6 +100,47 @@ func ussdMaintenanceMessage(scoped maintenance.ScopedSnapshot) string {
 		return scoped.Reason
 	}
 	return "System is temporarily undergoing maintenance. Please try again later."
+}
+
+func publicMaintenanceHTML(scoped maintenance.ScopedSnapshot) string {
+	title := scoped.DisplayMeta.CustomTitle
+	if title == "" {
+		title = "We'll be right back"
+	}
+	expected := "Shortly"
+	if scoped.ExpectedEnd != nil {
+		expected = scoped.ExpectedEnd.Format("Mon, 02 Jan at 15:04 MST")
+	}
+	return fmt.Sprintf(`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>%s | NCS Uganda</title>
+<style>
+*{box-sizing:border-box}body{min-height:100vh;margin:0;display:flex;flex-direction:column;justify-content:center;overflow-x:hidden;background:linear-gradient(135deg,#102b4d 0%%,#1a365d 52%%,#0d223d 100%%);color:#fff;font-family:Arial,sans-serif;padding:clamp(20px,4vw,56px)}body:before{position:fixed;inset:0;content:"";pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);background-size:52px 52px;mask-image:linear-gradient(to bottom right,#000,transparent 78%%)}.shell{position:relative;width:min(100%%,1160px);margin:auto;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(320px,.72fr);align-items:center;gap:clamp(32px,7vw,104px)}.brand{display:flex;align-items:center;gap:14px;margin-bottom:clamp(36px,7vh,80px);color:rgba(255,255,255,.86);font-size:13px;font-weight:700;text-transform:uppercase}.brand img{width:auto;max-width:168px;height:60px;object-fit:contain;border-radius:8px;background:#fff;padding:6px 11px}.kicker{display:flex;align-items:center;gap:9px;margin:0 0 18px;color:#f5a623;font-size:12px;font-weight:800;text-transform:uppercase}.kicker:before{width:28px;height:2px;content:"";background:#f5a623}h1{max-width:720px;margin:0;font-size:clamp(42px,6vw,86px);line-height:1.02;overflow-wrap:anywhere}p.message{max-width:650px;margin:24px 0 0;color:rgba(255,255,255,.76);font-size:clamp(16px,1.8vw,19px);line-height:1.75}.actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}.actions a{min-height:44px;display:inline-flex;align-items:center;justify-content:center;border:1px solid #f5a623;border-radius:6px;background:#f5a623;color:#102b4d;padding:12px 18px;text-decoration:none;font-size:14px;font-weight:800}.actions a.alt{border-color:rgba(255,255,255,.34);background:transparent;color:#fff}.panel{border:1px solid rgba(255,255,255,.22);border-radius:8px;background:#fff;color:#1a365d;padding:clamp(24px,4vw,38px);box-shadow:0 28px 80px rgba(4,18,36,.34)}.icon{width:56px;height:56px;display:grid;place-items:center;border-radius:8px;background:#fff5e4;color:#e2920f;font-size:29px;font-weight:700}.label{margin:24px 0 8px;color:#e2920f;font-size:12px;font-weight:800;text-transform:uppercase}.panel h2{margin:0;font-size:clamp(22px,2.6vw,28px);line-height:1.25}.meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;margin-top:24px;overflow:hidden;border:1px solid #e5e9ef;border-radius:6px;background:#e5e9ef}.meta div{min-width:0;background:#f8fafc;padding:16px}.meta span,.meta strong{display:block}.meta span{margin-bottom:6px;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase}.meta strong{font-size:14px;line-height:1.45;overflow-wrap:anywhere}.steps{display:grid;gap:14px;margin:24px 0 0;padding:22px 0 0;border-top:1px solid #e5e9ef;list-style:none}.steps li{display:grid;grid-template-columns:12px minmax(0,1fr);align-items:center;gap:11px;color:#8a94a3;font-size:14px;font-weight:700}.steps i{width:10px;height:10px;border:2px solid #cbd5e1;border-radius:50%%}.steps .done{color:#237a4b}.steps .done i{border-color:#2fa96b;background:#2fa96b}.steps .active{color:#1a365d}.steps .active i{border-color:#f5a623;background:#f5a623;box-shadow:0 0 0 4px rgba(245,166,35,.18)}footer{position:relative;width:min(100%%,1160px);margin:clamp(32px,7vh,72px) auto 0;color:rgba(255,255,255,.48);font-size:12px}@media(max-width:820px){body{justify-content:flex-start}.shell{grid-template-columns:1fr;gap:36px}.brand{margin-bottom:40px}.panel{max-width:620px}}@media(max-width:480px){body{padding:18px}.brand{align-items:flex-start;flex-direction:column}.brand img{height:52px;max-width:150px}.actions{display:grid}.actions a{width:100%%}.meta{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="shell">
+<section>
+<div class="brand"><img src="/main-logo.png" alt="National Council of Sports logo"><span>NCS Uganda</span></div>
+<p class="kicker">Public Website Maintenance</p>
+<h1>%s</h1>
+<p class="message">%s</p>
+<div class="actions"><a href="mailto:info@ncs.go.ug">Email NCS</a><a class="alt" href="tel:+256414254477">Call NCS</a></div>
+</section>
+<aside class="panel">
+<div class="icon" aria-hidden="true">&#9881;</div>
+<p class="label">Current Status</p>
+<h2>Scheduled upgrades are in progress</h2>
+<div class="meta"><div><span>Expected return</span><strong>%s</strong></div><div><span>System status</span><strong>In progress</strong></div></div>
+<ol class="steps"><li class="done"><i></i>Updates started</li><li class="active"><i></i>Quality checks</li><li><i></i>Website restored</li></ol>
+</aside>
+</main>
+<footer>&copy; 1964 - %d National Council of Sports. All Rights Reserved.</footer>
+</body>
+</html>`, htmlEscape(title), htmlEscape(title), htmlEscape(publicMaintenanceMessage(scoped)), htmlEscape(expected), time.Now().Year())
 }
 
 func htmlEscape(v string) string {

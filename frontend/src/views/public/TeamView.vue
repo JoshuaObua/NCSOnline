@@ -110,7 +110,7 @@ const departments = ref([]), team = ref([]), loading = ref(true)
 const openIds = ref(new Set())
 const contactEmail = ref('info@ncs.go.ug')
 const contactPhone = ref('+256 414254477')
-const generalSecretaryName = ref('Dr. Bernard Patrick Ogwel')
+const generalSecretaryName = ref('Dr. Ogwel Benard Patrick (PhD)')
 
 const DEPT_META = {
   'Administration': { color: 'bg-blue-500', icon: 'building2' },
@@ -155,6 +155,8 @@ onMounted(async () => {
     ])
     departments.value = deptRes.status === 'fulfilled' ? (deptRes.value.data?.data || []) : []
     team.value = teamRes.status === 'fulfilled' ? (teamRes.value.data?.data || []) : []
+    const directorySecretary = team.value.find(member => /^general secretary$/i.test(member.designation || ''))
+    if (directorySecretary?.full_name) generalSecretaryName.value = directorySecretary.full_name
     if (contactRes.status === 'fulfilled') {
       const value = contactRes.value.data?.data?.value || {}
       if (value.email) contactEmail.value = value.email
@@ -163,7 +165,7 @@ onMounted(async () => {
     if (homepageRes.status === 'fulfilled') {
       const members = homepageRes.value.data?.data?.value?.leadership?.members || []
       const secretary = members.find(m => /secretary/i.test(m.title || ''))
-      if (secretary?.name) generalSecretaryName.value = secretary.name
+      if (!directorySecretary?.full_name && secretary?.name) generalSecretaryName.value = secretary.name
     }
   } finally {
     loading.value = false

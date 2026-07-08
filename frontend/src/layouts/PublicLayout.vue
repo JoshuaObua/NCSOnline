@@ -1,10 +1,57 @@
 <template>
   <div v-if="maintenanceActive" class="maintenance-screen">
-    <div class="maintenance-card">
-      <img v-if="siteIdentity.logoUrl || siteIdentity.whiteLogoUrl" :src="headerLogo" :alt="siteIdentity.name || 'NCS'" class="maintenance-logo" />
-      <h1>{{ maintenanceInfo.display_meta?.custom_title || 'Scheduled Maintenance' }}</h1>
-      <p>{{ maintenanceInfo.display_meta?.custom_message || maintenanceInfo.reason || 'We are performing scheduled maintenance and will be back online shortly. Thank you for your patience.' }}</p>
+    <div class="maintenance-shell" role="status" aria-live="polite">
+      <section class="maintenance-copy" aria-labelledby="public-maintenance-title">
+        <div class="maintenance-brand">
+          <img :src="maintenanceLogo" :alt="`${siteIdentity.name || 'NCS'} logo`" class="maintenance-logo" />
+          <span>{{ siteIdentity.name || 'NCS Uganda' }}</span>
+        </div>
+        <p class="maintenance-kicker">Public Website Maintenance</p>
+        <h1 id="public-maintenance-title">{{ maintenanceTitle }}</h1>
+        <p class="maintenance-message">{{ maintenanceMessage }}</p>
+        <div class="maintenance-actions" aria-label="Maintenance contact options">
+          <a v-if="maintenanceEmailHref" :href="maintenanceEmailHref">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+              <rect x="2" y="4" width="20" height="16" rx="2" />
+            </svg>
+            Email NCS
+          </a>
+          <a v-if="maintenancePhoneHref" :href="maintenancePhoneHref" class="secondary">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+            Call NCS
+          </a>
+        </div>
+      </section>
+
+      <aside class="maintenance-panel" aria-label="Maintenance status">
+        <div class="maintenance-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.1-3.1a6 6 0 0 1-7.8 7.8l-5.6 5.6a2.1 2.1 0 0 1-3-3l5.6-5.6a6 6 0 0 1 7.8-7.8l-3.1 3.1Z" />
+          </svg>
+        </div>
+        <p class="maintenance-status-label">Current Status</p>
+        <h2>Scheduled upgrades are in progress</h2>
+        <div class="maintenance-status-grid">
+          <div>
+            <span>Expected return</span>
+            <strong>{{ maintenanceExpectedEnd || 'Shortly' }}</strong>
+          </div>
+          <div>
+            <span>Started</span>
+            <strong>{{ maintenanceStartedAt || 'In progress' }}</strong>
+          </div>
+        </div>
+        <ol class="maintenance-steps">
+          <li class="complete"><span></span>Updates started</li>
+          <li class="active"><span></span>Quality checks</li>
+          <li><span></span>Website restored</li>
+        </ol>
+      </aside>
     </div>
+    <p class="maintenance-footnote">&copy; 1964 - {{ currentYear }} National Council of Sports. All Rights Reserved.</p>
   </div>
   <div v-else class="public-site min-h-screen flex flex-col">
 
@@ -351,6 +398,7 @@ import AppPreloader from '@/components/public/AppPreloader.vue'
 import ChatBotWidget from '@/components/public/ChatBotWidget.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import { useTheme } from '@/composables/useTheme.js'
+import { animatePublicPage, cleanupPublicMotion } from '@/utils/publicMotion.js'
 
 const mobileOpen = ref(false)
 const searchOpen = ref(false)
@@ -379,6 +427,14 @@ function resolveIntranetUrl() {
 }
 const intranetUrl = resolveIntranetUrl()
 const currentYear = computed(() => new Date().getFullYear())
+const maintenanceTitle = computed(() => maintenanceInfo.value?.display_meta?.custom_title || "We'll be right back")
+const maintenanceMessage = computed(() => maintenanceInfo.value?.display_meta?.custom_message
+  || maintenanceInfo.value?.reason
+  || 'The National Council of Sports website is temporarily unavailable while scheduled maintenance is in progress.')
+const maintenanceExpectedEnd = computed(() => formatMaintenanceTime(maintenanceInfo.value?.expected_end))
+const maintenanceStartedAt = computed(() => formatMaintenanceTime(maintenanceInfo.value?.scheduled_start || maintenanceInfo.value?.changed_at))
+const maintenanceEmailHref = computed(() => contact.email ? `mailto:${contact.email}` : '')
+const maintenancePhoneHref = computed(() => primaryPhone.value ? `tel:${primaryPhone.value}` : '')
 const currentUser = computed(() => accountUser.value)
 const accountName = computed(() => {
   const user = currentUser.value || {}
@@ -403,7 +459,9 @@ watch(() => route.fullPath, async () => {
   trackPageView(route.path)
   trackGoogleAnalyticsPageView(route.path)
   await nextTick()
-  document.getElementById('main-content')?.focus({ preventScroll: true })
+  const main = document.getElementById('main-content')
+  main?.focus({ preventScroll: true })
+  animatePublicPage(main)
 })
 
 function logoutAccount() {
@@ -591,6 +649,25 @@ const headerLogo = computed(() => {
   for (const p of chain) { if (p) return resolveAsset(p) }
   return '/main-logo.png'
 })
+const maintenanceLogo = computed(() => {
+  const chain = [siteIdentity.whiteLogoUrl, siteIdentity.logoUrl, siteIdentity.footerWhiteLogoUrl, siteIdentity.footerLogoUrl]
+  for (const p of chain) { if (p) return resolveAsset(p) }
+  return '/main-logo.png'
+})
+
+function formatMaintenanceTime(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleString('en-UG', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 function applyFavicon(url) {
   if (!url) return
   const href = resolveAsset(url) || url
@@ -822,19 +899,249 @@ onMounted(() => {
   loadSeoDefaults()
   loadTypography()
   loadThirdPartyIntegrations()
+  nextTick(() => animatePublicPage(document.getElementById('main-content')))
 })
 onUnmounted(() => {
   uninstallAnalyticsTracker()
   uninstallGoogleAnalytics()
+  cleanupPublicMotion()
 })
 </script>
 
 <style scoped>
-.maintenance-screen { min-height: 100vh; display: grid; place-items: center; background: #1a365d; color: white; padding: 2rem; }
-.maintenance-card { max-width: 34rem; text-align: center; }
-.maintenance-logo { height: 3.5rem; width: auto; object-fit: contain; margin: 0 auto 2rem; display: block; }
-.maintenance-card h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: 1rem; }
-.maintenance-card p { color: rgb(255 255 255 / 0.75); line-height: 1.7; }
+.maintenance-screen {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: linear-gradient(135deg, #102b4d 0%, #1a365d 52%, #0d223d 100%);
+  color: #fff;
+  padding: clamp(1.25rem, 4vw, 3.5rem);
+}
+.maintenance-screen::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: linear-gradient(to bottom right, #000, transparent 78%);
+}
+.maintenance-shell {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1160px);
+  margin: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.72fr);
+  align-items: center;
+  gap: clamp(2rem, 7vw, 6.5rem);
+}
+.maintenance-copy { min-width: 0; }
+.maintenance-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: clamp(2.2rem, 7vh, 5rem);
+  color: rgb(255 255 255 / 0.86);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.maintenance-logo {
+  display: block;
+  width: auto;
+  max-width: 168px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.35rem 0.7rem;
+}
+.maintenance-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 1.1rem;
+  color: #f5a623;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.maintenance-kicker::before {
+  width: 28px;
+  height: 2px;
+  content: "";
+  background: #f5a623;
+}
+.maintenance-copy h1 {
+  max-width: 720px;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2.65rem, 6vw, 5.35rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.maintenance-message {
+  max-width: 650px;
+  margin: 1.5rem 0 0;
+  color: rgb(255 255 255 / 0.76);
+  font-size: clamp(1rem, 1.8vw, 1.18rem);
+  line-height: 1.75;
+}
+.maintenance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+.maintenance-actions a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 1px solid #f5a623;
+  border-radius: 6px;
+  background: #f5a623;
+  color: #102b4d;
+  padding: 0.75rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 800;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+.maintenance-actions a:hover { background: #ffc154; border-color: #ffc154; }
+.maintenance-actions a.secondary {
+  border-color: rgb(255 255 255 / 0.34);
+  background: transparent;
+  color: #fff;
+}
+.maintenance-actions a.secondary:hover { border-color: #fff; background: rgb(255 255 255 / 0.08); }
+.maintenance-actions svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.maintenance-panel {
+  border: 1px solid rgb(255 255 255 / 0.22);
+  border-radius: 8px;
+  background: #fff;
+  color: #1a365d;
+  padding: clamp(1.5rem, 4vw, 2.4rem);
+  box-shadow: 0 28px 80px rgb(4 18 36 / 0.34);
+}
+.maintenance-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #fff5e4;
+  color: #e2920f;
+}
+.maintenance-icon svg { width: 29px; height: 29px; }
+.maintenance-status-label {
+  margin: 1.5rem 0 0.5rem;
+  color: #e2920f;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.maintenance-panel h2 {
+  margin: 0;
+  color: #1a365d;
+  font-size: clamp(1.35rem, 2.6vw, 1.75rem);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+.maintenance-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: 1.5rem;
+  overflow: hidden;
+  border: 1px solid #e5e9ef;
+  border-radius: 6px;
+  background: #e5e9ef;
+}
+.maintenance-status-grid div {
+  min-width: 0;
+  background: #f8fafc;
+  padding: 1rem;
+}
+.maintenance-status-grid span,
+.maintenance-status-grid strong { display: block; }
+.maintenance-status-grid span {
+  margin-bottom: 0.35rem;
+  color: #6b7280;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.maintenance-status-grid strong {
+  color: #1a365d;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.maintenance-steps {
+  display: grid;
+  gap: 0.9rem;
+  margin: 1.5rem 0 0;
+  padding: 1.35rem 0 0;
+  border-top: 1px solid #e5e9ef;
+  list-style: none;
+}
+.maintenance-steps li {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+  color: #8a94a3;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+.maintenance-steps li span {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+}
+.maintenance-steps li.complete { color: #237a4b; }
+.maintenance-steps li.complete span { border-color: #2fa96b; background: #2fa96b; }
+.maintenance-steps li.active { color: #1a365d; }
+.maintenance-steps li.active span {
+  border-color: #f5a623;
+  background: #f5a623;
+  box-shadow: 0 0 0 4px rgb(245 166 35 / 0.18);
+}
+.maintenance-footnote {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 1160px);
+  margin: clamp(2rem, 7vh, 4.5rem) auto 0;
+  color: rgb(255 255 255 / 0.48);
+  font-size: 0.76rem;
+}
+@media (max-width: 820px) {
+  .maintenance-screen { justify-content: flex-start; }
+  .maintenance-shell { grid-template-columns: 1fr; gap: 2.2rem; }
+  .maintenance-brand { margin-bottom: 2.5rem; }
+  .maintenance-copy h1 { font-size: clamp(2.45rem, 12vw, 4.2rem); }
+  .maintenance-panel { max-width: 620px; }
+}
+@media (max-width: 480px) {
+  .maintenance-screen { padding: 1.1rem; }
+  .maintenance-brand { align-items: flex-start; flex-direction: column; gap: 0.65rem; }
+  .maintenance-logo { height: 52px; max-width: 150px; }
+  .maintenance-actions { display: grid; grid-template-columns: 1fr; }
+  .maintenance-actions a { width: 100%; }
+  .maintenance-status-grid { grid-template-columns: 1fr; }
+  .maintenance-footnote { line-height: 1.6; }
+}
 .public-site > main { padding-top: 7rem; }
 .newsletter-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 .account-menu{position:relative}.account-trigger{width:38px;height:38px;border:1px solid #e5e7eb;border-radius:999px;background:white;color:#112b4e;display:grid;place-items:center;overflow:hidden;font-weight:900}.account-trigger img{width:100%;height:100%;object-fit:cover}.account-dropdown{position:absolute;right:0;top:calc(100% + 10px);width:230px;background:white;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 18px 40px rgba(15,23,42,.16);padding:.45rem;z-index:70}.account-dropdown a,.account-dropdown button{display:block;width:100%;border:0;background:transparent;border-radius:6px;padding:.7rem .75rem;text-align:left;color:#112b4e;font-size:.88rem;font-weight:800}.account-dropdown a:hover,.account-dropdown button:hover{background:#f8fafc;color:#f48c06}

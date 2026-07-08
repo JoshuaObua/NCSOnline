@@ -1,0 +1,6 @@
+-Home page hero slide show animation is not accepting to chnage animation type
+-Add more exciting animations from gsaps to home page and hae the home page and all other pages aniamated with lazyload for public pages
+-On static pages creation from cms, add a raw html element, and pain text too, also fix persistance so that during editing page content the current page conent  displays during editing rather than disappearing
+-Fix all error 500 from the cms ui and all wrong json frmatting from the system and test all endpoints
+-Fix city identificationf rom audit logs and make it perfect and fromwebsite visit andlytics
+-Fix messages and notificatiosn endpoints as well to make sure it fully works well

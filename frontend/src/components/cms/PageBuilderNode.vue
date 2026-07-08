@@ -18,9 +18,9 @@
     </header>
 
     <div class="pb-props">
-      <label v-for="field in editableFields" :key="field">
+      <label v-for="field in editableFields" :key="field" :class="{ 'code-field': node.type === 'raw_html' && field === 'html' }">
         {{ labelFor(field) }}
-        <textarea v-if="isLongField(field)" v-model="node.props[field]" rows="2"></textarea>
+        <textarea v-if="isLongField(field)" v-model="node.props[field]" :rows="node.type === 'raw_html' ? 8 : 2" :spellcheck="node.type === 'raw_html' ? false : undefined"></textarea>
         <input v-else v-model="node.props[field]" :type="inputType(field)" />
       </label>
     </div>
@@ -89,5 +89,5 @@ function inputType(field) {
 </script>
 
 <style scoped>
-.pb-node{border:1px solid #dbe3ef;border-radius:8px;background:#fff;padding:.75rem;display:grid;gap:.65rem}.pb-node:hover{outline:2px solid rgba(103,119,239,.18)}.pb-node.is-drop-target{border-color:#6777ef;background:#f6f7ff}.pb-node-head{display:flex;align-items:center;justify-content:space-between;gap:.7rem}.pb-node-head strong{display:flex;align-items:center;gap:.45rem;color:#34395e}.pb-node-head strong i{color:#6777ef}.pb-handle,.pb-actions button{width:30px;height:30px;border:1px solid #e5e7eb;border-radius:6px;background:#f8fafc;color:#475569}.pb-actions{display:flex;gap:.35rem}.pb-props{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.55rem}.pb-props label{display:grid;gap:.25rem;color:#64748b;font-size:.72rem;font-weight:800;text-transform:uppercase}.pb-props input,.pb-props textarea{border:1px solid #d1d5db;border-radius:6px;padding:.45rem .55rem;color:#111827;font-size:.85rem;text-transform:none}.pb-children{display:grid;gap:.75rem;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;padding:.75rem}.pb-empty{min-height:54px;display:grid;place-items:center;color:#94a3b8;font-weight:800}
+.pb-node{border:1px solid #dbe3ef;border-radius:8px;background:#fff;padding:.75rem;display:grid;gap:.65rem}.pb-node:hover{outline:2px solid rgba(103,119,239,.18)}.pb-node.is-drop-target{border-color:#6777ef;background:#f6f7ff}.pb-node-head{display:flex;align-items:center;justify-content:space-between;gap:.7rem}.pb-node-head strong{display:flex;align-items:center;gap:.45rem;color:#34395e}.pb-node-head strong i{color:#6777ef}.pb-handle,.pb-actions button{width:30px;height:30px;border:1px solid #e5e7eb;border-radius:6px;background:#f8fafc;color:#475569}.pb-actions{display:flex;gap:.35rem}.pb-props{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.55rem}.pb-props label{display:grid;gap:.25rem;color:#64748b;font-size:.72rem;font-weight:800;text-transform:uppercase}.pb-props input,.pb-props textarea{border:1px solid #d1d5db;border-radius:6px;padding:.45rem .55rem;color:#111827;font-size:.85rem;text-transform:none}.pb-props .code-field{grid-column:1/-1}.pb-props .code-field textarea{min-height:180px;font-family:Consolas,"Courier New",monospace;line-height:1.55;tab-size:2}.pb-children{display:grid;gap:.75rem;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;padding:.75rem}.pb-empty{min-height:54px;display:grid;place-items:center;color:#94a3b8;font-weight:800}
 </style>

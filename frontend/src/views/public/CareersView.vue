@@ -1,237 +1,279 @@
 <template>
   <div class="careers-page bg-white">
-    <section class="careers-hero">
-      <div class="careers-hero__media" aria-hidden="true">
-        <img src="/main-logo.png" alt="" />
+    <section class="bg-[#1a365d] py-16 md:py-20">
+      <div class="max-w-7xl mx-auto px-4">
+        <nav class="flex items-center gap-2 text-white/60 text-sm mb-4" aria-label="Breadcrumb">
+          <router-link to="/" class="hover:text-white">Home</router-link>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+          <span class="text-white">Careers</span>
+        </nav>
+        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Careers at NCS</h1>
+        <p class="text-white/80 text-lg max-w-2xl">Explore job opportunities and business tenders with the National Council of Sports</p>
       </div>
-      <div class="careers-shell careers-hero__grid">
-        <div class="careers-hero__copy">
-          <span class="careers-kicker">{{ page.eyebrow }}</span>
-          <h1>{{ page.title }}</h1>
-          <p>{{ page.intro }}</p>
-          <div class="careers-hero__actions">
-            <a href="#open-roles" class="careers-button careers-button--primary">View Open Roles</a>
-            <router-link to="/contact-us" class="careers-button careers-button--ghost">Contact HR</router-link>
-          </div>
+    </section>
+
+    <section class="bg-white border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="grid md:grid-cols-2 gap-4">
+          <a href="#jobs" class="flex items-center justify-between p-4 bg-[#1a365d]/5 rounded-xl hover:bg-[#1a365d]/10 transition-colors group">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-lg bg-[#1a365d] flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-white" aria-hidden="true">
+                  <path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                  <rect width="20" height="14" x="2" y="6" rx="2" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-semibold text-[#1a365d]">Job Opportunities</h3>
+                <p class="text-sm text-gray-500">{{ jobs.length }} open positions</p>
+              </div>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#1a365d] group-hover:translate-x-1 transition-transform" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </a>
+
+          <a href="#tenders" class="flex items-center justify-between p-4 bg-[#f5a623]/5 rounded-xl hover:bg-[#f5a623]/10 transition-colors group">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-lg bg-[#f5a623] flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-white" aria-hidden="true">
+                  <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                  <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                  <path d="M10 9H8" />
+                  <path d="M16 13H8" />
+                  <path d="M16 17H8" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="font-semibold text-[#1a365d]">Tenders &amp; Procurement</h3>
+                <p class="text-sm text-gray-500">{{ tenders.length }} active tenders</p>
+              </div>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#f5a623] group-hover:translate-x-1 transition-transform" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </a>
         </div>
-        <aside class="careers-hero__panel" aria-label="Careers summary">
+      </div>
+    </section>
+
+    <section id="jobs" class="py-12 md:py-16">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="flex items-center justify-between mb-8">
           <div>
-            <span>Open roles</span>
-            <strong>{{ careers.length }}</strong>
+            <h2 class="text-2xl md:text-3xl font-bold text-[#1a365d] flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7 text-[#f5a623]" aria-hidden="true">
+                <path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                <rect width="20" height="14" x="2" y="6" rx="2" />
+              </svg>
+              Job Opportunities
+            </h2>
+            <p class="text-gray-600 mt-1">Current openings at the National Council of Sports</p>
           </div>
+        </div>
+
+        <div class="space-y-4">
+          <div v-for="job in jobs" :key="job.title" class="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all border border-gray-100 hover:border-[#f5a623]/30">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="inline-flex items-center rounded-md border border-transparent bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700 transition-colors">{{ job.type }}</div>
+                  <div class="inline-flex items-center rounded-md border border-transparent bg-[#1a365d]/10 px-2.5 py-0.5 text-xs font-semibold text-[#1a365d] shadow transition-colors">{{ job.department }}</div>
+                </div>
+                <h3 class="text-xl font-semibold text-[#1a365d] mb-2">{{ job.title }}</h3>
+                <p class="text-gray-600 text-sm mb-3">{{ job.description }}</p>
+                <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                  <span class="flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true">
+                      <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    {{ job.location }}
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    Deadline: {{ job.deadline }}
+                  </span>
+                </div>
+              </div>
+
+              <router-link to="/login">
+                <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-[#1a365d] px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-[#1a365d]/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623]">
+                  Apply Now
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 ml-2" aria-hidden="true">
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                </button>
+              </router-link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tenders" class="py-12 md:py-16 bg-gray-100">
+      <div class="max-w-7xl mx-auto px-4">
+        <div class="flex items-center justify-between mb-8">
           <div>
-            <span>Departments hiring</span>
-            <strong>{{ departmentCount }}</strong>
+            <h2 class="text-2xl md:text-3xl font-bold text-[#1a365d] flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-7 h-7 text-[#f5a623]" aria-hidden="true">
+                <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                <path d="M10 9H8" />
+                <path d="M16 13H8" />
+                <path d="M16 17H8" />
+              </svg>
+              Tenders &amp; Procurement
+            </h2>
+            <p class="text-gray-600 mt-1">Current business opportunities with NCS</p>
           </div>
-          <div>
-            <span>Work location</span>
-            <strong>{{ primaryLocation }}</strong>
-          </div>
-        </aside>
-      </div>
-    </section>
-
-    <section class="careers-stats">
-      <div class="careers-shell careers-stats__grid">
-        <article v-for="item in page.stats" :key="item.label">
-          <span>{{ item.value }}</span>
-          <strong>{{ item.label }}</strong>
-          <p>{{ item.text }}</p>
-        </article>
-      </div>
-    </section>
-
-    <section id="open-roles" class="careers-shell careers-openings" aria-labelledby="open-roles-title">
-      <div class="careers-section-head">
-        <span class="careers-kicker">{{ page.jobs_eyebrow }}</span>
-        <h2 id="open-roles-title">{{ page.jobs_title }}</h2>
-        <p>{{ page.jobs_intro }}</p>
-      </div>
-
-      <div class="careers-toolbar">
-        <label>
-          <span>Search jobs</span>
-          <input v-model.trim="search" type="search" placeholder="Search by role, department, or location" />
-        </label>
-        <label>
-          <span>Department</span>
-          <select v-model="selectedDepartment">
-            <option value="">All departments</option>
-            <option v-for="dept in departments" :key="dept" :value="dept">{{ dept }}</option>
-          </select>
-        </label>
-        <label>
-          <span>Job type</span>
-          <select v-model="selectedType">
-            <option value="">All types</option>
-            <option v-for="type in jobTypes" :key="type" :value="type">{{ labelJobType(type) }}</option>
-          </select>
-        </label>
-      </div>
-
-      <div v-if="loading" class="careers-list">
-        <article v-for="i in 4" :key="i" class="career-card career-card--loading">
-          <span></span>
-          <strong></strong>
-          <p></p>
-        </article>
-      </div>
-
-      <div v-else-if="filteredCareers.length" class="careers-list">
-        <router-link v-for="career in filteredCareers" :key="career.id" :to="`/careers/${career.id}`" class="career-card">
-          <div class="career-card__top">
-            <span class="career-card__badge">{{ career.department || career.department_name || 'NCS Uganda' }}</span>
-            <span v-if="career.deadline_at" class="career-card__deadline">Closes {{ formatDate(career.deadline_at) }}</span>
-          </div>
-          <h3>{{ career.title }}</h3>
-          <p>{{ excerpt(career.description) }}</p>
-          <div class="career-card__meta">
-            <span>
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21s7-4.7 7-11a7 7 0 1 0-14 0c0 6.3 7 11 7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
-              {{ career.location || 'Kampala, Uganda' }}
-            </span>
-            <span>
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 8h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z"/><path d="M3 13h18"/></svg>
-              {{ labelJobType(career.job_type) }}
-            </span>
-            <span v-if="career.salary_range">
-              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16v10H4z"/><circle cx="12" cy="12" r="2.5"/><path d="M7 7v10M17 7v10"/></svg>
-              {{ career.salary_range }}
-            </span>
-          </div>
-          <span class="career-card__cta">View Details</span>
-        </router-link>
-      </div>
-
-      <div v-else class="careers-empty">
-        <div aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 8h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8Z"/><path d="M3 13h18"/></svg>
+          <router-link to="/invest">
+            <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-[#f5a623] px-4 py-2 text-sm font-medium text-[#f5a623] shadow-sm transition-colors hover:bg-[#f5a623] hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623]">Submit Proposal</button>
+          </router-link>
         </div>
-        <h3>{{ hasFilters ? 'No matching roles found' : page.empty_title }}</h3>
-        <p>{{ hasFilters ? 'Try a different search, department, or job type.' : page.empty_text }}</p>
-      </div>
-    </section>
 
-    <section class="careers-process">
-      <div class="careers-shell">
-        <div class="careers-section-head">
-          <span class="careers-kicker">{{ page.process_eyebrow }}</span>
-          <h2>{{ page.process_title }}</h2>
+        <div class="space-y-4">
+          <div v-for="tender in tenders" :key="tender.ref" class="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all border border-gray-100 hover:border-[#f5a623]/30">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="inline-flex items-center rounded-md border border-transparent bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700 shadow transition-colors">{{ tender.status }}</div>
+                  <div class="inline-flex items-center rounded-md border border-transparent bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700 transition-colors">{{ tender.category }}</div>
+                </div>
+                <h3 class="text-xl font-semibold text-[#1a365d] mb-2">{{ tender.title }}</h3>
+                <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                  <span class="flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true">
+                      <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                      <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                      <path d="M10 9H8" />
+                      <path d="M16 13H8" />
+                      <path d="M16 17H8" />
+                    </svg>
+                    Ref: {{ tender.ref }}
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true">
+                      <path d="M8 2v4" />
+                      <path d="M16 2v4" />
+                      <rect width="18" height="18" x="3" y="4" rx="2" />
+                      <path d="M3 10h18" />
+                    </svg>
+                    Closing: {{ tender.closing }}
+                  </span>
+                </div>
+              </div>
+
+              <router-link to="/invest">
+                <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-[#f5a623] px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-[#e09612] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623]">
+                  Submit Bid
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 ml-2" aria-hidden="true">
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                </button>
+              </router-link>
+            </div>
+          </div>
         </div>
-        <div class="careers-process__grid">
-          <article v-for="(step, index) in page.process" :key="step.title">
-            <span>{{ String(index + 1).padStart(2, '0') }}</span>
-            <h3>{{ step.title }}</h3>
-            <p>{{ step.text }}</p>
-          </article>
+
+        <div class="mt-8 bg-[#1a365d] rounded-xl p-6 text-white">
+          <div class="flex items-start gap-4">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8 text-[#f5a623] flex-shrink-0" aria-hidden="true">
+              <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" />
+              <path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" />
+              <path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2" />
+              <path d="M10 6h4" />
+              <path d="M10 10h4" />
+              <path d="M10 14h4" />
+              <path d="M10 18h4" />
+            </svg>
+            <div>
+              <h3 class="font-semibold text-lg mb-2">Procurement Information</h3>
+              <p class="text-white/80 text-sm mb-4">All tender submissions must be accompanied by valid registration documents. For detailed tender documents and submission guidelines, please register or login to your account.</p>
+              <div class="flex flex-wrap gap-3">
+                <router-link to="/register">
+                  <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-[#f5a623] px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-[#e09612] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white">Register Now</button>
+                </router-link>
+                <router-link to="/login">
+                  <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-white px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-white hover:text-[#1a365d] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white">Login</button>
+                </router-link>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
-
-    <section class="careers-shell careers-cta">
-      <div>
-        <span class="careers-kicker">{{ page.cta_eyebrow }}</span>
-        <h2>{{ page.cta_title }}</h2>
-        <p>{{ page.cta_text }}</p>
-      </div>
-      <router-link to="/contact-us" class="careers-button careers-button--primary">Reach Recruitment</router-link>
     </section>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { getSettings, listCareers } from '@/api/cms.js'
-import { sanitizePlainText } from '@/utils/sanitize.js'
+const jobs = [
+  {
+    type: 'Full-time',
+    department: 'Sports Officers',
+    title: 'Sports Development Officer',
+    description: 'Coordinate sports programs and athlete development initiatives across regions.',
+    location: 'Kampala',
+    deadline: 'January 30, 2026',
+  },
+  {
+    type: 'Full-time',
+    department: 'Finance',
+    title: 'Finance Officer',
+    description: 'Manage financial operations and budget planning for NCS programs.',
+    location: 'Kampala',
+    deadline: 'February 15, 2026',
+  },
+  {
+    type: 'Full-time',
+    department: 'ICT',
+    title: 'ICT Support Specialist',
+    description: 'Provide technical support and maintain NCS IT infrastructure.',
+    location: 'Kampala',
+    deadline: 'February 28, 2026',
+  },
+]
 
-const defaults = {
-  eyebrow: 'Careers at NCS',
-  title: 'Join the team shaping Uganda sport',
-  intro: 'Work with the National Council of Sports to strengthen federations, support athletes, and build a more active Uganda.',
-  jobs_eyebrow: 'Open opportunities',
-  jobs_title: 'Current vacancies',
-  jobs_intro: 'Explore published career opportunities and review the role details before contacting the recruitment team.',
-  empty_title: 'No open positions at this time',
-  empty_text: 'Please check back later for new opportunities with the National Council of Sports.',
-  process_eyebrow: 'Recruitment process',
-  process_title: 'What to expect',
-  cta_eyebrow: 'Need support?',
-  cta_title: 'Have a question about a vacancy?',
-  cta_text: 'Our team can help with application guidance, deadlines, and role-specific enquiries.',
-  stats: [
-    { value: '1964', label: 'Established', text: 'Serving Uganda sport through a statutory national mandate.' },
-    { value: '50+', label: 'Sports bodies', text: 'Working alongside recognised national associations.' },
-    { value: '1', label: 'National mission', text: 'Maximising opportunities for all Ugandans in sport.' },
-  ],
-  process: [
-    { title: 'Review the role', text: 'Read the job description, requirements, deadline, and department details.' },
-    { title: 'Prepare documents', text: 'Match your CV, references, and supporting documents to the published requirements.' },
-    { title: 'Contact recruitment', text: 'Use the listed role details and official NCS contacts for application guidance.' },
-  ],
-}
-
-const page = reactive(JSON.parse(JSON.stringify(defaults)))
-const careers = ref([])
-const loading = ref(true)
-const search = ref('')
-const selectedDepartment = ref('')
-const selectedType = ref('')
-
-const departments = computed(() => unique(careers.value.map(c => c.department || c.department_name).filter(Boolean)))
-const jobTypes = computed(() => unique(careers.value.map(c => c.job_type).filter(Boolean)))
-const departmentCount = computed(() => departments.value.length || 1)
-const primaryLocation = computed(() => careers.value.find(c => c.location)?.location || 'Uganda')
-const hasFilters = computed(() => Boolean(search.value || selectedDepartment.value || selectedType.value))
-
-const filteredCareers = computed(() => {
-  const q = search.value.toLowerCase()
-  return careers.value.filter(career => {
-    const haystack = [career.title, career.department, career.department_name, career.location, career.job_type].filter(Boolean).join(' ').toLowerCase()
-    return (!q || haystack.includes(q))
-      && (!selectedDepartment.value || [career.department, career.department_name].includes(selectedDepartment.value))
-      && (!selectedType.value || career.job_type === selectedType.value)
-  })
-})
-
-function unique(items) {
-  return [...new Set(items)]
-}
-
-function labelJobType(type = '') {
-  return String(type || 'full_time').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-}
-
-function formatDate(d) {
-  return new Date(d).toLocaleDateString('en-UG', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-function excerpt(value = '') {
-  const plain = sanitizePlainText(String(value).replace(/<[^>]+>/g, ''))
-  return plain.length > 150 ? `${plain.slice(0, 150).trim()}...` : plain
-}
-
-function mergePageSettings(value) {
-  if (!value || typeof value !== 'object') return
-  Object.assign(page, value)
-  page.stats = Array.isArray(value.stats) && value.stats.length ? value.stats : defaults.stats
-  page.process = Array.isArray(value.process) && value.process.length ? value.process : defaults.process
-}
-
-onMounted(async () => {
-  try {
-    const [settingsRes, careersRes] = await Promise.allSettled([
-      getSettings('careers_page'),
-      listCareers({ status: 'published', per_page: 100 }),
-    ])
-    if (settingsRes.status === 'fulfilled') mergePageSettings(settingsRes.value.data?.data?.value)
-    if (careersRes.status === 'fulfilled') careers.value = careersRes.value.data.data?.items || []
-  } finally {
-    loading.value = false
-  }
-})
+const tenders = [
+  {
+    status: 'Open',
+    category: 'Goods',
+    title: 'Supply of Sports Equipment for Regional Centers',
+    ref: 'NCS/PROC/2026/001',
+    closing: 'February 10, 2026',
+  },
+  {
+    status: 'Open',
+    category: 'Works',
+    title: 'Construction of Volleyball Courts - Eastern Region',
+    ref: 'NCS/PROC/2026/002',
+    closing: 'February 25, 2026',
+  },
+  {
+    status: 'Open',
+    category: 'Services',
+    title: 'Provision of Catering Services for National Events',
+    ref: 'NCS/PROC/2026/003',
+    closing: 'March 5, 2026',
+  },
+]
 </script>
 
 <style scoped>
-.careers-page{color:#1f2937}.careers-shell{width:min(1120px,calc(100% - 2rem));margin:0 auto}.careers-hero{position:relative;overflow:hidden;background:#fff2e1;padding:5.5rem 0 4.25rem}.careers-hero__media{position:absolute;inset:0;display:flex;justify-content:flex-end;align-items:center;opacity:.08;pointer-events:none}.careers-hero__media img{width:min(38rem,70vw);height:auto;transform:translateX(12%)}.careers-hero__grid{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(18rem,.42fr);gap:3rem;align-items:end}.careers-kicker{display:inline-flex;color:#a84b00;font-size:.75rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.careers-hero h1,.careers-section-head h2,.careers-cta h2{margin:.8rem 0 1rem;color:#2f327d;font-size:clamp(2.4rem,5vw,4.8rem);font-weight:800;line-height:1.05;letter-spacing:0}.careers-hero p{max-width:43rem;color:#696984;font-size:1.08rem;line-height:1.85}.careers-hero__actions{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:2rem}.careers-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border-radius:6px;padding:.8rem 1.15rem;font-size:.9rem;font-weight:800;transition:background .2s,color .2s,border-color .2s}.careers-button--primary{background:#a84b00;color:#fff}.careers-button--primary:hover{background:#873d00}.careers-button--ghost{border:1px solid rgb(47 50 125 / .24);color:#2f327d;background:#fff}.careers-button--ghost:hover{border-color:#a84b00;color:#a84b00}.careers-hero__panel{display:grid;gap:1px;border-radius:8px;overflow:hidden;background:rgb(47 50 125 / .14);box-shadow:0 24px 60px rgb(47 50 125 / .14)}.careers-hero__panel div{background:#fff;padding:1.3rem}.careers-hero__panel span{display:block;color:#696984;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}.careers-hero__panel strong{display:block;margin-top:.35rem;color:#2f327d;font-size:1.7rem;font-weight:900}.careers-stats{background:#fff;padding:2.5rem 0;border-bottom:1px solid #eef0f6}.careers-stats__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}.careers-stats article{padding:1.5rem;border:1px solid #eef0f6;border-radius:8px;background:#fff}.careers-stats span{display:block;color:#a84b00;font-size:2rem;font-weight:900}.careers-stats strong{display:block;margin:.3rem 0;color:#2f327d}.careers-stats p{color:#696984;font-size:.9rem;line-height:1.6}.careers-openings{padding:4.5rem 0}.careers-section-head{max-width:42rem;margin-bottom:2rem}.careers-section-head h2,.careers-cta h2{font-size:clamp(2rem,3vw,3rem)}.careers-section-head p,.careers-cta p{color:#696984;line-height:1.75}.careers-toolbar{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(12rem,.75fr) minmax(12rem,.65fr);gap:.8rem;margin-bottom:1.4rem}.careers-toolbar label{display:grid;gap:.35rem;color:#2f327d;font-size:.78rem;font-weight:800}.careers-toolbar input,.careers-toolbar select{width:100%;min-height:44px;border:1px solid #e3e6ef;border-radius:6px;background:#fff;padding:.7rem .85rem;color:#111827}.careers-list{display:grid;gap:1rem}.career-card{display:grid;gap:1rem;border:1px solid #edf0f6;border-radius:8px;background:#fff;padding:1.35rem;color:inherit;box-shadow:0 12px 28px rgb(47 50 125 / .06);transition:transform .2s,border-color .2s,box-shadow .2s}.career-card:hover{transform:translateY(-2px);border-color:rgb(168 75 0 / .35);box-shadow:0 22px 48px rgb(47 50 125 / .12)}.career-card__top,.career-card__meta{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem}.career-card__badge{border-radius:999px;background:#fff2e1;color:#a84b00;padding:.3rem .65rem;font-size:.74rem;font-weight:800}.career-card__deadline{margin-left:auto;color:#b91c1c;font-size:.78rem;font-weight:800}.career-card h3{color:#2f327d;font-size:1.25rem;font-weight:800;letter-spacing:0}.career-card p{max-width:52rem;color:#696984;line-height:1.7}.career-card__meta span{display:inline-flex;align-items:center;gap:.35rem;color:#4b5563;font-size:.84rem;font-weight:700}.career-card__meta svg{width:1rem;height:1rem;stroke:currentColor;stroke-width:1.8}.career-card__cta{justify-self:start;color:#a84b00;font-weight:900;font-size:.9rem}.career-card--loading span,.career-card--loading strong,.career-card--loading p{display:block;border-radius:999px;background:#eef0f6;min-height:1rem;animation:pulse 1.3s infinite}.career-card--loading strong{width:55%;height:1.35rem}.career-card--loading p{width:80%}@keyframes pulse{50%{opacity:.45}}.careers-empty{display:grid;justify-items:center;text-align:center;border:1px dashed #d9deea;border-radius:8px;padding:3rem 1rem}.careers-empty div{display:grid;place-items:center;width:4rem;height:4rem;border-radius:50%;background:#fff2e1;color:#a84b00}.careers-empty svg{width:2rem;height:2rem;stroke:currentColor;stroke-width:1.7}.careers-empty h3{margin:1rem 0 .4rem;color:#2f327d;font-size:1.2rem;font-weight:900}.careers-empty p{max-width:34rem;color:#696984}.careers-process{background:#f8fafc;padding:4rem 0}.careers-process__grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}.careers-process article{border-radius:8px;background:#fff;border:1px solid #edf0f6;padding:1.4rem}.careers-process span{color:#a84b00;font-size:.82rem;font-weight:900}.careers-process h3{margin:.7rem 0 .45rem;color:#2f327d;font-weight:900}.careers-process p{color:#696984;line-height:1.7}.careers-cta{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2rem;align-items:center;margin-top:4rem;margin-bottom:4rem;border-radius:8px;background:#2f327d;padding:2rem}.careers-cta .careers-kicker,.careers-cta h2,.careers-cta p{color:#fff}.careers-cta p{opacity:.78;max-width:42rem}.careers-cta .careers-button{white-space:nowrap}
-@media(max-width:900px){.careers-hero__grid,.careers-toolbar,.careers-cta{grid-template-columns:1fr}.careers-hero__panel{max-width:28rem}.careers-stats__grid,.careers-process__grid{grid-template-columns:1fr}.career-card__deadline{margin-left:0}.careers-cta{padding:1.5rem}}
+.careers-page :is(h1, h2, h3, h4) {
+  letter-spacing: 0;
+}
+
+.careers-page :is(a, button) {
+  text-decoration: none;
+}
 </style>

@@ -1,0 +1,1 @@
+const s=/<\s*(script|iframe|object|embed|style)[^>]*>.*?<\s*\/\s*\1\s*>/gis,n=/\s+on[a-z]+\s*=\s*(".*?"|'.*?'|[^\s>]+)/gi,i=/(href|src)\s*=\s*(['"]?)\s*javascript:[^'"\s>]*\2/gi;function r(t=""){return String(t).replace(s,"").replace(n,"").replace(i,'$1="#"')}function c(t=""){const e=document.createElement("div");return e.textContent=String(t),e.innerHTML}export{r as a,c as s};

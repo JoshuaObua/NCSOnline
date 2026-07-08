@@ -1058,7 +1058,7 @@ func (r *CMSRepo) GetPostByID(ctx context.Context, id string) (*models.CMSPost, 
 func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit, offset int) ([]*models.CMSPost, int64, error) {
 	const countQ = `SELECT COUNT(*) FROM cms_posts p
 	                WHERE ($1='' OR p.category=$1) AND ($2='' OR p.status=$2)`
-	const q = `SELECT p.id, p.title, p.slug, p.excerpt, p.category, COALESCE(p.category_tag,''), p.status,
+	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, COALESCE(p.category_tag,''), p.status,
 	                  COALESCE(p.cover_image_url,''), p.author_id,
 	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
 	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
@@ -1080,7 +1080,7 @@ func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit,
 	posts := []*models.CMSPost{}
 	for rows.Next() {
 		p := &models.CMSPost{}
-		if err := rows.Scan(&p.ID, &p.Title, &p.Slug, &p.Excerpt, &p.Category, &p.CategoryTag, &p.Status,
+		if err := rows.Scan(&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.CategoryTag, &p.Status,
 			&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
 			&p.FocusKeywords, &p.ViewCount, &p.ApprovedAt, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, 0, err
