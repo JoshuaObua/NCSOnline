@@ -1,5 +1,5 @@
 -- Migration: 033_website_homepage_dynamic_content
--- Adds structured fields and seed settings for the public website sections.
+-- Adds structured fields and seed settings for the public portal sections.
 
 ALTER TABLE cms_events
   ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT '';

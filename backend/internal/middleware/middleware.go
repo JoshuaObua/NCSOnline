@@ -509,7 +509,7 @@ func lookupGeo(ipStr string) (country, city, countryCode string, vpn bool) {
 
 // ── Geo-Blocker Middleware ────────────────────────────────────────
 // Blocks requests from IP addresses outside Uganda and VPN/proxy users.
-// Apply only to admin and auth routes — public website stays accessible.
+// Apply only to admin and auth routes — public portal stays accessible.
 
 func GeoBlocker(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

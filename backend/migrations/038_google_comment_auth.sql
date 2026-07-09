@@ -10,7 +10,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_sub
 	WHERE google_sub IS NOT NULL AND deleted_at IS NULL;
 
 INSERT INTO roles (id, name, description, is_system)
-VALUES ('role_subscriber', 'subscriber', 'Public website commenter with no administrative permissions', TRUE)
+VALUES ('role_subscriber', 'subscriber', 'Public portal commenter with no administrative permissions', TRUE)
 ON CONFLICT (name) DO UPDATE
 SET description = EXCLUDED.description,
     is_system = TRUE;

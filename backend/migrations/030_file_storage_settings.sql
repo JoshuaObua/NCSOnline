@@ -1,5 +1,5 @@
 -- Migration 030: admin-managed upload storage settings.
--- Public website assets default to Google Drive; application uploads default to S3.
+-- Public portal assets default to Google Drive; application uploads default to S3.
 
 INSERT INTO cms_settings (key, value) VALUES
   ('file_storage', '{

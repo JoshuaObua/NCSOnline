@@ -152,11 +152,11 @@
           <!-- Right controls -->
           <div class="flex items-center gap-2">
             <form class="relative transition-all duration-300" :class="searchOpen ? 'w-44 md:w-52' : 'w-0'" @submit.prevent="submitSearch">
-              <label for="public-site-search" class="sr-only">Search NCS website</label>
+              <label for="public-site-search" class="sr-only">Search NCS portal</label>
               <input id="public-site-search" v-model="siteSearch" type="search" placeholder="Search..."
                 :class="['flex h-9 rounded-md border bg-transparent px-3 py-1 text-sm shadow-sm transition-all duration-300 border-[#1a365d]/20 focus:border-[#f5a623] focus:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623]', searchOpen ? 'w-full opacity-100' : 'w-0 opacity-0 pointer-events-none']" />
             </form>
-            <button type="button" class="inline-flex items-center justify-center h-9 w-9 rounded-md text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors" :aria-expanded="searchOpen" aria-controls="public-site-search" aria-label="Search website" @click="searchOpen = !searchOpen">
+            <button type="button" class="inline-flex items-center justify-center h-9 w-9 rounded-md text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors" :aria-expanded="searchOpen" aria-controls="public-site-search" aria-label="Search portal" @click="searchOpen = !searchOpen">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
             </button>
             <button type="button" aria-pressed="false" aria-label="Accessibility tools" title="Accessibility tools" class="inline-flex items-center justify-center w-10 h-10 rounded-md text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors" @click="openAccessibility">
@@ -430,7 +430,7 @@ const currentYear = computed(() => new Date().getFullYear())
 const maintenanceTitle = computed(() => maintenanceInfo.value?.display_meta?.custom_title || "We'll be right back")
 const maintenanceMessage = computed(() => maintenanceInfo.value?.display_meta?.custom_message
   || maintenanceInfo.value?.reason
-  || 'The National Council of Sports website is temporarily unavailable while scheduled maintenance is in progress.')
+  || 'The National Council of Sports portal is temporarily unavailable while scheduled maintenance is in progress.')
 const maintenanceExpectedEnd = computed(() => formatMaintenanceTime(maintenanceInfo.value?.expected_end))
 const maintenanceStartedAt = computed(() => formatMaintenanceTime(maintenanceInfo.value?.scheduled_start || maintenanceInfo.value?.changed_at))
 const maintenanceEmailHref = computed(() => contact.email ? `mailto:${contact.email}` : '')

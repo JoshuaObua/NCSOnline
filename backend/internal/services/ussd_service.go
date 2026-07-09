@@ -156,7 +156,7 @@ func (s *USSDService) renewal(ctx context.Context, parts []string, callerPhone s
 	if l.ExpiresOn != nil {
 		expiry = "\nExpiry: " + l.ExpiresOn.Format("02 Jan 2006")
 	}
-	return end("RENEWAL AVAILABLE\n" + l.Number + expiry + "\nSign in at the NCS website and select Renew, or contact NCS for assistance.")
+	return end("RENEWAL AVAILABLE\n" + l.Number + expiry + "\nSign in at the NCS portal and select Renew, or contact NCS for assistance.")
 }
 
 func (s *USSDService) authenticate(ctx context.Context, phone, pin, callerPhone string) (*models.User, bool) {

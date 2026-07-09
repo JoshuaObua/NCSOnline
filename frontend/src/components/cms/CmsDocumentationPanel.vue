@@ -3,7 +3,7 @@
     <header class="cms-docs-hero">
       <div>
         <span class="cms-docs-kicker">CMS operating manual</span>
-        <h2>How to operate the NCS website CMS</h2>
+        <h2>How to operate the NCS portal CMS</h2>
         <p>
           Use this guide to manage public content, staff records, approvals, users, settings,
           storage, backups, and API testing. It is written for editors, managers, and system
@@ -35,7 +35,7 @@
             <li>Sign in at <strong>/login</strong> with your issued CMS account. The login screen intentionally does not ship with saved credentials.</li>
             <li>Open <strong>Dashboard</strong> for a health overview, recent work, tasks, content totals, and access to priority modules.</li>
             <li>Use the left sidebar to open the module you need. If a section is hidden, your role does not include that permission.</li>
-            <li>Create or edit content, set the correct status, add images or downloadable files, save, then preview the public website.</li>
+            <li>Create or edit content, set the correct status, add images or downloadable files, save, then preview the public portal.</li>
             <li>Use <strong>Audit Logs</strong> after sensitive changes such as role updates, deleted content, backups, storage settings, or maintenance mode.</li>
           </ol>
           <div class="cms-docs-note">
@@ -75,7 +75,7 @@
             <li>Prepare the content offline or in a draft. Confirm the title, summary, category, slug, dates, and featured image.</li>
             <li>Enter the record in the correct CMS module. Avoid creating duplicate categories just to fix capitalization.</li>
             <li>Set the status to draft while reviewing. For public visibility, switch to published or active, depending on the module.</li>
-            <li>Save the record and use <strong>Preview website</strong> to check desktop and mobile presentation.</li>
+            <li>Save the record and use <strong>Preview portal</strong> to check desktop and mobile presentation.</li>
             <li>Return to the CMS if text wraps poorly, images crop badly, dates are wrong, or the item appears in the wrong public section.</li>
           </ol>
           <div class="cms-docs-checklist">
@@ -140,7 +140,7 @@
           <h3>Maintenance, Backups, and Recovery</h3>
           <ul>
             <li>Use <strong>Maintenance & Backups</strong> before destructive work, schema imports, or public downtime windows.</li>
-            <li>Enable public website maintenance for visitor-facing downtime, and admin dashboard maintenance for staff-only downtime.</li>
+            <li>Enable public portal maintenance for visitor-facing downtime, and admin dashboard maintenance for staff-only downtime.</li>
             <li>Record a clear reason, expected end time, and support contact before enabling maintenance.</li>
             <li>Download backups after they complete and store them in the approved secure location.</li>
             <li>After restoring or importing schema changes, verify login, homepage, content listings, uploads, and key admin sections.</li>

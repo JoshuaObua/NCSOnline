@@ -1,5 +1,5 @@
 -- Migration: 040_web_analytics
--- Privacy-conscious public website analytics.
+-- Privacy-conscious public portal analytics.
 
 CREATE TABLE IF NOT EXISTS page_views_raw (
     id                       TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
@@ -48,7 +48,7 @@ CREATE INDEX IF NOT EXISTS idx_page_views_raw_session ON page_views_raw (session
 CREATE INDEX IF NOT EXISTS idx_page_views_raw_visitor_day ON page_views_raw (visitor_hash, created_at DESC);
 
 INSERT INTO permissions (id, name, description, resource, action) VALUES
-    ('perm_analytics_read', 'analytics:read', 'View public website analytics', 'analytics', 'read')
+    ('perm_analytics_read', 'analytics:read', 'View public portal analytics', 'analytics', 'read')
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO role_permissions (role_id, permission_id)

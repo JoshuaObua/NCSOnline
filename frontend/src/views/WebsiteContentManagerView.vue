@@ -248,7 +248,7 @@
               </div>
               <div class="cms-actions otika-page-actions">
                 <ThemeToggle />
-                <router-link to="/" target="_blank" class="btn btn-icon icon-left btn-primary"><i class="fas fa-external-link-alt"></i> Preview website</router-link>
+                <router-link to="/" target="_blank" class="btn btn-icon icon-left btn-primary"><i class="fas fa-external-link-alt"></i> Preview portal</router-link>
                 <button type="button" class="btn btn-icon icon-left btn-info" @click="loadAll"><i class="fas fa-sync"></i> Refresh</button>
               </div>
 
@@ -1872,7 +1872,7 @@ const contentSections = [
   { id:'menus', label:'Main Menu', icon:'icofont-navigation-menu' },
   { id:'settings', label:'Contact Details', icon:'icofont-contacts' },
   { id:'third-party-integrations', label:'Third-Party Integrations', icon:'icofont-plugin' },
-  { id:'website-settings', label:'Website Settings', icon:'icofont-globe' },
+  { id:'website-settings', label:'Portal Settings', icon:'icofont-globe' },
   { id:'sitemap', label:'Sitemap', icon:'icofont-site-map' },
   { id:'documentation', label:'CMS Documentation', icon:'icofont-book-alt' },
   { id:'appearance', label:'Appearance', icon:'icofont-paint' },

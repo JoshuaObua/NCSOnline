@@ -39,7 +39,7 @@ type Settings struct {
 }
 
 // allowedProviders is the single set of provider keys an admin may pick for
-// EITHER scope (public website assets or application evidence uploads), so
+// EITHER scope (public portal assets or application evidence uploads), so
 // switching providers works the same way everywhere file uploads happen.
 var allowedProviders = map[string]bool{"local": true, "google_drive": true, "s3": true, "supabase": true}
 

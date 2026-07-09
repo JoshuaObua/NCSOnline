@@ -8,7 +8,7 @@
     <div class="cms-panel storage-routing">
       <p class="storage-hint">Pick which provider handles each kind of upload. Fill in credentials for any provider below, then switch using these two selects — no need to re-enter anything when you change your mind.</p>
       <div class="cms-two">
-        <label>Public website uploads <small>(slides, posts, facilities, etc.)</small>
+        <label>Public portal uploads <small>(slides, posts, facilities, etc.)</small>
           <select v-model="settings.public_provider">
             <option v-for="p in providers" :key="p.value" :value="p.value">{{ p.label }}</option>
           </select>

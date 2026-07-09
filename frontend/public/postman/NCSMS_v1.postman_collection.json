@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "ncsms-api-v1",
     "name": "NCSMS API v1",
-    "description": "National Council of Sports Management System - Backend API and Website CMS.\n\nSetup:\n1. Set baseUrl. For the Docker preview use http://localhost:9080. For a direct backend use the backend origin.\n2. Set loginEmail and loginPassword in collection variables. They are intentionally blank in this file.\n3. Run Auth / Login. The test script saves accessToken and refreshToken.\n4. Authenticated requests use the saved accessToken via Bearer auth.\n5. CMS public read endpoints work without auth. Admin CMS endpoints require the correct role/permission.\n\nToken lifecycle: access tokens are short-lived. Run Auth / Refresh Token when accessToken expires.",
+    "description": "National Council of Sports Management System - Backend API and Portal CMS.\n\nSetup:\n1. Set baseUrl. For the Docker preview use http://localhost:9080. For a direct backend use the backend origin.\n2. Set loginEmail and loginPassword in collection variables. They are intentionally blank in this file.\n3. Run Auth / Login. The test script saves accessToken and refreshToken.\n4. Authenticated requests use the saved accessToken via Bearer auth.\n5. CMS public read endpoints work without auth. Admin CMS endpoints require the correct role/permission.\n\nToken lifecycle: access tokens are short-lived. Run Auth / Refresh Token when accessToken expires.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -1609,7 +1609,7 @@
     },
     {
       "name": "CMS / Public Content",
-      "description": "Unauthenticated endpoints used by the public website and preview checks.",
+      "description": "Unauthenticated endpoints used by the public portal and preview checks.",
       "item": [
         {
           "name": "Maintenance Status",
