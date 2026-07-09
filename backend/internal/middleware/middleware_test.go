@@ -55,6 +55,23 @@ func TestSecurityHeaders(t *testing.T) {
 	}
 }
 
+func TestSecurityHeadersIncludeHSTSForForwardedHTTPS(t *testing.T) {
+	h := SecurityHeaders(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/cms/posts", nil)
+	req.Header.Set("X-Forwarded-Proto", "https")
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	if got := rr.Header().Get("Strict-Transport-Security"); !strings.Contains(got, "max-age=31536000") {
+		t.Fatalf("Strict-Transport-Security = %q", got)
+	}
+	if got := rr.Header().Get("Cross-Origin-Resource-Policy"); got != "same-site" {
+		t.Fatalf("Cross-Origin-Resource-Policy = %q, want same-site", got)
+	}
+}
+
 func TestSetAuditIdentity(t *testing.T) {
 	ac := &AuditContext{}
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", nil)
@@ -121,6 +138,59 @@ func TestLimitRequestBody(t *testing.T) {
 	h.ServeHTTP(rr, httptest.NewRequest(http.MethodPost, "/", strings.NewReader("12345")))
 	if rr.Code != http.StatusRequestEntityTooLarge {
 		t.Fatalf("status = %d, want 413", rr.Code)
+	}
+}
+
+func TestLimitRequestBodyByTypeUsesSmallerJSONBudget(t *testing.T) {
+	h := LimitRequestBodyByType(4, 16)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.ReadAll(r.Body)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+
+	jsonRequest := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("12345"))
+	jsonRequest.Header.Set("Content-Type", "application/json")
+	jsonResponse := httptest.NewRecorder()
+	h.ServeHTTP(jsonResponse, jsonRequest)
+	if jsonResponse.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("JSON status = %d, want 413", jsonResponse.Code)
+	}
+
+	uploadRequest := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("12345"))
+	uploadRequest.Header.Set("Content-Type", "multipart/form-data; boundary=test")
+	uploadResponse := httptest.NewRecorder()
+	h.ServeHTTP(uploadResponse, uploadRequest)
+	if uploadResponse.Code != http.StatusNoContent {
+		t.Fatalf("upload status = %d, want 204", uploadResponse.Code)
+	}
+}
+
+func TestClassifyRequestClientDetectsUSSDAndAPITools(t *testing.T) {
+	ussd := httptest.NewRequest(http.MethodPost, "/ncs-ussd", nil)
+	if got := classifyRequestClient(ussd); got != "USSD Gateway" {
+		t.Fatalf("USSD client = %q", got)
+	}
+
+	postman := httptest.NewRequest(http.MethodGet, "/api/v1/cms/posts", nil)
+	postman.Header.Set("User-Agent", "PostmanRuntime/7.43.0")
+	if got := classifyRequestClient(postman); got != "Postman" {
+		t.Fatalf("Postman client = %q", got)
+	}
+
+	integration := httptest.NewRequest(http.MethodPost, "/api/v1/applications", nil)
+	integration.Header.Set("X-NCS-Channel", "integration")
+	if got := classifyRequestClient(integration); got != "API Client" {
+		t.Fatalf("integration client = %q", got)
+	}
+}
+
+func TestDeviceFingerprintPreservesClientAndDeviceDetails(t *testing.T) {
+	ua := "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36"
+	browser, platform := parseBrowserOS(ua)
+	info := formatDeviceInfo(platform, parseDeviceType(ua), browser, parseClientType(ua))
+	for _, want := range []string{"Android", "Mobile", "Chrome", "Browser"} {
+		if !strings.Contains(info, want) {
+			t.Fatalf("device info %q is missing %q", info, want)
+		}
 	}
 }
 

@@ -486,16 +486,35 @@ type CMSDocument struct {
 }
 
 type CMSFacility struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Slug        string    `json:"slug"`
-	Description string    `json:"description,omitempty"`
-	Category    string    `json:"category,omitempty"`
-	ImageURL    string    `json:"image_url,omitempty"`
-	SortOrder   int       `json:"sort_order"`
-	IsActive    bool      `json:"is_active"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID                 string    `json:"id"`
+	Name               string    `json:"name"`
+	Slug               string    `json:"slug"`
+	Description        string    `json:"description,omitempty"`
+	Category           string    `json:"category,omitempty"`
+	Region             string    `json:"region"`
+	RegionName         string    `json:"region_name,omitempty"`
+	Location           string    `json:"location,omitempty"`
+	Amenities          string    `json:"amenities,omitempty"`
+	Phone              string    `json:"phone,omitempty"`
+	Email              string    `json:"email,omitempty"`
+	AvailabilityStatus string    `json:"availability_status"`
+	ImageURL           string    `json:"image_url,omitempty"`
+	SortOrder          int       `json:"sort_order"`
+	IsActive           bool      `json:"is_active"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+type CMSFacilityRegion struct {
+	ID            string    `json:"id"`
+	Name          string    `json:"name"`
+	Slug          string    `json:"slug"`
+	Description   string    `json:"description,omitempty"`
+	SortOrder     int       `json:"sort_order"`
+	IsActive      bool      `json:"is_active"`
+	FacilityCount int64     `json:"facility_count"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 type CMSAssociation struct {

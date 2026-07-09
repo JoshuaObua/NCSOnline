@@ -90,7 +90,7 @@ func main() {
 	r.Use(metricRegistry.Middleware)
 	r.Use(middleware.SecurityHeaders)
 	r.Use(middleware.RejectAmbiguousPaths)
-	r.Use(middleware.LimitRequestBody(25 << 20))
+	r.Use(middleware.LimitRequestBodyByType(2<<20, 25<<20))
 	r.Use(middleware.Logger)
 	r.Use(middleware.AuditLogger(auditWriter))
 	r.Use(middleware.HoneypotScanner)
@@ -170,6 +170,7 @@ func main() {
 			r.Get("/resources", h.CMS.ListResources)
 			r.Get("/documents", h.CMS.ListDocuments)
 			r.Get("/facilities", h.CMS.ListFacilities)
+			r.Get("/facility-regions", h.CMS.ListFacilityRegions)
 			r.Get("/associations", h.CMS.ListAssociations)
 			r.Get("/invest", h.CMS.ListInvest)
 			r.With(publicFormRL.Middleware).Post("/invest/requests", h.CMS.CreateInvestmentRequest)
@@ -515,6 +516,13 @@ func main() {
 					r.Delete("/{id}", h.CMS.DeleteFacility)
 				})
 
+				r.Route("/admin/cms/facility-regions", func(r chi.Router) {
+					r.Get("/", h.CMS.ListFacilityRegions)
+					r.Post("/", h.CMS.CreateFacilityRegion)
+					r.Put("/{id}", h.CMS.UpdateFacilityRegion)
+					r.Delete("/{id}", h.CMS.DeleteFacilityRegion)
+				})
+
 				r.Route("/admin/cms/associations", func(r chi.Router) {
 					r.Get("/", h.CMS.ListAssociations)
 					r.Post("/", h.CMS.CreateAssociation)
@@ -579,6 +587,7 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    64 << 10,
 	}
 
 	quit := make(chan os.Signal, 1)

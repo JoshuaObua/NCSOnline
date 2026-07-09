@@ -18,9 +18,9 @@
     </header>
 
     <div class="pb-props">
-      <label v-for="field in editableFields" :key="field" :class="{ 'code-field': node.type === 'raw_html' && field === 'html' }">
+      <label v-for="field in editableFields" :key="field" :class="{ 'code-field': (node.type === 'raw_html' && field === 'html') || field === 'items' }">
         {{ labelFor(field) }}
-        <textarea v-if="isLongField(field)" v-model="node.props[field]" :rows="node.type === 'raw_html' ? 8 : 2" :spellcheck="node.type === 'raw_html' ? false : undefined"></textarea>
+        <textarea v-if="isLongField(field)" v-model="node.props[field]" :rows="node.type === 'raw_html' || field === 'items' ? 8 : 2" :spellcheck="node.type === 'raw_html' ? false : undefined"></textarea>
         <input v-else v-model="node.props[field]" :type="inputType(field)" />
       </label>
     </div>
@@ -78,12 +78,12 @@ function labelFor(field) {
 }
 
 function isLongField(field) {
-  return ['text', 'html', 'alt', 'cite'].includes(field)
+  return ['text', 'html', 'items', 'alt', 'cite'].includes(field)
 }
 
 function inputType(field) {
   if (field === 'value') return 'number'
-  if (field === 'lazy' || field === 'lightbox' || field === 'dismissible') return 'checkbox'
+  if (field === 'lazy' || field === 'lightbox' || field === 'dismissible' || field === 'ordered') return 'checkbox'
   return 'text'
 }
 </script>

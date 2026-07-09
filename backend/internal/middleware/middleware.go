@@ -136,10 +136,15 @@ func SecurityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Permitted-Cross-Domain-Policies", "none")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
 		w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'")
+		w.Header().Set("Cross-Origin-Resource-Policy", "same-site")
 		w.Header().Set("Cache-Control", "no-store")
+		if r.TLS != nil || strings.EqualFold(strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")), "https") {
+			w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		}
 		next.ServeHTTP(w, r)
 	})
 }
@@ -150,6 +155,36 @@ func LimitRequestBody(maxBytes int64) func(http.Handler) http.Handler {
 			if r.Body != nil && maxBytes > 0 {
 				r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
 			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func LimitRequestBodyByType(jsonBytes, uploadBytes int64) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Body == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+			contentType := strings.ToLower(strings.TrimSpace(strings.SplitN(r.Header.Get("Content-Type"), ";", 2)[0]))
+			maxBytes := jsonBytes
+			if strings.HasPrefix(contentType, "multipart/") ||
+				contentType == "application/octet-stream" ||
+				strings.HasPrefix(contentType, "image/") ||
+				strings.HasPrefix(contentType, "video/") ||
+				strings.HasPrefix(contentType, "audio/") {
+				maxBytes = uploadBytes
+			}
+			if maxBytes <= 0 {
+				next.ServeHTTP(w, r)
+				return
+			}
+			if r.ContentLength > maxBytes {
+				response.Err(w, http.StatusRequestEntityTooLarge, "PAYLOAD_TOO_LARGE", "Request body exceeds the allowed size")
+				return
+			}
+			r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -549,7 +584,11 @@ func AuditLogger(writer *AuditWriter) func(http.Handler) http.Handler {
 			ua := r.UserAgent()
 			statusCode := ww.status
 			browser, osName := parseBrowserOS(ua)
-			clientType := parseClientType(ua)
+			clientType := classifyRequestClient(r)
+			deviceType := parseDeviceType(ua)
+			if browser == "Other" && clientType == "USSD Gateway" {
+				browser = "USSD"
+			}
 			eventType := classifyEventType(method, endpoint)
 			fingerprintEvent, anomaly := fingerprintRequest(r)
 			if fingerprintEvent != "" {
@@ -574,7 +613,8 @@ func AuditLogger(writer *AuditWriter) func(http.Handler) http.Handler {
 				Browser:         browser,
 				OSName:          osName,
 				ClientType:      clientType,
-				DeviceInfo:      osName + " / " + browser,
+				DeviceInfo:      formatDeviceInfo(osName, deviceType, browser, clientType),
+				Platform:        osName,
 				ResponseCode:    statusCode,
 				ResponseTimeMs:  elapsed,
 				EventType:       eventType,
@@ -731,10 +771,10 @@ func parseBrowserOS(ua string) (browser, osName string) {
 
 	// OS detection
 	switch {
-	case strings.Contains(lower, "windows nt 10") || strings.Contains(lower, "windows 10"):
-		osName = "Windows 10"
 	case strings.Contains(lower, "windows nt 11") || strings.Contains(lower, "windows 11"):
 		osName = "Windows 11"
+	case strings.Contains(lower, "windows nt 10") || strings.Contains(lower, "windows 10"):
+		osName = "Windows 10/11"
 	case strings.Contains(lower, "windows"):
 		osName = "Windows"
 	case strings.Contains(lower, "android"):
@@ -745,10 +785,10 @@ func parseBrowserOS(ua string) (browser, osName string) {
 		osName = "iOS (iPad)"
 	case strings.Contains(lower, "mac os x") || strings.Contains(lower, "macos"):
 		osName = "macOS"
-	case strings.Contains(lower, "linux"):
-		osName = "Linux"
 	case strings.Contains(lower, "ubuntu"):
 		osName = "Ubuntu"
+	case strings.Contains(lower, "linux"):
+		osName = "Linux"
 	default:
 		osName = "Unknown"
 	}
@@ -769,6 +809,8 @@ func parseBrowserOS(ua string) (browser, osName string) {
 		browser = "Go/HTTP"
 	case strings.Contains(lower, "curl"):
 		browser = "curl"
+	case strings.Contains(lower, "brave"):
+		browser = "Brave"
 	case strings.Contains(lower, "edg/"):
 		browser = "Edge"
 	case strings.Contains(lower, "opr/") || strings.Contains(lower, "opera"):
@@ -781,8 +823,6 @@ func parseBrowserOS(ua string) (browser, osName string) {
 		browser = "Firefox"
 	case strings.Contains(lower, "safari") && !strings.Contains(lower, "chrome"):
 		browser = "Safari"
-	case strings.Contains(lower, "brave"):
-		browser = "Brave"
 	default:
 		if ua == "" {
 			browser = "Unknown"
@@ -798,6 +838,8 @@ func parseBrowserOS(ua string) (browser, osName string) {
 func parseClientType(ua string) string {
 	lower := strings.ToLower(ua)
 	switch {
+	case strings.Contains(lower, "ussd") || strings.Contains(lower, "africastalking") || strings.Contains(lower, "africa's talking"):
+		return "USSD Gateway"
 	case strings.Contains(lower, "postman"):
 		return "Postman"
 	case strings.Contains(lower, "insomnia"):
@@ -812,6 +854,12 @@ func parseClientType(ua string) string {
 		return "Go/HTTP"
 	case strings.Contains(lower, "curl"):
 		return "curl"
+	case strings.Contains(lower, "wget"):
+		return "wget"
+	case strings.Contains(lower, "okhttp"):
+		return "Mobile App"
+	case strings.Contains(lower, "axios") || strings.Contains(lower, "node-fetch"):
+		return "API Client"
 	case strings.Contains(lower, "mozilla") || strings.Contains(lower, "webkit"):
 		return "Browser"
 	case ua == "":
@@ -819,6 +867,65 @@ func parseClientType(ua string) string {
 	default:
 		return "Other"
 	}
+}
+
+func classifyRequestClient(r *http.Request) string {
+	for _, header := range []string{"X-NCS-Channel", "X-Channel"} {
+		switch strings.ToLower(strings.TrimSpace(r.Header.Get(header))) {
+		case "ussd":
+			return "USSD Gateway"
+		case "mobile", "mobile-app", "app":
+			return "Mobile App"
+		case "api", "integration":
+			return "API Client"
+		case "web", "browser":
+			return "Browser"
+		}
+	}
+	path := strings.ToLower(r.URL.Path)
+	if strings.Contains(path, "ussd") ||
+		r.Header.Get("X-USSD-Session-ID") != "" ||
+		r.Header.Get("X-USSD-MSISDN") != "" {
+		return "USSD Gateway"
+	}
+	return parseClientType(r.UserAgent())
+}
+
+func parseDeviceType(ua string) string {
+	lower := strings.ToLower(ua)
+	switch {
+	case strings.Contains(lower, "bot") || strings.Contains(lower, "crawler") || strings.Contains(lower, "spider"):
+		return "Bot"
+	case strings.Contains(lower, "ipad") || strings.Contains(lower, "tablet"):
+		return "Tablet"
+	case strings.Contains(lower, "mobile") || strings.Contains(lower, "android") || strings.Contains(lower, "iphone"):
+		return "Mobile"
+	case strings.Contains(lower, "mozilla") || strings.Contains(lower, "windows") || strings.Contains(lower, "macintosh") || strings.Contains(lower, "linux"):
+		return "Desktop"
+	default:
+		return "Unknown"
+	}
+}
+
+func formatDeviceInfo(platform, deviceType, browser, clientType string) string {
+	values := make([]string, 0, 4)
+	seen := map[string]struct{}{}
+	for _, value := range []string{platform, deviceType, browser, clientType} {
+		value = strings.TrimSpace(value)
+		if value == "" || strings.EqualFold(value, "unknown") || strings.EqualFold(value, "other") {
+			continue
+		}
+		key := strings.ToLower(value)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		values = append(values, value)
+	}
+	if len(values) == 0 {
+		return "Unknown"
+	}
+	return strings.Join(values, " / ")
 }
 
 // extractResource pulls the first meaningful path segment (e.g. "auth", "users", "cms").

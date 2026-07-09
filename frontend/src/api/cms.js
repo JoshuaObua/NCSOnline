@@ -353,10 +353,15 @@ export function adminDeleteDocument(id) { return apiClient.delete(`/api/v1/admin
 // ── Facilities ────────────────────────────────────────────────────
 
 export function listFacilities(params = {}, config = {}) { return apiClient.get('/api/v1/cms/facilities', { params, ...config }) }
+export function listFacilityRegions(params = {}) { return apiClient.get('/api/v1/cms/facility-regions', { params }) }
 export function adminListFacilities() { return apiClient.get('/api/v1/admin/cms/facilities', { params: { active: 'false' } }) }
 export function adminCreateFacility(data) { return apiClient.post('/api/v1/admin/cms/facilities', data) }
 export function adminUpdateFacility(id, data) { return apiClient.put(`/api/v1/admin/cms/facilities/${id}`, data) }
 export function adminDeleteFacility(id) { return apiClient.delete(`/api/v1/admin/cms/facilities/${id}`) }
+export function adminListFacilityRegions() { return apiClient.get('/api/v1/admin/cms/facility-regions', { params: { active: 'false' } }) }
+export function adminCreateFacilityRegion(data) { return apiClient.post('/api/v1/admin/cms/facility-regions', data) }
+export function adminUpdateFacilityRegion(id, data) { return apiClient.put(`/api/v1/admin/cms/facility-regions/${id}`, data) }
+export function adminDeleteFacilityRegion(id) { return apiClient.delete(`/api/v1/admin/cms/facility-regions/${id}`) }
 
 // ── Associations ──────────────────────────────────────────────────
 

@@ -29,6 +29,7 @@ type LocationResult struct {
 	Platform      string   `json:"platform"`
 	Browser       string   `json:"browser"`
 	DeviceType    string   `json:"device_type"`
+	ClientType    string   `json:"client_type"`
 	Authenticated bool     `json:"authenticated"`
 	UserID        *string  `json:"user_id"`
 	Source        string   `json:"source"`

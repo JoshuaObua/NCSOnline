@@ -16,6 +16,7 @@ export const blockRegistry = [
   { type: 'h5', label: 'Minor Heading (H5)', category: 'Typography', icon: 'icofont-heading', props: { text: 'Minor heading', align: 'left' } },
   { type: 'paragraph', label: 'Paragraph / Lead Text', category: 'Typography', icon: 'icofont-paragraph', props: { text: 'Write body copy here.', lead: false } },
   { type: 'plain_text', label: 'Plain Text', category: 'Typography', icon: 'icofont-file-text', props: { text: 'Enter plain text here.' } },
+  { type: 'list', label: 'Editable List', category: 'Typography', icon: 'icofont-list', props: { items: 'First item\nSecond item', ordered: false } },
   { type: 'blockquote', label: 'Blockquote', category: 'Typography', icon: 'icofont-quote-left', props: { text: 'Pull quote text.', cite: 'Source' } },
   { type: 'summernote_text', label: 'Rich Text Block', category: 'Typography', icon: 'icofont-edit', props: { html: '<p>Rich text content</p>', editor: 'summernote-inline' } },
   { type: 'raw_html', label: 'Raw HTML', category: 'Typography', icon: 'icofont-code', props: { html: '<div>Custom HTML</div>' } },

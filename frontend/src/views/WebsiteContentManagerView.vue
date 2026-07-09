@@ -838,7 +838,16 @@
 
         <section v-else-if="active === 'manage-facilities'" class="cms-panel">
           <div class="cms-panel-head"><h2>Manage Facilities</h2><button type="button" @click="resetFacilityForm(); active = 'facilities'">New facility</button></div>
-          <ContentTable :items="facilities" title-key="name" subtitle-key="category" @edit="editFacility" @delete="removeFacility" />
+          <ContentTable :items="facilities" title-key="name" subtitle-key="region_name" @edit="editFacility" @delete="removeFacility" />
+        </section>
+
+        <section v-else-if="active === 'create-facility-regions'" class="cms-panel">
+          <EditorForm title="Add Facility Region" :model="facilityRegionForm" :fields="facilityRegionFields" @save="saveFacilityRegion" />
+        </section>
+
+        <section v-else-if="active === 'manage-facility-regions'" class="cms-panel">
+          <div class="cms-panel-head"><h2>Manage Facility Regions</h2><button type="button" @click="resetFacilityRegionForm(); active = 'create-facility-regions'">New region</button></div>
+          <ContentTable :items="facilityRegions" title-key="name" subtitle-key="description" @edit="editFacilityRegion" @delete="removeFacilityRegion" />
         </section>
 
         <section v-else-if="active === 'create-facility-categories'" class="cms-panel">
@@ -1863,6 +1872,8 @@ const userSections = [
 const facilitySections = [
   { id:'facilities', label:'Add New Facility', icon:'icofont-plus-circle' },
   { id:'manage-facilities', label:'Manage Facilities', icon:'icofont-list' },
+  { id:'create-facility-regions', label:'Add Facility Region', icon:'icofont-location-pin' },
+  { id:'manage-facility-regions', label:'Manage Facility Regions', icon:'icofont-map' },
   { id:'create-facility-categories', label:'Add Facility Category', icon:'icofont-folder-open' },
   { id:'manage-facility-categories', label:'Manage Facility Categories', icon:'icofont-tags' },
 ]
@@ -1989,6 +2000,8 @@ const sectionPermissionMap = {
   'manage-users':['users:read'],
   facilities:['facilities:create'],
   'manage-facilities':['facilities:read'],
+  'create-facility-regions':['facilities:create'],
+  'manage-facility-regions':['facilities:read'],
   'create-facility-categories':['facility_categories:create'],
   'manage-facility-categories':['facility_categories:read'],
   events:['events:create'],
@@ -2135,6 +2148,7 @@ const careerCategories = ref([])
 const teamDepartments = ref([])
 const institutionalDepartments = ref([])
 const facilityCategories = ref([])
+const facilityRegions = ref([])
 const eventCategories = ref([])
 const investCategories = ref([])
 const federationCategories = ref([])
@@ -2222,6 +2236,7 @@ const resourceCategoryForm = reactive({ id:'', name:'', slug:'', description:'',
 const careerCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'career' })
 const teamDepartmentForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'team_department' })
 const facilityCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'facility' })
+const facilityRegionForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true })
 const eventCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'event' })
 const investCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'investment' })
 const federationCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'federation' })
@@ -2230,7 +2245,11 @@ const pressReleaseCategoryForm = reactive({ id:'', name:'', slug:'', description
 const reportCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'report' })
 const speechCategoryForm = reactive({ id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'speech' })
 const eventForm = reactive({ id:'', title:'', slug:'', category:'', location:'', event_date:'', end_date:'', cover_image_url:'', description:'', status:'published' })
-const facilityForm = reactive({ id:'', name:'', slug:'', category:'', description:'', image_url:'', sort_order:0, is_active:true })
+const facilityForm = reactive({
+  id:'', name:'', slug:'', category:'', region:'central', location:'', amenities:'',
+  phone:'', email:'', availability_status:'Available', description:'', image_url:'',
+  sort_order:0, is_active:true,
+})
 const associationForm = reactive({ id:'', name:'', slug:'', abbreviation:'', category:'', president:'', secretary:'', phone:'', address:'', website_url:'', description:'', logo_url:'', sort_order:0, is_active:true })
 const factForm = reactive({ id:'', label:'', value:'', icon:'icofont-chart-growth', sort_order:0, is_active:true })
 const faqForm = reactive({ id:'', question:'', answer:'', category:'General', sort_order:0, is_active:true })
@@ -2254,6 +2273,7 @@ const resourceCategoryFields = fields(['name','slug','sort_order','is_active'], 
 const careerCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
 const teamDepartmentFields = fields(['name','slug','sort_order','is_active'], ['description'])
 const facilityCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
+const facilityRegionFields = fields(['name','slug','sort_order','is_active'], ['description'])
 const eventCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
 const investCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
 const federationCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
@@ -2267,7 +2287,21 @@ const speechCategoryFields = fields(['name','slug','sort_order','is_active'], ['
 function withCategoryOptions(fieldDefs, categoriesRef) {
   return computed(() => fieldDefs.map(f => f.name === 'category' ? { ...f, type: 'select', options: categoriesRef.value } : f))
 }
-const facilityFields = withCategoryOptions(fields(['name','slug','category','image_url','sort_order','is_active'], ['description']), facilityCategories)
+const facilityStatusOptions = [
+  { value:'Available', label:'Available' },
+  { value:'Limited', label:'Limited' },
+  { value:'Maintenance', label:'Maintenance' },
+  { value:'Unavailable', label:'Unavailable' },
+]
+const facilityFields = computed(() => fields(
+  ['name','slug','category','region','location','phone','email','availability_status','image_url','sort_order','is_active'],
+  ['description','amenities'],
+).map(field => {
+  if (field.name === 'category') return { ...field, type:'select', options:facilityCategories.value }
+  if (field.name === 'region') return { ...field, type:'select', options:facilityRegions.value }
+  if (field.name === 'availability_status') return { ...field, type:'select', options:facilityStatusOptions }
+  return field
+}))
 const associationFields = withCategoryOptions(fields(['name','slug','abbreviation','category','president','secretary','phone','address','website_url','logo_url','sort_order','is_active'], ['description']), federationCategories)
 const factFields = fields(['label','value','sort_order','is_active'])
 const resourceFields = withCategoryOptions(fields(['title','category','file_url','sort_order','is_active'], ['description']), resourceCategories)
@@ -2723,7 +2757,7 @@ async function loadAll() {
       cms.adminListDocuments({ doc_type:'sports_rule', per_page:200 }), cms.adminListDocuments({ doc_type:'press_release', per_page:200 }),
       cms.adminListDocuments({ doc_type:'report', per_page:200 }), cms.adminListDocuments({ doc_type:'speech', per_page:200 }),
       cms.adminListSportsRuleCategories(), cms.adminListPressReleaseCategories(), cms.adminListReportCategories(), cms.adminListSpeechCategories(),
-      cms.adminListCouncil({ per_page:200 }),
+      cms.adminListCouncil({ per_page:200 }), cms.adminListFacilityRegions(),
     ])
     Object.assign(homepage, data(results[0].value)?.value || {})
     mergeHomepageDefaults(homepage)
@@ -2782,6 +2816,7 @@ async function loadAll() {
     reportCategories.value = listData(results[50].value)
     speechCategories.value = listData(results[51].value)
     councilMembers.value = listData(results[52].value)
+    facilityRegions.value = listData(results[53].value)
     await loadCareerPageSettings()
   } catch (err) { setErr(err) }
 }
@@ -2928,6 +2963,9 @@ async function saveFacilityCategory() {
   facilityCategoryForm.content_type = 'facility'
   await saveEntity(facilityCategoryForm, cms.adminCreateFacilityCategory, cms.adminUpdateFacilityCategory, 'Facility category saved')
 }
+async function saveFacilityRegion() {
+  await saveEntity(facilityRegionForm, cms.adminCreateFacilityRegion, cms.adminUpdateFacilityRegion, 'Facility region saved')
+}
 async function saveEventCategory() {
   eventCategoryForm.content_type = 'event'
   await saveEntity(eventCategoryForm, cms.adminCreateEventCategory, cms.adminUpdateEventCategory, 'Event category saved')
@@ -2984,6 +3022,7 @@ function editResourceCategory(item) { copyInto(resourceCategoryForm, item); reso
 function editCareerCategory(item) { copyInto(careerCategoryForm, item); careerCategoryForm.content_type = 'career'; active.value = 'create-career-categories' }
 function editTeamDepartment(item) { copyInto(teamDepartmentForm, item); teamDepartmentForm.content_type = 'team_department'; active.value = 'create-team-departments' }
 function editFacilityCategory(item) { copyInto(facilityCategoryForm, item); facilityCategoryForm.content_type = 'facility'; active.value = 'create-facility-categories' }
+function editFacilityRegion(item) { copyInto(facilityRegionForm, item); active.value = 'create-facility-regions' }
 function editEventCategory(item) { copyInto(eventCategoryForm, item); eventCategoryForm.content_type = 'event'; active.value = 'create-event-categories' }
 function editInvestCategory(item) { copyInto(investCategoryForm, item); investCategoryForm.content_type = 'investment'; active.value = 'create-invest-categories' }
 function editFederationCategory(item) { copyInto(federationCategoryForm, item); federationCategoryForm.content_type = 'federation'; active.value = 'create-federation-categories' }
@@ -3020,6 +3059,7 @@ async function removeResourceCategory(item) { await removeEntity(item, cms.admin
 async function removeCareerCategory(item) { await removeEntity(item, cms.adminDeleteCareerCategory) }
 async function removeTeamDepartment(item) { await removeEntity(item, cms.adminDeleteTeamDepartment) }
 async function removeFacilityCategory(item) { await removeEntity(item, cms.adminDeleteFacilityCategory) }
+async function removeFacilityRegion(item) { await removeEntity(item, cms.adminDeleteFacilityRegion) }
 async function removeEventCategory(item) { await removeEntity(item, cms.adminDeleteEventCategory) }
 async function removeInvestCategory(item) { await removeEntity(item, cms.adminDeleteInvestCategory) }
 async function removeFederationCategory(item) { await removeEntity(item, cms.adminDeleteFederationCategory) }
@@ -3754,11 +3794,19 @@ function resetTeamDepartmentForm() {
 }
 
 function resetFacilityForm() {
-  Object.assign(facilityForm, { id:'', name:'', slug:'', category:'', description:'', image_url:'', sort_order:0, is_active:true })
+  Object.assign(facilityForm, {
+    id:'', name:'', slug:'', category:'', region:facilityRegions.value[0]?.slug || 'central',
+    location:'', amenities:'', phone:'', email:'', availability_status:'Available',
+    description:'', image_url:'', sort_order:0, is_active:true,
+  })
 }
 
 function resetFacilityCategoryForm() {
   Object.assign(facilityCategoryForm, { id:'', name:'', slug:'', description:'', sort_order:0, is_active:true, content_type:'facility' })
+}
+
+function resetFacilityRegionForm() {
+  Object.assign(facilityRegionForm, { id:'', name:'', slug:'', description:'', sort_order:0, is_active:true })
 }
 
 function resetEventForm() {

@@ -14,6 +14,7 @@ import (
 
 var ErrNotFound = errors.New("record not found")
 var ErrDuplicate = errors.New("duplicate record")
+var ErrInUse = errors.New("record is in use")
 
 type Repos struct {
 	Users         *UserRepo
@@ -1916,15 +1917,105 @@ func (r *CMSRepo) DeleteDocument(ctx context.Context, id string) error {
 
 // ── Facilities ────────────────────────────────────────────────────
 
-func (r *CMSRepo) ListFacilities(ctx context.Context, activeOnly bool) ([]*models.CMSFacility, error) {
-	q := `SELECT id, name, slug, COALESCE(description,''), COALESCE(category,''), COALESCE(image_url,''),
-	             sort_order, is_active, created_at, updated_at
-	      FROM cms_facilities`
+func (r *CMSRepo) ListFacilityRegions(ctx context.Context, activeOnly bool) ([]*models.CMSFacilityRegion, error) {
+	q := `SELECT r.id, r.name, r.slug, r.description, r.sort_order, r.is_active,
+	             COUNT(f.id) FILTER (WHERE f.is_active), r.created_at, r.updated_at
+	      FROM cms_facility_regions r
+	      LEFT JOIN cms_facilities f ON f.region_slug = r.slug`
 	if activeOnly {
-		q += ` WHERE is_active=true`
+		q += ` WHERE r.is_active=true`
 	}
-	q += ` ORDER BY sort_order ASC, name ASC`
+	q += ` GROUP BY r.id ORDER BY r.sort_order ASC, r.name ASC`
 	rows, err := r.db.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*models.CMSFacilityRegion{}
+	for rows.Next() {
+		region := &models.CMSFacilityRegion{}
+		if err := rows.Scan(&region.ID, &region.Name, &region.Slug, &region.Description, &region.SortOrder,
+			&region.IsActive, &region.FacilityCount, &region.CreatedAt, &region.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, region)
+	}
+	return items, rows.Err()
+}
+
+func (r *CMSRepo) GetFacilityRegionByID(ctx context.Context, id string) (*models.CMSFacilityRegion, error) {
+	const q = `SELECT r.id, r.name, r.slug, r.description, r.sort_order, r.is_active,
+	                  COUNT(f.id) FILTER (WHERE f.is_active), r.created_at, r.updated_at
+	           FROM cms_facility_regions r
+	           LEFT JOIN cms_facilities f ON f.region_slug = r.slug
+	           WHERE r.id=$1 GROUP BY r.id`
+	region := &models.CMSFacilityRegion{}
+	err := r.db.QueryRow(ctx, q, id).Scan(&region.ID, &region.Name, &region.Slug, &region.Description,
+		&region.SortOrder, &region.IsActive, &region.FacilityCount, &region.CreatedAt, &region.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return region, err
+}
+
+func (r *CMSRepo) FacilityRegionExists(ctx context.Context, slug string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM cms_facility_regions WHERE slug=$1)`, slug).Scan(&exists)
+	return exists, err
+}
+
+func (r *CMSRepo) CreateFacilityRegion(ctx context.Context, region *models.CMSFacilityRegion) error {
+	const q = `INSERT INTO cms_facility_regions (id,name,slug,description,sort_order,is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6) RETURNING created_at,updated_at`
+	err := r.db.QueryRow(ctx, q, region.ID, region.Name, region.Slug, region.Description,
+		region.SortOrder, region.IsActive).Scan(&region.CreatedAt, &region.UpdatedAt)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
+}
+
+func (r *CMSRepo) UpdateFacilityRegion(ctx context.Context, region *models.CMSFacilityRegion) error {
+	const q = `UPDATE cms_facility_regions
+	           SET name=$2,slug=$3,description=$4,sort_order=$5,is_active=$6,updated_at=NOW()
+	           WHERE id=$1 RETURNING updated_at`
+	err := r.db.QueryRow(ctx, q, region.ID, region.Name, region.Slug, region.Description,
+		region.SortOrder, region.IsActive).Scan(&region.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
+}
+
+func (r *CMSRepo) DeleteFacilityRegion(ctx context.Context, id string) error {
+	ct, err := r.db.Exec(ctx, `DELETE FROM cms_facility_regions WHERE id=$1`, id)
+	if err != nil && strings.Contains(err.Error(), "foreign key constraint") {
+		return ErrInUse
+	}
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) ListFacilities(ctx context.Context, activeOnly bool, region string) ([]*models.CMSFacility, error) {
+	q := `SELECT f.id, f.name, f.slug, f.description, COALESCE(f.category,''), f.region_slug,
+	             COALESCE(r.name,''), f.location, f.amenities, f.phone, f.email, f.availability_status,
+	             COALESCE(f.image_url,''), f.sort_order, f.is_active, f.created_at, f.updated_at
+	      FROM cms_facilities f
+	      LEFT JOIN cms_facility_regions r ON r.slug=f.region_slug
+	      WHERE ($1='' OR f.region_slug=$1)`
+	if activeOnly {
+		q += ` AND f.is_active=true AND COALESCE(r.is_active,false)=true`
+	}
+	q += ` ORDER BY f.sort_order ASC, f.name ASC`
+	rows, err := r.db.Query(ctx, q, region)
 	if err != nil {
 		return nil, err
 	}
@@ -1932,8 +2023,9 @@ func (r *CMSRepo) ListFacilities(ctx context.Context, activeOnly bool) ([]*model
 	items := []*models.CMSFacility{}
 	for rows.Next() {
 		f := &models.CMSFacility{}
-		if err := rows.Scan(&f.ID, &f.Name, &f.Slug, &f.Description, &f.Category, &f.ImageURL,
-			&f.SortOrder, &f.IsActive, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Name, &f.Slug, &f.Description, &f.Category, &f.Region,
+			&f.RegionName, &f.Location, &f.Amenities, &f.Phone, &f.Email, &f.AvailabilityStatus,
+			&f.ImageURL, &f.SortOrder, &f.IsActive, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, f)
@@ -1942,12 +2034,16 @@ func (r *CMSRepo) ListFacilities(ctx context.Context, activeOnly bool) ([]*model
 }
 
 func (r *CMSRepo) GetFacilityByID(ctx context.Context, id string) (*models.CMSFacility, error) {
-	const q = `SELECT id, name, slug, COALESCE(description,''), COALESCE(category,''), COALESCE(image_url,''),
-	                  sort_order, is_active, created_at, updated_at
-	           FROM cms_facilities WHERE id=$1`
+	const q = `SELECT f.id, f.name, f.slug, f.description, COALESCE(f.category,''), f.region_slug,
+	                  COALESCE(r.name,''), f.location, f.amenities, f.phone, f.email, f.availability_status,
+	                  COALESCE(f.image_url,''), f.sort_order, f.is_active, f.created_at, f.updated_at
+	           FROM cms_facilities f
+	           LEFT JOIN cms_facility_regions r ON r.slug=f.region_slug
+	           WHERE f.id=$1`
 	f := &models.CMSFacility{}
-	err := r.db.QueryRow(ctx, q, id).Scan(&f.ID, &f.Name, &f.Slug, &f.Description, &f.Category, &f.ImageURL,
-		&f.SortOrder, &f.IsActive, &f.CreatedAt, &f.UpdatedAt)
+	err := r.db.QueryRow(ctx, q, id).Scan(&f.ID, &f.Name, &f.Slug, &f.Description, &f.Category, &f.Region,
+		&f.RegionName, &f.Location, &f.Amenities, &f.Phone, &f.Email, &f.AvailabilityStatus,
+		&f.ImageURL, &f.SortOrder, &f.IsActive, &f.CreatedAt, &f.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -1955,9 +2051,13 @@ func (r *CMSRepo) GetFacilityByID(ctx context.Context, id string) (*models.CMSFa
 }
 
 func (r *CMSRepo) CreateFacility(ctx context.Context, f *models.CMSFacility) error {
-	const q = `INSERT INTO cms_facilities (id, name, slug, description, category, image_url, sort_order, is_active)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING created_at, updated_at`
-	err := r.db.QueryRow(ctx, q, f.ID, f.Name, f.Slug, f.Description, f.Category, f.ImageURL, f.SortOrder, f.IsActive).Scan(&f.CreatedAt, &f.UpdatedAt)
+	const q = `INSERT INTO cms_facilities
+	           (id,name,slug,description,category,region_slug,location,amenities,phone,email,availability_status,image_url,sort_order,is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+	           RETURNING created_at,updated_at`
+	err := r.db.QueryRow(ctx, q, f.ID, f.Name, f.Slug, f.Description, f.Category, f.Region,
+		f.Location, f.Amenities, f.Phone, f.Email, f.AvailabilityStatus, f.ImageURL,
+		f.SortOrder, f.IsActive).Scan(&f.CreatedAt, &f.UpdatedAt)
 	if err != nil && isDuplicate(err) {
 		return ErrDuplicate
 	}
@@ -1965,9 +2065,17 @@ func (r *CMSRepo) CreateFacility(ctx context.Context, f *models.CMSFacility) err
 }
 
 func (r *CMSRepo) UpdateFacility(ctx context.Context, f *models.CMSFacility) error {
-	const q = `UPDATE cms_facilities SET name=$2, slug=$3, description=$4, category=$5, image_url=$6,
-	           sort_order=$7, is_active=$8, updated_at=NOW() WHERE id=$1`
-	_, err := r.db.Exec(ctx, q, f.ID, f.Name, f.Slug, f.Description, f.Category, f.ImageURL, f.SortOrder, f.IsActive)
+	const q = `UPDATE cms_facilities
+	           SET name=$2,slug=$3,description=$4,category=$5,region_slug=$6,location=$7,
+	               amenities=$8,phone=$9,email=$10,availability_status=$11,image_url=$12,
+	               sort_order=$13,is_active=$14,updated_at=NOW()
+	           WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, f.ID, f.Name, f.Slug, f.Description, f.Category, f.Region,
+		f.Location, f.Amenities, f.Phone, f.Email, f.AvailabilityStatus, f.ImageURL,
+		f.SortOrder, f.IsActive)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
 	return err
 }
 

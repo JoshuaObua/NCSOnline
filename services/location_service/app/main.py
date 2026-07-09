@@ -48,6 +48,7 @@ class LocateResponse(BaseModel):
     platform: str = "Unknown"
     browser: str = "Unknown"
     device_type: str = "Unknown"
+    client_type: str = "Unknown"
     authenticated: bool = False
     user_id: str | None = None
     source: str = "geolite2"
@@ -152,9 +153,97 @@ def _open_reader() -> Reader | None:
 
 
 def platform_details(user_agent: str) -> tuple[str, str, str]:
-    parsed = parse_user_agent(user_agent or "")
+    value = user_agent or ""
+    lower = value.lower()
+    parsed = parse_user_agent(value)
     device = "Mobile" if parsed.is_mobile else "Tablet" if parsed.is_tablet else "Desktop" if parsed.is_pc else "Bot" if parsed.is_bot else "Unknown"
-    return parsed.os.family or "Unknown", parsed.browser.family or "Unknown", device
+    browser = parsed.browser.family or "Unknown"
+    if "postman" in lower:
+        browser = "Postman"
+    elif "insomnia" in lower:
+        browser = "Insomnia"
+    elif "edg/" in lower:
+        browser = "Edge Mobile" if device == "Mobile" else "Edge"
+    elif "chrome/" in lower or "crios/" in lower:
+        browser = "Chrome Mobile" if device == "Mobile" else "Chrome"
+    elif "firefox/" in lower or "fxios/" in lower:
+        browser = "Firefox Mobile" if device == "Mobile" else "Firefox"
+    elif "safari/" in lower and "chrome/" not in lower:
+        browser = "Mobile Safari" if device in {"Mobile", "Tablet"} else "Safari"
+    platform = parsed.os.family or "Unknown"
+    if platform == "Other":
+        platform = "Unknown"
+    if browser == "Other":
+        browser = "Unknown"
+    return platform, browser, device
+
+
+def client_type(user_agent: str) -> str:
+    value = (user_agent or "").lower()
+    if "ussd" in value or "africastalking" in value or "africa's talking" in value:
+        return "USSD Gateway"
+    if "postman" in value:
+        return "Postman"
+    if "insomnia" in value:
+        return "Insomnia"
+    if "thunder-client" in value or "thunderclient" in value:
+        return "Thunder Client"
+    if "curl" in value:
+        return "curl"
+    if "httpie" in value:
+        return "HTTPie"
+    if "python-requests" in value:
+        return "Python/requests"
+    if "go-http-client" in value:
+        return "Go/HTTP"
+    if "okhttp" in value:
+        return "Mobile App"
+    if "mozilla" in value or "webkit" in value:
+        return "Browser"
+    return "Other" if value else "Unknown"
+
+
+def _merge_location(primary: dict[str, Any], fallback: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(fallback)
+    for key, value in primary.items():
+        if value not in (None, "", "Unknown"):
+            merged[key] = value
+    if fallback and primary:
+        merged["source"] = f"{primary.get('source', 'primary')}+{fallback.get('source', 'fallback')}"
+    return merged
+
+
+async def _provider_location(ip: str) -> dict[str, Any]:
+    if not PROVIDER_FALLBACK or not PROVIDER_URL:
+        return {}
+    try:
+        async with httpx.AsyncClient(timeout=PROVIDER_TIMEOUT) as client:
+            response = await client.get(PROVIDER_URL.format(ip=ip))
+            response.raise_for_status()
+            raw = response.json()
+        if raw.get("success") is False:
+            raise ValueError(raw.get("message") or "location provider lookup failed")
+        security = raw.get("security") or {}
+        connection = raw.get("connection") or {}
+        timezone = raw.get("timezone") or {}
+        timezone_id = timezone.get("id") if isinstance(timezone, dict) else str(timezone)
+        return {
+            "country": raw.get("country") or "Unknown",
+            "country_code": raw.get("country_code") or "",
+            "region": raw.get("region") or "",
+            "city": raw.get("city") or "",
+            "latitude": raw.get("latitude"),
+            "longitude": raw.get("longitude"),
+            "timezone": timezone_id or "",
+            "isp": connection.get("isp") or "",
+            "is_proxy": bool(security.get("proxy")),
+            "is_vpn": bool(security.get("vpn")),
+            "is_tor": bool(security.get("tor")),
+            "is_hosting": bool(security.get("hosting")),
+            "source": "provider",
+        }
+    except (httpx.HTTPError, ValueError, TypeError, json.JSONDecodeError):
+        return {}
 
 
 async def locate_ip(ip: str) -> dict[str, Any]:
@@ -178,41 +267,16 @@ async def locate_ip(ip: str) -> dict[str, Any]:
                 "timezone": record.location.time_zone or "",
                 "source": "geolite2",
             }
+            if not payload["city"] or not payload["region"] or not payload["timezone"]:
+                payload = _merge_location(payload, await _provider_location(ip))
             _cache[ip] = (time.time() + CACHE_TTL, payload)
             return payload
         except Exception:
             pass
-    if PROVIDER_FALLBACK and PROVIDER_URL:
-        try:
-            async with httpx.AsyncClient(timeout=PROVIDER_TIMEOUT) as client:
-                response = await client.get(PROVIDER_URL.format(ip=ip))
-                response.raise_for_status()
-                raw = response.json()
-            if raw.get("success") is False:
-                raise ValueError(raw.get("message") or "location provider lookup failed")
-            security = raw.get("security") or {}
-            connection = raw.get("connection") or {}
-            timezone = raw.get("timezone") or {}
-            timezone_id = timezone.get("id") if isinstance(timezone, dict) else str(timezone)
-            payload = {
-                "country": raw.get("country") or "Unknown",
-                "country_code": raw.get("country_code") or "",
-                "region": raw.get("region") or "",
-                "city": raw.get("city") or "",
-                "latitude": raw.get("latitude"),
-                "longitude": raw.get("longitude"),
-                "timezone": timezone_id or "",
-                "isp": connection.get("isp") or "",
-                "is_proxy": bool(security.get("proxy")),
-                "is_vpn": bool(security.get("vpn")),
-                "is_tor": bool(security.get("tor")),
-                "is_hosting": bool(security.get("hosting")),
-                "source": "provider",
-            }
-            _cache[ip] = (time.time() + CACHE_TTL, payload)
-            return payload
-        except (httpx.HTTPError, ValueError, TypeError, json.JSONDecodeError):
-            pass
+    payload = await _provider_location(ip)
+    if payload:
+        _cache[ip] = (time.time() + CACHE_TTL, payload)
+        return payload
     return {"country": "Unknown", "country_code": "", "source": "unavailable"}
 
 
@@ -237,7 +301,7 @@ async def locate(request: LocateRequest) -> LocateResponse:
         raise HTTPException(status_code=422, detail="invalid IP address") from exc
     payload = await locate_ip(request.ip)
     platform, browser, device = platform_details(request.user_agent)
-    return LocateResponse(ip=request.ip, platform=platform, browser=browser, device_type=device, authenticated=request.authenticated and bool(request.user_id), user_id=request.user_id if request.authenticated else None, **payload)
+    return LocateResponse(ip=request.ip, platform=platform, browser=browser, device_type=device, client_type=client_type(request.user_agent), authenticated=request.authenticated and bool(request.user_id), user_id=request.user_id if request.authenticated else None, **payload)
 
 
 HOP_HEADERS = {"connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade", "host", "content-length"}

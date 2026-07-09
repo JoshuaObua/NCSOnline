@@ -2814,9 +2814,126 @@ func (h *CMSHandler) DeleteDocument(w http.ResponseWriter, r *http.Request) {
 
 // ── Facilities ────────────────────────────────────────────────────
 
+type facilityRegionReq struct {
+	Name        string `json:"name"`
+	Slug        string `json:"slug"`
+	Description string `json:"description"`
+	SortOrder   int    `json:"sort_order"`
+	IsActive    bool   `json:"is_active"`
+}
+
+func normalizeRegionSlug(value string) string {
+	return strings.TrimSuffix(toSlug(value), "-region")
+}
+
+func normalizeFacilityRegion(req facilityRegionReq) (*models.CMSFacilityRegion, map[string]string) {
+	req.Name = trim(req.Name, 120)
+	req.Slug = normalizeRegionSlug(firstNonEmpty(req.Slug, req.Name))
+	req.Description = trim(req.Description, 500)
+	errs := map[string]string{}
+	if req.Name == "" {
+		errs["name"] = "required"
+	}
+	if req.Slug == "" {
+		errs["slug"] = "required"
+	}
+	return &models.CMSFacilityRegion{
+		Name: req.Name, Slug: req.Slug, Description: req.Description,
+		SortOrder: req.SortOrder, IsActive: req.IsActive,
+	}, errs
+}
+
+func (h *CMSHandler) ListFacilityRegions(w http.ResponseWriter, r *http.Request) {
+	activeOnly := r.URL.Query().Get("active") != "false"
+	items, err := h.repo.ListFacilityRegions(r.Context(), activeOnly)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list facility regions")
+		return
+	}
+	if items == nil {
+		items = []*models.CMSFacilityRegion{}
+	}
+	response.JSON(w, http.StatusOK, items)
+}
+
+func (h *CMSHandler) CreateFacilityRegion(w http.ResponseWriter, r *http.Request) {
+	var req facilityRegionReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
+		return
+	}
+	region, errs := normalizeFacilityRegion(req)
+	if len(errs) != 0 {
+		response.ValidationErr(w, errs)
+		return
+	}
+	region.ID = uuid.NewString()
+	if err := h.repo.CreateFacilityRegion(r.Context(), region); err != nil {
+		if errors.Is(err, repository.ErrDuplicate) {
+			response.Err(w, http.StatusConflict, "DUPLICATE_SLUG", "A facility region with this slug already exists")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create facility region")
+		return
+	}
+	response.JSON(w, http.StatusCreated, region)
+}
+
+func (h *CMSHandler) UpdateFacilityRegion(w http.ResponseWriter, r *http.Request) {
+	existing, err := h.repo.GetFacilityRegionByID(r.Context(), chi.URLParam(r, "id"))
+	if errors.Is(err, repository.ErrNotFound) {
+		response.Err(w, http.StatusNotFound, "NOT_FOUND", "Facility region not found")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not get facility region")
+		return
+	}
+	var req facilityRegionReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
+		return
+	}
+	region, errs := normalizeFacilityRegion(req)
+	if len(errs) != 0 {
+		response.ValidationErr(w, errs)
+		return
+	}
+	region.ID = existing.ID
+	region.CreatedAt = existing.CreatedAt
+	region.FacilityCount = existing.FacilityCount
+	if err := h.repo.UpdateFacilityRegion(r.Context(), region); err != nil {
+		if errors.Is(err, repository.ErrDuplicate) {
+			response.Err(w, http.StatusConflict, "DUPLICATE_SLUG", "A facility region with this slug already exists")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update facility region")
+		return
+	}
+	response.JSON(w, http.StatusOK, region)
+}
+
+func (h *CMSHandler) DeleteFacilityRegion(w http.ResponseWriter, r *http.Request) {
+	err := h.repo.DeleteFacilityRegion(r.Context(), chi.URLParam(r, "id"))
+	if errors.Is(err, repository.ErrNotFound) {
+		response.Err(w, http.StatusNotFound, "NOT_FOUND", "Facility region not found")
+		return
+	}
+	if errors.Is(err, repository.ErrInUse) {
+		response.Err(w, http.StatusConflict, "REGION_IN_USE", "Move or delete facilities assigned to this region first")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not delete facility region")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Deleted")
+}
+
 func (h *CMSHandler) ListFacilities(w http.ResponseWriter, r *http.Request) {
 	activeOnly := r.URL.Query().Get("active") != "false"
-	items, err := h.repo.ListFacilities(r.Context(), activeOnly)
+	region := normalizeRegionSlug(strings.TrimSpace(r.URL.Query().Get("region")))
+	items, err := h.repo.ListFacilities(r.Context(), activeOnly, region)
 	if err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list facilities")
 		return
@@ -2827,33 +2944,81 @@ func (h *CMSHandler) ListFacilities(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, items)
 }
 
-func (h *CMSHandler) CreateFacility(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Name        string `json:"name"`
-		Slug        string `json:"slug"`
-		Description string `json:"description"`
-		Category    string `json:"category"`
-		ImageURL    string `json:"image_url"`
-		SortOrder   int    `json:"sort_order"`
-		IsActive    bool   `json:"is_active"`
+type facilityReq struct {
+	Name               string `json:"name"`
+	Slug               string `json:"slug"`
+	Description        string `json:"description"`
+	Category           string `json:"category"`
+	Region             string `json:"region"`
+	Location           string `json:"location"`
+	Amenities          string `json:"amenities"`
+	Phone              string `json:"phone"`
+	Email              string `json:"email"`
+	AvailabilityStatus string `json:"availability_status"`
+	ImageURL           string `json:"image_url"`
+	SortOrder          int    `json:"sort_order"`
+	IsActive           bool   `json:"is_active"`
+}
+
+func normalizeFacility(req facilityReq) (*models.CMSFacility, map[string]string) {
+	req.Name = trim(req.Name, 160)
+	req.Slug = toSlug(firstNonEmpty(req.Slug, req.Name))
+	req.Region = normalizeRegionSlug(req.Region)
+	req.Category = trim(req.Category, 100)
+	req.Description = trim(req.Description, 1200)
+	req.Location = trim(req.Location, 240)
+	req.Amenities = trim(req.Amenities, 1000)
+	req.Phone = trim(req.Phone, 60)
+	req.Email = strings.ToLower(trim(req.Email, 180))
+	req.ImageURL = strings.TrimSpace(req.ImageURL)
+	req.AvailabilityStatus = strings.TrimSpace(req.AvailabilityStatus)
+	if req.AvailabilityStatus == "" {
+		req.AvailabilityStatus = "Available"
 	}
+	errs := map[string]string{}
+	if req.Name == "" {
+		errs["name"] = "required"
+	}
+	if req.Slug == "" {
+		errs["slug"] = "required"
+	}
+	if req.Region == "" {
+		errs["region"] = "required"
+	}
+	switch req.AvailabilityStatus {
+	case "Available", "Limited", "Maintenance", "Unavailable":
+	default:
+		errs["availability_status"] = "must be Available, Limited, Maintenance, or Unavailable"
+	}
+	return &models.CMSFacility{
+		Name: req.Name, Slug: req.Slug, Description: req.Description, Category: req.Category,
+		Region: req.Region, Location: req.Location, Amenities: req.Amenities, Phone: req.Phone,
+		Email: req.Email, AvailabilityStatus: req.AvailabilityStatus, ImageURL: req.ImageURL,
+		SortOrder: req.SortOrder, IsActive: req.IsActive,
+	}, errs
+}
+
+func (h *CMSHandler) CreateFacility(w http.ResponseWriter, r *http.Request) {
+	var req facilityReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
 		return
 	}
-	if req.Name == "" {
-		response.ValidationErr(w, map[string]string{"name": "required"})
+	f, errs := normalizeFacility(req)
+	if len(errs) != 0 {
+		response.ValidationErr(w, errs)
 		return
 	}
-	slug := req.Slug
-	if slug == "" {
-		slug = toSlug(req.Name)
+	exists, err := h.repo.FacilityRegionExists(r.Context(), f.Region)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not validate facility region")
+		return
 	}
-	f := &models.CMSFacility{
-		ID: uuid.NewString(), Name: req.Name, Slug: slug,
-		Description: req.Description, Category: req.Category, ImageURL: req.ImageURL,
-		SortOrder: req.SortOrder, IsActive: req.IsActive,
+	if !exists {
+		response.ValidationErr(w, map[string]string{"region": "must reference an existing facility region"})
+		return
 	}
+	f.ID = uuid.NewString()
 	if err := h.repo.CreateFacility(r.Context(), f); err != nil {
 		if errors.Is(err, repository.ErrDuplicate) {
 			response.Err(w, http.StatusConflict, "DUPLICATE_SLUG", "A facility with this slug already exists")
@@ -2876,37 +3041,36 @@ func (h *CMSHandler) UpdateFacility(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not get facility")
 		return
 	}
-	var req struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Category    string `json:"category"`
-		ImageURL    string `json:"image_url"`
-		SortOrder   int    `json:"sort_order"`
-		IsActive    bool   `json:"is_active"`
-	}
+	var req facilityReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
 		return
 	}
-	if req.Name != "" {
-		existing.Name = req.Name
+	updated, errs := normalizeFacility(req)
+	if len(errs) != 0 {
+		response.ValidationErr(w, errs)
+		return
 	}
-	if req.Description != "" {
-		existing.Description = req.Description
+	exists, err := h.repo.FacilityRegionExists(r.Context(), updated.Region)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not validate facility region")
+		return
 	}
-	if req.Category != "" {
-		existing.Category = req.Category
+	if !exists {
+		response.ValidationErr(w, map[string]string{"region": "must reference an existing facility region"})
+		return
 	}
-	if req.ImageURL != "" {
-		existing.ImageURL = req.ImageURL
-	}
-	existing.SortOrder = req.SortOrder
-	existing.IsActive = req.IsActive
-	if err := h.repo.UpdateFacility(r.Context(), existing); err != nil {
+	updated.ID = existing.ID
+	updated.CreatedAt = existing.CreatedAt
+	if err := h.repo.UpdateFacility(r.Context(), updated); err != nil {
+		if errors.Is(err, repository.ErrDuplicate) {
+			response.Err(w, http.StatusConflict, "DUPLICATE_SLUG", "A facility with this slug already exists")
+			return
+		}
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update facility")
 		return
 	}
-	response.JSON(w, http.StatusOK, existing)
+	response.JSON(w, http.StatusOK, updated)
 }
 
 func (h *CMSHandler) DeleteFacility(w http.ResponseWriter, r *http.Request) {

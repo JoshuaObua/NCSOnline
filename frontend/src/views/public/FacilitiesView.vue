@@ -1,7 +1,7 @@
 <template>
   <div class="facilities-page min-h-screen bg-gray-50">
-    <section class="bg-[#1a365d] py-16 md:py-20">
-      <div class="max-w-7xl mx-auto px-4">
+    <section class="bg-[#1a365d] py-14 md:py-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <nav class="flex items-center gap-2 text-white/60 text-sm mb-4" aria-label="Breadcrumb">
           <router-link to="/" class="hover:text-white">Home</router-link>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true">
@@ -13,35 +13,42 @@
           </svg>
           <span class="text-white capitalize">{{ selectedRegionLabelLower }}</span>
         </nav>
-        <h1 class="text-4xl md:text-5xl font-bold text-white mb-4">Sports Facilities</h1>
-        <p class="text-white/80 text-lg max-w-2xl">Explore world-class sports infrastructure across Uganda's regions</p>
+        <h1 class="text-3xl md:text-4xl font-bold text-white mb-3">Sports Facilities</h1>
+        <p class="text-white/80 text-base md:text-lg max-w-2xl">Explore world-class sports infrastructure across Uganda's regions</p>
       </div>
     </section>
 
-    <section class="bg-white border-b border-gray-200 sticky top-[104px] md:top-[116px] z-30">
-      <div class="max-w-7xl mx-auto px-4 py-4">
-        <div class="flex flex-wrap gap-2">
+    <section class="bg-white border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <p class="text-sm font-semibold text-[#1a365d]">Browse by region</p>
+            <p class="text-xs text-gray-500 mt-1">{{ selectedRegionCount }} {{ selectedRegionCount === 1 ? 'facility' : 'facilities' }} listed</p>
+          </div>
+          <div class="flex flex-wrap gap-2" role="group" aria-label="Filter facilities by region">
           <button
             v-for="region in regions"
-            :key="region.id"
+            :key="region.slug"
             type="button"
+            :aria-pressed="selectedRegion === region.slug"
             :class="[
-              'inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-md px-3 text-xs font-medium shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623]',
-              selectedRegion === region.id
-                ? 'bg-[#f5a623] hover:bg-[#e09612] text-white'
-                : 'border border-gray-200 text-gray-600 hover:border-[#f5a623] hover:text-[#f5a623]'
+              'inline-flex min-h-9 items-center justify-center whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f5a623] focus-visible:ring-offset-2',
+              selectedRegion === region.slug
+                ? 'bg-[#1a365d] text-white shadow-sm'
+                : 'bg-gray-50 text-gray-600 hover:bg-[#f5a623]/10 hover:text-[#d88700]'
             ]"
-            @click="setRegion(region.id)"
+            @click="setRegion(region.slug)"
           >
-            {{ region.label }}
+            {{ region.name }}
           </button>
+          </div>
         </div>
       </div>
     </section>
 
     <section class="bg-[#f5a623]/10 border-b border-[#f5a623]/20">
-      <div class="max-w-7xl mx-auto px-4 py-4">
-        <p class="text-[#1a365d] flex items-center gap-2">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+        <p class="text-sm md:text-base text-[#1a365d] flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-[#f5a623] flex-shrink-0" aria-hidden="true">
             <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" />
             <circle cx="12" cy="10" r="3" />
@@ -51,12 +58,12 @@
       </div>
     </section>
 
-    <section class="py-12 md:py-16">
-      <div class="max-w-7xl mx-auto px-4">
-        <div v-if="loading" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="i in 6" :key="i" class="bg-white rounded-xl overflow-hidden shadow-sm">
-            <div class="h-48 bg-gray-200 animate-pulse"></div>
-            <div class="p-6 space-y-3">
+    <section class="py-10 md:py-14">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div v-if="loading" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div v-for="i in 6" :key="i" class="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm">
+            <div class="aspect-[4/3] bg-gray-200 animate-pulse"></div>
+            <div class="p-5 md:p-6 space-y-3">
               <div class="h-5 bg-gray-200 rounded w-2/3 animate-pulse"></div>
               <div class="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
               <div class="h-4 bg-gray-200 rounded w-1/2 animate-pulse"></div>
@@ -64,13 +71,13 @@
           </div>
         </div>
 
-        <div v-else-if="filteredFacilities.length" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div v-else-if="filteredFacilities.length" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           <div
             v-for="facility in filteredFacilities"
             :key="facility.id"
-            class="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
+            class="group min-w-0 bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg hover:border-[#f5a623]/30 transition-all duration-300"
           >
-            <div class="relative h-48 overflow-hidden">
+            <div class="relative aspect-[4/3] overflow-hidden bg-gray-100">
               <img
                 v-if="facility.image"
                 :src="facility.image"
@@ -88,11 +95,11 @@
                 </svg>
               </div>
               <div class="inline-flex items-center rounded-md border border-transparent bg-[#1a365d] px-2.5 py-0.5 text-xs font-semibold text-white shadow absolute top-4 left-4">{{ facility.type }}</div>
-              <div class="inline-flex items-center rounded-md border border-transparent bg-green-500 px-2.5 py-0.5 text-xs font-semibold text-white shadow absolute top-4 right-4">{{ facility.status }}</div>
+              <div :class="['inline-flex items-center rounded-md border border-transparent px-2.5 py-0.5 text-xs font-semibold text-white shadow absolute top-4 right-4', statusClass(facility.status)]">{{ facility.status }}</div>
             </div>
 
-            <div class="p-6">
-              <h3 class="font-bold text-xl text-[#1a365d] mb-2 group-hover:text-[#f5a623] transition-colors">{{ facility.name }}</h3>
+            <div class="p-5 md:p-6">
+              <h3 class="font-bold text-lg md:text-xl text-[#1a365d] mb-2 group-hover:text-[#d88700] transition-colors">{{ facility.name }}</h3>
               <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ facility.description }}</p>
 
               <div class="flex items-center gap-2 text-gray-500 text-sm mb-2">
@@ -148,8 +155,10 @@
           </div>
         </div>
 
-        <div v-else class="text-center py-20 text-gray-400">
-          <p>No facilities listed for this region yet.</p>
+        <div v-else class="max-w-lg mx-auto text-center py-16 md:py-20">
+          <div class="w-12 h-12 mx-auto mb-4 grid place-items-center rounded-full bg-[#f5a623]/10 text-[#d88700]"><i class="icofont-building-alt text-xl"></i></div>
+          <h2 class="text-lg font-semibold text-[#1a365d]">No facilities listed yet</h2>
+          <p class="text-sm text-gray-500 mt-2">There are currently no published facilities in {{ selectedRegionLabel }}.</p>
         </div>
       </div>
     </section>
@@ -159,22 +168,25 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { listFacilities } from '@/api/cms.js'
+import { listFacilities, listFacilityRegions } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 
 const route = useRoute()
 const router = useRouter()
 
-const regions = [
-  { id: 'central', label: 'Central Region' },
-  { id: 'northern', label: 'Northern Region' },
-  { id: 'eastern', label: 'Eastern Region' },
-  { id: 'western', label: 'Western Region' },
-  { id: 'southern', label: 'Southern Region' },
+const fallbackRegions = [
+  { id: 'facility-region-central', slug: 'central', name: 'Central Region', facility_count: 0 },
+  { id: 'facility-region-northern', slug: 'northern', name: 'Northern Region', facility_count: 0 },
+  { id: 'facility-region-eastern', slug: 'eastern', name: 'Eastern Region', facility_count: 0 },
+  { id: 'facility-region-western', slug: 'western', name: 'Western Region', facility_count: 0 },
+  { id: 'facility-region-southern', slug: 'southern', name: 'Southern Region', facility_count: 0 },
 ]
 
+const regions = ref(fallbackRegions)
 const facilities = ref([])
 const loading = ref(false)
+const apiFailed = ref(false)
+let requestSequence = 0
 
 const fallbackFacilities = [
   {
@@ -280,13 +292,17 @@ const fallbackFacilities = [
 const fallbackByName = new Map(fallbackFacilities.map(facility => [facility.name.toLowerCase(), facility]))
 
 const selectedRegion = computed(() => normalizeRegionParam(route.query.region))
-const selectedRegionLabel = computed(() => regions.find(region => region.id === selectedRegion.value)?.label || 'Central Region')
+const selectedRegionLabel = computed(() => regions.value.find(region => region.slug === selectedRegion.value)?.name || regions.value[0]?.name || 'Central Region')
 const selectedRegionLabelLower = computed(() => selectedRegionLabel.value.charAt(0).toLowerCase() + selectedRegionLabel.value.slice(1))
-
+const selectedRegionCount = computed(() => {
+  if (apiFailed.value) return filteredFacilities.value.length
+  const managedCount = regions.value.find(region => region.slug === selectedRegion.value)?.facility_count
+  return Number.isFinite(Number(managedCount)) ? Number(managedCount) : filteredFacilities.value.length
+})
 const filteredFacilities = computed(() => displayFacilities.value.filter(facility => facility.region === selectedRegion.value))
 
 const displayFacilities = computed(() => {
-  if (!facilities.value.length) return fallbackFacilities
+  if (apiFailed.value) return fallbackFacilities
   return facilities.value.map(normalizeFacility)
 })
 
@@ -297,26 +313,32 @@ function normalizeFacility(item) {
     name: item.name || fallback.name || 'Sports Facility',
     slug: item.slug || fallback.slug || '',
     type: item.category || fallback.type || 'Facility',
-    status: item.is_active === false ? 'Unavailable' : 'Available',
-    region: inferRegion(item.category || fallback.region),
+    status: item.is_active === false ? 'Unavailable' : (item.availability_status || fallback.status || 'Available'),
+    region: normalizeRegionSlug(item.region || fallback.region || 'central'),
     description: item.description || fallback.description || 'Sports facility managed by the National Council of Sports Uganda',
     location: item.location || fallback.location || 'Kampala',
-    amenities: Array.isArray(item.amenities) ? item.amenities : (fallback.amenities || []),
+    amenities: normalizeAmenities(item.amenities, fallback.amenities),
     image: item.image_url ? mediaUrl(item.image_url) : (fallback.image || ''),
     phone: item.phone || fallback.phone || '+256414254477',
     email: item.email || fallback.email || '',
   }
 }
 
-function inferRegion(value = '') {
-  const text = String(value).toLowerCase()
-  return regions.find(region => text.includes(region.id))?.id || 'central'
+function normalizeAmenities(value, fallback = []) {
+  if (Array.isArray(value)) return value.map(item => String(item).trim()).filter(Boolean)
+  const items = String(value || '').split(/[\n,;]+/).map(item => item.trim()).filter(Boolean)
+  return items.length ? items : (fallback || [])
+}
+
+function normalizeRegionSlug(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/-region$/, '')
 }
 
 function normalizeRegionParam(value) {
   const raw = Array.isArray(value) ? value[0] : value
-  const normalized = String(raw || 'central').trim().toLowerCase().replace(/\s+/g, '-').replace(/-region$/, '')
-  return regions.some(region => region.id === normalized) ? normalized : 'central'
+  const fallback = regions.value[0]?.slug || 'central'
+  const normalized = normalizeRegionSlug(raw || fallback)
+  return regions.value.some(region => region.slug === normalized) ? normalized : fallback
 }
 
 function setRegion(regionId) {
@@ -333,17 +355,57 @@ function remainingAmenityCount(facility) {
   return Math.max(facility.amenities.length - 3, 0)
 }
 
-onMounted(() => {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 1200)
-  listFacilities({}, { signal: controller.signal }).then(response => {
+function statusClass(status) {
+  if (status === 'Available') return 'bg-emerald-500'
+  if (status === 'Limited') return 'bg-amber-500'
+  if (status === 'Maintenance') return 'bg-orange-500'
+  return 'bg-gray-500'
+}
+
+async function loadRegions() {
+  try {
+    const response = await listFacilityRegions()
     const items = response?.data?.data
-    if (Array.isArray(items) && items.length) facilities.value = items
-  }).catch(() => {
+    if (Array.isArray(items) && items.length) {
+      regions.value = items.map(item => ({
+        id: item.id,
+        slug: normalizeRegionSlug(item.slug),
+        name: item.name,
+        description: item.description || '',
+        facility_count: Number(item.facility_count || 0),
+      }))
+    }
+  } catch {
+    regions.value = fallbackRegions
+  }
+}
+
+async function loadFacilities(region) {
+  const sequence = ++requestSequence
+  loading.value = true
+  try {
+    const response = await listFacilities({ region })
+    if (sequence !== requestSequence) return
+    const items = response?.data?.data
+    facilities.value = Array.isArray(items) ? items : []
+    apiFailed.value = false
+  } catch {
+    if (sequence !== requestSequence) return
     facilities.value = []
-  }).finally(() => {
-    clearTimeout(timeout)
-  })
+    apiFailed.value = true
+  } finally {
+    if (sequence === requestSequence) loading.value = false
+  }
+}
+
+onMounted(async () => {
+  await loadRegions()
+  const region = normalizeRegionParam(route.query.region)
+  if (route.query.region !== region) {
+    await router.replace({ path: '/facilities', query: { ...route.query, region } })
+    return
+  }
+  await loadFacilities(region)
 })
 
 watch(
@@ -352,9 +414,11 @@ watch(
     const region = normalizeRegionParam(value)
     if (value && value !== region) {
       router.replace({ path: '/facilities', query: { ...route.query, region } })
+      return
     }
+    if (value) loadFacilities(region)
   },
-  { immediate: true }
+  { flush: 'post' }
 )
 </script>
 
