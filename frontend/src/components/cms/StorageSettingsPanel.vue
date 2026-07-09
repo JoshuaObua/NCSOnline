@@ -38,7 +38,7 @@
       </div>
       <div class="cms-two">
         <label>Project URL<input v-model="settings.supabase_url" placeholder="https://xyzcompany.supabase.co" /></label>
-        <label>Bucket<input v-model="settings.supabase_bucket" placeholder="ncswebsite-uploads" /></label>
+        <label>Bucket<input v-model="settings.supabase_bucket" placeholder="ncsportal-uploads" /></label>
         <label>Path prefix<input v-model="settings.supabase_prefix" placeholder="uploads" /></label>
         <label class="check"><input v-model="settings.supabase_public_read" type="checkbox" /> Bucket allows public read</label>
         <label class="wide">Service role key<input v-model="settings.supabase_service_key" type="password" autocomplete="new-password" :placeholder="supabaseConfigured ? 'Leave blank to keep the saved key' : 'service_role key from Supabase project settings'" /></label>

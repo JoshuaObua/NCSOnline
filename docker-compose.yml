@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - website_postgres_data:/var/lib/postgresql/data
+      - portal_postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d:ro
     ports:
       - "${POSTGRES_HOST_PORT}:5432"
@@ -18,7 +18,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks: [ncswebsite_net]
+    networks: [ncsportal_net]
 
   backend:
     build:
@@ -34,10 +34,10 @@ services:
       PORT: ${PORT}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL}
     volumes:
-      - website_uploads_data:/app/uploads
-      - website_private_data:/app/private-data
-      - website_app_logs:/var/log/app
-      - website_backups_data:/var/backups/ncs
+      - portal_uploads_data:/app/uploads
+      - portal_private_data:/app/private-data
+      - portal_app_logs:/var/log/app
+      - portal_backups_data:/var/backups/ncs
     expose: ["${PORT}"]
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:${PORT}/healthz || exit 1"]
@@ -45,7 +45,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    networks: [ncswebsite_net]
+    networks: [ncsportal_net]
 
   worker:
     build:
@@ -60,8 +60,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL}
     volumes:
-      - website_backups_data:/var/backups/ncs
-    networks: [ncswebsite_net]
+      - portal_backups_data:/var/backups/ncs
+    networks: [ncsportal_net]
 
   location-service:
     build:
@@ -74,10 +74,10 @@ services:
       GEOIP_DB_PATH: ${GEOIP_DB_PATH}
       GEO_WHITELIST_PATH: ${GEO_WHITELIST_PATH}
     volumes:
-      - website_geoip_data:/data
+      - portal_geoip_data:/data
       - ./services/location_service/config:/config:ro
     expose: ["8090"]
-    networks: [ncswebsite_net]
+    networks: [ncsportal_net]
 
   frontend:
     build:
@@ -100,7 +100,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    networks: [ncswebsite_net]
+    networks: [ncsportal_net]
 
   nginx:
     image: nginx:1.25-alpine
@@ -116,25 +116,25 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
       - ./nginx/conf.d/proxy_params.conf:/etc/nginx/templates/proxy_params.conf.template:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - website_nginx_logs:/var/log/nginx
-      - website_uploads_data:/app/uploads:ro
+      - portal_nginx_logs:/var/log/nginx
+      - portal_uploads_data:/app/uploads:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O- -S http://127.0.0.1/ 2>&1 | grep -qE 'HTTP/[0-9.]+ [2345]' || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
       start_period: 10s
-    networks: [ncswebsite_net]
+    networks: [ncsportal_net]
 
 volumes:
-  website_postgres_data:
-  website_nginx_logs:
-  website_uploads_data:
-  website_private_data:
-  website_geoip_data:
-  website_app_logs:
-  website_backups_data:
+  portal_postgres_data:
+  portal_nginx_logs:
+  portal_uploads_data:
+  portal_private_data:
+  portal_geoip_data:
+  portal_app_logs:
+  portal_backups_data:
 
 networks:
-  ncswebsite_net:
+  ncsportal_net:
     driver: bridge
