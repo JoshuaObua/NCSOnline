@@ -19,7 +19,7 @@
               <li>
                 <form class="form-inline mr-auto" @submit.prevent="runGlobalSearch">
                   <div class="search-element">
-                    <input v-model="globalSearch" class="form-control" type="search" placeholder="Search CMS" aria-label="Search" />
+                    <input v-model="globalSearch" class="form-control" type="search" placeholder="Search portal" aria-label="Search" />
                     <button class="btn" type="submit"><i class="fas fa-search"></i></button>
                   </div>
                 </form>
@@ -27,38 +27,6 @@
             </ul>
           </div>
           <ul class="navbar-nav navbar-right">
-            <li class="dropdown dropdown-list-toggle" :class="{ show: messagesOpen }">
-              <button type="button" class="nav-link nav-link-lg cms-top-icon message-toggle" @click="messagesOpen = !messagesOpen; notificationsOpen = false; profileOpen = false">
-                <i class="icofont-envelope"></i><span class="badge headerBadge1">{{ unreadMessageCount }}</span>
-              </button>
-              <div class="dropdown-menu dropdown-list dropdown-menu-right pullDown" :class="{ show: messagesOpen }">
-                <div class="dropdown-header">Messages <div class="float-right"><button type="button" class="link-button" @click="markAllMessagesRead">Mark All As Read</button></div></div>
-                <div class="dropdown-list-content dropdown-list-message">
-                  <button v-for="item in topMessages" :key="item.id" type="button" class="dropdown-item" @click="openTopMessage(item)">
-                    <span class="dropdown-item-avatar text-white"><img :src="item.avatar" alt="" class="rounded-circle" /></span>
-                    <span class="dropdown-item-desc"><span class="message-user">{{ item.name }}</span><span class="time messege-text">{{ item.text }}</span><span class="time">{{ item.time }}</span></span>
-                  </button>
-                  <p v-if="!topMessages.length" class="cms-empty">No messages yet.</p>
-                </div>
-                <div class="dropdown-footer text-center"><button type="button" class="link-button" @click="active = 'messages'; messagesOpen = false">View All <i class="fas fa-chevron-right"></i></button></div>
-              </div>
-            </li>
-            <li class="dropdown dropdown-list-toggle" :class="{ show: notificationsOpen }">
-              <button type="button" class="nav-link notification-toggle nav-link-lg cms-top-icon" @click="notificationsOpen = !notificationsOpen; messagesOpen = false; profileOpen = false">
-                <i class="icofont-notification"></i><span class="badge headerBadge2">{{ unreadNotificationCount }}</span>
-              </button>
-              <div class="dropdown-menu dropdown-list dropdown-menu-right pullDown" :class="{ show: notificationsOpen }">
-                <div class="dropdown-header">Notifications <div class="float-right"><button type="button" class="link-button" @click="markAllNotifications">Mark All As Read</button></div></div>
-                <div class="dropdown-list-content dropdown-list-icons">
-                  <button v-for="item in notificationItems" :key="item.id" type="button" class="dropdown-item" :class="{ 'dropdown-item-unread': item.unread }" @click="openNotification(item)">
-                    <span class="dropdown-item-icon text-white" :class="item.color"><i :class="item.icon"></i></span>
-                    <span class="dropdown-item-desc">{{ item.text }} <span class="time">{{ item.time }}</span></span>
-                  </button>
-                  <p v-if="!notificationItems.length" class="cms-empty">No notifications yet.</p>
-                </div>
-                <div class="dropdown-footer text-center"><button type="button" class="link-button" @click="active = 'notifications'; notificationsOpen = false">View All <i class="fas fa-chevron-right"></i></button></div>
-              </div>
-            </li>
             <li class="dropdown" :class="{ show: profileOpen }">
               <button type="button" class="nav-link dropdown-toggle nav-link-lg nav-link-user cms-top-icon" @click="profileOpen = !profileOpen; notificationsOpen = false; messagesOpen = false">
                 <img v-if="currentUserAvatar" :src="currentUserAvatar" alt="" class="user-img-radious-style" />
@@ -67,9 +35,8 @@
               </button>
               <div class="dropdown-menu dropdown-menu-right pullDown" :class="{ show: profileOpen }">
                 <div class="dropdown-title">Hello {{ currentUserName }}</div>
-                <button type="button" class="dropdown-item has-icon" @click="active = 'my-profile'; profileOpen = false"><i class="far fa-user"></i> Profile</button>
                 <button type="button" class="dropdown-item has-icon" @click="active = 'audit-logs'; profileOpen = false"><i class="fas fa-bolt"></i> Activities</button>
-                <button type="button" class="dropdown-item has-icon" @click="active = 'settings'; profileOpen = false"><i class="fas fa-cog"></i> Site Settings</button>
+                <button type="button" class="dropdown-item has-icon" @click="active = 'website-settings'; profileOpen = false"><i class="fas fa-cog"></i> Portal Settings</button>
                 <div class="dropdown-divider"></div>
                 <button type="button" class="dropdown-item has-icon text-danger" @click="logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
               </div>
@@ -80,16 +47,15 @@
         <div class="main-sidebar sidebar-style-2">
           <aside id="sidebar-wrapper">
             <div class="sidebar-brand">
-              <router-link to="/cms">
+              <router-link to="/portal">
                 <img alt="NCS" src="/main-logo.png" class="header-logo" />
               </router-link>
             </div>
             <ul class="sidebar-menu">
-              <li class="menu-header">Main</li>
               <li v-for="item in visibleItems(topSections)" :key="item.id" :class="{ active: active === item.id }">
                 <button type="button" class="nav-link" @click="selectSection(item.id)"><i :class="item.icon"></i><span>{{ item.label }}</span></button>
               </li>
-              <li class="menu-header">Website</li>
+              <li class="menu-header">Portal</li>
               <li v-if="visibleItems(homepageSections).length" class="dropdown" :class="{ active: homepageGroupOpen || groupHasActive(homepageSections) }">
                 <button type="button" class="menu-toggle nav-link has-dropdown" @click="homepageGroupOpen = !homepageGroupOpen"><i class="icofont-home"></i><span>Homepage Management</span></button>
                 <ul class="dropdown-menu" :style="{ display: homepageGroupOpen ? 'block' : 'none' }">
@@ -242,13 +208,12 @@
               <div class="section-header">
                 <h1>{{ currentSection.label }}</h1>
                 <div class="section-header-breadcrumb">
-                  <div class="breadcrumb-item active"><router-link to="/cms">CMS</router-link></div>
+                  <div class="breadcrumb-item active"><router-link to="/portal">Portal</router-link></div>
                   <div class="breadcrumb-item">{{ currentSection.label }}</div>
                 </div>
               </div>
               <div class="cms-actions otika-page-actions">
                 <ThemeToggle />
-                <router-link to="/" target="_blank" class="btn btn-icon icon-left btn-primary"><i class="fas fa-external-link-alt"></i> Preview portal</router-link>
                 <button type="button" class="btn btn-icon icon-left btn-info" @click="loadAll"><i class="fas fa-sync"></i> Refresh</button>
               </div>
 
@@ -306,7 +271,7 @@
             <div class="col-12 col-sm-12 col-lg-4">
               <div class="card">
                 <div class="card-header">
-                  <h4>Website KPI Summary</h4>
+                  <h4>Portal KPI Summary</h4>
                 </div>
                 <div class="card-body">
                   <div v-for="item in websiteKpis" :key="item.label" class="cms-kpi-row">
@@ -1615,7 +1580,7 @@
             Design By: Ateni Media Technologies LLC
           </div>
           <div class="footer-right">
-            National Council of Sports CMS
+            National Council of Sports Portal
           </div>
         </footer>
       </div>
@@ -1649,7 +1614,7 @@ import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 import { normalizeMenuTree, toCmsMenuItems } from '@/utils/menuTree.js'
 
 const router = useRouter()
-const active = ref('overview')
+const active = ref('manage-users')
 const message = ref('')
 const error = ref('')
 const apiAvailable = ref(null)
@@ -1693,11 +1658,11 @@ function refreshStoredUser(patch) {
 }
 const currentUserName = computed(() => {
   const fullName = storedUser.first_name ? `${storedUser.first_name} ${storedUser.last_name || ''}`.trim() : ''
-  return storedUser.username || storedUser.name || storedUser.display_name || fullName || emailLocalPart(storedUser.email) || 'cms-admin'
+  return storedUser.username || storedUser.name || storedUser.display_name || fullName || emailLocalPart(storedUser.email) || 'portal-admin'
 })
 const currentUserAvatar = computed(() => storedUser.avatar_url ? mediaUrl(storedUser.avatar_url) : '')
 const sidebarUserName = computed(() => {
-  const value = currentUserName.value || 'cms-admin'
+  const value = currentUserName.value || 'portal-admin'
   return value.length > 18 ? `${value.slice(0, 15)}...` : value
 })
 function timeAgo(value) {
@@ -1733,71 +1698,18 @@ const unreadMessageCount = computed(() => inboundCounts.value.total || contactMe
 const unreadNotificationCount = computed(() => cmsNotifications.value.filter(n => n.status === 'unread').length)
 const investmentRequests = computed(() => inboundSubmissions.value.filter(item => item.source_type === 'investment_request'))
 
-const topSections = [
-  { id:'overview', label:'Dashboard', icon:'icofont-dashboard-web' },
-  { id:'analytics', label:'Analytics', icon:'icofont-chart-histogram' },
-]
-const homepageSections = [
-  { id:'homepage', label:'General Sections', icon:'icofont-home' },
-  { id:'homepage-about', label:'About NCS Section', icon:'icofont-info-circle' },
-  { id:'homepage-topbar', label:'Topbar Section', icon:'icofont-megaphone' },
-  { id:'core', label:'Core Functions', icon:'icofont-check-circled' },
-  { id:'homepage-sports-excellence', label:'Sports Excellence', icon:'icofont-chart-growth' },
-]
-const slideshowSections = [
-  { id:'slideshow-manager', label:'Homepage Hero', icon:'icofont-slidshare' },
-]
-const blogSections = [
-  { id:'create-post', label:'Create New Post', icon:'icofont-edit' },
-  { id:'manage-posts', label:'Manage Posts', icon:'icofont-list' },
-  { id:'create-blog-categories', label:'Create Blog Categories', icon:'icofont-folder-open' },
-  { id:'manage-blog-categories', label:'Manage Categories', icon:'icofont-tags' },
-]
-const staticPageSections = [
-  { id:'static-pages', label:'Create Static Page', icon:'icofont-page' },
-  { id:'manage-pages', label:'Manage Static Pages', icon:'icofont-copy' },
-]
-const projectSections = [
-  { id:'projects', label:'Add New Project', icon:'icofont-plus-circle' },
-  { id:'manage-projects', label:'Manage Projects', icon:'icofont-list' },
-  { id:'create-project-categories', label:'Create Project Categories', icon:'icofont-folder-open' },
-  { id:'manage-project-categories', label:'Manage Project Categories', icon:'icofont-tags' },
-]
-const caseStudySections = [
-  { id:'case-studies', label:'Create New Case Study Post', icon:'icofont-edit' },
-  { id:'manage-case-studies', label:'Manage Case Study Posts', icon:'icofont-list' },
-  { id:'create-case-study-categories', label:'Create Case Study Category', icon:'icofont-folder-open' },
-  { id:'manage-case-study-categories', label:'Manage Case Study Categories', icon:'icofont-tags' },
-]
-const faqSections = [
-  { id:'faqs', label:'Create New Article', icon:'icofont-edit' },
-  { id:'manage-faqs', label:'Manage Articles', icon:'icofont-list' },
-  { id:'create-faq-categories', label:'Create New FAQ Category', icon:'icofont-folder-open' },
-  { id:'manage-faq-categories', label:'Manage Categories', icon:'icofont-tags' },
-]
-const resourceSections = [
-  { id:'resources', label:'Create New Article', icon:'icofont-edit' },
-  { id:'manage-resources', label:'Manage Articles', icon:'icofont-list' },
-  { id:'create-resource-categories', label:'Create Article Category', icon:'icofont-folder-open' },
-  { id:'manage-resource-categories', label:'Manage Article Categories', icon:'icofont-tags' },
-]
-const careerSections = [
-  { id:'careers', label:'Add New Post', icon:'icofont-plus-circle' },
-  { id:'manage-careers', label:'Manage Posts', icon:'icofont-list' },
-  { id:'career-page-ui', label:'Page UI', icon:'icofont-layout' },
-  { id:'create-career-categories', label:'Create Category', icon:'icofont-folder-open' },
-  { id:'manage-career-categories', label:'Manage Categories', icon:'icofont-tags' },
-]
-const teamSections = [
-  { id:'team', label:'Add Team Member', icon:'icofont-user-suited' },
-  { id:'manage-team', label:'Manage Team Members', icon:'icofont-list' },
-  { id:'create-team-departments', label:'Create Department', icon:'icofont-building-alt' },
-  { id:'manage-team-departments', label:'Manage Departments', icon:'icofont-tags' },
-]
-const councilSections = [
-  { id:'council', label:'Add Council Member', icon:'icofont-user-suited' },
-  { id:'manage-council', label:'Manage Council Members', icon:'icofont-list' },
-]
+const topSections = []
+const homepageSections = []
+const slideshowSections = []
+const blogSections = []
+const staticPageSections = []
+const projectSections = []
+const caseStudySections = []
+const faqSections = []
+const resourceSections = []
+const careerSections = []
+const teamSections = []
+const councilSections = []
 const roleSections = [
   { id:'roles', label:'Add New Role', icon:'icofont-plus-circle' },
   { id:'manage-roles', label:'Manage Roles', icon:'icofont-list' },
@@ -1806,88 +1718,37 @@ const userSections = [
   { id:'users', label:'Create New User', icon:'icofont-user-alt-3' },
   { id:'manage-users', label:'Manage Users', icon:'icofont-users-social' },
 ]
-const facilitySections = [
-  { id:'facilities', label:'Add New Facility', icon:'icofont-plus-circle' },
-  { id:'manage-facilities', label:'Manage Facilities', icon:'icofont-list' },
-  { id:'create-facility-regions', label:'Add Facility Region', icon:'icofont-location-pin' },
-  { id:'manage-facility-regions', label:'Manage Facility Regions', icon:'icofont-map' },
-  { id:'create-facility-categories', label:'Add Facility Category', icon:'icofont-folder-open' },
-  { id:'manage-facility-categories', label:'Manage Facility Categories', icon:'icofont-tags' },
-]
-const eventSections = [
-  { id:'events', label:'Add New Event', icon:'icofont-plus-circle' },
-  { id:'manage-events', label:'Manage Events', icon:'icofont-list' },
-  { id:'create-event-categories', label:'Add Event Category', icon:'icofont-folder-open' },
-  { id:'manage-event-categories', label:'Manage Event Categories', icon:'icofont-tags' },
-]
-const investSections = [
-  { id:'create-invest-categories', label:'Create Investment Category', icon:'icofont-folder-open' },
-  { id:'manage-invest-categories', label:'Manage Investment Categories', icon:'icofont-tags' },
-  { id:'invest', label:'Create Investment Post', icon:'icofont-edit' },
-  { id:'manage-invest', label:'Manage Investment Posts', icon:'icofont-list' },
-]
+const facilitySections = []
+const eventSections = []
+const investSections = []
 const federationSections = [
   { id:'associations', label:'Add New Federation', icon:'icofont-plus-circle' },
   { id:'manage-federations', label:'Manage Federations', icon:'icofont-list' },
   { id:'create-federation-categories', label:'Create Federation Category', icon:'icofont-folder-open' },
   { id:'manage-federation-categories', label:'Manage Federation Categories', icon:'icofont-tags' },
 ]
-const sportsRuleSections = [
-  { id:'sports-rules', label:'Add New Rule', icon:'icofont-plus-circle' },
-  { id:'manage-sports-rules', label:'Manage Rules', icon:'icofont-list' },
-  { id:'create-sports-rule-categories', label:'Create Rule Category', icon:'icofont-folder-open' },
-  { id:'manage-sports-rule-categories', label:'Manage Rule Categories', icon:'icofont-tags' },
-]
-const pressReleaseSections = [
-  { id:'press-releases', label:'Add New Release', icon:'icofont-plus-circle' },
-  { id:'manage-press-releases', label:'Manage Releases', icon:'icofont-list' },
-  { id:'create-press-release-categories', label:'Create Release Category', icon:'icofont-folder-open' },
-  { id:'manage-press-release-categories', label:'Manage Release Categories', icon:'icofont-tags' },
-]
-const reportSections = [
-  { id:'reports', label:'Add New Report', icon:'icofont-plus-circle' },
-  { id:'manage-reports', label:'Manage Reports', icon:'icofont-list' },
-  { id:'create-report-categories', label:'Create Report Category', icon:'icofont-folder-open' },
-  { id:'manage-report-categories', label:'Manage Report Categories', icon:'icofont-tags' },
-]
-const speechSections = [
-  { id:'speeches', label:'Add New Speech', icon:'icofont-plus-circle' },
-  { id:'manage-speeches', label:'Manage Speeches', icon:'icofont-list' },
-  { id:'create-speech-categories', label:'Create Speech Category', icon:'icofont-folder-open' },
-  { id:'manage-speech-categories', label:'Manage Speech Categories', icon:'icofont-tags' },
-]
-const funFactSections = [
-  { id:'facts', label:'Create Article', icon:'icofont-edit' },
-  { id:'manage-facts', label:'Manage Articles', icon:'icofont-list' },
-]
-const newsletterSections = [
-  { id:'newsletter', label:'Subscribers', icon:'icofont-email' },
-]
+const sportsRuleSections = []
+const pressReleaseSections = []
+const reportSections = []
+const speechSections = []
+const funFactSections = []
+const newsletterSections = []
 const contentSections = [
-  { id:'messages', label:'Contact Messages', icon:'icofont-envelope' },
-  { id:'investment-requests', label:'Investment Requests', icon:'icofont-money-bag' },
-  { id:'notifications', label:'Notifications', icon:'icofont-notification' },
-  { id:'comments', label:'Blog Comments', icon:'icofont-speech-comments' },
   { id:'audit-logs', label:'Audit Logs', icon:'icofont-shield-alt' },
-  { id:'menus', label:'Main Menu', icon:'icofont-navigation-menu' },
-  { id:'settings', label:'Contact Details', icon:'icofont-contacts' },
   { id:'third-party-integrations', label:'Third-Party Integrations', icon:'icofont-plugin' },
   { id:'website-settings', label:'Portal Settings', icon:'icofont-globe' },
   { id:'sitemap', label:'Sitemap', icon:'icofont-site-map' },
-  { id:'documentation', label:'CMS Documentation', icon:'icofont-book-alt' },
   { id:'appearance', label:'Appearance', icon:'icofont-paint' },
   { id:'storage', label:'Storage Settings', icon:'icofont-cloud-upload' },
   { id:'command-center', label:'Command Center', icon:'icofont-layers' },
   { id:'maintenance', label:'Maintenance & Backups', icon:'icofont-shield' },
-  { id:'smart-updates', label:'Smart Updates', icon:'icofont-refresh' },
 ]
 // Reachable only via the navbar profile dropdown, not the sidebar — kept out
 // of contentSections so it doesn't clutter Modules, but still included below
 // so currentSection resolves its label for the page header/breadcrumb.
-const profileSections = [
-  { id:'my-profile', label:'Profile Settings', icon:'far fa-user' },
-]
+const profileSections = []
 const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections]
+const allowedPortalSectionIds = new Set(sections.map(section => section.id))
 const currentSection = computed(() => sections.find(s => s.id === active.value) || sections[0])
 
 const sectionPermissionMap = {
@@ -1980,10 +1841,11 @@ const resourceLabels = {
   team_departments:'Team Departments', facilities:'Facilities', facility_categories:'Facility Categories', events:'Events',
   event_categories:'Event Categories', investments:'Investment Posts', investment_categories:'Investment Categories',
   federations:'Federations', federation_categories:'Federation Categories', fun_facts:'Fun Facts', newsletter:'Newsletter',
-  comments:'Comments', menus:'Main Menu', settings:'Contact Details', storage:'Storage Settings', users:'Users',
-  roles:'Roles', audit:'Audit Logs', dashboard:'Dashboard', cms:'Legacy CMS', applications:'Applications',
+  comments:'Comments', menus:'Main Menu', settings:'Portal Settings', storage:'Storage Settings', users:'Users',
+  roles:'Roles', audit:'Audit Logs', dashboard:'Dashboard', cms:'Legacy Content', applications:'Applications',
   messages:'Contact Messages', notifications:'Notifications', inbound_submissions:'Inbound Submissions',
 }
+const portalPermissionResources = new Set(['users', 'roles', 'audit', 'settings', 'storage', 'dashboard', 'federations', 'federation_categories'])
 const actionOrder = ['read', 'create', 'update', 'write', 'delete', 'activate', 'assign', 'roles', 'reset_password', 'export']
 
 const homepageDefaults = {
@@ -2248,7 +2110,7 @@ const resourceFields = withCategoryOptions(fields(['title','category','file_url'
 const sportsRuleFields = withCategoryOptions(fields(['title','category','file_url','sort_order','is_active'], ['description']), sportsRuleCategories)
 // Press releases carry either an uploaded PDF (file_url) or an embedded
 // YouTube link (video_url) — both fields are left editable so admins can
-// switch between the two; the public page picks whichever is set.
+// switch between the two if the legacy public website is restored.
 const pressReleaseFields = withCategoryOptions(fields(['title','category','file_url','video_url','sort_order','is_active'], ['description']), pressReleaseCategories)
 const reportFields = withCategoryOptions(fields(['title','category','file_url','sort_order','is_active'], ['description']), reportCategories)
 const speechFields = withCategoryOptions(fields(['title','category','file_url','sort_order','is_active'], ['description']), speechCategories)
@@ -2342,6 +2204,7 @@ const permissionGroups = computed(() => {
   const groups = new Map()
   for (const permission of Array.isArray(permissions.value) ? permissions.value : []) {
     const resource = permission.resource || 'general'
+    if (!portalPermissionResources.has(resource)) continue
     if (!groups.has(resource)) groups.set(resource, [])
     groups.get(resource).push(permission)
   }
@@ -2355,7 +2218,7 @@ const auditRiskCount = computed(() => auditLogs.value.filter(log => Number(log.r
 const auditHighThreatCount = computed(() => auditLogs.value.filter(log => Number(log.threat_score || 0) >= 70 || log.severity_level === 'high' || log.severity_level === 'critical').length)
 const auditTotalPages = computed(() => Math.max(1, Math.ceil(Number(auditMeta.value.total || 0) / Number(auditMeta.value.per_page || auditPerPage.value || 20))))
 const sampleAuditLogs = [
-  { id:'preview-login', user_name:'cms-admin', action:'preview_login', method:'POST', endpoint:'/api/v1/auth/login', ip_address:'127.0.0.1', response_code:200, response_time_ms:31, event_status:'success', severity_level:'low', created_at:new Date().toISOString(), details:{ mode:'local-preview' } },
+  { id:'preview-login', user_name:'portal-admin', action:'preview_login', method:'POST', endpoint:'/api/v1/auth/login', ip_address:'127.0.0.1', response_code:200, response_time_ms:31, event_status:'success', severity_level:'low', created_at:new Date().toISOString(), details:{ mode:'local-preview' } },
   { id:'preview-audit', user_name:'audit-monitor', action:'view_audit_logs', method:'GET', endpoint:'/api/v1/admin/audit-logs', ip_address:'127.0.0.1', response_code:200, response_time_ms:18, event_status:'success', severity_level:'low', created_at:new Date().toISOString(), details:{ source:'sample-data' } },
 ]
 let inboundRefreshTimer = null
@@ -2419,7 +2282,7 @@ function emailLocalPart(email) {
 }
 function data(res) { return res?.data?.data ?? {} }
 function isLocalPreviewSession() {
-  return localStorage.getItem('ncsms_access_token') === 'local-cms-preview-token'
+  return ['local-portal-preview-token', 'local-cms-preview-token'].includes(localStorage.getItem('ncsms_access_token'))
 }
 async function canReachApi(force = false) {
   if (isLocalPreviewSession()) return false
@@ -2508,6 +2371,7 @@ function hasPermission(permissionName) {
   return false
 }
 function canAccessSection(id) {
+  if (!allowedPortalSectionIds.has(id)) return false
   const required = sectionPermissionMap[id] || []
   return !required.length || required.some(hasPermission)
 }
@@ -2519,7 +2383,7 @@ function syncCareerDepartment() {
 }
 function selectSection(id) {
   if (!canAccessSection(id)) {
-    setErr(new Error('You do not have permission to access that CMS section.'))
+    setErr(new Error('You do not have permission to access that portal section.'))
     return
   }
   active.value = id
@@ -2567,7 +2431,7 @@ function runGlobalSearch() {
     selectSection(match.id)
     return
   }
-  setErr(new Error(`No CMS module found for "${globalSearch.value}".`))
+  setErr(new Error(`No portal module found for "${globalSearch.value}".`))
 }
 
 function openTopMessage(item) {
@@ -2659,94 +2523,31 @@ async function loadAll() {
   try {
     apiAvailable.value = null
     if (isLocalPreviewSession()) {
-      error.value = 'CMS preview mode: backend API is offline, so live content is paused.'
-      snapshotMenus()
+      error.value = 'Portal preview mode: backend API is offline, so live operations are paused.'
       return
     }
     if (!(await canReachApi())) {
-      error.value = 'Backend API is not reachable on port 9080. Start the native Go API to load live CMS data.'
-      snapshotMenus()
+      error.value = 'Backend API is not reachable on port 9080. Start the portal API to load live operational data.'
       return
     }
     const results = await Promise.allSettled([
-      cms.getSettings('homepage'), cms.getSettings('contact'), cms.getSettings('footer'), cms.getMenu('main'), cms.getMenu('footer'), cms.adminGetSlideshow('homepage-hero'),
-      cms.adminListPosts({ per_page:200 }), cms.adminListEvents({ per_page:200 }), cms.adminListSlides(), cms.adminListFacilities(), cms.adminListAssociations(),
-      cms.adminListFunFacts(), cms.adminListFAQs(), cms.adminListResources({ per_page:200 }), cms.adminListBlogCategories(), cms.adminListComments({ status: commentStatus.value, per_page:50 }),
-      cms.adminListPosts({ category:'page', per_page:200 }), cms.adminListPosts({ category:'project', per_page:200 }), cms.adminListPosts({ category:'case_study', per_page:200 }),
-      cms.adminListCareers({ per_page:200 }), cms.adminListInvest(), cms.adminListTeam(),
-      cms.adminListRoles(), cms.adminListPermissions(), cms.adminListAuditLogs({ page:auditPage.value, per_page:auditPerPage.value }),
-      cms.adminListProjectCategories(), cms.adminListCaseStudyCategories(),
-      cms.adminListFAQCategories(), cms.adminListResourceCategories(), cms.adminListCareerCategories(), cms.adminListTeamDepartments(),
-      cms.adminListFacilityCategories(), cms.adminListEventCategories(), cms.adminListInvestCategories(), cms.adminListFederationCategories(), cms.adminListNewsletterSubscribers({ per_page:200 }),
-      cms.listInstitutionalDepartments(), cms.adminGetAnalytics({ days: 30 }),
-      cms.listMessages({ status:'', per_page:100 }), cms.listNotifications({ status:'', per_page:100 }),
-      cms.listInboundSubmissions({ per_page:100 }), cms.getInboundSubmissionCounts(), cms.getSettings('captcha'), cms.getSettings('third_party'),
-      cms.adminListDocuments({ doc_type:'sports_rule', per_page:200 }), cms.adminListDocuments({ doc_type:'press_release', per_page:200 }),
-      cms.adminListDocuments({ doc_type:'report', per_page:200 }), cms.adminListDocuments({ doc_type:'speech', per_page:200 }),
-      cms.adminListSportsRuleCategories(), cms.adminListPressReleaseCategories(), cms.adminListReportCategories(), cms.adminListSpeechCategories(),
-      cms.adminListCouncil({ per_page:200 }), cms.adminListFacilityRegions(),
+      cms.adminListAssociations(),
+      cms.adminListFederationCategories(),
+      cms.adminListRoles(),
+      cms.adminListPermissions(),
+      cms.adminListAuditLogs({ page:auditPage.value, per_page:auditPerPage.value }),
+      cms.getSettings('third_party'),
     ])
-    Object.assign(homepage, data(results[0].value)?.value || {})
-    mergeHomepageDefaults(homepage)
-    Object.assign(contact, data(results[1].value)?.value || {})
-    Object.assign(footer, data(results[2].value)?.value || {})
-    mainMenuTree.value = normalizeMenuTree(data(results[3].value)?.items || [])
-    footerMenuTree.value = normalizeMenuTree(data(results[4].value)?.items || [])
-    snapshotMenus()
-    const show = data(results[5].value) || {}
-    Object.assign(slideshow, show)
-    posts.value = listData(results[6].value)
-    events.value = listData(results[7].value)
-    slides.value = Array.isArray(show.slides) ? show.slides : listData(results[8].value)
-    facilities.value = listData(results[9].value)
-    associations.value = listData(results[10].value)
-    facts.value = listData(results[11].value)
-    faqs.value = listData(results[12].value)
-    resources.value = listData(results[13].value)
-    blogCategories.value = listData(results[14].value)
-    comments.value = listData(results[15].value)
-    pages.value = listData(results[16].value)
-    projects.value = listData(results[17].value)
-    caseStudies.value = listData(results[18].value)
-    careers.value = listData(results[19].value)
-    investItems.value = listData(results[20].value)
-    teamMembers.value = listData(results[21].value)
-    roles.value = listData(results[22].value)
-    permissions.value = listData(results[23].value)
-    auditLogs.value = listData(results[24].value)
-    auditMeta.value = pageMeta(results[24].value)
+    associations.value = listData(results[0].value)
+    federationCategories.value = listData(results[1].value)
+    roles.value = listData(results[2].value)
+    permissions.value = listData(results[3].value)
+    auditLogs.value = listData(results[4].value)
+    auditMeta.value = pageMeta(results[4].value)
     auditPage.value = auditMeta.value.page || auditPage.value
     auditPerPage.value = auditMeta.value.per_page || auditPerPage.value
-    projectCategories.value = listData(results[25].value)
-    caseStudyCategories.value = listData(results[26].value)
-    faqCategories.value = listData(results[27].value)
-    resourceCategories.value = listData(results[28].value)
-    careerCategories.value = listData(results[29].value)
-    teamDepartments.value = listData(results[30].value)
-    facilityCategories.value = listData(results[31].value)
-    eventCategories.value = listData(results[32].value)
-    investCategories.value = listData(results[33].value)
-    federationCategories.value = listData(results[34].value)
-    newsletterSubscribers.value = listData(results[35].value, sampleNewsletterSubscribers())
-    institutionalDepartments.value = listData(results[36].value)
-    analytics.value = data(results[37].value) || null
-    contactMessages.value = listData(results[38].value)
-    cmsNotifications.value = listData(results[39].value)
-    inboundSubmissions.value = listData(results[40].value)
-    inboundCounts.value = data(results[41].value) || inboundCounts.value
-    applyCaptchaSettings(data(results[42].value)?.value || {})
-    applyThirdPartySettings(data(results[43].value)?.value || {})
-    sportsRules.value = listData(results[44].value)
-    pressReleases.value = listData(results[45].value)
-    reports.value = listData(results[46].value)
-    speeches.value = listData(results[47].value)
-    sportsRuleCategories.value = listData(results[48].value)
-    pressReleaseCategories.value = listData(results[49].value)
-    reportCategories.value = listData(results[50].value)
-    speechCategories.value = listData(results[51].value)
-    councilMembers.value = listData(results[52].value)
-    facilityRegions.value = listData(results[53].value)
-    await loadCareerPageSettings()
+    applyThirdPartySettings(data(results[5].value)?.value || {})
+    if (active.value === 'manage-users' || active.value === 'users') await loadUsers()
   } catch (err) { setErr(err) }
 }
 
@@ -2847,7 +2648,7 @@ async function saveCareerPageSettings() {
 async function createSlide() { try { await cms.adminCreateSlide({ title:'New slide', subtitle:'National Council of Sports', description:'', image_url:'', button_text:'Learn More', button_url:'/', sort_order:slides.value.length + 1, is_active:true }); await loadAll(); setMsg('Slide added') } catch (err) { setErr(err) } }
 function editSlide(item) { active.value = 'homepage'; Object.assign(homepage, { hero_quick_edit: item.title }) }
 async function removeSlide(item) {
-  if (!(await confirmAction('Delete this slide?', 'The slide will be removed from the public slideshow.'))) return
+  if (!(await confirmAction('Delete this slide?', 'The slide will be removed from the saved slideshow data.'))) return
   try {
     await cms.adminDeleteSlide(item.id)
     await loadAll()
@@ -3022,7 +2823,7 @@ async function removeEntity(item, fn) {
 async function saveRole() {
   try {
     if (!(await canReachApi())) {
-      error.value = 'Backend API is not reachable on port 9080. Start the native Go API to create or update live roles.'
+      error.value = 'Backend API is not reachable on port 9080. Start the portal API to create or update live roles.'
       return
     }
     const payload = { name: roleForm.name.trim(), description: roleForm.description.trim() }
@@ -3039,8 +2840,8 @@ async function loadRoles() {
   if (!(await canReachApi())) {
     const previewPerms = previewPermissions()
     roles.value = roles.value.length ? roles.value : [
-      { id:'role_super_admin', name:'super_admin', description:'Full CMS access', is_system:true, permissions:previewPerms },
-      { id:'role_content_manager', name:'content_manager', description:'Preview content manager role. Start the native Go API to manage live roles.', is_system:false, permissions:previewPerms.filter(permission => !['users','roles','audit','storage'].includes(permission.resource)) },
+      { id:'role_super_admin', name:'super_admin', description:'Full portal access', is_system:true, permissions:previewPerms },
+      { id:'role_portal_operator', name:'portal_operator', description:'Preview portal operator role. Start the portal API to manage live roles.', is_system:false, permissions:previewPerms.filter(permission => !['users','roles','audit','storage'].includes(permission.resource)) },
     ]
     permissions.value = permissions.value.length ? permissions.value : previewPerms
     error.value = 'Backend API is not reachable on port 9080. Role management is showing preview data.'
@@ -3048,7 +2849,7 @@ async function loadRoles() {
   }
   const [roleRes, permRes] = await Promise.all([cms.adminListRoles(), cms.adminListPermissions()])
   roles.value = listData(roleRes)
-  permissions.value = listData(permRes)
+  permissions.value = listData(permRes).filter(permission => portalPermissionResources.has(permission.resource || 'general'))
 }
 
 function previewPermissions() {
@@ -3056,6 +2857,8 @@ function previewPermissions() {
   return Object.values(sectionPermissionMap).flat().filter(name => {
     if (seen.has(name)) return false
     seen.add(name)
+    const [resource] = name.split(':')
+    if (!portalPermissionResources.has(resource)) return false
     return true
   }).map(name => {
     const [resource, action] = name.split(':')
@@ -3080,7 +2883,7 @@ async function selectRole(role) {
       })
       selectedPermissionIds.value = new Set((role.permissions || []).map(permission => permission.id))
       active.value = 'manage-roles'
-      error.value = 'Backend API is not reachable on port 9080. Start the native Go API to customize live permissions.'
+      error.value = 'Backend API is not reachable on port 9080. Start the portal API to customize live permissions.'
       return
     }
     const res = await cms.adminGetRole(role.id)
@@ -3118,10 +2921,10 @@ async function togglePermission(permission, checked) {
 
 async function removeRole(role) {
   if (!role.id || role.is_system) return
-  if (!(await confirmAction('Delete this custom role?', 'Content managers assigned to this role may lose access.'))) return
+  if (!(await confirmAction('Delete this custom role?', 'Users assigned to this role may lose portal access.'))) return
   try {
     if (!(await canReachApi())) {
-      error.value = 'Backend API is not reachable on port 9080. Start the native Go API to delete live roles.'
+      error.value = 'Backend API is not reachable on port 9080. Start the portal API to delete live roles.'
       return
     }
     await cms.adminDeleteRole(role.id)
@@ -3144,8 +2947,8 @@ function sampleContactMessages() {
 
 function sampleNotificationsList() {
   return [
-    { id:'preview-notification-1', type:'new_comment', title:'New Comment', message:'A public comment is waiting for moderation.', status:'unread', icon_key:'chat', created_at:new Date().toISOString() },
-    { id:'preview-notification-2', type:'unusual_activity', title:'Unusual Activity', message:'A new sign-in was detected for the CMS.', status:'unread', icon_key:'shield-alert', created_at:new Date().toISOString() },
+    { id:'preview-notification-1', type:'portal_review', title:'Portal Review', message:'A portal review item is waiting for an operator.', status:'unread', icon_key:'chat', created_at:new Date().toISOString() },
+    { id:'preview-notification-2', type:'unusual_activity', title:'Unusual Activity', message:'A new sign-in was detected for the portal.', status:'unread', icon_key:'shield-alert', created_at:new Date().toISOString() },
   ]
 }
 
@@ -3267,7 +3070,7 @@ function inboundPreview(item) {
 }
 
 async function removeMessage(item) {
-  if (!(await confirmAction('Delete this message?', 'The contact message will be removed from the CMS inbox.'))) return
+  if (!(await confirmAction('Delete this message?', 'The contact message will be removed from the portal inbox.'))) return
   try {
     if (!(await canReachApi())) {
       contactMessages.value = contactMessages.value.filter(row => row.id !== item.id)
@@ -3387,8 +3190,8 @@ function notificationThemeClass(item) {
 
 function sampleUsers() {
   return [
-    { id:'preview-admin', first_name:'CMS', last_name:'Admin', email:'admin@ncs.go.ug', phone:'', is_active:true, account_status:'ACTIVE', roles:[{ id:'role_super_admin', name:'super_admin' }] },
-    { id:'preview-editor', first_name:'Content', last_name:'Manager', email:'content@ncs.go.ug', phone:'', is_active:true, account_status:'ACTIVE', roles:[{ id:'role_content_manager', name:'content_manager' }] },
+    { id:'preview-admin', first_name:'Portal', last_name:'Admin', email:'admin@ncs.go.ug', phone:'', is_active:true, account_status:'ACTIVE', roles:[{ id:'role_super_admin', name:'super_admin' }] },
+    { id:'preview-operator', first_name:'Portal', last_name:'Operator', email:'operator@ncs.go.ug', phone:'', is_active:true, account_status:'ACTIVE', roles:[{ id:'role_portal_operator', name:'portal_operator' }] },
   ]
 }
 
@@ -3455,7 +3258,7 @@ function resetUserForm() {
 }
 
 async function removeUser(user) {
-  if (!(await confirmAction('Delete this user?', `${user.email} will be disabled and removed from active CMS access.`))) return
+  if (!(await confirmAction('Delete this user?', `${user.email} will be disabled and removed from active portal access.`))) return
   try {
     if (!(await canReachApi())) {
       users.value = users.value.filter(row => row.id !== user.id)
@@ -3813,7 +3616,7 @@ function resetFactForm() {
 async function loadComments() {
   try {
     if (!(await canReachApi())) {
-      error.value = 'Backend API is not reachable on port 9080. Start the native Go API to load comments.'
+      error.value = 'Backend API is not reachable on port 9080. Start the portal API to load comments.'
       return
     }
     const res = await cms.adminListComments({ status: commentStatus.value, per_page:50 })

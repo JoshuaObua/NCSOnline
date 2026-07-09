@@ -2,21 +2,21 @@
   <main class="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
-        <router-link class="inline-block" to="/">
+        <router-link class="inline-block" to="/login">
           <img alt="NCS" class="h-16 mx-auto mb-4" src="/main-logo.png" />
         </router-link>
-        <h1 class="text-2xl font-bold text-[#1a365d]">Welcome Back</h1>
-        <p class="text-gray-600 mt-1">Sign in to your NCS account</p>
+        <h1 class="text-2xl font-bold text-[#1a365d]">NCS Portal</h1>
+        <p class="text-gray-600 mt-1">Sign in to manage portal operations</p>
       </div>
 
       <div class="bg-white rounded-2xl shadow-lg p-8">
         <form class="space-y-5" novalidate @submit.prevent="login">
           <div>
-            <label class="text-sm font-medium leading-none text-[#1a365d]" for="cms-email">Email Address</label>
+            <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-email">Email Address</label>
             <div class="relative mt-1">
               <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
               <input
-                id="cms-email"
+                id="portal-email"
                 v-model="email"
                 type="email"
                 autocomplete="email"
@@ -29,11 +29,11 @@
           </div>
 
           <div>
-            <label class="text-sm font-medium leading-none text-[#1a365d]" for="cms-password">Password</label>
+            <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-password">Password</label>
             <div class="relative mt-1">
               <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               <input
-                id="cms-password"
+                id="portal-password"
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 autocomplete="current-password"
@@ -76,16 +76,6 @@
           </button>
         </form>
 
-        <div class="mt-6 text-center">
-          <p class="text-gray-600">Don't have an account? <a class="text-[#f5a623] font-semibold hover:underline" href="https://portal.ncs.go.ug/register">Create Account</a></p>
-        </div>
-      </div>
-
-      <div class="text-center mt-6">
-        <router-link class="text-gray-500 hover:text-[#1a365d] text-sm flex items-center justify-center gap-1" to="/">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-          Back to Home
-        </router-link>
       </div>
     </div>
   </main>
@@ -116,13 +106,13 @@ async function login() {
     const data = res.data?.data || {}
     localStorage.setItem('ncsms_access_token', data.access_token || '')
     localStorage.setItem('ncsms_user', JSON.stringify(data.user || {}))
-    router.push('/cms')
+    router.push('/portal')
   } catch (err) {
     if (!err.response && isDefaultPreviewLogin()) {
       enterPreviewMode()
       return
     }
-    error.value = err.response?.data?.error?.message || 'Login failed. Check the CMS credentials and API server.'
+    error.value = err.response?.data?.error?.message || 'Login failed. Check the portal credentials and API server.'
   } finally {
     loading.value = false
   }
@@ -133,9 +123,9 @@ function isDefaultPreviewLogin() {
 }
 
 function enterPreviewMode() {
-  localStorage.setItem('ncsms_access_token', 'local-cms-preview-token')
+  localStorage.setItem('ncsms_access_token', 'local-portal-preview-token')
   localStorage.setItem('ncsms_user', JSON.stringify({ email: email.value, roles: ['super_admin'] }))
-  router.push('/cms')
+  router.push('/portal')
 }
 
 async function canReachApi() {

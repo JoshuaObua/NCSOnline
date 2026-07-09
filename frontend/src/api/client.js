@@ -76,13 +76,14 @@ function refreshAccessToken() {
 
 // Request interceptor — attach the auth token, refreshing it first if it's
 // within 30s of expiring. Access tokens are short-lived (15m), so without
-// this every CMS action after that window would fire with a stale token,
+// this every portal action after that window would fire with a stale token,
 // hit a 401, and only then refresh-and-retry — visible in the browser
 // console as a failed request even though the retry silently succeeds.
 apiClient.interceptors.request.use(
   async config => {
     let token = localStorage.getItem('ncsms_access_token')
-    if (token && token !== 'local-cms-preview-token' && !isAuthEndpoint(config.url)) {
+    const isLocalPreviewToken = ['local-portal-preview-token', 'local-cms-preview-token'].includes(token)
+    if (token && !isLocalPreviewToken && !isAuthEndpoint(config.url)) {
       const expMs = decodeJwtExpMs(token)
       if (expMs && expMs - Date.now() < 30_000) {
         try { token = await refreshAccessToken() } catch { /* let the request go; the response interceptor will handle the 401 */ }

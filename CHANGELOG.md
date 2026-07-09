@@ -1,3 +1,32 @@
+# Changelog
+
+## 2026-07-09 - Portal-only application cutover
+
+### Changed
+- Made the frontend router portal-only: `/` now redirects to `/login`, `/login` opens the portal login, `/portal` opens the portal dashboard, `/cms` remains as a legacy redirect to `/portal`, and unknown public routes redirect to `/login`.
+- Changed the login experience from CMS wording to portal wording and routed successful sign-ins and local preview sign-ins to `/portal`.
+- Replaced the public website sitemap view with a portal sitemap that documents the retained routes and module slugs.
+- Renamed the visible settings surface from Website Settings to Portal Settings while retaining the existing settings storage key for rollback compatibility.
+- Pruned the portal sidebar registry so the only reachable modules are:
+  `roles`, `manage-roles`, `users`, `manage-users`, `associations`, `manage-federations`, `create-federation-categories`, `manage-federation-categories`, `audit-logs`, `third-party-integrations`, `website-settings`, `appearance`, `sitemap`, `storage`, `command-center`, and `maintenance`.
+- Limited portal permission grouping to operational resources: users, roles, audit logs, settings, storage, dashboard, federations, and federation categories.
+- Reduced the initial portal data load to operational data only: federations, federation categories, roles, permissions, audit logs, and third-party integration settings.
+- Updated local preview labels, sample users, and preview tokens to portal terminology while still accepting the old local CMS preview token for compatibility.
+- Replaced public website route regression tests with portal-only router, login, module registry, sitemap, and audit/operations checks.
+
+### Removed From The Reachable Portal
+- Public website pages and routes for news, static pages, events, careers, projects, case studies, resources, facilities, contact pages, account pages, public federation pages, documents, investments, FAQs, team, and governing council.
+- Public content CMS sections from the sidebar and portal module registry, including homepage, slideshows, blog posts, pages, projects, case studies, FAQs, resources, careers, team, council, facilities, events, investments, sports rules, press releases, reports, speeches, fun facts, newsletters, messages, notifications, comments, menus, documentation, and smart updates.
+- Public/content API preloads from the portal startup path so removed modules are not loaded as part of the portal dashboard.
+
+### Rollback Notes
+- Restore the previous public route table in `frontend/src/router/index.js` to bring back public website pages.
+- Re-enable the old section arrays and `contentSections` entries in `frontend/src/views/WebsiteContentManagerView.vue` to expose public/content CMS modules again.
+- Restore the former `loadAll()` preload list in `frontend/src/views/WebsiteContentManagerView.vue` if public/content CMS data should load on portal startup again.
+- Restore the old sitemap component in `frontend/src/components/cms/SitemapPanel.vue` if public route and content slugs need to be listed again.
+- Restore the old login redirects in `frontend/src/views/CMSLoginView.vue` if `/cms` should become the primary dashboard route again.
+- Revert `frontend/tests/public-pages.test.js` to the former public-page assertions when public website pages are restored.
+
 ## 2026-07-09
 
 - Added fully editable, published Mandate and NCS History pages with responsive right-hand information tiles, structured CMS list blocks, complete default content, stable public URLs, and migration-backed seeding.

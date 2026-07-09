@@ -1,6 +1,6 @@
 <template>
   <section class="website-settings">
-    <div class="cms-panel-head"><h2>Website Settings</h2></div>
+    <div class="cms-panel-head"><h2>Portal Settings</h2></div>
 
     <div class="cms-panel">
       <div class="cms-panel-head">

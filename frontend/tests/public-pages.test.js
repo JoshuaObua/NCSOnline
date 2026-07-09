@@ -3,120 +3,108 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 
-import { blockMap, createNode, pageBuilderVersion } from '../src/utils/pageBuilderRegistry.js'
-
 const read = relativePath => readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8')
+const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const sliceBetween = (source, start, end) => {
+  const startIndex = source.indexOf(start)
+  assert.notEqual(startIndex, -1, `missing start marker: ${start}`)
+  const endIndex = source.indexOf(end, startIndex)
+  assert.notEqual(endIndex, -1, `missing end marker: ${end}`)
+  return source.slice(startIndex, endIndex)
+}
 
-test('editable list blocks use the current page-builder schema', () => {
-  assert.equal(pageBuilderVersion, 2)
-  assert.equal(blockMap.list.label, 'Editable List')
+test('router is portal-only and sends legacy/public slugs to login', () => {
+  const router = read('../src/router/index.js')
 
-  const node = createNode('list')
-  assert.equal(node.type, 'list')
-  assert.equal(node.props.ordered, false)
-  assert.match(node.props.items, /First item/)
-})
+  assert.match(router, /path:\s*'\/',\s*redirect:\s*'\/login'/)
+  assert.match(router, /path:\s*'\/login',\s*name:\s*'PortalLogin'/)
+  assert.match(router, /path:\s*'\/portal',\s*name:\s*'PortalDashboard'/)
+  assert.match(router, /path:\s*'\/cms',\s*redirect:\s*'\/portal'/)
+  assert.match(router, /path:\s*'\/:pathMatch\(\.\*\)\*',\s*redirect:\s*'\/login'/)
 
-test('Mandate and NCS History migrations contain valid editable page documents', () => {
-  const sql = read('../../backend/migrations/055_seed_mandate_history_pages.sql')
-  for (const [name, expectedText] of [
-    ['mandate', 'The Council Shall'],
-    ['history', 'Our Journey'],
-  ]) {
-    const match = sql.match(new RegExp(`\\$${name}\\$([\\s\\S]*?)\\$${name}\\$`))
-    assert.ok(match, `missing ${name} builder payload`)
-    const page = JSON.parse(match[1])
-    assert.equal(page.type, 'ncs-page-builder')
-    assert.equal(page.version, 2)
-    assert.ok(page.blocks.length >= 3)
-    assert.match(JSON.stringify(page), new RegExp(expectedText))
+  assert.doesNotMatch(router, /PublicLayout|views\/public|AccountProfileView/)
+  for (const slug of ['news', 'pages/:slug', 'events', 'careers', 'projects', 'facilities', 'contact-us']) {
+    assert.doesNotMatch(router, new RegExp(`path:\\s*'${escapeRegExp(slug)}'`))
   }
 })
 
-test('public routes and page motion remain wired into the application shell', () => {
-  const router = read('../src/router/index.js')
-  const layout = read('../src/layouts/PublicLayout.vue')
-  const pageView = read('../src/views/public/PageView.vue')
-
-  assert.match(router, /path:\s*'pages\/:slug'/)
-  assert.match(layout, /animatePublicPage/)
-  assert.match(pageView, /block\.type === 'list'/)
-  assert.match(pageView, /sanitizeRichHtml/)
-})
-
-test('facilities use managed regions and server-side query filtering', () => {
-  const api = read('../src/api/cms.js')
-  const facilitiesView = read('../src/views/public/FacilitiesView.vue')
-  const cmsView = read('../src/views/WebsiteContentManagerView.vue')
-  const migration = read('../../backend/migrations/056_facility_regions.sql')
-
-  assert.match(api, /listFacilityRegions/)
-  assert.match(api, /adminCreateFacilityRegion/)
-  assert.match(facilitiesView, /listFacilities\(\{ region \}\)/)
-  assert.match(facilitiesView, /region\.slug/)
-  assert.match(cmsView, /manage-facility-regions/)
-  assert.match(cmsView, /availability_status/)
-  assert.match(migration, /CREATE TABLE IF NOT EXISTS cms_facility_regions/)
-  assert.match(migration, /FOREIGN KEY \(region_slug\)/)
-})
-
-test('CMS login starts blank and the documentation page is registered', () => {
+test('portal login starts blank and enters the portal dashboard', () => {
   const login = read('../src/views/CMSLoginView.vue')
-  const cmsView = read('../src/views/WebsiteContentManagerView.vue')
-  const docs = read('../src/components/cms/CmsDocumentationPanel.vue')
 
+  assert.match(login, /NCS Portal/)
   assert.match(login, /const email = ref\(''\)/)
   assert.match(login, /const password = ref\(''\)/)
   assert.match(login, /const remember = ref\(false\)/)
+  assert.match(login, /router\.push\('\/portal'\)/)
+  assert.match(login, /local-portal-preview-token/)
+  assert.doesNotMatch(login, /Back to Home|Create Account|router\.push\('\/cms'\)/)
   assert.doesNotMatch(login, /const email = ref\('admin@ncs\.go\.ug'\)/)
   assert.doesNotMatch(login, /const password = ref\('NCS@Admin2026!'\)/)
-
-  assert.match(cmsView, /CmsDocumentationPanel/)
-  assert.match(cmsView, /id:'documentation'/)
-  assert.match(docs, /data-testid="cms-documentation-panel"/)
-  assert.match(docs, /Download Postman JSON/)
-  assert.match(docs, /Facilities and Regions/)
-  assert.match(docs, /\/facilities\?region=central/)
 })
 
-test('CMS Postman collection is downloadable and uses blank login variables', () => {
-  const backendCollection = read('../../backend/postman/NCSMS_v1.postman_collection.json')
-  const publicCollection = read('../public/postman/NCSMS_v1.postman_collection.json')
-  assert.equal(publicCollection, backendCollection)
+test('portal shell exposes only retained operational modules', () => {
+  const portal = read('../src/views/WebsiteContentManagerView.vue')
 
-  const collection = JSON.parse(backendCollection)
-  const folders = collection.item.map(item => item.name)
-  for (const name of [
-    'Auth',
-    'CMS / Public Content',
-    'CMS / Admin Content',
-    'CMS / Admin Taxonomy and Directories',
-    'CMS / Operations Queues',
-    'CMS / Settings, Media, and System',
+  assert.match(portal, /const active = ref\('manage-users'\)/)
+  assert.match(portal, /const topSections = \[\]/)
+  assert.match(portal, /const homepageSections = \[\]/)
+  assert.match(portal, /const blogSections = \[\]/)
+  assert.match(portal, /const facilitySections = \[\]/)
+  assert.match(portal, /const allowedPortalSectionIds = new Set/)
+  assert.match(portal, /return \['local-portal-preview-token', 'local-cms-preview-token'\]\.includes/)
+
+  for (const id of [
+    'roles',
+    'manage-roles',
+    'users',
+    'manage-users',
+    'associations',
+    'manage-federations',
+    'audit-logs',
+    'third-party-integrations',
+    'website-settings',
+    'sitemap',
+    'appearance',
+    'storage',
+    'command-center',
+    'maintenance',
   ]) {
-    assert.ok(folders.includes(name), `missing ${name} folder`)
+    assert.match(portal, new RegExp(`id:'${id}'`), `missing retained module ${id}`)
   }
 
-  const variables = new Map(collection.variable.map(variable => [variable.key, variable.value]))
-  assert.equal(variables.get('baseUrl'), 'http://localhost:9080')
-  assert.equal(variables.get('loginEmail'), '')
-  assert.equal(variables.get('loginPassword'), '')
-  assert.ok(variables.has('accessToken'))
-  assert.ok(variables.has('refreshToken'))
+  const contentSections = sliceBetween(portal, 'const contentSections = [', 'const profileSections')
+  for (const removed of ['messages', 'investment-requests', 'notifications', 'comments', 'menus', 'documentation', 'smart-updates']) {
+    assert.doesNotMatch(
+      contentSections,
+      new RegExp(`id:'${escapeRegExp(removed)}'`),
+      `removed module ${removed} should not be in contentSections`,
+    )
+  }
 
-  const authFolder = collection.item.find(item => item.name === 'Auth')
-  const loginRequest = authFolder.item.find(item => item.name === 'Login')
-  assert.match(loginRequest.request.body.raw, /\{\{loginEmail\}\}/)
-  assert.match(loginRequest.request.body.raw, /\{\{loginPassword\}\}/)
-  assert.doesNotMatch(loginRequest.request.body.raw, /admin@ncs\.go\.ug|NCS@Admin2026!|changeme123/)
-  assert.match(JSON.stringify(collection), /\/api\/v1\/cms\/facility-regions/)
-  assert.match(JSON.stringify(collection), /\/api\/v1\/cms\/facilities/)
-  assert.match(JSON.stringify(collection), /\/api\/v1\/cms\/team/)
+  const loadAll = sliceBetween(portal, 'async function loadAll() {', 'async function loadAnalytics()')
+  for (const removedCall of ['adminListPosts', 'adminListEvents', 'adminListFacilities', 'adminListCareers', 'adminListComments', 'listMessages', 'listNotifications']) {
+    assert.doesNotMatch(loadAll, new RegExp(removedCall), `${removedCall} should not preload in portal-only mode`)
+  }
 })
 
-test('CMS operations statuses and audit logs avoid unknown states', () => {
+test('sitemap documents portal routes and module slugs only', () => {
+  const sitemap = read('../src/components/cms/SitemapPanel.vue')
+
+  assert.match(sitemap, /Portal Sitemap/)
+  assert.match(sitemap, /path: '\/login'/)
+  assert.match(sitemap, /path: '\/portal'/)
+  assert.match(sitemap, /path: '\/cms'/)
+  assert.match(sitemap, /slug: 'manage-users'/)
+  assert.match(sitemap, /slug: 'maintenance'/)
+
+  for (const publicPath of ['/news', '/pages/', '/events', '/careers', '/facilities']) {
+    assert.doesNotMatch(sitemap, new RegExp(escapeRegExp(publicPath)))
+  }
+})
+
+test('operations statuses and audit logs avoid unknown states', () => {
   const commandCenter = read('../src/components/cms/SystemCommandCenterPanel.vue')
-  const cmsView = read('../src/views/WebsiteContentManagerView.vue')
+  const portal = read('../src/views/WebsiteContentManagerView.vue')
   const operatorHandler = read('../../backend/internal/handlers/operator.go')
 
   assert.match(commandCenter, /displayServiceStatus/)
@@ -127,10 +115,10 @@ test('CMS operations statuses and audit logs avoid unknown states', () => {
   assert.match(operatorHandler, /normalizeServiceState/)
   assert.doesNotMatch(operatorHandler, /"status": "unknown"/)
 
-  assert.match(cmsView, /auditPage = ref\(1\)/)
-  assert.match(cmsView, /auditPerPage = ref\(20\)/)
-  assert.match(cmsView, /auditTotalPages/)
-  assert.match(cmsView, /changeAuditPage/)
-  assert.match(cmsView, /Page \{\{ auditPage \}\} of \{\{ auditTotalPages \}\}/)
-  assert.match(cmsView, /adminListAuditLogs\(\{ page:auditPage\.value, per_page:auditPerPage\.value/)
+  assert.match(portal, /auditPage = ref\(1\)/)
+  assert.match(portal, /auditPerPage = ref\(20\)/)
+  assert.match(portal, /auditTotalPages/)
+  assert.match(portal, /changeAuditPage/)
+  assert.match(portal, /Page \{\{ auditPage \}\} of \{\{ auditTotalPages \}\}/)
+  assert.match(portal, /adminListAuditLogs\(\{ page:auditPage\.value, per_page:auditPerPage\.value/)
 })
