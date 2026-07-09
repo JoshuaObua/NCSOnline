@@ -378,7 +378,8 @@ func (s *telemetrySampler) snapshot(state maintenance.Snapshot) map[string]any {
 
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
-	services := serviceStatuses()
+	dockerReady := dockerAvailable()
+	services := serviceStatuses(dockerReady)
 	events := recentSystemEvents(services, state, now)
 	public := state.Scoped(maintenance.ScopePublicCMS)
 	admin := state.Scoped(maintenance.ScopeAdminDashboard)
@@ -438,8 +439,9 @@ func (s *telemetrySampler) snapshot(state maintenance.Snapshot) map[string]any {
 			"connections":  len(conns),
 			"latency_ms":   nil,
 		},
-		"services": services,
-		"events":   events,
+		"services":         services,
+		"events":           events,
+		"docker_available": dockerReady,
 	}
 }
 
@@ -527,7 +529,7 @@ func perCorePayload(values []float64) []map[string]any {
 	return out
 }
 
-func serviceStatuses() []map[string]any {
+func serviceStatuses(dockerReady bool) []map[string]any {
 	services := []string{"nginx", "frontend", "backend", "postgres", "nsmis-worker", "backup", "location-service"}
 	out := make([]map[string]any, 0, len(services))
 	composeProject := strings.TrimSpace(os.Getenv("COMPOSE_PROJECT_NAME"))
@@ -535,9 +537,9 @@ func serviceStatuses() []map[string]any {
 		composeProject = "ncs-online"
 	}
 	for _, svc := range services {
-		out = append(out, map[string]any{"name": svc, "display_name": serviceDisplayName(svc), "status": "unknown", "health": "unknown", "actions": []string{"start", "restart", "stop", "logs"}})
+		out = append(out, map[string]any{"name": svc, "display_name": serviceDisplayName(svc), "status": "idle", "health": "idle", "actions": []string{"start", "restart", "stop", "logs"}})
 	}
-	if !dockerAvailable() {
+	if !dockerReady {
 		return out
 	}
 	ctx, cancel := contextWithTimeout(4 * time.Second)
@@ -563,7 +565,7 @@ func serviceStatuses() []map[string]any {
 			state, _ := row["State"].(string)
 			health, _ := row["Health"].(string)
 			item["status"] = normalizeServiceState(state, health)
-			item["health"] = strings.TrimSpace(health)
+			item["health"] = normalizeServiceHealth(state, health)
 			item["container"] = row["Name"]
 			item["image"] = row["Image"]
 			item["published_ports"] = row["Publishers"]
@@ -574,17 +576,22 @@ func serviceStatuses() []map[string]any {
 
 func normalizeServiceState(state, health string) string {
 	state = strings.ToLower(strings.TrimSpace(state))
+	if state == "running" {
+		return "running"
+	}
+	return "idle"
+}
+
+func normalizeServiceHealth(state, health string) string {
+	state = strings.ToLower(strings.TrimSpace(state))
 	health = strings.ToLower(strings.TrimSpace(health))
-	if state == "running" && (health == "" || health == "healthy") {
+	if state != "running" {
+		return "idle"
+	}
+	if health == "" {
 		return "healthy"
 	}
-	if state == "running" {
-		return "degraded"
-	}
-	if state == "" {
-		return "unknown"
-	}
-	return "stopped"
+	return health
 }
 
 func serviceDisplayName(name string) string {
@@ -614,8 +621,9 @@ func recentSystemEvents(services []map[string]any, state maintenance.Snapshot, n
 		events = append(events, map[string]any{"timestamp": now, "severity": "critical", "source": "maintenance", "message": "Admin dashboard maintenance gate is active"})
 	}
 	for _, svc := range services {
-		if svc["status"] == "stopped" || svc["status"] == "degraded" {
-			events = append(events, map[string]any{"timestamp": now, "severity": "critical", "source": "service", "message": serviceDisplayName(fmt.Sprint(svc["name"])) + " is " + fmt.Sprint(svc["status"])})
+		health := strings.ToLower(strings.TrimSpace(fmt.Sprint(svc["health"])))
+		if svc["status"] == "running" && health != "" && health != "healthy" && health != "idle" {
+			events = append(events, map[string]any{"timestamp": now, "severity": "critical", "source": "service", "message": serviceDisplayName(fmt.Sprint(svc["name"])) + " health is " + health})
 		}
 	}
 	return events

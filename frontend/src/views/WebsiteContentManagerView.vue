@@ -374,84 +374,6 @@
             <div class="col-12">
               <div class="card">
                 <div class="card-header">
-                  <h4>Website Operations Table</h4>
-                  <div class="card-header-form">
-                    <div class="input-group">
-                      <input v-model="globalSearch" type="text" class="form-control" placeholder="Search KPI">
-                      <div class="input-group-btn">
-                        <button class="btn btn-primary" type="button" @click="runGlobalSearch"><i class="fas fa-search"></i></button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="card-body p-0">
-                  <div class="table-responsive">
-                    <table class="table table-striped table-hover table-sm mb-0">
-                      <thead>
-                        <tr>
-                          <th>Task Name</th>
-                          <th>Owner</th>
-                          <th>Task Status</th>
-                          <th>Due Date</th>
-                          <th>Priority</th>
-                          <th>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="task in dashboardTasks" :key="task.name">
-                          <td>{{ task.name }}</td>
-                          <td class="text-truncate">
-                            <ul class="list-unstyled order-list m-b-0">
-                              <li v-for="avatar in task.avatars" :key="avatar" class="team-member team-member-sm">
-                                <img class="rounded-circle" :src="avatar" alt="user">
-                              </li>
-                              <li class="avatar avatar-sm"><span class="badge badge-primary">+{{ task.extra }}</span></li>
-                            </ul>
-                          </td>
-                          <td class="align-middle">
-                            <div class="progress-text">{{ task.progress }}%</div>
-                            <div class="progress" data-height="6">
-                              <div class="progress-bar" :class="task.barClass" :style="{ width: `${task.progress}%` }"></div>
-                            </div>
-                          </td>
-                          <td>{{ task.due }}</td>
-                          <td><div class="badge" :class="task.priorityClass">{{ task.priority }}</div></td>
-                          <td><button type="button" class="btn btn-outline-primary" @click="selectSection(task.target)">Detail</button></td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-6 col-lg-12 col-xl-6">
-              <div class="card">
-                <div class="card-header">
-                  <h4>Website Activity</h4>
-                  <form class="card-header-form" @submit.prevent="runGlobalSearch">
-                    <input v-model="globalSearch" type="text" class="form-control" placeholder="Search">
-                  </form>
-                </div>
-                <div class="card-body">
-                  <div v-for="item in websiteActivity" :key="item.id" class="support-ticket media pb-1 mb-3">
-                    <img :src="item.avatar" class="user-img mr-2" alt="">
-                    <div class="media-body ml-3">
-                      <div class="badge badge-pill mb-1 float-right" :class="item.badgeClass">{{ item.type }}</div>
-                      <span class="font-weight-bold">#{{ item.id }}</span>
-                      <button type="button" class="cms-inline-link" @click="selectSection(item.target)">{{ item.title }}</button>
-                      <p class="my-1">{{ item.summary }}</p>
-                      <small class="text-muted">Created by <span class="font-weight-bold font-13">{{ item.owner }}</span> - {{ item.time }}</small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-6 col-lg-12 col-xl-6">
-              <div class="card">
-                <div class="card-header">
                   <h4>Analytics Snapshot</h4>
                 </div>
                 <div class="card-body">
@@ -1514,7 +1436,7 @@
         <section v-else-if="active === 'audit-logs'" class="cms-panel">
           <div class="cms-panel-head">
             <h2>Audit Logs</h2>
-            <form class="cms-search" @submit.prevent="loadAuditLogs">
+            <form class="cms-search" @submit.prevent="searchAuditLogs">
               <input v-model="auditSearch" placeholder="Search user, IP, endpoint, action..." />
               <button type="submit">Search</button>
             </form>
@@ -1537,6 +1459,19 @@
               </div>
             </article>
             <p v-if="!auditLogs.length" class="cms-empty">No audit entries found.</p>
+          </div>
+          <div v-if="auditTotalPages > 1" class="cms-pagination" aria-label="Audit log pagination">
+            <button type="button" :disabled="auditPage <= 1" @click="changeAuditPage(auditPage - 1)">Previous</button>
+            <span>Page {{ auditPage }} of {{ auditTotalPages }} &middot; {{ auditMeta.total || 0 }} events</span>
+            <button type="button" :disabled="auditPage >= auditTotalPages" @click="changeAuditPage(auditPage + 1)">Next</button>
+            <label>
+              Rows
+              <select v-model.number="auditPerPage" @change="changeAuditPage(1)">
+                <option :value="10">10</option>
+                <option :value="20">20</option>
+                <option :value="50">50</option>
+              </select>
+            </label>
           </div>
           <article v-if="selectedAuditLog" class="cms-subpanel audit-detail">
             <div class="cms-panel-head">
@@ -1665,6 +1600,7 @@
 
               <WebsiteSettingsPanel v-else-if="active === 'website-settings'" @message="setMsg" @error="setErr" />
               <SitemapPanel v-else-if="active === 'sitemap'" @message="setMsg" @error="setErr" />
+              <CmsDocumentationPanel v-else-if="active === 'documentation'" />
               <AppearanceSettingsPanel v-else-if="active === 'appearance'" @message="setMsg" @error="setErr" />
               <ProfileSettingsPanel v-else-if="active === 'my-profile'" @message="setMsg" @error="setErr" @profile-updated="refreshStoredUser" />
               <StorageSettingsPanel v-else-if="active === 'storage'" @message="setMsg" @error="setErr" />
@@ -1703,6 +1639,7 @@ import StorageSettingsPanel from '@/components/cms/StorageSettingsPanel.vue'
 import AppearanceSettingsPanel from '@/components/cms/AppearanceSettingsPanel.vue'
 import WebsiteSettingsPanel from '@/components/cms/WebsiteSettingsPanel.vue'
 import SitemapPanel from '@/components/cms/SitemapPanel.vue'
+import CmsDocumentationPanel from '@/components/cms/CmsDocumentationPanel.vue'
 import ProfileSettingsPanel from '@/components/cms/ProfileSettingsPanel.vue'
 import SystemCommandCenterPanel from '@/components/cms/SystemCommandCenterPanel.vue'
 import MaintenanceModePanel from '@/components/cms/MaintenanceModePanel.vue'
@@ -1937,6 +1874,7 @@ const contentSections = [
   { id:'third-party-integrations', label:'Third-Party Integrations', icon:'icofont-plugin' },
   { id:'website-settings', label:'Website Settings', icon:'icofont-globe' },
   { id:'sitemap', label:'Sitemap', icon:'icofont-site-map' },
+  { id:'documentation', label:'CMS Documentation', icon:'icofont-book-alt' },
   { id:'appearance', label:'Appearance', icon:'icofont-paint' },
   { id:'storage', label:'Storage Settings', icon:'icofont-cloud-upload' },
   { id:'command-center', label:'Command Center', icon:'icofont-layers' },
@@ -2175,6 +2113,8 @@ const userSearch = ref('')
 const auditLogs = ref([])
 const auditMeta = ref({})
 const auditSearch = ref('')
+const auditPage = ref(1)
+const auditPerPage = ref(20)
 const selectedAuditLog = ref(null)
 const commentStatus = ref('pending')
 const messageStatus = ref('')
@@ -2376,17 +2316,6 @@ const contentMix = computed(() => {
     { label:'Pages', value:Math.max(0, 100 - postShare - resourceShare), color:'bg-warning' },
   ]
 })
-const dashboardTasks = computed(() => [
-  { name:'Publish homepage updates', avatars:userAvatars(1, 2, 3), extra:2, progress:Math.min(95, 45 + posts.value.length), due:'2026-07-08', priority:'High', priorityClass:'badge-danger', barClass:'bg-danger', target:'homepage' },
-  { name:'Review resource centre uploads', avatars:userAvatars(4, 5), extra:3, progress:Math.min(90, 35 + resources.value.length * 8), due:'2026-07-10', priority:'Average', priorityClass:'badge-info', barClass:'bg-cyan', target:'resources' },
-  { name:'Moderate public comments', avatars:userAvatars(6, 7, 8), extra:1, progress:comments.value.length ? 50 : 100, due:'2026-07-11', priority:comments.value.length ? 'High' : 'Low', priorityClass:comments.value.length ? 'badge-danger' : 'badge-success', barClass:comments.value.length ? 'bg-warning' : 'bg-success', target:'comments' },
-  { name:'Audit access and role changes', avatars:userAvatars(9, 10), extra:4, progress:Math.min(100, 60 + auditLogs.value.length), due:'2026-07-12', priority:'Low', priorityClass:'badge-success', barClass:'bg-success', target:'audit-logs' },
-])
-const websiteActivity = computed(() => [
-  { id:'89754', type:'Content', badgeClass:'badge-success', title:'Homepage hero requires review', summary:'Hero slideshow and homepage sections are ready for CMS approval.', owner:currentUserName.value, time:'1 day ago', avatar:'/otika-assets/img/users/user-1.png', target:'slideshow-manager' },
-  { id:'89755', type:'Analytics', badgeClass:'badge-info', title:'Traffic source report updated', summary:'Website KPI platform and source split has been refreshed.', owner:'Analytics Monitor', time:'2 days ago', avatar:'/otika-assets/img/users/user-2.png', target:'overview' },
-  { id:'89756', type:'Audit', badgeClass:'badge-warning', title:'Audit trail needs inspection', summary:'Recent admin requests are available in the audit log module.', owner:'Audit Monitor', time:'3 days ago', avatar:'/otika-assets/img/users/user-5.png', target:'audit-logs' },
-])
 const analyticsSnapshot = computed(() => [
   { label:'Bounce Rate', value:`${analytics.value?.bounce_rate || 0}%`, icon:'icofont-exit col-orange' },
   { label:'Avg. Session', value:formatDuration(analytics.value?.average_session_seconds || 0), icon:'icofont-clock-time col-green' },
@@ -2424,6 +2353,7 @@ const permissionGroups = computed(() => {
 })
 const auditRiskCount = computed(() => auditLogs.value.filter(log => Number(log.response_code) >= 400 || log.event_status === 'failure' || log.anomaly_detected).length)
 const auditHighThreatCount = computed(() => auditLogs.value.filter(log => Number(log.threat_score || 0) >= 70 || log.severity_level === 'high' || log.severity_level === 'critical').length)
+const auditTotalPages = computed(() => Math.max(1, Math.ceil(Number(auditMeta.value.total || 0) / Number(auditMeta.value.per_page || auditPerPage.value || 20))))
 const sampleAuditLogs = [
   { id:'preview-login', user_name:'cms-admin', action:'preview_login', method:'POST', endpoint:'/api/v1/auth/login', ip_address:'127.0.0.1', response_code:200, response_time_ms:31, event_status:'success', severity_level:'low', created_at:new Date().toISOString(), details:{ mode:'local-preview' } },
   { id:'preview-audit', user_name:'audit-monitor', action:'view_audit_logs', method:'GET', endpoint:'/api/v1/admin/audit-logs', ip_address:'127.0.0.1', response_code:200, response_time_ms:18, event_status:'success', severity_level:'low', created_at:new Date().toISOString(), details:{ source:'sample-data' } },
@@ -2483,9 +2413,6 @@ function fields(short = [], long = []) {
 }
 function formatNumber(value) {
   return new Intl.NumberFormat('en-UG').format(Number(value || 0))
-}
-function userAvatars(...ids) {
-  return ids.map(id => `/otika-assets/img/users/user-${id}.png`)
 }
 function emailLocalPart(email) {
   return typeof email === 'string' && email.includes('@') ? email.split('@')[0] : ''
@@ -2747,7 +2674,7 @@ async function loadAll() {
       cms.adminListFunFacts(), cms.adminListFAQs(), cms.adminListResources({ per_page:200 }), cms.adminListBlogCategories(), cms.adminListComments({ status: commentStatus.value, per_page:50 }),
       cms.adminListPosts({ category:'page', per_page:200 }), cms.adminListPosts({ category:'project', per_page:200 }), cms.adminListPosts({ category:'case_study', per_page:200 }),
       cms.adminListCareers({ per_page:200 }), cms.adminListInvest(), cms.adminListTeam(),
-      cms.adminListRoles(), cms.adminListPermissions(), cms.adminListAuditLogs({ page:1, per_page:50 }),
+      cms.adminListRoles(), cms.adminListPermissions(), cms.adminListAuditLogs({ page:auditPage.value, per_page:auditPerPage.value }),
       cms.adminListProjectCategories(), cms.adminListCaseStudyCategories(),
       cms.adminListFAQCategories(), cms.adminListResourceCategories(), cms.adminListCareerCategories(), cms.adminListTeamDepartments(),
       cms.adminListFacilityCategories(), cms.adminListEventCategories(), cms.adminListInvestCategories(), cms.adminListFederationCategories(), cms.adminListNewsletterSubscribers({ per_page:200 }),
@@ -2788,6 +2715,8 @@ async function loadAll() {
     permissions.value = listData(results[23].value)
     auditLogs.value = listData(results[24].value)
     auditMeta.value = pageMeta(results[24].value)
+    auditPage.value = auditMeta.value.page || auditPage.value
+    auditPerPage.value = auditMeta.value.per_page || auditPerPage.value
     projectCategories.value = listData(results[25].value)
     caseStudyCategories.value = listData(results[26].value)
     faqCategories.value = listData(results[27].value)
@@ -3602,19 +3531,31 @@ async function toggleUserRole(user, role, checked) {
   } catch (err) { setErr(err) }
 }
 
+function searchAuditLogs() {
+  auditPage.value = 1
+  loadAuditLogs()
+}
+
+function changeAuditPage(page) {
+  auditPage.value = Math.min(Math.max(1, Number(page) || 1), auditTotalPages.value)
+  loadAuditLogs()
+}
+
 async function loadAuditLogs() {
   try {
     if (!(await canReachApi())) {
       const query = auditSearch.value.trim().toLowerCase()
-      auditLogs.value = query
+      const filtered = query
         ? sampleAuditLogs.filter(log => JSON.stringify(log).toLowerCase().includes(query))
         : sampleAuditLogs
-      auditMeta.value = { total: auditLogs.value.length }
+      const start = (auditPage.value - 1) * auditPerPage.value
+      auditLogs.value = filtered.slice(start, start + auditPerPage.value)
+      auditMeta.value = { page:auditPage.value, per_page:auditPerPage.value, total:filtered.length }
       selectedAuditLog.value = null
       error.value = 'Backend API is not reachable on port 9080. Audit Logs is showing preview data.'
       return
     }
-    const res = await cms.adminListAuditLogs({ page:1, per_page:50, search:auditSearch.value })
+    const res = await cms.adminListAuditLogs({ page:auditPage.value, per_page:auditPerPage.value, search:auditSearch.value })
     auditLogs.value = listData(res)
     auditMeta.value = pageMeta(res)
     selectedAuditLog.value = null
@@ -4013,6 +3954,8 @@ const EditorForm = defineComponent({
 .otika-cms button:focus,.otika-cms a:focus,.otika-cms input:focus,.otika-cms textarea:focus,.otika-cms select:focus{outline:none!important}.otika-cms button:focus-visible,.otika-cms a:focus-visible,.otika-cms input:focus-visible,.otika-cms textarea:focus-visible,.otika-cms select:focus-visible{outline:2px solid rgba(103,119,239,.45)!important;outline-offset:2px!important}.otika-cms .sidebar-menu button:focus-visible,.otika-cms .main-navbar button:focus-visible{outline:0!important;box-shadow:0 0 0 3px rgba(103,119,239,.22)!important}.otika-cms .cms-table-row button:focus,.otika-cms .audit-row button:focus,.otika-cms .cms-actions button:focus,.otika-cms .cms-actions a:focus{box-shadow:0 2px 6px #acb5f6!important}.otika-cms .sidebar-menu .nav-link{position:relative}.otika-cms .sidebar-mini .main-sidebar,.otika-cms .sidebar-mini #sidebar-wrapper{overflow:visible!important}.otika-cms .sidebar-mini .sidebar-menu{overflow-y:auto!important;overflow-x:visible!important}.otika-cms .sidebar-mini .sidebar-user strong,.otika-cms .sidebar-mini .sidebar-user span,.otika-cms .sidebar-mini .sidebar-menu .menu-header,.otika-cms .sidebar-mini .sidebar-menu .dropdown-menu{display:none!important}.otika-cms .sidebar-mini .sidebar-menu .nav-link span{display:block!important;position:absolute;left:62px;top:50%;z-index:1200;max-width:220px;padding:8px 12px;border-radius:4px;background:#111827;color:#fff!important;box-shadow:0 8px 24px rgba(15,23,42,.22);font-size:12px;line-height:1;opacity:0;pointer-events:none;transform:translateY(-50%) translateX(-6px);transition:opacity 140ms ease,transform 140ms ease;visibility:hidden}.otika-cms .sidebar-mini .sidebar-menu .nav-link:hover span,.otika-cms .sidebar-mini .sidebar-menu .nav-link:focus-visible span{opacity:1;transform:translateY(-50%) translateX(0);visibility:visible}.otika-cms .sidebar-mini .sidebar-menu .nav-link span::before{content:"";position:absolute;left:-5px;top:50%;width:10px;height:10px;background:#111827;transform:translateY(-50%) rotate(45deg)}:global(.dark .otika-cms){background:#0f172a!important;color:#e5e7eb!important}:global(.dark .otika-cms .main-content),:global(.dark .otika-cms .section-body){background:#0f172a!important;color:#e5e7eb!important}:global(.dark .otika-cms :deep(.navbar-bg)){background:#111827!important}:global(.dark .otika-cms :deep(.main-navbar)){background:#111827!important;box-shadow:0 4px 24px rgba(0,0,0,.35)!important}:global(.dark .otika-cms .main-sidebar),:global(.dark .otika-cms #sidebar-wrapper){background:#111827!important}:global(.dark .otika-cms .sidebar-brand),:global(.dark .otika-cms .sidebar-user){background:#1f2937!important}:global(.dark .otika-cms .sidebar-user strong),:global(.dark .otika-cms .section-header h1),:global(.dark .otika-cms .cms-panel h2),:global(.dark .otika-cms .cms-subpanel h3),:global(.dark .otika-cms .permission-group h3),:global(.dark .otika-cms .cms-table-row strong),:global(.dark .otika-cms .audit-row strong),:global(.dark .otika-cms .permission-row strong),:global(.dark .otika-cms .metric strong),:global(.dark .otika-cms label){color:#f8fafc!important}:global(.dark .otika-cms .sidebar-user span),:global(.dark .otika-cms .cms-table-row span),:global(.dark .otika-cms .audit-row span),:global(.dark .otika-cms .permission-row small),:global(.dark .otika-cms .metric span),:global(.dark .otika-cms .cms-empty),:global(.dark .otika-cms .section-header-breadcrumb),:global(.dark .otika-cms .breadcrumb-item){color:#cbd5e1!important}:global(.dark .otika-cms .cms-card),:global(.dark .otika-cms .cms-panel),:global(.dark .otika-cms .cms-subpanel),:global(.dark .otika-cms .permission-group),:global(.dark .otika-cms .audit-summary article),:global(.dark .otika-cms .audit-row),:global(.dark .otika-cms .cms-table-row),:global(.dark .otika-cms .cms-menu-builder-grid article){background:#1f2937!important;border-color:#334155!important;box-shadow:0 4px 25px rgba(0,0,0,.28)!important}:global(.dark .otika-cms input),:global(.dark .otika-cms textarea),:global(.dark .otika-cms select),:global(.dark .otika-cms .form-control),:global(.dark .otika-cms :deep(.rich-editor)),:global(.dark .otika-cms :deep(.ProseMirror)){background:#111827!important;color:#f8fafc!important;border-color:#475569!important}:global(.dark .otika-cms input::placeholder),:global(.dark .otika-cms textarea::placeholder){color:#94a3b8!important}:global(.dark .otika-cms .cms-top-icon),:global(.dark .otika-cms .cms-top-icon i),:global(.dark .otika-cms .search-element .btn i),:global(.dark .otika-cms .navbar .nav-link){color:#f8fafc!important}:global(.dark .otika-cms .dropdown-menu){background:#1f2937!important;border-color:#334155!important;color:#e5e7eb!important}:global(.dark .otika-cms .dropdown-header),:global(.dark .otika-cms .dropdown-title),:global(.dark .otika-cms .dropdown-item),:global(.dark .otika-cms .dropdown-item span){color:#e5e7eb!important}:global(.dark .otika-cms .dropdown-item:hover){background:#111827!important}:global(.dark .otika-cms .sidebar-menu li.active>button),:global(.dark .otika-cms .sidebar-menu li.active>a),:global(.dark .otika-cms .sidebar-menu button:hover){background:#1f2937!important;color:#93c5fd!important}:global(.dark .otika-cms .sidebar-menu li.active>button i),:global(.dark .otika-cms .sidebar-menu button:hover i){color:#93c5fd!important}:global(.dark .otika-cms .cms-message){background:#052e2b!important;color:#6ee7b7!important}:global(.dark .otika-cms .cms-error){background:#3b1218!important;color:#fca5a5!important}:global(.dark .otika-cms .cms-empty){background:#111827!important;border-color:#334155!important}:global(.dark .otika-cms .audit-code.ok){background:#052e2b!important;color:#86efac!important}:global(.dark .otika-cms .audit-code.warn){background:#422006!important;color:#fdba74!important}:global(.dark .otika-cms .audit-code.danger){background:#450a0a!important;color:#fca5a5!important}:global(.dark .otika-cms :deep(.theme-toggle)){color:#f8fafc!important;background:#1f2937!important}:global(.dark .otika-cms :deep(.editor-toolbar button)){background:#111827!important;color:#e5e7eb!important}:global(.dark .otika-cms :deep(.editor-toolbar .active)){background:#6777ef!important;color:#fff!important}
 .otika-dashboard .card{border:0!important;border-radius:3px!important;box-shadow:0 4px 25px 0 rgba(0,0,0,.1)!important}.otika-dashboard .card-header{border-bottom-color:#f9f9f9!important}.otika-dashboard .card-header h4{font-size:16px!important;font-weight:700!important;color:#34395e!important}.otika-dashboard .card-statistic-4{position:relative;color:#34395e;padding:15px;border-radius:3px;overflow:hidden}.otika-dashboard .card-statistic-4 .card-content{padding:8px 0 8px 10px}.otika-dashboard .card-statistic-4 h5{color:#6c757d;font-weight:600}.otika-dashboard .card-statistic-4 h2{color:#34395e;font-weight:700}.cms-stat-icon{display:flex!important;align-items:center;justify-content:center;width:72px;height:72px;margin:22px auto 0;border-radius:50%;background:#f4f6f9;font-size:36px}.cms-chart-bars{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;min-height:260px;padding:12px 4px}.cms-chart-bar{display:grid;grid-template-rows:auto 1fr auto;gap:8px;min-width:44px;height:250px;text-align:center;color:#6c757d}.cms-chart-bar__value{font-size:12px;font-weight:700;color:#34395e}.cms-chart-bar__track{display:flex;align-items:flex-end;width:100%;height:190px;border-radius:30px;background:#f4f6f9;overflow:hidden}.cms-chart-bar__track span{display:block;width:100%;border-radius:30px 30px 0 0;background:#6777ef}.cms-chart-bar strong{font-size:12px}.cms-kpi-row,.cms-source-row,.cms-progress-item>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;color:#6c757d}.cms-kpi-row strong,.cms-source-row strong,.cms-progress-item strong{color:#34395e}.cms-progress-item{margin-bottom:18px}.cms-progress-item .progress,.otika-dashboard .progress{height:6px!important;border-radius:30px;background:#f4f6f9}.cms-source-row{padding:10px 0;border-bottom:1px solid #f4f6f9}.cms-source-row i{width:22px;color:#6777ef}.cms-donut{--first:44%;--second:72%;display:grid;place-content:center;width:190px;height:190px;margin:0 auto 18px;border-radius:50%;background:conic-gradient(#6777ef 0 var(--first),#47c363 var(--first) var(--second),#ffa426 var(--second) 100%);color:#34395e;position:relative}.cms-donut::before{content:"";position:absolute;inset:28px;border-radius:50%;background:#fff}.cms-donut span,.cms-donut small{position:relative;z-index:1;text-align:center}.cms-donut span{font-size:28px;font-weight:800}.cms-donut small{font-size:12px;color:#6c757d}.cms-donut-legend{display:grid;gap:8px}.cms-donut-legend span{display:flex;align-items:center;gap:8px;color:#6c757d}.cms-donut-legend i{display:inline-block;width:10px;height:10px;border-radius:50%}.otika-dashboard .table td,.otika-dashboard .table th{vertical-align:middle}.otika-dashboard .order-list{display:flex;align-items:center}.otika-dashboard .team-member img{width:32px;height:32px;object-fit:cover}.cms-inline-link{border:0;background:transparent;color:#6777ef;font-weight:700;padding:0 0 0 8px}.cms-analytics-snapshot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.cms-analytics-snapshot article{display:flex;align-items:center;gap:12px;padding:18px;border-radius:3px;background:#f4f6f9}.cms-analytics-snapshot i{font-size:30px}.cms-analytics-snapshot span{display:block;color:#6c757d;font-size:12px}.cms-analytics-snapshot strong{display:block;color:#34395e;font-size:20px}.cms-main-footer{margin-top:0!important}:global(.dark) .otika-dashboard .card-header h4,:global(.dark) .otika-dashboard .card-statistic-4 h2,:global(.dark) .cms-kpi-row strong,:global(.dark) .cms-source-row strong,:global(.dark) .cms-progress-item strong,:global(.dark) .cms-chart-bar__value,:global(.dark) .cms-donut span,:global(.dark) .cms-analytics-snapshot strong{color:#f8fafc!important}:global(.dark) .otika-dashboard .card-statistic-4 h5,:global(.dark) .cms-kpi-row,:global(.dark) .cms-source-row,:global(.dark) .cms-progress-item>div:first-child,:global(.dark) .cms-chart-bar,:global(.dark) .cms-donut small,:global(.dark) .cms-donut-legend span,:global(.dark) .cms-analytics-snapshot span{color:#cbd5e1!important}:global(.dark) .otika-dashboard .card{background:#1f2937!important;border-color:#334155!important;box-shadow:0 4px 25px rgba(0,0,0,.28)!important}:global(.dark) .cms-donut::before,:global(.dark) .cms-stat-icon,:global(.dark) .cms-chart-bar__track,:global(.dark) .cms-analytics-snapshot article{background:#111827!important}@media(max-width:768px){.cms-chart-bars{gap:8px;overflow-x:auto}.cms-chart-bar{min-width:40px}.cms-analytics-snapshot{grid-template-columns:1fr}.cms-main-footer{display:block;text-align:center}.cms-main-footer .footer-right{float:none;margin-top:6px}}
 .otika-cms .navbar-bg{position:fixed!important;top:0!important;right:0!important;left:260px!important;z-index:1030!important;height:70px!important;background:#fff!important;box-shadow:0 4px 25px rgba(0,0,0,.08)!important}.otika-cms .main-navbar{position:fixed!important;top:0!important;right:0!important;left:260px!important;z-index:1040!important;min-height:70px!important;background:#fff!important;color:#111827!important;box-shadow:0 4px 25px rgba(0,0,0,.08)!important}.otika-cms .main-navbar .nav-link,.otika-cms .main-navbar i{color:#111827!important}.otika-cms .main-wrapper{min-height:100vh!important;display:flex!important;flex-direction:column!important}.otika-cms .main-content{flex:1 0 auto!important;padding-top:92px!important}.otika-cms .cms-main-footer{flex:0 0 auto!important;margin-top:auto!important;border-top:1px solid #e4e6fc!important;background:#fff!important;color:#6c757d!important}.otika-cms .cms-main-footer .footer-left{font-weight:700;color:#34395e!important}.otika-cms .main-wrapper.sidebar-mini .navbar-bg,.otika-cms .main-wrapper.sidebar-mini .main-navbar{left:65px!important}.otika-cms .navbar .dropdown-menu.show{z-index:1060!important}.otika-basic-table-card{border:0!important;border-radius:3px!important;box-shadow:0 4px 25px rgba(0,0,0,.1)!important}.otika-basic-table-card .table th,.otika-basic-table-card .table td,.newsletter-table .table th,.newsletter-table .table td,.otika-dashboard .table th,.otika-dashboard .table td{vertical-align:middle!important}.otika-basic-table-card .table thead th,.newsletter-table .table thead th,.otika-dashboard .table thead th{border-bottom:1px solid #f4f6f9!important;color:#34395e!important;font-weight:700!important}.otika-basic-table-card .table strong{color:#34395e!important}.otika-basic-table-card .table span{color:#6c757d!important}.table-actions{white-space:nowrap}.cms-table{display:block!important;overflow-x:auto!important}.cms-table-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;margin-bottom:0!important;border:0!important;border-bottom:1px solid #f4f6f9!important;border-radius:0!important;background:#fff!important;padding:14px 18px!important;box-shadow:none!important}.cms-table-row:nth-child(odd){background:#fbfbfd!important}.cms-table.compact{border-radius:3px!important;background:#fff!important;box-shadow:0 4px 25px rgba(0,0,0,.08)!important;overflow:auto!important}:global(.dark .otika-cms .navbar-bg),:global(.dark .otika-cms .main-navbar){background:#111827!important;color:#f8fafc!important;box-shadow:0 4px 24px rgba(0,0,0,.35)!important}:global(.dark .otika-cms .main-navbar .nav-link),:global(.dark .otika-cms .main-navbar i){color:#f8fafc!important}:global(.dark .otika-cms .cms-main-footer),:global(.dark) .otika-basic-table-card,:global(.dark) .cms-table.compact{background:#1f2937!important;color:#cbd5e1!important;border-color:#334155!important}:global(.dark .otika-cms .cms-main-footer .footer-left),:global(.dark) .otika-basic-table-card .table thead th,:global(.dark) .newsletter-table .table thead th,:global(.dark) .otika-dashboard .table thead th,:global(.dark) .otika-basic-table-card .table strong{color:#f8fafc!important}:global(.dark) .otika-basic-table-card .table span{color:#cbd5e1!important}:global(.dark) .cms-table-row{background:#1f2937!important;border-color:#334155!important}:global(.dark) .cms-table-row:nth-child(odd){background:#111827!important}@media(max-width:991px){.otika-cms .navbar-bg,.otika-cms .main-navbar,.otika-cms .main-wrapper.sidebar-mini .navbar-bg,.otika-cms .main-wrapper.sidebar-mini .main-navbar{left:0!important}.otika-cms .main-content{padding-top:116px!important}}@media(max-width:575px){.table-actions .btn{display:inline-flex;margin-bottom:4px}.otika-cms .cms-main-footer{text-align:center!important}.otika-cms .cms-main-footer .footer-right{float:none!important;margin-top:6px!important}}
+.cms-pagination{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap}.cms-pagination button{border:0;border-radius:30px;background:#6777ef;color:#fff;padding:8px 16px;font-size:12px;font-weight:700;box-shadow:0 2px 6px #acb5f6}.cms-pagination button:disabled{cursor:not-allowed;opacity:.5}.cms-pagination span,.cms-pagination label{color:#6c757d;font-size:12px;font-weight:700}.cms-pagination label{display:flex;align-items:center;gap:8px}.cms-pagination select{border:1px solid #e4e6fc;border-radius:3px;background:#fdfdff;color:#34395e;padding:7px 10px}:global(.dark) .cms-pagination span,:global(.dark) .cms-pagination label{color:#cbd5e1}:global(.dark) .cms-pagination select{background:#111827;color:#f8fafc;border-color:#475569}@media(max-width:575px){.cms-pagination{justify-content:flex-start}.cms-pagination button{flex:1 1 auto}}
+.otika-cms .section-header{min-width:0}@media(max-width:575px){.otika-cms .section-header{width:100%!important;margin-left:0!important;margin-right:0!important;padding-left:16px!important;padding-right:16px!important}}
 .homepage-card-list{display:grid;gap:16px}.homepage-dynamic-card{display:grid;gap:12px;border:1px solid #e4e6fc;border-radius:3px;background:#fdfdff;padding:18px;box-shadow:0 4px 25px rgba(0,0,0,.04)}.homepage-dynamic-card .cms-panel-head{margin-bottom:0}.homepage-dynamic-card h3,.cms-subpanel h3{font-size:15px!important;color:#34395e!important}.cms-row input.form-control{height:42px;border:1px solid #e4e6fc;border-radius:3px;background:#fff;color:#34395e;padding:10px 15px}.cms-check{display:flex!important;grid-column:1/-1;align-items:center!important;gap:10px!important;text-transform:none!important}.cms-check input{width:18px!important;height:18px!important;accent-color:#6777ef}:global(.dark) .homepage-dynamic-card{background:#111827!important;border-color:#334155!important}:global(.dark) .homepage-dynamic-card h3,:global(.dark) .cms-subpanel h3{color:#f8fafc!important}:global(.dark) .cms-row input.form-control{background:#111827!important;color:#f8fafc!important;border-color:#475569!important}
 .otika-form-card .card{border:0!important;border-radius:3px!important;box-shadow:none!important;margin-bottom:0!important}.otika-form-card .card-header{border-bottom:1px solid #f9f9f9!important;padding:18px 25px!important}.otika-form-card .card-header h4{font-size:16px!important;font-weight:700!important;color:#34395e!important;margin:0!important}.otika-form-card .card-body{padding:25px!important}.otika-form-card .card-footer{border-top:1px solid #f9f9f9!important;background:#fff!important;padding:18px 25px!important}.otika-form-card .section-title{margin:18px 0 16px!important;font-size:13px!important;font-weight:700!important;color:#34395e!important}.otika-form-card .form-group{margin-bottom:18px!important}.otika-form-card label{font-size:12px!important;font-weight:600!important;color:#34395e!important;margin-bottom:7px!important}.otika-form-card .form-control{height:42px!important;border:1px solid #e4e6fc!important;border-radius:3px!important;background:#fdfdff!important;color:#495057!important;padding:10px 15px!important;box-shadow:none!important}.otika-form-card .form-control:focus{border-color:#6777ef!important;box-shadow:0 2px 6px #acb5f6!important}.otika-form-card textarea.form-control,.otika-form-card .otika-textarea{height:auto!important;min-height:110px!important}.otika-form-card .custom-control-label{line-height:1.8!important}.otika-form-card .btn-primary{border:0!important;border-radius:30px!important;background:#6777ef!important;box-shadow:0 2px 6px #acb5f6!important;font-size:12px!important;font-weight:600!important;padding:8px 18px!important}.otika-form-card .form-check{padding-left:1.5rem;min-height:auto;margin-bottom:.35rem}.otika-form-card .form-check-input{width:16px;height:16px;accent-color:#6777ef}.otika-form-card .form-check-label{font-weight:500!important;margin-bottom:0!important;line-height:1.6}:global(.dark) .otika-form-card .card,:global(.dark) .otika-form-card .card-footer{background:#1f2937!important;border-color:#334155!important}:global(.dark) .otika-form-card .card-header h4,:global(.dark) .otika-form-card .section-title,:global(.dark) .otika-form-card label{color:#f8fafc!important}:global(.dark) .otika-form-card .form-control{background:#111827!important;color:#f8fafc!important;border-color:#475569!important}
 .notification-list{display:grid;gap:12px}.notification-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:flex-start;padding:16px 18px;border-radius:3px;background:#fff;box-shadow:0 4px 25px rgba(0,0,0,.08);border-left:3px solid transparent;color:#6c757d}.notification-item.unread{background:#f4f7ff;border-left-color:#6777ef}.notification-item strong{display:block;color:#34395e;font-size:14px}.notification-item span{display:block;color:#98a6ad;font-size:12px}.notification-item p{margin:6px 0 0;color:#6c757d}.notification-dot{width:10px;height:10px;margin-top:7px;border-radius:50%;background:#6777ef}.notification-icon{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:#eaf4ff;color:#3abaf4}.notification-icon.warn{background:#fff4e6;color:#ffa426}.notification-icon.success{background:#e8f7f0;color:#47c363}.notification-icon.info{background:#eaf4ff;color:#3abaf4}.notification-item:not(.unread){opacity:.82}:global(.dark) .notification-item{background:#1f2937;box-shadow:0 4px 25px rgba(0,0,0,.28)}:global(.dark) .notification-item.unread{background:#111827}:global(.dark) .notification-item strong{color:#f8fafc}:global(.dark) .notification-item p{color:#cbd5e1}@media(max-width:768px){.notification-item{grid-template-columns:auto minmax(0,1fr)}.notification-item>.cms-actions-inline{grid-column:1/-1}}

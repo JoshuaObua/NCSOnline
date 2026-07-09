@@ -1,8 +1,34 @@
--Home page hero slide show animation is not accepting to chnage animation type
--Add more exciting animations from gsaps to home page and hae the home page and all other pages aniamated with lazyload for public pages
--On static pages creation from cms, add a raw html element, and pain text too, also fix persistance so that during editing page content the current page conent  displays during editing rather than disappearing
--Fix all error 500 from the cms ui and all wrong json frmatting from the system and test all endpoints
--Fix city identificationf rom audit logs and make it perfect and fromwebsite visit andlytics
--Fix messages and notificatiosn endpoints as well to make sure it fully works well
--Write tests for all pages and endpoints that can professionally be tested and verified by testingg tools and harden the security of all bacekend enpoint to make it harder tof atacks
--Improve on ountry identification and location accuracy from the backend and udit logs user. location and platform aidentification for example if it was acced via ussd, chrome, postman or other api clinet shoult try to identfy the exxact device and platform and timestamp ans other importnt detials
+Fix this to have stsuses not showinmg unknown it shoulfd eitrher be running or idle and make the auti log page have pagination
+Service	Status	Health	
+Nginx	unknown	unknown
+Start
+Restart
+Stop
+Logs
+Frontend	unknown	unknown
+Start
+Restart
+Stop
+Logs
+Go API Daemon	unknown	unknown
+Start
+Restart
+Stop
+Logs
+PostgreSQL	unknown	unknown
+Start
+Restart
+Stop
+Logs
+NSMIS Worker	unknown	unknown
+Start
+Restart
+Stop
+Logs
+Backup	unknown	unknown
+Start
+Restart
+Stop
+Logs
+Location Guard	unknown	unknown
+

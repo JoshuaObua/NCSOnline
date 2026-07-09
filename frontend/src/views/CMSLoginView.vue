@@ -97,11 +97,11 @@ import { useRouter } from 'vue-router'
 import apiClient, { API_BASE_URL } from '@/api/client.js'
 
 const router = useRouter()
-const email = ref('admin@ncs.go.ug')
-const password = ref('NCS@Admin2026!')
+const email = ref('')
+const password = ref('')
 const loading = ref(false)
 const error = ref('')
-const remember = ref(true)
+const remember = ref(false)
 const showPassword = ref(false)
 
 async function login() {

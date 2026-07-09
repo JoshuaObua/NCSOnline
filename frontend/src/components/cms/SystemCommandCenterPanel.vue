@@ -37,8 +37,8 @@
         <tbody>
           <tr v-for="svc in resources?.services || []" :key="svc.name">
             <td>{{ svc.display_name }}</td>
-            <td><span class="ops-badge" :class="svc.status">{{ svc.status }}</span></td>
-            <td>{{ svc.health || '—' }}</td>
+            <td><span class="ops-badge" :class="displayServiceStatus(svc)">{{ displayServiceStatus(svc) }}</span></td>
+            <td>{{ displayServiceHealth(svc) }}</td>
             <td class="ops-actions">
               <button type="button" :disabled="busyService === svc.name" @click="serviceAction(svc.name, 'start')">Start</button>
               <button type="button" :disabled="busyService === svc.name" @click="serviceAction(svc.name, 'restart')">Restart</button>
@@ -102,11 +102,19 @@ function formatBytes(bytes) {
 function formatDateTime(value) {
   return value ? new Date(value).toLocaleString() : ''
 }
+function displayServiceStatus(service = {}) {
+  return service.status === 'running' ? 'running' : 'idle'
+}
+function displayServiceHealth(service = {}) {
+  const health = String(service.health || '').trim().toLowerCase()
+  if (!health || health === 'unknown') return displayServiceStatus(service)
+  return health
+}
 
 async function loadResources() {
   try {
     resources.value = await getSystemResources()
-    dockerUnavailable.value = (resources.value?.services || []).every(s => s.status === 'unknown')
+    dockerUnavailable.value = resources.value?.docker_available === false
   } catch (err) { emit('error', err) }
 }
 
@@ -189,9 +197,8 @@ onUnmounted(() => {
 .ops-table th { text-align: left; color: #94a3b8; font-size: 11px; text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid #f1f2fb; }
 .ops-table td { padding: 10px; border-bottom: 1px solid #f1f2fb; color: #34395e; vertical-align: middle; }
 .ops-badge { border-radius: 30px; padding: 3px 10px; font-size: 11px; font-weight: 700; text-transform: capitalize; background: #eef0fd; color: #6777ef; }
-.ops-badge.healthy { background: #e8f7f0; color: #47c363; }
-.ops-badge.degraded { background: #fff4e6; color: #ffa426; }
-.ops-badge.stopped { background: #fdeaea; color: #fc544b; }
+.ops-badge.running { background: #e8f7f0; color: #47c363; }
+.ops-badge.idle { background: #fff4e6; color: #ffa426; }
 .ops-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .ops-actions button { border: 0; border-radius: 30px; background: #6777ef; color: #fff; padding: 6px 12px; font-size: 11px; font-weight: 700; }
 .ops-actions button:disabled { opacity: .5; }
