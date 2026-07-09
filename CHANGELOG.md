@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-07-09 - Sectioned custom-form wizard
+
+### Added
+- Added section metadata to custom form templates with section title, subtitle, and description.
+- Rebuilt the admin form builder so administrators can create, reorder, remove, and rebuild sections, then assign fields to each section.
+- Added a dedicated ordinary-user application wizard route where each form section renders as one step, with draft saving, uploads, payment proof, and final submission preserved.
+
+### Changed
+- Open-form cards now show the application step count, and applicant Start/Continue actions open the wizard page instead of the old modal form.
+
 ## 2026-07-09 - Admin and ordinary-user dashboards
 
 ### Added

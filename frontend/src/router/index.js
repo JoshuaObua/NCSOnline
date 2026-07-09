@@ -4,14 +4,17 @@ import { isOrdinaryUser, storedPortalUser } from '@/utils/portalAuth.js'
 const PortalLoginView = () => import('@/views/CMSLoginView.vue')
 const PortalManagerView = () => import('@/views/WebsiteContentManagerView.vue')
 const UserPortalView = () => import('@/views/UserPortalView.vue')
+const ApplicationWizardView = () => import('@/views/ApplicationWizardView.vue')
 
 const routes = [
   { path: '/', redirect: '/login' },
   { path: '/login', name: 'PortalLogin', component: PortalLoginView },
   { path: '/portal', name: 'PortalDashboard', component: PortalManagerView },
   { path: '/dashboard', name: 'UserDashboard', component: UserPortalView },
+  { path: '/dashboard/apply/:slug', name: 'ApplicationWizard', component: ApplicationWizardView },
   { path: '/my-portal', redirect: '/dashboard' },
   { path: '/apply', redirect: '/dashboard?section=apply' },
+  { path: '/apply/:slug', redirect: to => ({ name: 'ApplicationWizard', params: { slug: to.params.slug } }) },
   { path: '/cms', redirect: '/portal' },
   { path: '/admin/:pathMatch(.*)*', redirect: '/portal' },
   { path: '/:pathMatch(.*)*', redirect: '/login' },
@@ -29,6 +32,7 @@ const pageTitles = {
   PortalLogin: 'Portal Login',
   PortalDashboard: 'Portal',
   UserDashboard: 'My Dashboard',
+  ApplicationWizard: 'Application Form',
 }
 
 router.beforeEach((to) => {
@@ -37,7 +41,7 @@ router.beforeEach((to) => {
   if (!token) return '/login'
   const ordinary = isOrdinaryUser(storedPortalUser())
   if (to.path === '/portal' && ordinary) return '/dashboard'
-  if (to.path === '/dashboard' && !ordinary) return '/portal'
+  if (to.path.startsWith('/dashboard') && !ordinary) return '/portal'
   return true
 })
 

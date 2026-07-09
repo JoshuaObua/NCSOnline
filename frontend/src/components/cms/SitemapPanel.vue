@@ -38,6 +38,7 @@ const routes = [
   { name: 'Portal Login', path: '/login', purpose: 'Default entry point for all visitors.' },
   { name: 'Portal Dashboard', path: '/portal', purpose: 'Authenticated operations workspace.' },
   { name: 'User Dashboard', path: '/dashboard', purpose: 'Ordinary-user applications and account workspace.' },
+  { name: 'Application Wizard', path: '/dashboard/apply/:slug', purpose: 'Section-based custom application form wizard.' },
   { name: 'Legacy Portal Redirect', path: '/cms', purpose: 'Legacy /cms URL retained for rollback and bookmarks.' },
 ]
 

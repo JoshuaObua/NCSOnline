@@ -46,6 +46,7 @@ type SaveTemplateInput struct {
 	DepartmentID   string
 	Title          string
 	Description    string
+	Sections       json.RawMessage
 	BannerImageURL string
 	PriceUGX       float64
 	Status         string
@@ -75,6 +76,17 @@ func validateStatus(st string) (string, error) {
 		return strings.ToUpper(st), nil
 	}
 	return "", fmt.Errorf("invalid status: %s", st)
+}
+
+func normalizeSectionsJSON(raw json.RawMessage) (json.RawMessage, error) {
+	if len(raw) == 0 || strings.TrimSpace(string(raw)) == "" || string(raw) == "null" {
+		return json.RawMessage("[]"), nil
+	}
+	var sections []json.RawMessage
+	if err := json.Unmarshal(raw, &sections); err != nil {
+		return nil, fmt.Errorf("sections must be a JSON array")
+	}
+	return raw, nil
 }
 
 func (s *FormService) ensureCanManage(ctx context.Context, userID string, isSuperAdmin bool, templateDeptID string) error {
@@ -107,6 +119,10 @@ func (s *FormService) CreateTemplate(ctx context.Context, userID string, isSuper
 	if err != nil {
 		return nil, err
 	}
+	sections, err := normalizeSectionsJSON(in.Sections)
+	if err != nil {
+		return nil, err
+	}
 	base := slugify(in.Title)
 	slug := base + "-" + uuid.NewString()[:6]
 	uid := userID
@@ -115,6 +131,7 @@ func (s *FormService) CreateTemplate(ctx context.Context, userID string, isSuper
 		Slug:           slug,
 		Title:          strings.TrimSpace(in.Title),
 		Description:    in.Description,
+		Sections:       sections,
 		BannerImageURL: in.BannerImageURL,
 		PriceUGX:       in.PriceUGX,
 		Status:         st,
@@ -150,6 +167,15 @@ func (s *FormService) UpdateTemplate(ctx context.Context, id, userID string, isS
 		existing.Title = strings.TrimSpace(in.Title)
 	}
 	existing.Description = in.Description
+	if in.Sections != nil {
+		sections, err := normalizeSectionsJSON(in.Sections)
+		if err != nil {
+			return nil, err
+		}
+		existing.Sections = sections
+	} else if len(existing.Sections) == 0 {
+		existing.Sections = json.RawMessage("[]")
+	}
 	existing.BannerImageURL = in.BannerImageURL
 	existing.PriceUGX = in.PriceUGX
 	if in.Status != "" {

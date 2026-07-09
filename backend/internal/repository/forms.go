@@ -131,7 +131,7 @@ func (r *FormRepo) ListTemplates(ctx context.Context, f ListFormTemplatesFilter)
 		conds = append(conds, "t.status = 'OPEN'")
 	}
 	q := `SELECT t.id, t.department_id, COALESCE(r.name,''), t.slug, t.title, t.description,
-	             t.banner_image_url, t.price_ugx, t.status, t.legacy_form_type, t.created_by,
+	             COALESCE(t.sections, '[]'::jsonb), t.banner_image_url, t.price_ugx, t.status, t.legacy_form_type, t.created_by,
 	             t.created_at, t.updated_at
 	      FROM form_templates t
 	      LEFT JOIN roles r ON r.id = t.department_id
@@ -145,10 +145,16 @@ func (r *FormRepo) ListTemplates(ctx context.Context, f ListFormTemplatesFilter)
 	out := []*models.FormTemplate{}
 	for rows.Next() {
 		t := &models.FormTemplate{}
+		var sections []byte
 		if err := rows.Scan(&t.ID, &t.DepartmentID, &t.DepartmentName, &t.Slug, &t.Title, &t.Description,
-			&t.BannerImageURL, &t.PriceUGX, &t.Status, &t.LegacyFormType, &t.CreatedBy,
+			&sections, &t.BannerImageURL, &t.PriceUGX, &t.Status, &t.LegacyFormType, &t.CreatedBy,
 			&t.CreatedAt, &t.UpdatedAt); err != nil {
 			return nil, err
+		}
+		if len(sections) > 0 {
+			t.Sections = json.RawMessage(sections)
+		} else {
+			t.Sections = json.RawMessage("[]")
 		}
 		out = append(out, t)
 	}
@@ -157,20 +163,26 @@ func (r *FormRepo) ListTemplates(ctx context.Context, f ListFormTemplatesFilter)
 
 func (r *FormRepo) GetTemplate(ctx context.Context, id string, withFields bool) (*models.FormTemplate, error) {
 	const q = `SELECT t.id, t.department_id, COALESCE(r.name,''), t.slug, t.title, t.description,
-	                  t.banner_image_url, t.price_ugx, t.status, t.legacy_form_type, t.created_by,
+	                  COALESCE(t.sections, '[]'::jsonb), t.banner_image_url, t.price_ugx, t.status, t.legacy_form_type, t.created_by,
 	                  t.created_at, t.updated_at
 	           FROM form_templates t
 	           LEFT JOIN roles r ON r.id = t.department_id
 	           WHERE t.id = $1`
 	t := &models.FormTemplate{}
+	var sections []byte
 	err := r.db.QueryRow(ctx, q, id).Scan(&t.ID, &t.DepartmentID, &t.DepartmentName, &t.Slug, &t.Title, &t.Description,
-		&t.BannerImageURL, &t.PriceUGX, &t.Status, &t.LegacyFormType, &t.CreatedBy,
+		&sections, &t.BannerImageURL, &t.PriceUGX, &t.Status, &t.LegacyFormType, &t.CreatedBy,
 		&t.CreatedAt, &t.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
 	if err != nil {
 		return nil, err
+	}
+	if len(sections) > 0 {
+		t.Sections = json.RawMessage(sections)
+	} else {
+		t.Sections = json.RawMessage("[]")
 	}
 	if withFields {
 		fields, err := r.ListFields(ctx, id)
@@ -195,23 +207,31 @@ func (r *FormRepo) GetTemplateBySlug(ctx context.Context, slug string) (*models.
 }
 
 func (r *FormRepo) CreateTemplate(ctx context.Context, t *models.FormTemplate) error {
+	sections := t.Sections
+	if len(sections) == 0 {
+		sections = json.RawMessage("[]")
+	}
 	const q = `INSERT INTO form_templates
-	            (department_id, slug, title, description, banner_image_url, price_ugx, status, created_by)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+	            (department_id, slug, title, description, sections, banner_image_url, price_ugx, status, created_by)
+	           VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7,$8,$9)
 	           RETURNING id, created_at, updated_at`
 	return r.db.QueryRow(ctx, q,
-		t.DepartmentID, t.Slug, t.Title, t.Description, t.BannerImageURL, t.PriceUGX, t.Status, t.CreatedBy,
+		t.DepartmentID, t.Slug, t.Title, t.Description, string(sections), t.BannerImageURL, t.PriceUGX, t.Status, t.CreatedBy,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
 }
 
 func (r *FormRepo) UpdateTemplate(ctx context.Context, t *models.FormTemplate) error {
+	sections := t.Sections
+	if len(sections) == 0 {
+		sections = json.RawMessage("[]")
+	}
 	const q = `UPDATE form_templates
-	           SET department_id=$2, title=$3, description=$4, banner_image_url=$5,
-	               price_ugx=$6, status=$7, updated_at=NOW()
+	           SET department_id=$2, title=$3, description=$4, sections=$5::jsonb, banner_image_url=$6,
+	               price_ugx=$7, status=$8, updated_at=NOW()
 	           WHERE id=$1
 	           RETURNING updated_at`
 	return r.db.QueryRow(ctx, q,
-		t.ID, t.DepartmentID, t.Title, t.Description, t.BannerImageURL, t.PriceUGX, t.Status,
+		t.ID, t.DepartmentID, t.Title, t.Description, string(sections), t.BannerImageURL, t.PriceUGX, t.Status,
 	).Scan(&t.UpdatedAt)
 }
 

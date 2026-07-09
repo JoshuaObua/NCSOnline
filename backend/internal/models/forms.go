@@ -27,20 +27,21 @@ const (
 )
 
 type FormTemplate struct {
-	ID             string       `json:"id"`
-	DepartmentID   string       `json:"department_id"`
-	DepartmentName string       `json:"department_name,omitempty"`
-	Slug           string       `json:"slug"`
-	Title          string       `json:"title"`
-	Description    string       `json:"description"`
-	BannerImageURL string       `json:"banner_image_url"`
-	PriceUGX       float64      `json:"price_ugx"`
-	Status         string       `json:"status"`
-	LegacyFormType *string      `json:"legacy_form_type,omitempty"`
-	CreatedBy      *string      `json:"created_by,omitempty"`
-	CreatedAt      time.Time    `json:"created_at"`
-	UpdatedAt      time.Time    `json:"updated_at"`
-	Fields         []*FormField `json:"fields,omitempty"`
+	ID             string          `json:"id"`
+	DepartmentID   string          `json:"department_id"`
+	DepartmentName string          `json:"department_name,omitempty"`
+	Slug           string          `json:"slug"`
+	Title          string          `json:"title"`
+	Description    string          `json:"description"`
+	Sections       json.RawMessage `json:"sections"`
+	BannerImageURL string          `json:"banner_image_url"`
+	PriceUGX       float64         `json:"price_ugx"`
+	Status         string          `json:"status"`
+	LegacyFormType *string         `json:"legacy_form_type,omitempty"`
+	CreatedBy      *string         `json:"created_by,omitempty"`
+	CreatedAt      time.Time       `json:"created_at"`
+	UpdatedAt      time.Time       `json:"updated_at"`
+	Fields         []*FormField    `json:"fields,omitempty"`
 }
 
 type FormField struct {

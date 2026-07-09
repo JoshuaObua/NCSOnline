@@ -19,6 +19,7 @@ test('router is portal-only and sends legacy/public slugs to login', () => {
   assert.match(router, /path:\s*'\/',\s*redirect:\s*'\/login'/)
   assert.match(router, /path:\s*'\/login',\s*name:\s*'PortalLogin'/)
   assert.match(router, /path:\s*'\/portal',\s*name:\s*'PortalDashboard'/)
+  assert.match(router, /path:\s*'\/dashboard\/apply\/:slug',\s*name:\s*'ApplicationWizard'/)
   assert.match(router, /path:\s*'\/cms',\s*redirect:\s*'\/portal'/)
   assert.match(router, /path:\s*'\/:pathMatch\(\.\*\)\*',\s*redirect:\s*'\/login'/)
 
@@ -98,6 +99,7 @@ test('sitemap documents portal routes and module slugs only', () => {
   assert.match(sitemap, /path: '\/login'/)
   assert.match(sitemap, /path: '\/portal'/)
   assert.match(sitemap, /path: '\/dashboard'/)
+  assert.match(sitemap, /path: '\/dashboard\/apply\/:slug'/)
   assert.match(sitemap, /path: '\/cms'/)
   assert.match(sitemap, /slug: 'manage-users'/)
   assert.match(sitemap, /slug: 'form-builder'/)

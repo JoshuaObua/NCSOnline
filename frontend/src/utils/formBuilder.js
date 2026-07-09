@@ -18,11 +18,64 @@ export function parseFieldConfig(value) {
   }
 }
 
-export function normalizeFormField(field = {}, index = 0) {
+export function parseJsonArray(value) {
+  if (!value) return []
+  if (Array.isArray(value)) return value
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+export function normalizeFormSection(section = {}, index = 0) {
+  return {
+    id: String(section.id || section.section_id || `section-${index + 1}`).trim(),
+    title: String(section.title || section.name || (index === 0 ? 'Application Details' : `Section ${index + 1}`)).trim(),
+    subtitle: String(section.subtitle || '').trim(),
+    description: String(section.description || '').trim(),
+  }
+}
+
+export function normalizeFormSections(value = [], fields = []) {
+  const rawSections = parseJsonArray(value?.sections ?? value)
+  const seen = new Set()
+  const sections = rawSections.map((section, index) => {
+    const normalized = normalizeFormSection(section, index)
+    let id = normalized.id || `section-${index + 1}`
+    let suffix = 2
+    while (seen.has(id)) {
+      id = `${normalized.id || `section-${index + 1}`}-${suffix}`
+      suffix += 1
+    }
+    seen.add(id)
+    return { ...normalized, id }
+  }).filter(section => section.id && section.title)
+
+  if (!sections.length) {
+    sections.push(normalizeFormSection({}, 0))
+  }
+
+  const sectionIds = new Set(sections.map(section => section.id))
+  for (const field of fields || []) {
+    const config = parseFieldConfig(field.config)
+    const sectionId = field.section_id || config.section_id
+    if (sectionId && !sectionIds.has(sectionId)) {
+      sections.push(normalizeFormSection({ id: sectionId, title: 'Application Details' }, sections.length))
+      sectionIds.add(sectionId)
+    }
+  }
+
+  return sections
+}
+
+export function normalizeFormField(field = {}, index = 0, fallbackSectionId = '') {
   const config = parseFieldConfig(field.config)
   const options = Array.isArray(config.options)
     ? config.options.map(option => typeof option === 'object' ? option.label ?? option.value ?? '' : option)
     : []
+  const sectionId = field.section_id || config.section_id || fallbackSectionId
 
   return {
     id: field.id || `field-${Date.now()}-${index}`,
@@ -32,6 +85,7 @@ export function normalizeFormField(field = {}, index = 0) {
     placeholder: field.placeholder || '',
     help_text: field.help_text || '',
     is_required: !!field.is_required,
+    section_id: sectionId,
     options_text: options.filter(Boolean).join('\n'),
     accepted_types: Array.isArray(config.accept)
       ? config.accept.join(',')
@@ -42,6 +96,9 @@ export function normalizeFormField(field = {}, index = 0) {
 
 export function buildTemplatePayload(form = {}) {
   const usedKeys = new Set()
+  const sections = normalizeFormSections(form.sections || [], form.fields || [])
+  const sectionIds = new Set(sections.map(section => section.id))
+  const fallbackSectionId = sections[0]?.id || 'section-1'
   const fields = (form.fields || []).map((field, index) => {
     const baseKey = slugifyFieldKey(field.field_key || field.label) || `field-${index + 1}`
     let fieldKey = baseKey
@@ -53,6 +110,7 @@ export function buildTemplatePayload(form = {}) {
     usedKeys.add(fieldKey)
 
     const config = { ...parseFieldConfig(field.config) }
+    config.section_id = sectionIds.has(field.section_id) ? field.section_id : fallbackSectionId
     if (['dropdown', 'radio', 'checkbox'].includes(field.field_type)) {
       config.options = String(field.options_text || '')
         .split(/\r?\n/)
@@ -88,8 +146,24 @@ export function buildTemplatePayload(form = {}) {
     banner_image_url: form.banner_image_url || '',
     price_ugx: Math.max(0, Number(form.price_ugx) || 0),
     status: form.status || 'DRAFT',
+    sections,
     fields,
   }
+}
+
+export function buildSectionSteps(template = {}) {
+  const sections = normalizeFormSections(template.sections || [], template.fields || [])
+  const fallbackSectionId = sections[0]?.id || 'section-1'
+  const sectionIds = new Set(sections.map(section => section.id))
+  const fields = (template.fields || []).map((field, index) => {
+    const normalized = normalizeFormField(field, index, fallbackSectionId)
+    if (!sectionIds.has(normalized.section_id)) normalized.section_id = fallbackSectionId
+    return normalized
+  })
+  return sections.map(section => ({
+    ...section,
+    fields: fields.filter(field => field.section_id === section.id),
+  }))
 }
 
 export function parseSubmissionAnswers(value) {

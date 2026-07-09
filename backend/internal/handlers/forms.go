@@ -46,6 +46,7 @@ type formTemplateRequest struct {
 	DepartmentID   string                 `json:"department_id"`
 	Title          string                 `json:"title"`
 	Description    string                 `json:"description"`
+	Sections       json.RawMessage        `json:"sections"`
 	BannerImageURL string                 `json:"banner_image_url"`
 	PriceUGX       float64                `json:"price_ugx"`
 	Status         string                 `json:"status"`
@@ -68,6 +69,7 @@ func (req formTemplateRequest) toServiceInput(includeFields bool) services.SaveT
 		DepartmentID:   req.DepartmentID,
 		Title:          req.Title,
 		Description:    req.Description,
+		Sections:       req.Sections,
 		BannerImageURL: req.BannerImageURL,
 		PriceUGX:       req.PriceUGX,
 		Status:         req.Status,
