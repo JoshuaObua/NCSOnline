@@ -22,18 +22,28 @@
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#f5a623]" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
                   Current Leadership
                 </h3>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div v-for="(member, index) in home.leadership.members" :key="index" class="flex items-center gap-3">
-                    <img v-if="member.image_url" :src="mediaUrl(member.image_url)" :alt="member.name" class="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md flex-shrink-0" />
-                    <div v-else class="w-16 h-16 rounded-full bg-[#1a365d]/10 flex items-center justify-center text-[#1a365d] border-2 border-white shadow-md flex-shrink-0"><i class="icofont-user-alt-3 text-xl" aria-hidden="true"></i></div>
-                    <div class="min-w-0"><p class="text-sm text-gray-500">{{ member.title }}</p><p class="font-medium text-[#1a365d] truncate">{{ member.name }}</p></div>
+                <div class="grid gap-4 md:grid-cols-[auto,1fr] md:items-center">
+                  <img
+                    v-if="leadershipLead?.image_url"
+                    :src="mediaUrl(leadershipLead.image_url)"
+                    :alt="leadershipLead.name"
+                    class="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md"
+                    data-testid="homepage-chairperson-image"
+                  />
+                  <div
+                    v-else
+                    class="w-20 h-20 rounded-full bg-[#1a365d]/10 flex items-center justify-center text-[#1a365d] border-2 border-white shadow-md"
+                    data-testid="homepage-chairperson-image"
+                    aria-hidden="true"
+                  >
+                    <i class="icofont-user-alt-3 text-2xl"></i>
                   </div>
-                </div>
-                <div class="mt-4">
-                  <router-link :to="home.about.leadership_url" class="inline-flex items-center gap-1 text-sm font-semibold text-[#f5a623] hover:text-[#e09612] transition-colors">
-                    {{ home.about.leadership_label }}
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-                  </router-link>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div v-for="(member, index) in displayedLeadershipMembers" :key="member.name || index">
+                      <p class="text-sm text-gray-500">{{ member.title }}</p>
+                      <p class="font-medium text-[#1a365d]">{{ member.name }}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -91,15 +101,108 @@
         </div>
       </section>
 
-      <section v-else-if="section.id === 'news'" id="section-news" class="home-section bg-soft">
-        <div class="home-shell"><div class="section-heading row-heading"><div><span class="section-kicker">Latest updates</span><h2>News from NCS</h2></div><router-link to="/news">View all news →</router-link></div>
-          <div class="card-grid card-grid-3">
-            <article v-for="post in posts.slice(0,3)" :key="post.id" class="content-card">
-              <img v-if="post.cover_image_url" :src="mediaUrl(post.cover_image_url)" :alt="post.title" /><div v-else class="card-placeholder"><i class="icofont-newspaper"></i></div>
-              <div class="content-card-body"><span>{{ post.category || 'News' }}</span><h3><router-link :to="`/news/${post.slug}`">{{ post.title }}</router-link></h3><p>{{ post.excerpt }}</p></div>
-            </article>
-            <p v-if="!posts.length" class="empty-state">News will appear here when published.</p>
+      <section v-else-if="section.id === 'news'" id="section-news" class="py-16 md:py-24 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4">
+          <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div>
+              <span class="inline-block px-4 py-1.5 bg-[#f5a623]/10 text-[#f5a623] text-sm font-semibold rounded-full mb-3">Stay Updated</span>
+              <h2 class="text-3xl md:text-4xl font-bold text-[#1a365d]">Latest News</h2>
+            </div>
+            <router-link
+              to="/news"
+              class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#1a365d] border shadow-sm h-9 px-4 py-2 border-[#1a365d] text-[#1a365d] hover:bg-[#1a365d] hover:text-white group"
+              data-testid="homepage-view-all-news-button"
+            >
+              View All News
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+            </router-link>
           </div>
+
+          <div class="flex flex-wrap gap-2 mb-8" data-testid="homepage-news-filters">
+            <button
+              v-for="category in homepageNewsCategories"
+              :key="category.value"
+              type="button"
+              :data-testid="`homepage-news-filter-${category.value}`"
+              :aria-pressed="activeNewsCategory === category.value"
+              :class="activeNewsCategory === category.value ? 'bg-[#1a365d] text-white' : 'bg-white text-gray-600 hover:bg-[#f5a623]/10 hover:text-[#f5a623]'"
+              class="rounded-full px-4 py-2 text-sm transition-all"
+              @click="activeNewsCategory = category.value"
+            >
+              {{ category.label }}
+            </button>
+          </div>
+
+          <div v-if="featuredNewsPost" :class="secondaryNewsPosts.length ? 'grid lg:grid-cols-2 gap-8' : 'grid gap-8 max-w-2xl'">
+            <router-link class="group cursor-pointer" data-testid="homepage-featured-news-card" :to="`/news/${featuredNewsPost.slug}`">
+              <div class="relative overflow-hidden rounded-2xl shadow-lg h-full bg-[#1a365d]">
+                <div class="aspect-[4/3] overflow-hidden">
+                  <img
+                    v-if="featuredNewsPost.cover_image_url"
+                    :src="mediaUrl(featuredNewsPost.cover_image_url)"
+                    :alt="featuredNewsPost.title"
+                    class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  />
+                  <div v-else class="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#1a365d] to-[#2d4a6f] text-white/35 text-5xl font-bold">NCS</div>
+                </div>
+                <div class="absolute inset-0 bg-gradient-to-t from-[#1a365d] via-[#1a365d]/50 to-transparent"></div>
+                <div class="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                  <div class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent shadow bg-[#f5a623] text-white mb-3">
+                    {{ newsCategoryLabel(featuredNewsPost.category) }}
+                  </div>
+                  <h3 class="text-xl md:text-2xl font-bold text-white mb-3 group-hover:text-[#f5a623] transition-colors">{{ featuredNewsPost.title }}</h3>
+                  <p class="text-white/80 mb-4 line-clamp-2">{{ featuredNewsPost.excerpt }}</p>
+                  <div class="flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-2 text-white/70">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                      <span class="text-sm">{{ formatDate(featuredNewsPost.published_at) }}</span>
+                    </div>
+                    <span class="hidden sm:flex items-center gap-2 text-[#f5a623] font-medium transition-all duration-300 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100">
+                      Read More
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </router-link>
+
+            <div class="space-y-6">
+              <router-link
+                v-for="post in secondaryNewsPosts"
+                :key="post.id"
+                class="group flex gap-4 bg-white rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer border border-gray-100 hover:border-[#f5a623]/30"
+                :data-testid="`homepage-news-card-${post.id}`"
+                :to="`/news/${post.slug}`"
+              >
+                <div class="w-32 h-24 md:w-40 md:h-28 flex-shrink-0 overflow-hidden rounded-lg bg-[#1a365d]">
+                  <img
+                    v-if="post.cover_image_url"
+                    :src="mediaUrl(post.cover_image_url)"
+                    :alt="post.title"
+                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                  <div v-else class="w-full h-full flex items-center justify-center text-white/35 text-xl font-bold">NCS</div>
+                </div>
+                <div class="flex-1 flex flex-col justify-between min-w-0">
+                  <div>
+                    <div class="inline-flex items-center rounded-md border px-2.5 py-0.5 font-semibold transition-colors border-transparent bg-gray-100 text-gray-600 mb-2 text-xs">
+                      {{ newsCategoryLabel(post.category) }}
+                    </div>
+                    <h4 class="font-semibold text-[#1a365d] group-hover:text-[#f5a623] transition-colors line-clamp-2">{{ post.title }}</h4>
+                  </div>
+                  <div class="flex items-center justify-between gap-3 mt-2">
+                    <div class="flex items-center gap-2 text-gray-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-3 h-3" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                      <span class="text-xs">{{ formatDate(post.published_at) }}</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-[#f5a623] transition-all duration-300 -translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  </div>
+                </div>
+              </router-link>
+            </div>
+          </div>
+
+          <p v-else class="rounded-xl bg-white p-8 text-center text-gray-500 shadow-sm">News will appear here when published.</p>
         </div>
       </section>
 
@@ -214,7 +317,9 @@ const contact = reactive({ phone:'+256 414254477 / 343688', email:'info@ncs.go.u
 const slideshow = reactive({ name:'Homepage Hero', slug:'homepage-hero', transition_effect:'fade', transition_duration:700, autoplay_speed:6500, pause_on_hover:true })
 const posts=ref([]), events=ref([]), slides=ref([]), facts=ref([]), faqs=ref([]), associations=ref([])
 const sportQuery=ref(''), activeCategory=ref('All Sports')
+const activeNewsCategory=ref('all')
 const liveChatOpen=ref(false)
+const defaultNewsFilters = ['General', 'Infrastructure', 'Events', 'International', 'Football']
 const fallbackEvents = [
   { id:'event-1', title:'NCS Hosts CAA Heroes Luncheon', slug:'ncs-hosts-caa-heroes-luncheon', category:'Athletics', location:'Kampala', event_date:'2026-02-28T09:00:00Z' },
   { id:'event-2', title:'Uganda Volleyball Federation U20 Africa Championships', slug:'uganda-volleyball-federation-u20-africa-championships', category:'Volleyball', location:'Cameroon', event_date:'2026-02-05T09:00:00Z' },
@@ -236,12 +341,30 @@ const openFaqIds=ref(new Set())
 function isFaqOpen(id){return openFaqIds.value.has(id)}
 function toggleFaq(id){const next=new Set(openFaqIds.value);next.has(id)?next.delete(id):next.add(id);openFaqIds.value=next}
 const displayedFacts=computed(() => Array.isArray(home.milestones) && home.milestones.length ? home.milestones : facts.value)
+const displayedLeadershipMembers=computed(() => Array.isArray(home.leadership?.members) ? home.leadership.members.slice(0, 2) : [])
+const leadershipLead=computed(() => displayedLeadershipMembers.value[0] || null)
 const cmsFacts=computed(() => facts.value)
 const displayFAQs=computed(() => faqs.value)
 const displayEvents=computed(() => events.value.length ? events.value : fallbackEvents)
+const homepageNewsCategories=computed(() => {
+  const labels = new Map([['all', 'All']])
+  defaultNewsFilters.forEach(label => labels.set(newsCategoryKey(label), label))
+  posts.value.forEach(post => {
+    const key = newsCategoryKey(post.category)
+    if (key && !labels.has(key)) labels.set(key, newsCategoryLabel(post.category))
+  })
+  return Array.from(labels, ([value, label]) => ({ value, label }))
+})
+const filteredHomePosts=computed(() => activeNewsCategory.value === 'all'
+  ? posts.value
+  : posts.value.filter(post => newsCategoryKey(post.category) === activeNewsCategory.value))
+const featuredNewsPost=computed(() => filteredHomePosts.value[0] || null)
+const secondaryNewsPosts=computed(() => filteredHomePosts.value.slice(1, 4))
 const sportCategories=computed(() => ['All Sports',...new Set(associations.value.map(item=>item.category).filter(Boolean))])
 const filteredAssociations=computed(() => { const q=sportQuery.value.trim().toLowerCase(); return associations.value.filter(item => (activeCategory.value==='All Sports'||item.category===activeCategory.value) && (!q||[item.name,item.category,item.description].some(value=>String(value||'').toLowerCase().includes(q)))) })
 function formatDate(value){return value?new Date(value).toLocaleDateString('en-UG',{day:'numeric',month:'short',year:'numeric'}):'Date TBA'}
+function newsCategoryKey(value){return String(value || 'general').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'general'}
+function newsCategoryLabel(value){return String(value || 'General').replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().replace(/(^|\s)\S/g, part => part.toUpperCase())}
 function parseCounter(value){const raw=String(value||'0');const match=raw.match(/^([\d,.]+)\s*(.*)$/);return {number:Number((match?.[1]||'0').replace(/,/g,''))||0,suffix:match?.[2]||''}}
 function animateCounters(){const targets=displayedFacts.value.map(item=>parseCounter(item.value));const started=performance.now();const duration=1100;function tick(now){const progress=Math.min((now-started)/duration,1);const eased=1-Math.pow(1-progress,3);animatedCounterValues.value=targets.map(item=>Math.round(item.number*eased));if(progress<1)requestAnimationFrame(tick)};requestAnimationFrame(tick)}
 function counterValue(fact,index){const parsed=parseCounter(fact.value);const value=animatedCounterValues.value[index];return `${value ?? parsed.number}${parsed.suffix}`}

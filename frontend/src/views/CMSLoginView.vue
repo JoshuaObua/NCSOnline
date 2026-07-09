@@ -1,55 +1,93 @@
 <template>
-  <main class="otika-auth">
-    <section class="section">
-      <div class="container mt-5">
-        <div class="row">
-          <div class="col-12 col-sm-8 offset-sm-2 col-md-6 offset-md-3 col-lg-6 offset-lg-3 col-xl-4 offset-xl-4">
-            <div class="login-brand">
-              <img src="/main-logo.png" alt="NCS" width="96" class="shadow-light rounded-circle bg-white p-2" />
-            </div>
-            <div class="card card-primary">
-              <div class="card-header">
-                <h4>CMS Login</h4>
-              </div>
-              <div class="card-body">
-                <form class="needs-validation" novalidate @submit.prevent="login">
-                  <div class="form-group">
-                    <label for="cms-email">Email</label>
-                    <input id="cms-email" v-model="email" type="email" autocomplete="email" class="form-control" tabindex="1" required autofocus />
-                    <div class="invalid-feedback">Please fill in your email</div>
-                  </div>
-                  <div class="form-group">
-                    <div class="d-block">
-                      <label for="cms-password" class="control-label">Password</label>
-                      <div class="float-right">
-                        <a href="#" class="text-small">Forgot Password?</a>
-                      </div>
-                    </div>
-                    <input id="cms-password" v-model="password" type="password" autocomplete="current-password" class="form-control" tabindex="2" required />
-                    <div class="invalid-feedback">Please fill in your password</div>
-                  </div>
-                  <div class="form-group">
-                    <div class="custom-control custom-checkbox">
-                      <input id="remember-me" v-model="remember" type="checkbox" class="custom-control-input" tabindex="3" />
-                      <label class="custom-control-label" for="remember-me">Remember Me</label>
-                    </div>
-                  </div>
-                  <p v-if="error" class="alert alert-danger py-2">{{ error }}</p>
-                  <div class="form-group">
-                    <button type="submit" :disabled="loading" class="btn btn-primary btn-lg btn-block" tabindex="4">
-                      {{ loading ? 'Signing in...' : 'Login' }}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-            <div class="mt-5 text-muted text-center">
-              National Council of Sports <router-link to="/">Back to website</router-link>
+  <main class="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
+    <div class="w-full max-w-md">
+      <div class="text-center mb-8">
+        <router-link class="inline-block" to="/">
+          <img alt="NCS" class="h-16 mx-auto mb-4" src="/main-logo.png" />
+        </router-link>
+        <h1 class="text-2xl font-bold text-[#1a365d]">Welcome Back</h1>
+        <p class="text-gray-600 mt-1">Sign in to your NCS account</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-lg p-8">
+        <form class="space-y-5" novalidate @submit.prevent="login">
+          <div>
+            <label class="text-sm font-medium leading-none text-[#1a365d]" for="cms-email">Email Address</label>
+            <div class="relative mt-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+              <input
+                id="cms-email"
+                v-model="email"
+                type="email"
+                autocomplete="email"
+                class="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#f5a623] focus:border-[#f5a623] md:text-sm pl-10"
+                placeholder="Enter your email"
+                required
+                autofocus
+              />
             </div>
           </div>
+
+          <div>
+            <label class="text-sm font-medium leading-none text-[#1a365d]" for="cms-password">Password</label>
+            <div class="relative mt-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <input
+                id="cms-password"
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
+                autocomplete="current-password"
+                class="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#f5a623] focus:border-[#f5a623] md:text-sm pl-10 pr-10"
+                placeholder="Enter your password"
+                required
+              />
+              <button
+                type="button"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                @click="showPassword = !showPassword"
+              >
+                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20"/><path d="M6.71 6.71C4.87 7.93 3.31 9.73 2.06 12a1 1 0 0 0 0 .7 10.75 10.75 0 0 0 15.23 4.59"/><path d="M10.58 10.58a2 2 0 0 0 2.83 2.83"/><path d="M14.12 5.22A10.65 10.65 0 0 1 21.94 12a1 1 0 0 1 0 .7 10.8 10.8 0 0 1-2.1 3.13"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-4">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input id="remember-me" v-model="remember" type="checkbox" class="rounded border-gray-300 text-[#f5a623] focus:ring-[#f5a623]" />
+              <span class="text-sm text-gray-600">Remember me</span>
+            </label>
+            <a href="#" class="text-sm text-[#f5a623] hover:underline" @click.prevent>Forgot password?</a>
+          </div>
+
+          <p v-if="error" class="rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{{ error }}</p>
+
+          <button
+            type="submit"
+            :disabled="loading"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623] shadow h-12 px-4 w-full bg-[#f5a623] hover:bg-[#e09612] text-white text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <svg v-if="!loading" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"/></svg>
+              {{ loading ? 'Signing in...' : 'Sign In' }}
+            </span>
+          </button>
+        </form>
+
+        <div class="mt-6 text-center">
+          <p class="text-gray-600">Don't have an account? <a class="text-[#f5a623] font-semibold hover:underline" href="https://portal.ncs.go.ug/register">Create Account</a></p>
         </div>
       </div>
-    </section>
+
+      <div class="text-center mt-6">
+        <router-link class="text-gray-500 hover:text-[#1a365d] text-sm flex items-center justify-center gap-1" to="/">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          Back to Home
+        </router-link>
+      </div>
+    </div>
   </main>
 </template>
 
@@ -57,7 +95,6 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import apiClient, { API_BASE_URL } from '@/api/client.js'
-import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 
 const router = useRouter()
 const email = ref('admin@ncs.go.ug')
@@ -65,8 +102,7 @@ const password = ref('NCS@Admin2026!')
 const loading = ref(false)
 const error = ref('')
 const remember = ref(true)
-
-ensureOtikaStyles()
+const showPassword = ref(false)
 
 async function login() {
   loading.value = true
@@ -116,12 +152,3 @@ async function canReachApi() {
   }
 }
 </script>
-
-<style scoped>
-.otika-auth{min-height:100vh;background:#f4f6f9;color:#34395e}
-.login-brand{margin:20px 0;text-align:center}
-.card.card-primary{border-top:2px solid #6777ef;box-shadow:0 4px 25px 0 rgba(0,0,0,.1)}
-.form-control{height:42px;border-color:#e4e6fc}
-.form-control:focus{border-color:#6777ef;box-shadow:0 2px 6px #acb5f6}
-@media(max-width:575px){.otika-auth .container{margin-top:1.25rem!important;padding:0 18px}.login-brand img{width:78px}.card .card-header,.card .card-body{padding-left:20px;padding-right:20px}.float-right{float:none!important;display:block;margin-top:4px}}
-</style>

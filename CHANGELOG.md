@@ -6,6 +6,7 @@
 - Improved audit and analytics enrichment with GeoLite/provider field merging, trusted proxy-chain resolution, accurate city/country fallbacks, and durable browser, mobile, Postman, API-client and USSD classifications without generic device data overwriting the client channel.
 - Added regression coverage for CMS settings and builder payloads, slideshow modes, request security, device/client fingerprints, geolocation fallback, public page contracts and migration seed documents; upgraded the frontend toolchain to patched Vite 6.4.3 with zero npm audit findings.
 - Added complete facility-region management to the CMS with region CRUD, protected in-use deletion, category and region assignment, editable public card metadata, server-side `/facilities?region=central` filtering, seeded regional migration data, and a responsive sketch-matched public facilities layout.
+- Applied the latest `Sketch.md` frontend styling pass across the public experience: rebuilt the homepage Current Leadership tile with the 80px portrait and role columns, replaced the homepage Latest News block with sketch-matched filters, featured-card and stacked-card sizing, aligned the public News page header/filter/card styling, rebuilt the CMS login screen as the centered Welcome Back card, refreshed the Docker preview, and verified desktop/mobile routes for horizontal overflow.
 
 ## 2026-07-08
 
