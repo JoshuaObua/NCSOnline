@@ -20,6 +20,7 @@ type DisplayMeta struct {
 
 type BypassRules struct {
 	AllowedRoles     []string `json:"allowed_roles"`
+	AllowedUserIDs   []string `json:"allowed_user_ids"`
 	AllowedIPRanges  []string `json:"allowed_ip_ranges"`
 	SecretQueryParam string   `json:"secret_query_param"`
 }

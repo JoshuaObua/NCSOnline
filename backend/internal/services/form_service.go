@@ -271,6 +271,13 @@ func (s *FormService) GetSubmissionForUser(ctx context.Context, id, userID strin
 	return sub, nil
 }
 
+func (s *FormService) ListUserSubmissions(ctx context.Context, userID, status string, p *models.PaginationParams) ([]*models.FormSubmission, int64, error) {
+	return s.forms.ListSubmissions(ctx, repository.ListSubmissionsFilter{
+		UserID: userID,
+		Status: status,
+	}, p)
+}
+
 func (s *FormService) Submit(ctx context.Context, id, userID string) (*models.FormSubmission, error) {
 	sub, err := s.forms.GetSubmission(ctx, id)
 	if err != nil {

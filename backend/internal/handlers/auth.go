@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -90,6 +91,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slog.Error("register failed", "error", err.Error(), "email", req.Email)
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Registration failed. Please try again.")
 		return
 	}
@@ -124,7 +126,39 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		slog.Error("login failed", "error", err.Error(), "email", req.Email)
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "An unexpected error occurred")
+		return
+	}
+	middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
+	h.secureResult(w, result)
+	response.JSON(w, http.StatusOK, result)
+}
+
+// POST /api/v1/auth/google
+func (h *AuthHandler) Google(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Credential string `json:"credential"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	result, err := h.svc.LoginWithGoogle(r.Context(), req.Credential, r.RemoteAddr, r.UserAgent())
+	if errors.Is(err, services.ErrGoogleAuthNotConfigured) {
+		response.Err(w, http.StatusServiceUnavailable, "GOOGLE_AUTH_NOT_CONFIGURED", "Google sign-in is not configured")
+		return
+	}
+	if errors.Is(err, services.ErrGoogleTokenInvalid) {
+		response.Err(w, http.StatusUnauthorized, "INVALID_GOOGLE_TOKEN", "Google sign-in could not be verified")
+		return
+	}
+	if errors.Is(err, services.ErrAccountDisabled) {
+		response.Err(w, http.StatusForbidden, "ACCOUNT_DISABLED", "Your account has been deactivated")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Google sign-in failed. Please try again.")
 		return
 	}
 	middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
@@ -184,6 +218,50 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	user.PasswordHash = ""
 	user.PinHash = ""
 
+	response.JSON(w, http.StatusOK, user)
+}
+
+// PUT /api/v1/auth/me — self-service update of the caller's own display name
+// and avatar. Deliberately narrow: fetches the current record first and only
+// overwrites these three fields, so it can't be used to touch email, roles,
+// or account status (those go through the admin user-management endpoints).
+func (h *AuthHandler) UpdateMyProfile(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	var req struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		AvatarURL string `json:"avatar_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if req.FirstName == "" || req.LastName == "" {
+		response.ValidationErr(w, map[string]string{"first_name": "required", "last_name": "required"})
+		return
+	}
+
+	user, err := h.users.GetByID(r.Context(), userID)
+	if errors.Is(err, repository.ErrNotFound) {
+		response.Err(w, http.StatusUnauthorized, "USER_NOT_FOUND", "User account not found")
+		return
+	}
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load profile")
+		return
+	}
+	user.FirstName = req.FirstName
+	user.LastName = req.LastName
+	user.AvatarURL = req.AvatarURL
+	if err := h.users.Update(r.Context(), user); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update profile")
+		return
+	}
+
+	roles, _ := h.users.GetRoles(r.Context(), userID)
+	user.Roles = roles
+	user.PasswordHash = ""
+	user.PinHash = ""
 	response.JSON(w, http.StatusOK, user)
 }
 

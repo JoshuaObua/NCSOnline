@@ -36,8 +36,11 @@ type Config struct {
 	SMTPPassword         string
 	SMTPFrom             string
 	PublicAppURL         string
+	GoogleClientID       string
+	GoogleTokenInfoURL   string
 	LogDir               string
 	MaintenanceEnabled   bool
+	AnalyticsHashSecret  string
 }
 
 func Load() (*Config, error) {
@@ -83,8 +86,11 @@ func Load() (*Config, error) {
 		SMTPPassword:         getEnv("SMTP_PASSWORD", ""),
 		SMTPFrom:             getEnv("SMTP_FROM", "NCS <noreply@ncs.go.ug>"),
 		PublicAppURL:         strings.TrimRight(getEnv("PUBLIC_APP_URL", "http://localhost:3000"), "/"),
+		GoogleClientID:       getEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleTokenInfoURL:   getEnv("GOOGLE_TOKENINFO_URL", "https://oauth2.googleapis.com/tokeninfo"),
 		LogDir:               getEnv("LOG_DIR", "/var/log/app"),
 		MaintenanceEnabled:   !strings.EqualFold(getEnv("MAINTENANCE_MIDDLEWARE_ENABLED", "true"), "false"),
+		AnalyticsHashSecret:  getEnv("ANALYTICS_HASH_SECRET", jwtSecret),
 	}, nil
 }
 

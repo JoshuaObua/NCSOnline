@@ -30,7 +30,18 @@ type Settings struct {
 	S3ForcePathStyle  bool   `json:"s3_force_path_style"`
 	S3AccessKeyID     string `json:"s3_access_key_id,omitempty"`
 	S3SecretAccessKey string `json:"s3_secret_access_key,omitempty"`
+
+	SupabaseURL        string `json:"supabase_url"`
+	SupabaseBucket     string `json:"supabase_bucket"`
+	SupabasePrefix     string `json:"supabase_prefix"`
+	SupabasePublicRead bool   `json:"supabase_public_read"`
+	SupabaseServiceKey string `json:"supabase_service_key,omitempty"`
 }
+
+// allowedProviders is the single set of provider keys an admin may pick for
+// EITHER scope (public portal assets or application evidence uploads), so
+// switching providers works the same way everywhere file uploads happen.
+var allowedProviders = map[string]bool{"local": true, "google_drive": true, "s3": true, "supabase": true}
 
 func DefaultSettings() Settings {
 	return Settings{
@@ -59,8 +70,8 @@ func ParseSettings(raw []byte) (Settings, error) {
 }
 
 func (s *Settings) Normalize() {
-	s.PublicProvider = normalizeProvider(s.PublicProvider, "google_drive", map[string]bool{"local": true, "google_drive": true})
-	s.ApplicationProvider = normalizeProvider(s.ApplicationProvider, "s3", map[string]bool{"local": true, "s3": true})
+	s.PublicProvider = normalizeProvider(s.PublicProvider, "google_drive", allowedProviders)
+	s.ApplicationProvider = normalizeProvider(s.ApplicationProvider, "s3", allowedProviders)
 	if strings.TrimSpace(s.LocalPublicPath) == "" {
 		s.LocalPublicPath = "/app/uploads"
 	}
@@ -94,7 +105,15 @@ func (s Settings) Redacted() Settings {
 	s.GoogleDriveRefreshToken = ""
 	s.S3AccessKeyID = redact(s.S3AccessKeyID)
 	s.S3SecretAccessKey = ""
+	s.SupabaseServiceKey = ""
 	return s
+}
+
+// SupabaseConfigured reports whether a service role key has been saved.
+// The key itself is never sent back to the client (see Redacted), so the
+// admin UI needs this boolean to know a key is already on file.
+func (s Settings) SupabaseConfigured() bool {
+	return strings.TrimSpace(s.SupabaseServiceKey) != ""
 }
 
 // GoogleDriveConnected reports whether a refresh token has been obtained via
@@ -119,6 +138,9 @@ func (s Settings) MergeSecrets(existing Settings) Settings {
 	}
 	if strings.TrimSpace(s.S3SecretAccessKey) == "" {
 		s.S3SecretAccessKey = existing.S3SecretAccessKey
+	}
+	if strings.TrimSpace(s.SupabaseServiceKey) == "" {
+		s.SupabaseServiceKey = existing.SupabaseServiceKey
 	}
 	return s
 }

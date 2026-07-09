@@ -14,6 +14,7 @@ import (
 
 var ErrNotFound = errors.New("record not found")
 var ErrDuplicate = errors.New("duplicate record")
+var ErrInUse = errors.New("record is in use")
 
 type Repos struct {
 	Users         *UserRepo
@@ -31,6 +32,7 @@ type Repos struct {
 	Forms         *FormRepo
 	Departments   *DepartmentRepo
 	Security      *SecurityRepo
+	Analytics     *AnalyticsRepo
 }
 
 func New(db *pgxpool.Pool) *Repos {
@@ -50,6 +52,7 @@ func New(db *pgxpool.Pool) *Repos {
 		Forms:         &FormRepo{db: db},
 		Departments:   &DepartmentRepo{db: db},
 		Security:      &SecurityRepo{db: db},
+		Analytics:     &AnalyticsRepo{db: db},
 	}
 }
 
@@ -58,16 +61,24 @@ func New(db *pgxpool.Pool) *Repos {
 type UserRepo struct{ db *pgxpool.Pool }
 
 func (r *UserRepo) Create(ctx context.Context, u *models.User) error {
-	const q = `INSERT INTO users (id, email, password_hash, first_name, last_name, phone)
-	           VALUES ($1,$2,$3,$4,$5,$6)
+	const q = `INSERT INTO users (id, email, password_hash, first_name, last_name, phone, avatar_url, auth_provider, google_sub, is_email_verified, email_verified_at)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $10 THEN NOW() ELSE NULL END)
 	           RETURNING created_at, updated_at`
+	if u.AuthProvider == "" {
+		u.AuthProvider = "password"
+	}
+	var googleSub interface{}
+	if u.GoogleSub != "" {
+		googleSub = u.GoogleSub
+	}
 	return r.db.QueryRow(ctx, q,
-		u.ID, u.Email, u.PasswordHash, u.FirstName, u.LastName, u.Phone,
+		u.ID, u.Email, u.PasswordHash, u.FirstName, u.LastName, u.Phone, u.AvatarURL, u.AuthProvider, googleSub, u.IsEmailVerified,
 	).Scan(&u.CreatedAt, &u.UpdatedAt)
 }
 
 func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error) {
 	const q = `SELECT id, email, password_hash, first_name, last_name, COALESCE(phone,''),
+	                  COALESCE(avatar_url,''), COALESCE(auth_provider,''), COALESCE(google_sub,''),
 	                  COALESCE(pin_hash,''), COALESCE(pin_change_required, TRUE),
 	                  is_active, account_status, status_reason, fraud_flag, fraud_reason,
 	                  suspended_until, status_changed_at,
@@ -78,6 +89,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 	u := &models.User{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &u.Phone,
+		&u.AvatarURL, &u.AuthProvider, &u.GoogleSub,
 		&u.PinHash, &u.PinChangeRequired,
 		&u.IsActive, &u.AccountStatus, &u.StatusReason, &u.FraudFlag, &u.FraudReason,
 		&u.SuspendedUntil, &u.StatusChangedAt,
@@ -93,6 +105,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, error) {
 	const q = `SELECT id, email, password_hash, first_name, last_name, COALESCE(phone,''),
+	                  COALESCE(avatar_url,''), COALESCE(auth_provider,''), COALESCE(google_sub,''),
 	                  COALESCE(pin_hash,''), COALESCE(pin_change_required, TRUE),
 	                  is_active, account_status, status_reason, fraud_flag, fraud_reason,
 	                  suspended_until, status_changed_at,
@@ -103,6 +116,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, 
 	u := &models.User{}
 	err := r.db.QueryRow(ctx, q, email).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &u.Phone,
+		&u.AvatarURL, &u.AuthProvider, &u.GoogleSub,
 		&u.PinHash, &u.PinChangeRequired,
 		&u.IsActive, &u.AccountStatus, &u.StatusReason, &u.FraudFlag, &u.FraudReason,
 		&u.SuspendedUntil, &u.StatusChangedAt,
@@ -114,6 +128,28 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, 
 		return nil, ErrNotFound
 	}
 	return u, err
+}
+
+func (r *UserRepo) GetByGoogleSub(ctx context.Context, googleSub string) (*models.User, error) {
+	const q = `SELECT id FROM users WHERE google_sub=$1 AND deleted_at IS NULL`
+	var id string
+	err := r.db.QueryRow(ctx, q, googleSub).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return r.GetByID(ctx, id)
+}
+
+func (r *UserRepo) LinkGoogleIdentity(ctx context.Context, userID, googleSub, avatarURL string) error {
+	const q = `UPDATE users
+	           SET google_sub=$2, avatar_url=$3, auth_provider=CASE WHEN auth_provider='' THEN 'google' ELSE auth_provider END,
+	               is_email_verified=TRUE, email_verified_at=COALESCE(email_verified_at, NOW()), updated_at=NOW()
+	           WHERE id=$1 AND deleted_at IS NULL`
+	_, err := r.db.Exec(ctx, q, userID, googleSub, avatarURL)
+	return err
 }
 
 func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams) ([]*models.User, int64, error) {
@@ -143,7 +179,7 @@ func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mod
 	}
 	defer rows.Close()
 
-	var users []*models.User
+	users := []*models.User{}
 	for rows.Next() {
 		u := &models.User{}
 		if err := rows.Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.Phone,
@@ -158,9 +194,9 @@ func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mod
 }
 
 func (r *UserRepo) Update(ctx context.Context, u *models.User) error {
-	const q = `UPDATE users SET first_name=$2, last_name=$3, phone=$4, updated_at=NOW()
+	const q = `UPDATE users SET first_name=$2, last_name=$3, phone=$4, avatar_url=$5, updated_at=NOW()
 	           WHERE id=$1 AND deleted_at IS NULL`
-	_, err := r.db.Exec(ctx, q, u.ID, u.FirstName, u.LastName, u.Phone)
+	_, err := r.db.Exec(ctx, q, u.ID, u.FirstName, u.LastName, u.Phone, u.AvatarURL)
 	return err
 }
 
@@ -276,6 +312,21 @@ func (r *UserRepo) RemoveRole(ctx context.Context, userID, roleID string) error 
 func (r *UserRepo) CountAll(ctx context.Context) (int64, error) {
 	var n int64
 	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM users WHERE deleted_at IS NULL`).Scan(&n)
+	return n, err
+}
+
+func (r *UserRepo) CountOrdinary(ctx context.Context) (int64, error) {
+	var n int64
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM users u
+		WHERE u.deleted_at IS NULL
+		  AND NOT EXISTS (
+		    SELECT 1
+		    FROM user_roles ur
+		    JOIN roles r ON r.id = ur.role_id
+		    WHERE ur.user_id = u.id AND r.name <> 'user'
+		  )`).Scan(&n)
 	return n, err
 }
 
@@ -662,7 +713,7 @@ func (r *ApplicationRepo) CountByStatus(ctx context.Context) (map[string]int64, 
 }
 
 func scanApplicationRows(rows pgx.Rows, total int64) ([]*models.Application, int64, error) {
-	var apps []*models.Application
+	apps := []*models.Application{}
 	for rows.Next() {
 		a := &models.Application{}
 		if err := rows.Scan(&a.ID, &a.ApplicationReference, &a.UserID, &a.FormType,
@@ -805,7 +856,7 @@ func (r *AuditRepo) ListByUser(ctx context.Context, userID string, p *models.Pag
 		return nil, 0, err
 	}
 	defer rows.Close()
-	var logs []*models.AuditLog
+	logs := []*models.AuditLog{}
 	for rows.Next() {
 		l := &models.AuditLog{}
 		if err := rows.Scan(
@@ -866,7 +917,7 @@ func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mo
 		return nil, 0, err
 	}
 	defer rows.Close()
-	var logs []*models.AuditLog
+	logs := []*models.AuditLog{}
 	for rows.Next() {
 		l := &models.AuditLog{}
 		if err := rows.Scan(
@@ -962,29 +1013,35 @@ type CMSRepo struct{ db *pgxpool.Pool }
 // Posts
 
 func (r *CMSRepo) CreatePost(ctx context.Context, p *models.CMSPost) error {
-	const q = `INSERT INTO cms_posts (id, title, slug, content, excerpt, category, status, cover_image_url, author_id, published_at, meta_title, meta_description)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING created_at, updated_at`
-	return r.db.QueryRow(ctx, q,
-		p.ID, p.Title, p.Slug, p.Content, p.Excerpt, p.Category, p.Status,
+	const q = `INSERT INTO cms_posts (id, title, slug, content, excerpt, category, category_tag, status, cover_image_url, author_id, published_at, meta_title, meta_description, focus_keywords, approved_at)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING created_at, updated_at`
+	err := r.db.QueryRow(ctx, q,
+		p.ID, p.Title, p.Slug, p.Content, p.Excerpt, p.Category, p.CategoryTag, p.Status,
 		p.CoverImageURL, p.AuthorID, p.PublishedAt, p.MetaTitle, p.MetaDescription,
+		p.FocusKeywords, p.ApprovedAt,
 	).Scan(&p.CreatedAt, &p.UpdatedAt)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
 }
 
 func (r *CMSRepo) GetPostBySlug(ctx context.Context, slug string) (*models.CMSPost, error) {
 	_, _ = r.db.Exec(ctx, `UPDATE cms_posts SET view_count = COALESCE(view_count,0)+1 WHERE slug=$1`, slug)
-	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, p.status,
+	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, COALESCE(p.category_tag,''), p.status,
 	                  COALESCE(p.cover_image_url,''), p.author_id,
 	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
 	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
-	                  COALESCE(p.view_count,0), p.published_at, p.created_at, p.updated_at
+	                  COALESCE(p.focus_keywords,''), COALESCE(p.view_count,0),
+	                  p.approved_at, p.published_at, p.created_at, p.updated_at
 	           FROM cms_posts p
 	           LEFT JOIN users u ON u.id = p.author_id
 	           WHERE p.slug=$1`
 	p := &models.CMSPost{}
 	err := r.db.QueryRow(ctx, q, slug).Scan(
-		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.Status,
+		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.CategoryTag, &p.Status,
 		&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
-		&p.ViewCount, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
+		&p.FocusKeywords, &p.ViewCount, &p.ApprovedAt, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -993,19 +1050,20 @@ func (r *CMSRepo) GetPostBySlug(ctx context.Context, slug string) (*models.CMSPo
 }
 
 func (r *CMSRepo) GetPostByID(ctx context.Context, id string) (*models.CMSPost, error) {
-	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, p.status,
+	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, COALESCE(p.category_tag,''), p.status,
 	                  COALESCE(p.cover_image_url,''), p.author_id,
 	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
 	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
-	                  COALESCE(p.view_count,0), p.published_at, p.created_at, p.updated_at
+	                  COALESCE(p.focus_keywords,''), COALESCE(p.view_count,0),
+	                  p.approved_at, p.published_at, p.created_at, p.updated_at
 	           FROM cms_posts p
 	           LEFT JOIN users u ON u.id = p.author_id
 	           WHERE p.id=$1`
 	p := &models.CMSPost{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
-		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.Status,
+		&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.CategoryTag, &p.Status,
 		&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
-		&p.ViewCount, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
+		&p.FocusKeywords, &p.ViewCount, &p.ApprovedAt, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -1016,10 +1074,12 @@ func (r *CMSRepo) GetPostByID(ctx context.Context, id string) (*models.CMSPost, 
 func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit, offset int) ([]*models.CMSPost, int64, error) {
 	const countQ = `SELECT COUNT(*) FROM cms_posts p
 	                WHERE ($1='' OR p.category=$1) AND ($2='' OR p.status=$2)`
-	const q = `SELECT p.id, p.title, p.slug, p.excerpt, p.category, p.status,
+	const q = `SELECT p.id, p.title, p.slug, p.content, p.excerpt, p.category, COALESCE(p.category_tag,''), p.status,
 	                  COALESCE(p.cover_image_url,''), p.author_id,
 	                  COALESCE(u.first_name||' '||u.last_name,'') AS author_name,
-	                  COALESCE(p.view_count,0), p.published_at, p.created_at, p.updated_at
+	                  COALESCE(p.meta_title,''), COALESCE(p.meta_description,''),
+	                  COALESCE(p.focus_keywords,''), COALESCE(p.view_count,0),
+	                  p.approved_at, p.published_at, p.created_at, p.updated_at
 	           FROM cms_posts p
 	           LEFT JOIN users u ON u.id = p.author_id
 	           WHERE ($1='' OR p.category=$1) AND ($2='' OR p.status=$2)
@@ -1033,12 +1093,12 @@ func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit,
 		return nil, 0, err
 	}
 	defer rows.Close()
-	var posts []*models.CMSPost
+	posts := []*models.CMSPost{}
 	for rows.Next() {
 		p := &models.CMSPost{}
-		if err := rows.Scan(&p.ID, &p.Title, &p.Slug, &p.Excerpt, &p.Category, &p.Status,
-			&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.ViewCount,
-			&p.PublishedAt, &p.CreatedAt, &p.UpdatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.Title, &p.Slug, &p.Content, &p.Excerpt, &p.Category, &p.CategoryTag, &p.Status,
+			&p.CoverImageURL, &p.AuthorID, &p.AuthorName, &p.MetaTitle, &p.MetaDescription,
+			&p.FocusKeywords, &p.ViewCount, &p.ApprovedAt, &p.PublishedAt, &p.CreatedAt, &p.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		posts = append(posts, p)
@@ -1047,11 +1107,14 @@ func (r *CMSRepo) ListPosts(ctx context.Context, category, status string, limit,
 }
 
 func (r *CMSRepo) UpdatePost(ctx context.Context, p *models.CMSPost) error {
-	const q = `UPDATE cms_posts SET title=$2, slug=$3, content=$4, excerpt=$5, category=$6,
+	const q = `UPDATE cms_posts SET title=$2, slug=$3, content=$4, excerpt=$5, category=$6, category_tag=$14,
 	           status=$7, cover_image_url=$8, published_at=$9,
-	           meta_title=$10, meta_description=$11, updated_at=NOW() WHERE id=$1`
+	           meta_title=$10, meta_description=$11, focus_keywords=$12, approved_at=$13, updated_at=NOW() WHERE id=$1`
 	_, err := r.db.Exec(ctx, q, p.ID, p.Title, p.Slug, p.Content, p.Excerpt,
-		p.Category, p.Status, p.CoverImageURL, p.PublishedAt, p.MetaTitle, p.MetaDescription)
+		p.Category, p.Status, p.CoverImageURL, p.PublishedAt, p.MetaTitle, p.MetaDescription, p.FocusKeywords, p.ApprovedAt, p.CategoryTag)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
 	return err
 }
 
@@ -1060,24 +1123,181 @@ func (r *CMSRepo) DeletePost(ctx context.Context, id string) error {
 	return err
 }
 
+func (r *CMSRepo) ListBlogCategories(ctx context.Context, activeOnly bool, contentType string) ([]*models.BlogCategory, error) {
+	q := `SELECT id, name, slug, COALESCE(description,''), content_type, sort_order, is_active, created_at, updated_at
+	      FROM blog_categories WHERE ($1=FALSE OR is_active=TRUE) AND content_type=$2
+	      ORDER BY sort_order, name`
+	rows, err := r.db.Query(ctx, q, activeOnly, contentType)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []*models.BlogCategory{}
+	for rows.Next() {
+		c := &models.BlogCategory{}
+		if err := rows.Scan(&c.ID, &c.Name, &c.Slug, &c.Description, &c.ContentType, &c.SortOrder, &c.IsActive, &c.CreatedAt, &c.UpdatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func (r *CMSRepo) CreateBlogCategory(ctx context.Context, c *models.BlogCategory) error {
+	const q = `INSERT INTO blog_categories (id, name, slug, description, content_type, sort_order, is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING created_at, updated_at`
+	err := r.db.QueryRow(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.ContentType, c.SortOrder, c.IsActive).Scan(&c.CreatedAt, &c.UpdatedAt)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
+}
+
+func (r *CMSRepo) UpdateBlogCategory(ctx context.Context, c *models.BlogCategory) error {
+	const q = `UPDATE blog_categories SET name=$2, slug=$3, description=$4, content_type=$5, sort_order=$6, is_active=$7, updated_at=NOW()
+	           WHERE id=$1`
+	tag, err := r.db.Exec(ctx, q, c.ID, c.Name, c.Slug, c.Description, c.ContentType, c.SortOrder, c.IsActive)
+	if err != nil {
+		if isDuplicate(err) {
+			return ErrDuplicate
+		}
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) DeleteBlogCategory(ctx context.Context, id string) error {
+	tag, err := r.db.Exec(ctx, `DELETE FROM blog_categories WHERE id=$1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) GetCommentByID(ctx context.Context, id string) (*models.BlogComment, error) {
+	const q = `SELECT id, post_id, user_id, parent_id, body, status, depth, COALESCE(ip_address,''), COALESCE(user_agent,''),
+	                  created_at, updated_at, approved_at, flagged_at
+	           FROM blog_comments WHERE id=$1`
+	c := &models.BlogComment{}
+	err := r.db.QueryRow(ctx, q, id).Scan(&c.ID, &c.PostID, &c.UserID, &c.ParentID, &c.Body, &c.Status, &c.Depth, &c.IPAddress, &c.UserAgent, &c.CreatedAt, &c.UpdatedAt, &c.ApprovedAt, &c.FlaggedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return c, err
+}
+
+func (r *CMSRepo) ListApprovedCommentsForPost(ctx context.Context, postID string) ([]*models.BlogComment, error) {
+	const q = `SELECT c.id, c.post_id, c.user_id, COALESCE(u.first_name||' '||u.last_name,'Reader') AS user_name,
+	                  c.parent_id, c.body, c.status, c.depth, c.created_at, c.updated_at, c.approved_at, c.flagged_at
+	           FROM blog_comments c
+	           LEFT JOIN users u ON u.id = c.user_id
+	           WHERE c.post_id=$1 AND c.status='approved'
+	           ORDER BY c.created_at ASC`
+	rows, err := r.db.Query(ctx, q, postID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []*models.BlogComment{}
+	for rows.Next() {
+		c := &models.BlogComment{}
+		if err := rows.Scan(&c.ID, &c.PostID, &c.UserID, &c.UserName, &c.ParentID, &c.Body, &c.Status, &c.Depth, &c.CreatedAt, &c.UpdatedAt, &c.ApprovedAt, &c.FlaggedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, rows.Err()
+}
+
+func (r *CMSRepo) CreateComment(ctx context.Context, c *models.BlogComment) error {
+	const q = `INSERT INTO blog_comments (id, post_id, user_id, parent_id, body, status, depth, ip_address, user_agent)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING created_at, updated_at`
+	return r.db.QueryRow(ctx, q, c.ID, c.PostID, c.UserID, c.ParentID, c.Body, c.Status, c.Depth, c.IPAddress, c.UserAgent).Scan(&c.CreatedAt, &c.UpdatedAt)
+}
+
+func (r *CMSRepo) ListComments(ctx context.Context, status string, limit, offset int) ([]*models.BlogComment, int64, error) {
+	const countQ = `SELECT COUNT(*) FROM blog_comments WHERE ($1='' OR status=$1)`
+	const q = `SELECT c.id, c.post_id, COALESCE(p.title,''), COALESCE(p.slug,''), c.user_id,
+	                  COALESCE(u.first_name||' '||u.last_name,'Reader'), c.parent_id, c.body,
+	                  c.status, c.depth, COALESCE(c.ip_address,''), COALESCE(c.user_agent,''),
+	                  c.created_at, c.updated_at, c.approved_at, c.flagged_at
+	           FROM blog_comments c
+	           LEFT JOIN cms_posts p ON p.id = c.post_id
+	           LEFT JOIN users u ON u.id = c.user_id
+	           WHERE ($1='' OR c.status=$1)
+	           ORDER BY c.created_at DESC LIMIT $2 OFFSET $3`
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, status).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.db.Query(ctx, q, status, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := []*models.BlogComment{}
+	for rows.Next() {
+		c := &models.BlogComment{}
+		if err := rows.Scan(&c.ID, &c.PostID, &c.PostTitle, &c.PostSlug, &c.UserID, &c.UserName, &c.ParentID, &c.Body, &c.Status, &c.Depth, &c.IPAddress, &c.UserAgent, &c.CreatedAt, &c.UpdatedAt, &c.ApprovedAt, &c.FlaggedAt); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, c)
+	}
+	return out, total, rows.Err()
+}
+
+func (r *CMSRepo) ModerateComment(ctx context.Context, id, status string) error {
+	const q = `UPDATE blog_comments
+	           SET status=$2,
+	               approved_at=CASE WHEN $2='approved' THEN NOW() ELSE approved_at END,
+	               flagged_at=CASE WHEN $2='flagged' THEN NOW() ELSE flagged_at END,
+	               updated_at=NOW()
+	           WHERE id=$1`
+	tag, err := r.db.Exec(ctx, q, id, status)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) DeleteComment(ctx context.Context, id string) error {
+	tag, err := r.db.Exec(ctx, `DELETE FROM blog_comments WHERE id=$1`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
 // Events
 
 func (r *CMSRepo) CreateEvent(ctx context.Context, e *models.CMSEvent) error {
-	const q = `INSERT INTO cms_events (id, title, slug, description, location, event_date, end_date, cover_image_url, status, author_id)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING created_at, updated_at`
+	const q = `INSERT INTO cms_events (id, title, slug, description, category, location, event_date, end_date, cover_image_url, status, author_id)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING created_at, updated_at`
 	return r.db.QueryRow(ctx, q,
-		e.ID, e.Title, e.Slug, e.Description, e.Location, e.EventDate, e.EndDate,
+		e.ID, e.Title, e.Slug, e.Description, e.Category, e.Location, e.EventDate, e.EndDate,
 		e.CoverImageURL, e.Status, e.AuthorID,
 	).Scan(&e.CreatedAt, &e.UpdatedAt)
 }
 
 func (r *CMSRepo) GetEventBySlug(ctx context.Context, slug string) (*models.CMSEvent, error) {
-	const q = `SELECT id, title, slug, description, COALESCE(location,''), event_date, end_date,
+	const q = `SELECT id, title, slug, description, COALESCE(category,''), COALESCE(location,''), event_date, end_date,
 	                  COALESCE(cover_image_url,''), status, author_id, created_at, updated_at
 	           FROM cms_events WHERE slug=$1`
 	e := &models.CMSEvent{}
 	err := r.db.QueryRow(ctx, q, slug).Scan(
-		&e.ID, &e.Title, &e.Slug, &e.Description, &e.Location, &e.EventDate, &e.EndDate,
+		&e.ID, &e.Title, &e.Slug, &e.Description, &e.Category, &e.Location, &e.EventDate, &e.EndDate,
 		&e.CoverImageURL, &e.Status, &e.AuthorID, &e.CreatedAt, &e.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -1087,12 +1307,12 @@ func (r *CMSRepo) GetEventBySlug(ctx context.Context, slug string) (*models.CMSE
 }
 
 func (r *CMSRepo) GetEventByID(ctx context.Context, id string) (*models.CMSEvent, error) {
-	const q = `SELECT id, title, slug, description, COALESCE(location,''), event_date, end_date,
+	const q = `SELECT id, title, slug, description, COALESCE(category,''), COALESCE(location,''), event_date, end_date,
 	                  COALESCE(cover_image_url,''), status, author_id, created_at, updated_at
 	           FROM cms_events WHERE id=$1`
 	e := &models.CMSEvent{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
-		&e.ID, &e.Title, &e.Slug, &e.Description, &e.Location, &e.EventDate, &e.EndDate,
+		&e.ID, &e.Title, &e.Slug, &e.Description, &e.Category, &e.Location, &e.EventDate, &e.EndDate,
 		&e.CoverImageURL, &e.Status, &e.AuthorID, &e.CreatedAt, &e.UpdatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -1103,7 +1323,7 @@ func (r *CMSRepo) GetEventByID(ctx context.Context, id string) (*models.CMSEvent
 
 func (r *CMSRepo) ListEvents(ctx context.Context, status string, limit, offset int) ([]*models.CMSEvent, int64, error) {
 	const countQ = `SELECT COUNT(*) FROM cms_events WHERE ($1='' OR status=$1)`
-	const q = `SELECT id, title, slug, COALESCE(location,''), event_date, end_date,
+	const q = `SELECT id, title, slug, COALESCE(category,''), COALESCE(location,''), event_date, end_date,
 	                  COALESCE(cover_image_url,''), status, author_id, created_at, updated_at
 	           FROM cms_events WHERE ($1='' OR status=$1)
 	           ORDER BY COALESCE(event_date, created_at) DESC LIMIT $2 OFFSET $3`
@@ -1116,10 +1336,10 @@ func (r *CMSRepo) ListEvents(ctx context.Context, status string, limit, offset i
 		return nil, 0, err
 	}
 	defer rows.Close()
-	var events []*models.CMSEvent
+	events := []*models.CMSEvent{}
 	for rows.Next() {
 		e := &models.CMSEvent{}
-		if err := rows.Scan(&e.ID, &e.Title, &e.Slug, &e.Location, &e.EventDate, &e.EndDate,
+		if err := rows.Scan(&e.ID, &e.Title, &e.Slug, &e.Category, &e.Location, &e.EventDate, &e.EndDate,
 			&e.CoverImageURL, &e.Status, &e.AuthorID, &e.CreatedAt, &e.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
@@ -1129,9 +1349,9 @@ func (r *CMSRepo) ListEvents(ctx context.Context, status string, limit, offset i
 }
 
 func (r *CMSRepo) UpdateEvent(ctx context.Context, e *models.CMSEvent) error {
-	const q = `UPDATE cms_events SET title=$2, slug=$3, description=$4, location=$5,
-	           event_date=$6, end_date=$7, cover_image_url=$8, status=$9, updated_at=NOW() WHERE id=$1`
-	_, err := r.db.Exec(ctx, q, e.ID, e.Title, e.Slug, e.Description, e.Location,
+	const q = `UPDATE cms_events SET title=$2, slug=$3, description=$4, category=$5, location=$6,
+	           event_date=$7, end_date=$8, cover_image_url=$9, status=$10, updated_at=NOW() WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, e.ID, e.Title, e.Slug, e.Description, e.Category, e.Location,
 		e.EventDate, e.EndDate, e.CoverImageURL, e.Status)
 	return err
 }
@@ -1191,7 +1411,7 @@ func (r *CMSRepo) ListCareers(ctx context.Context, status, category string, limi
 		return nil, 0, err
 	}
 	defer rows.Close()
-	var careers []*models.CMSCareer
+	careers := []*models.CMSCareer{}
 	for rows.Next() {
 		c := &models.CMSCareer{}
 		if err := rows.Scan(&c.ID, &c.Title, &c.Department, &c.DepartmentID, &c.DepartmentName,
@@ -1220,12 +1440,13 @@ func (r *CMSRepo) DeleteCareer(ctx context.Context, id string) error {
 // ── Slides ────────────────────────────────────────────────────────
 
 func (r *CMSRepo) ListSlides(ctx context.Context, activeOnly bool) ([]*models.CMSSlide, error) {
-	q := `SELECT id, title, COALESCE(subtitle,''), COALESCE(description,''),
-	             COALESCE(image_url,''), COALESCE(button_text,''), COALESCE(button_url,''),
+	q := `SELECT id, slideshow_id, title, COALESCE(subtitle,''), COALESCE(description,''),
+	             COALESCE(image_url,''), media_type, animation_type,
+	             COALESCE(button_text,''), COALESCE(button_url,''),
 	             sort_order, is_active, created_at, updated_at
-	      FROM cms_slides`
+	      FROM cms_slides WHERE slideshow_id='homepage-hero'`
 	if activeOnly {
-		q += ` WHERE is_active=true`
+		q += ` AND is_active=true`
 	}
 	q += ` ORDER BY sort_order ASC, created_at ASC`
 	rows, err := r.db.Query(ctx, q)
@@ -1233,39 +1454,148 @@ func (r *CMSRepo) ListSlides(ctx context.Context, activeOnly bool) ([]*models.CM
 		return nil, err
 	}
 	defer rows.Close()
-	var slides []*models.CMSSlide
+	slides := []*models.CMSSlide{}
 	for rows.Next() {
 		s := &models.CMSSlide{}
-		if err := rows.Scan(&s.ID, &s.Title, &s.Subtitle, &s.Description,
-			&s.ImageURL, &s.ButtonText, &s.ButtonURL,
+		if err := rows.Scan(&s.ID, &s.SlideshowID, &s.Title, &s.Subtitle, &s.Description,
+			&s.ImageURL, &s.MediaType, &s.AnimationType, &s.ButtonText, &s.ButtonURL,
 			&s.SortOrder, &s.IsActive, &s.CreatedAt, &s.UpdatedAt); err != nil {
 			return nil, err
 		}
 		slides = append(slides, s)
 	}
-	return slides, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return r.attachSlideButtons(ctx, slides)
 }
 
 func (r *CMSRepo) CreateSlide(ctx context.Context, s *models.CMSSlide) error {
-	const q = `INSERT INTO cms_slides (id, title, subtitle, description, image_url, button_text, button_url, sort_order, is_active)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING created_at, updated_at`
+	const q = `INSERT INTO cms_slides (id, slideshow_id, title, subtitle, description, image_url, media_type, animation_type, button_text, button_url, sort_order, is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING created_at, updated_at`
 	return r.db.QueryRow(ctx, q,
-		s.ID, s.Title, s.Subtitle, s.Description, s.ImageURL, s.ButtonText, s.ButtonURL, s.SortOrder, s.IsActive,
+		s.ID, s.SlideshowID, s.Title, s.Subtitle, s.Description, s.ImageURL, s.MediaType, s.AnimationType,
+		s.ButtonText, s.ButtonURL, s.SortOrder, s.IsActive,
 	).Scan(&s.CreatedAt, &s.UpdatedAt)
 }
 
 func (r *CMSRepo) UpdateSlide(ctx context.Context, s *models.CMSSlide) error {
 	const q = `UPDATE cms_slides SET title=$2, subtitle=$3, description=$4, image_url=$5,
-	           button_text=$6, button_url=$7, sort_order=$8, is_active=$9, updated_at=NOW()
+	           button_text=$6, button_url=$7, sort_order=$8, is_active=$9, media_type=$10, animation_type=$11, updated_at=NOW()
 	           WHERE id=$1`
 	_, err := r.db.Exec(ctx, q, s.ID, s.Title, s.Subtitle, s.Description, s.ImageURL,
-		s.ButtonText, s.ButtonURL, s.SortOrder, s.IsActive)
+		s.ButtonText, s.ButtonURL, s.SortOrder, s.IsActive, s.MediaType, s.AnimationType)
 	return err
 }
 
 func (r *CMSRepo) DeleteSlide(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM cms_slides WHERE id=$1`, id)
 	return err
+}
+
+func (r *CMSRepo) GetSlideshowBySlug(ctx context.Context, slug string, activeOnly bool) (*models.CMSSlideshow, error) {
+	const q = `SELECT id, name, slug, transition_effect, transition_duration, autoplay_speed, pause_on_hover, is_active, created_at, updated_at
+	           FROM cms_slideshows WHERE slug=$1 AND ($2=FALSE OR is_active=TRUE)`
+	show := &models.CMSSlideshow{}
+	if err := r.db.QueryRow(ctx, q, slug, activeOnly).Scan(&show.ID, &show.Name, &show.Slug, &show.TransitionEffect, &show.TransitionDuration, &show.AutoplaySpeed, &show.PauseOnHover, &show.IsActive, &show.CreatedAt, &show.UpdatedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	slides, err := r.ListSlidesBySlideshow(ctx, show.ID, activeOnly)
+	if err != nil {
+		return nil, err
+	}
+	show.Slides = slides
+	return show, nil
+}
+
+func (r *CMSRepo) UpdateSlideshow(ctx context.Context, s *models.CMSSlideshow) error {
+	const q = `UPDATE cms_slideshows SET name=$2, transition_effect=$3, transition_duration=$4,
+	           autoplay_speed=$5, pause_on_hover=$6, is_active=$7, updated_at=NOW() WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, s.ID, s.Name, s.TransitionEffect, s.TransitionDuration, s.AutoplaySpeed, s.PauseOnHover, s.IsActive)
+	return err
+}
+
+func (r *CMSRepo) ListSlidesBySlideshow(ctx context.Context, slideshowID string, activeOnly bool) ([]*models.CMSSlide, error) {
+	q := `SELECT id, slideshow_id, title, COALESCE(subtitle,''), COALESCE(description,''),
+	             COALESCE(image_url,''), media_type, animation_type,
+	             COALESCE(button_text,''), COALESCE(button_url,''), sort_order, is_active, created_at, updated_at
+	      FROM cms_slides WHERE slideshow_id=$1`
+	if activeOnly {
+		q += ` AND is_active=true`
+	}
+	q += ` ORDER BY sort_order ASC, created_at ASC`
+	rows, err := r.db.Query(ctx, q, slideshowID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	slides := []*models.CMSSlide{}
+	for rows.Next() {
+		s := &models.CMSSlide{}
+		if err := rows.Scan(&s.ID, &s.SlideshowID, &s.Title, &s.Subtitle, &s.Description, &s.ImageURL, &s.MediaType, &s.AnimationType, &s.ButtonText, &s.ButtonURL, &s.SortOrder, &s.IsActive, &s.CreatedAt, &s.UpdatedAt); err != nil {
+			return nil, err
+		}
+		slides = append(slides, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return r.attachSlideButtons(ctx, slides)
+}
+
+func (r *CMSRepo) ReplaceSlideButtons(ctx context.Context, slideID string, buttons []*models.CMSSlideButton) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, `DELETE FROM cms_slide_buttons WHERE slide_id=$1`, slideID); err != nil {
+		return err
+	}
+	for i, b := range buttons {
+		if i >= 2 {
+			break
+		}
+		if b.ID == "" {
+			b.ID = slideID + "-button-" + string(rune('0'+i))
+		}
+		const q = `INSERT INTO cms_slide_buttons (id, slide_id, text, url, style_class, link_target, sort_order)
+		           VALUES ($1,$2,$3,$4,$5,$6,$7)`
+		if _, err := tx.Exec(ctx, q, b.ID, slideID, b.Text, b.URL, b.StyleClass, b.LinkTarget, i); err != nil {
+			return err
+		}
+	}
+	return tx.Commit(ctx)
+}
+
+func (r *CMSRepo) attachSlideButtons(ctx context.Context, slides []*models.CMSSlide) ([]*models.CMSSlide, error) {
+	if len(slides) == 0 {
+		return slides, nil
+	}
+	ids := make([]string, 0, len(slides))
+	byID := map[string]*models.CMSSlide{}
+	for _, s := range slides {
+		ids = append(ids, s.ID)
+		byID[s.ID] = s
+	}
+	rows, err := r.db.Query(ctx, `SELECT id, slide_id, text, url, style_class, link_target, sort_order, created_at, updated_at FROM cms_slide_buttons WHERE slide_id = ANY($1) ORDER BY sort_order`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		b := &models.CMSSlideButton{}
+		if err := rows.Scan(&b.ID, &b.SlideID, &b.Text, &b.URL, &b.StyleClass, &b.LinkTarget, &b.SortOrder, &b.CreatedAt, &b.UpdatedAt); err != nil {
+			return nil, err
+		}
+		if s := byID[b.SlideID]; s != nil {
+			s.Buttons = append(s.Buttons, b)
+		}
+	}
+	return slides, rows.Err()
 }
 
 // ── Menus ─────────────────────────────────────────────────────────
@@ -1320,6 +1650,42 @@ func (r *CMSRepo) UpdateSetting(ctx context.Context, key string, value []byte) e
 	return err
 }
 
+// ── Custom Fonts ────────────────────────────────────────────────────
+
+func (r *CMSRepo) ListCustomFonts(ctx context.Context) ([]*models.CMSCustomFont, error) {
+	const q = `SELECT id, font_name, display_name, file_url, font_format, created_at
+	           FROM cms_custom_fonts ORDER BY created_at ASC`
+	rows, err := r.db.Query(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*models.CMSCustomFont{}
+	for rows.Next() {
+		f := &models.CMSCustomFont{}
+		if err := rows.Scan(&f.ID, &f.FontName, &f.DisplayName, &f.FileURL, &f.FontFormat, &f.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, f)
+	}
+	return items, rows.Err()
+}
+
+func (r *CMSRepo) CreateCustomFont(ctx context.Context, f *models.CMSCustomFont) error {
+	const q = `INSERT INTO cms_custom_fonts (id, font_name, display_name, file_url, font_format)
+	           VALUES ($1,$2,$3,$4,$5) RETURNING created_at`
+	err := r.db.QueryRow(ctx, q, f.ID, f.FontName, f.DisplayName, f.FileURL, f.FontFormat).Scan(&f.CreatedAt)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
+}
+
+func (r *CMSRepo) DeleteCustomFont(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM cms_custom_fonts WHERE id=$1`, id)
+	return err
+}
+
 // ── Fun Facts ─────────────────────────────────────────────────────
 
 func (r *CMSRepo) ListFunFacts(ctx context.Context, activeOnly bool) ([]*models.CMSFunFact, error) {
@@ -1334,7 +1700,7 @@ func (r *CMSRepo) ListFunFacts(ctx context.Context, activeOnly bool) ([]*models.
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*models.CMSFunFact
+	items := []*models.CMSFunFact{}
 	for rows.Next() {
 		f := &models.CMSFunFact{}
 		if err := rows.Scan(&f.ID, &f.Label, &f.Value, &f.Icon, &f.SortOrder, &f.IsActive, &f.CreatedAt, &f.UpdatedAt); err != nil {
@@ -1373,7 +1739,7 @@ func (r *CMSRepo) ListFAQs(ctx context.Context, category string) ([]*models.CMSF
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*models.CMSFAQ
+	items := []*models.CMSFAQ{}
 	for rows.Next() {
 		f := &models.CMSFAQ{}
 		if err := rows.Scan(&f.ID, &f.Question, &f.Answer, &f.Category, &f.SortOrder, &f.IsActive, &f.CreatedAt, &f.UpdatedAt); err != nil {
@@ -1401,6 +1767,56 @@ func (r *CMSRepo) DeleteFAQ(ctx context.Context, id string) error {
 	return err
 }
 
+// ── Newsletter subscribers ────────────────────────────────────────
+
+// SubscribeNewsletter upserts an email. A repeat sign-up re-activates a
+// previously unsubscribed address rather than erroring on the UNIQUE(email).
+func (r *CMSRepo) SubscribeNewsletter(ctx context.Context, id, email, source string) (*models.NewsletterSubscriber, error) {
+	const q = `INSERT INTO newsletter_subscribers (id, email, source)
+	           VALUES ($1,$2,$3)
+	           ON CONFLICT (email) DO UPDATE
+	             SET is_active = TRUE,
+	                 unsubscribed_at = NULL,
+	                 source = CASE WHEN EXCLUDED.source <> '' THEN EXCLUDED.source ELSE newsletter_subscribers.source END,
+	                 updated_at = NOW()
+	           RETURNING id, email, source, is_active, unsubscribed_at, created_at, updated_at`
+	s := &models.NewsletterSubscriber{}
+	err := r.db.QueryRow(ctx, q, id, email, source).Scan(
+		&s.ID, &s.Email, &s.Source, &s.IsActive, &s.UnsubscribedAt, &s.CreatedAt, &s.UpdatedAt)
+	return s, err
+}
+
+// ListNewsletterSubscribers returns subscribers newest-first plus the total
+// count. A non-positive limit returns every row (used by the CSV export).
+func (r *CMSRepo) ListNewsletterSubscribers(ctx context.Context, limit, offset int) ([]*models.NewsletterSubscriber, int, error) {
+	var total int
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM newsletter_subscribers`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	q := `SELECT id, email, source, is_active, unsubscribed_at, created_at, updated_at
+	      FROM newsletter_subscribers
+	      ORDER BY created_at DESC`
+	args := []interface{}{}
+	if limit > 0 {
+		q += ` LIMIT $1 OFFSET $2`
+		args = append(args, limit, offset)
+	}
+	rows, err := r.db.Query(ctx, q, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	items := []*models.NewsletterSubscriber{}
+	for rows.Next() {
+		s := &models.NewsletterSubscriber{}
+		if err := rows.Scan(&s.ID, &s.Email, &s.Source, &s.IsActive, &s.UnsubscribedAt, &s.CreatedAt, &s.UpdatedAt); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, s)
+	}
+	return items, total, rows.Err()
+}
+
 // ── Resources ─────────────────────────────────────────────────────
 
 func (r *CMSRepo) ListResources(ctx context.Context, category string) ([]*models.CMSResource, error) {
@@ -1413,7 +1829,7 @@ func (r *CMSRepo) ListResources(ctx context.Context, category string) ([]*models
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*models.CMSResource
+	items := []*models.CMSResource{}
 	for rows.Next() {
 		res := &models.CMSResource{}
 		if err := rows.Scan(&res.ID, &res.Title, &res.Category, &res.FileURL, &res.Description,
@@ -1456,26 +1872,175 @@ func (r *CMSRepo) DeleteResource(ctx context.Context, id string) error {
 	return err
 }
 
+// ── Documents (Sports Rules, Press Releases, Reports, Speeches) ────
+
+func (r *CMSRepo) ListDocuments(ctx context.Context, docType, category string, activeOnly bool) ([]*models.CMSDocument, error) {
+	q := `SELECT id, doc_type, title, category, COALESCE(file_url,''), COALESCE(video_url,''), COALESCE(description,''),
+	             sort_order, is_active, created_at, updated_at
+	      FROM cms_documents WHERE doc_type=$1 AND ($2='' OR category=$2)`
+	if activeOnly {
+		q += ` AND is_active=true`
+	}
+	q += ` ORDER BY sort_order ASC, created_at DESC`
+	rows, err := r.db.Query(ctx, q, docType, category)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*models.CMSDocument{}
+	for rows.Next() {
+		d := &models.CMSDocument{}
+		if err := rows.Scan(&d.ID, &d.DocType, &d.Title, &d.Category, &d.FileURL, &d.VideoURL, &d.Description,
+			&d.SortOrder, &d.IsActive, &d.CreatedAt, &d.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, d)
+	}
+	return items, rows.Err()
+}
+
+func (r *CMSRepo) CreateDocument(ctx context.Context, d *models.CMSDocument) error {
+	const q = `INSERT INTO cms_documents (id, doc_type, title, category, file_url, video_url, description, sort_order, is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING created_at, updated_at`
+	return r.db.QueryRow(ctx, q, d.ID, d.DocType, d.Title, d.Category, d.FileURL, d.VideoURL, d.Description, d.SortOrder, d.IsActive).Scan(&d.CreatedAt, &d.UpdatedAt)
+}
+
+func (r *CMSRepo) GetDocumentByID(ctx context.Context, id string) (*models.CMSDocument, error) {
+	const q = `SELECT id, doc_type, title, category, COALESCE(file_url,''), COALESCE(video_url,''), COALESCE(description,''),
+	                  sort_order, is_active, created_at, updated_at
+	           FROM cms_documents WHERE id=$1`
+	d := &models.CMSDocument{}
+	err := r.db.QueryRow(ctx, q, id).Scan(&d.ID, &d.DocType, &d.Title, &d.Category, &d.FileURL, &d.VideoURL, &d.Description,
+		&d.SortOrder, &d.IsActive, &d.CreatedAt, &d.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return d, err
+}
+
+func (r *CMSRepo) UpdateDocument(ctx context.Context, d *models.CMSDocument) error {
+	const q = `UPDATE cms_documents SET title=$2, category=$3, file_url=$4, video_url=$5, description=$6,
+	           sort_order=$7, is_active=$8, updated_at=NOW() WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, d.ID, d.Title, d.Category, d.FileURL, d.VideoURL, d.Description, d.SortOrder, d.IsActive)
+	return err
+}
+
+func (r *CMSRepo) DeleteDocument(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM cms_documents WHERE id=$1`, id)
+	return err
+}
+
 // ── Facilities ────────────────────────────────────────────────────
 
-func (r *CMSRepo) ListFacilities(ctx context.Context, activeOnly bool) ([]*models.CMSFacility, error) {
-	q := `SELECT id, name, slug, COALESCE(description,''), COALESCE(image_url,''),
-	             sort_order, is_active, created_at, updated_at
-	      FROM cms_facilities`
+func (r *CMSRepo) ListFacilityRegions(ctx context.Context, activeOnly bool) ([]*models.CMSFacilityRegion, error) {
+	q := `SELECT r.id, r.name, r.slug, r.description, r.sort_order, r.is_active,
+	             COUNT(f.id) FILTER (WHERE f.is_active), r.created_at, r.updated_at
+	      FROM cms_facility_regions r
+	      LEFT JOIN cms_facilities f ON f.region_slug = r.slug`
 	if activeOnly {
-		q += ` WHERE is_active=true`
+		q += ` WHERE r.is_active=true`
 	}
-	q += ` ORDER BY sort_order ASC, name ASC`
+	q += ` GROUP BY r.id ORDER BY r.sort_order ASC, r.name ASC`
 	rows, err := r.db.Query(ctx, q)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*models.CMSFacility
+	items := []*models.CMSFacilityRegion{}
+	for rows.Next() {
+		region := &models.CMSFacilityRegion{}
+		if err := rows.Scan(&region.ID, &region.Name, &region.Slug, &region.Description, &region.SortOrder,
+			&region.IsActive, &region.FacilityCount, &region.CreatedAt, &region.UpdatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, region)
+	}
+	return items, rows.Err()
+}
+
+func (r *CMSRepo) GetFacilityRegionByID(ctx context.Context, id string) (*models.CMSFacilityRegion, error) {
+	const q = `SELECT r.id, r.name, r.slug, r.description, r.sort_order, r.is_active,
+	                  COUNT(f.id) FILTER (WHERE f.is_active), r.created_at, r.updated_at
+	           FROM cms_facility_regions r
+	           LEFT JOIN cms_facilities f ON f.region_slug = r.slug
+	           WHERE r.id=$1 GROUP BY r.id`
+	region := &models.CMSFacilityRegion{}
+	err := r.db.QueryRow(ctx, q, id).Scan(&region.ID, &region.Name, &region.Slug, &region.Description,
+		&region.SortOrder, &region.IsActive, &region.FacilityCount, &region.CreatedAt, &region.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	return region, err
+}
+
+func (r *CMSRepo) FacilityRegionExists(ctx context.Context, slug string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM cms_facility_regions WHERE slug=$1)`, slug).Scan(&exists)
+	return exists, err
+}
+
+func (r *CMSRepo) CreateFacilityRegion(ctx context.Context, region *models.CMSFacilityRegion) error {
+	const q = `INSERT INTO cms_facility_regions (id,name,slug,description,sort_order,is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6) RETURNING created_at,updated_at`
+	err := r.db.QueryRow(ctx, q, region.ID, region.Name, region.Slug, region.Description,
+		region.SortOrder, region.IsActive).Scan(&region.CreatedAt, &region.UpdatedAt)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
+}
+
+func (r *CMSRepo) UpdateFacilityRegion(ctx context.Context, region *models.CMSFacilityRegion) error {
+	const q = `UPDATE cms_facility_regions
+	           SET name=$2,slug=$3,description=$4,sort_order=$5,is_active=$6,updated_at=NOW()
+	           WHERE id=$1 RETURNING updated_at`
+	err := r.db.QueryRow(ctx, q, region.ID, region.Name, region.Slug, region.Description,
+		region.SortOrder, region.IsActive).Scan(&region.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
+	return err
+}
+
+func (r *CMSRepo) DeleteFacilityRegion(ctx context.Context, id string) error {
+	ct, err := r.db.Exec(ctx, `DELETE FROM cms_facility_regions WHERE id=$1`, id)
+	if err != nil && strings.Contains(err.Error(), "foreign key constraint") {
+		return ErrInUse
+	}
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) ListFacilities(ctx context.Context, activeOnly bool, region string) ([]*models.CMSFacility, error) {
+	q := `SELECT f.id, f.name, f.slug, f.description, COALESCE(f.category,''), f.region_slug,
+	             COALESCE(r.name,''), f.location, f.amenities, f.phone, f.email, f.availability_status,
+	             COALESCE(f.image_url,''), f.sort_order, f.is_active, f.created_at, f.updated_at
+	      FROM cms_facilities f
+	      LEFT JOIN cms_facility_regions r ON r.slug=f.region_slug
+	      WHERE ($1='' OR f.region_slug=$1)`
+	if activeOnly {
+		q += ` AND f.is_active=true AND COALESCE(r.is_active,false)=true`
+	}
+	q += ` ORDER BY f.sort_order ASC, f.name ASC`
+	rows, err := r.db.Query(ctx, q, region)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []*models.CMSFacility{}
 	for rows.Next() {
 		f := &models.CMSFacility{}
-		if err := rows.Scan(&f.ID, &f.Name, &f.Slug, &f.Description, &f.ImageURL,
-			&f.SortOrder, &f.IsActive, &f.CreatedAt, &f.UpdatedAt); err != nil {
+		if err := rows.Scan(&f.ID, &f.Name, &f.Slug, &f.Description, &f.Category, &f.Region,
+			&f.RegionName, &f.Location, &f.Amenities, &f.Phone, &f.Email, &f.AvailabilityStatus,
+			&f.ImageURL, &f.SortOrder, &f.IsActive, &f.CreatedAt, &f.UpdatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, f)
@@ -1484,12 +2049,16 @@ func (r *CMSRepo) ListFacilities(ctx context.Context, activeOnly bool) ([]*model
 }
 
 func (r *CMSRepo) GetFacilityByID(ctx context.Context, id string) (*models.CMSFacility, error) {
-	const q = `SELECT id, name, slug, COALESCE(description,''), COALESCE(image_url,''),
-	                  sort_order, is_active, created_at, updated_at
-	           FROM cms_facilities WHERE id=$1`
+	const q = `SELECT f.id, f.name, f.slug, f.description, COALESCE(f.category,''), f.region_slug,
+	                  COALESCE(r.name,''), f.location, f.amenities, f.phone, f.email, f.availability_status,
+	                  COALESCE(f.image_url,''), f.sort_order, f.is_active, f.created_at, f.updated_at
+	           FROM cms_facilities f
+	           LEFT JOIN cms_facility_regions r ON r.slug=f.region_slug
+	           WHERE f.id=$1`
 	f := &models.CMSFacility{}
-	err := r.db.QueryRow(ctx, q, id).Scan(&f.ID, &f.Name, &f.Slug, &f.Description, &f.ImageURL,
-		&f.SortOrder, &f.IsActive, &f.CreatedAt, &f.UpdatedAt)
+	err := r.db.QueryRow(ctx, q, id).Scan(&f.ID, &f.Name, &f.Slug, &f.Description, &f.Category, &f.Region,
+		&f.RegionName, &f.Location, &f.Amenities, &f.Phone, &f.Email, &f.AvailabilityStatus,
+		&f.ImageURL, &f.SortOrder, &f.IsActive, &f.CreatedAt, &f.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
@@ -1497,9 +2066,13 @@ func (r *CMSRepo) GetFacilityByID(ctx context.Context, id string) (*models.CMSFa
 }
 
 func (r *CMSRepo) CreateFacility(ctx context.Context, f *models.CMSFacility) error {
-	const q = `INSERT INTO cms_facilities (id, name, slug, description, image_url, sort_order, is_active)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING created_at, updated_at`
-	err := r.db.QueryRow(ctx, q, f.ID, f.Name, f.Slug, f.Description, f.ImageURL, f.SortOrder, f.IsActive).Scan(&f.CreatedAt, &f.UpdatedAt)
+	const q = `INSERT INTO cms_facilities
+	           (id,name,slug,description,category,region_slug,location,amenities,phone,email,availability_status,image_url,sort_order,is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+	           RETURNING created_at,updated_at`
+	err := r.db.QueryRow(ctx, q, f.ID, f.Name, f.Slug, f.Description, f.Category, f.Region,
+		f.Location, f.Amenities, f.Phone, f.Email, f.AvailabilityStatus, f.ImageURL,
+		f.SortOrder, f.IsActive).Scan(&f.CreatedAt, &f.UpdatedAt)
 	if err != nil && isDuplicate(err) {
 		return ErrDuplicate
 	}
@@ -1507,9 +2080,17 @@ func (r *CMSRepo) CreateFacility(ctx context.Context, f *models.CMSFacility) err
 }
 
 func (r *CMSRepo) UpdateFacility(ctx context.Context, f *models.CMSFacility) error {
-	const q = `UPDATE cms_facilities SET name=$2, slug=$3, description=$4, image_url=$5,
-	           sort_order=$6, is_active=$7, updated_at=NOW() WHERE id=$1`
-	_, err := r.db.Exec(ctx, q, f.ID, f.Name, f.Slug, f.Description, f.ImageURL, f.SortOrder, f.IsActive)
+	const q = `UPDATE cms_facilities
+	           SET name=$2,slug=$3,description=$4,category=$5,region_slug=$6,location=$7,
+	               amenities=$8,phone=$9,email=$10,availability_status=$11,image_url=$12,
+	               sort_order=$13,is_active=$14,updated_at=NOW()
+	           WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, f.ID, f.Name, f.Slug, f.Description, f.Category, f.Region,
+		f.Location, f.Amenities, f.Phone, f.Email, f.AvailabilityStatus, f.ImageURL,
+		f.SortOrder, f.IsActive)
+	if err != nil && isDuplicate(err) {
+		return ErrDuplicate
+	}
 	return err
 }
 
@@ -1521,7 +2102,7 @@ func (r *CMSRepo) DeleteFacility(ctx context.Context, id string) error {
 // ── Associations ──────────────────────────────────────────────────
 
 func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*models.CMSAssociation, error) {
-	q := `SELECT id, name, slug, COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
+	q := `SELECT id, name, slug, COALESCE(abbreviation,''), COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
 	             COALESCE(category,'Other'), COALESCE(president,''), COALESCE(secretary,''), COALESCE(address,''), COALESCE(phone,''),
 	             sort_order, is_active, created_at, updated_at
 	      FROM cms_associations`
@@ -1534,10 +2115,10 @@ func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*mod
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*models.CMSAssociation
+	items := []*models.CMSAssociation{}
 	for rows.Next() {
 		a := &models.CMSAssociation{}
-		if err := rows.Scan(&a.ID, &a.Name, &a.Slug, &a.Description, &a.LogoURL, &a.WebsiteURL,
+		if err := rows.Scan(&a.ID, &a.Name, &a.Slug, &a.Abbreviation, &a.Description, &a.LogoURL, &a.WebsiteURL,
 			&a.Category, &a.President, &a.Secretary, &a.Address, &a.Phone,
 			&a.SortOrder, &a.IsActive, &a.CreatedAt, &a.UpdatedAt); err != nil {
 			return nil, err
@@ -1548,12 +2129,12 @@ func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*mod
 }
 
 func (r *CMSRepo) GetAssociationByID(ctx context.Context, id string) (*models.CMSAssociation, error) {
-	const q = `SELECT id, name, slug, COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
+	const q = `SELECT id, name, slug, COALESCE(abbreviation,''), COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
 	                  COALESCE(category,'Other'), COALESCE(president,''), COALESCE(secretary,''), COALESCE(address,''), COALESCE(phone,''),
 	                  sort_order, is_active, created_at, updated_at
 	           FROM cms_associations WHERE id=$1`
 	a := &models.CMSAssociation{}
-	err := r.db.QueryRow(ctx, q, id).Scan(&a.ID, &a.Name, &a.Slug, &a.Description, &a.LogoURL, &a.WebsiteURL,
+	err := r.db.QueryRow(ctx, q, id).Scan(&a.ID, &a.Name, &a.Slug, &a.Abbreviation, &a.Description, &a.LogoURL, &a.WebsiteURL,
 		&a.Category, &a.President, &a.Secretary, &a.Address, &a.Phone,
 		&a.SortOrder, &a.IsActive, &a.CreatedAt, &a.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -1563,9 +2144,9 @@ func (r *CMSRepo) GetAssociationByID(ctx context.Context, id string) (*models.CM
 }
 
 func (r *CMSRepo) CreateAssociation(ctx context.Context, a *models.CMSAssociation) error {
-	const q = `INSERT INTO cms_associations (id, name, slug, description, logo_url, website_url, category, president, secretary, address, phone, sort_order, is_active)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING created_at, updated_at`
-	err := r.db.QueryRow(ctx, q, a.ID, a.Name, a.Slug, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive).Scan(&a.CreatedAt, &a.UpdatedAt)
+	const q = `INSERT INTO cms_associations (id, name, slug, abbreviation, description, logo_url, website_url, category, president, secretary, address, phone, sort_order, is_active)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING created_at, updated_at`
+	err := r.db.QueryRow(ctx, q, a.ID, a.Name, a.Slug, a.Abbreviation, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive).Scan(&a.CreatedAt, &a.UpdatedAt)
 	if err != nil && isDuplicate(err) {
 		return ErrDuplicate
 	}
@@ -1573,10 +2154,10 @@ func (r *CMSRepo) CreateAssociation(ctx context.Context, a *models.CMSAssociatio
 }
 
 func (r *CMSRepo) UpdateAssociation(ctx context.Context, a *models.CMSAssociation) error {
-	const q = `UPDATE cms_associations SET name=$2, slug=$3, description=$4, logo_url=$5,
-	           website_url=$6, category=$7, president=$8, secretary=$9, address=$10, phone=$11,
-	           sort_order=$12, is_active=$13, updated_at=NOW() WHERE id=$1`
-	_, err := r.db.Exec(ctx, q, a.ID, a.Name, a.Slug, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive)
+	const q = `UPDATE cms_associations SET name=$2, slug=$3, abbreviation=$4, description=$5, logo_url=$6,
+	           website_url=$7, category=$8, president=$9, secretary=$10, address=$11, phone=$12,
+	           sort_order=$13, is_active=$14, updated_at=NOW() WHERE id=$1`
+	_, err := r.db.Exec(ctx, q, a.ID, a.Name, a.Slug, a.Abbreviation, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive)
 	return err
 }
 
@@ -1596,7 +2177,7 @@ func (r *CMSRepo) ListInvest(ctx context.Context) ([]*models.CMSInvest, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []*models.CMSInvest
+	items := []*models.CMSInvest{}
 	for rows.Next() {
 		inv := &models.CMSInvest{}
 		if err := rows.Scan(&inv.ID, &inv.Title, &inv.Subtitle, &inv.Content, &inv.ImageURL,
@@ -1641,26 +2222,28 @@ func (r *CMSRepo) DeleteInvest(ctx context.Context, id string) error {
 
 // ── Team Members ─────────────────────────────────────────────────
 
-func (r *CMSRepo) ListTeamMembers(ctx context.Context, activeOnly bool) ([]*models.CMSTeamMember, error) {
+func (r *CMSRepo) ListTeamMembers(ctx context.Context, group string, activeOnly bool) ([]*models.CMSTeamMember, error) {
 	q := `SELECT m.id, m.full_name, COALESCE(m.designation,''), COALESCE(m.image_url,''), COALESCE(m.bio,''),
-	             m.sort_order, m.is_active, m.department_id, COALESCE(d.name,''),
+	             m.sort_order, m.is_active, m.member_group, m.department_id, COALESCE(d.name,''),
 	             m.created_at, m.updated_at
 	      FROM cms_team_members m
-	      LEFT JOIN departments d ON d.id = m.department_id`
+	      LEFT JOIN departments d ON d.id = m.department_id
+	      WHERE m.member_group=$1`
+	args := []any{group}
 	if activeOnly {
-		q += ` WHERE m.is_active=TRUE`
+		q += ` AND m.is_active=TRUE`
 	}
 	q += ` ORDER BY m.sort_order ASC, m.created_at ASC`
-	rows, err := r.db.Query(ctx, q)
+	rows, err := r.db.Query(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var out []*models.CMSTeamMember
+	out := []*models.CMSTeamMember{}
 	for rows.Next() {
 		m := &models.CMSTeamMember{}
 		if err := rows.Scan(&m.ID, &m.FullName, &m.Designation, &m.ImageURL, &m.Bio,
-			&m.SortOrder, &m.IsActive, &m.DepartmentID, &m.DepartmentName,
+			&m.SortOrder, &m.IsActive, &m.MemberGroup, &m.DepartmentID, &m.DepartmentName,
 			&m.CreatedAt, &m.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -1672,13 +2255,13 @@ func (r *CMSRepo) ListTeamMembers(ctx context.Context, activeOnly bool) ([]*mode
 func (r *CMSRepo) GetTeamMemberByID(ctx context.Context, id string) (*models.CMSTeamMember, error) {
 	m := &models.CMSTeamMember{}
 	err := r.db.QueryRow(ctx, `SELECT m.id, m.full_name, COALESCE(m.designation,''), COALESCE(m.image_url,''), COALESCE(m.bio,''),
-	                                  m.sort_order, m.is_active, m.department_id, COALESCE(d.name,''),
+	                                  m.sort_order, m.is_active, m.member_group, m.department_id, COALESCE(d.name,''),
 	                                  m.created_at, m.updated_at
 	                           FROM cms_team_members m
 	                           LEFT JOIN departments d ON d.id = m.department_id
 	                           WHERE m.id=$1`, id).
 		Scan(&m.ID, &m.FullName, &m.Designation, &m.ImageURL, &m.Bio,
-			&m.SortOrder, &m.IsActive, &m.DepartmentID, &m.DepartmentName,
+			&m.SortOrder, &m.IsActive, &m.MemberGroup, &m.DepartmentID, &m.DepartmentName,
 			&m.CreatedAt, &m.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -1688,9 +2271,9 @@ func (r *CMSRepo) GetTeamMemberByID(ctx context.Context, id string) (*models.CMS
 
 func (r *CMSRepo) CreateTeamMember(ctx context.Context, m *models.CMSTeamMember) error {
 	return r.db.QueryRow(ctx,
-		`INSERT INTO cms_team_members (id, full_name, designation, image_url, bio, sort_order, is_active, department_id)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING created_at, updated_at`,
-		m.ID, m.FullName, m.Designation, m.ImageURL, m.Bio, m.SortOrder, m.IsActive, m.DepartmentID,
+		`INSERT INTO cms_team_members (id, full_name, designation, image_url, bio, sort_order, is_active, member_group, department_id)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING created_at, updated_at`,
+		m.ID, m.FullName, m.Designation, m.ImageURL, m.Bio, m.SortOrder, m.IsActive, m.MemberGroup, m.DepartmentID,
 	).Scan(&m.CreatedAt, &m.UpdatedAt)
 }
 
@@ -1736,6 +2319,306 @@ func (r *CMSRepo) ListDepartmentsWithStaffCount(ctx context.Context) ([]*Departm
 		out = append(out, d)
 	}
 	return out, rows.Err()
+}
+
+func (r *CMSRepo) CreateDepartment(ctx context.Context, d *DepartmentWithCount) error {
+	_, err := r.db.Exec(ctx,
+		`INSERT INTO departments (id, name, code, description) VALUES ($1,$2,$3,$4)`,
+		d.ID, d.Name, d.Code, d.Description)
+	return err
+}
+
+func (r *CMSRepo) UpdateDepartment(ctx context.Context, d *DepartmentWithCount) error {
+	ct, err := r.db.Exec(ctx,
+		`UPDATE departments SET name=$2, code=$3, description=$4 WHERE id=$1`,
+		d.ID, d.Name, d.Code, d.Description)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) DeleteDepartment(ctx context.Context, id string) error {
+	ct, err := r.db.Exec(ctx, `DELETE FROM departments WHERE id=$1`, id)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) ListNotifications(ctx context.Context, userID, status string, limit, offset int) ([]*models.Notification, int64, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	const countQ = `SELECT COUNT(*) FROM notifications WHERE ($1='' OR user_id=$1 OR user_id IS NULL) AND ($2='' OR status=$2) AND status <> 'dismissed'`
+	const q = `SELECT id, user_id, type, title, message, status, icon_key, created_at FROM notifications WHERE ($1='' OR user_id=$1 OR user_id IS NULL) AND ($2='' OR status=$2) AND status <> 'dismissed' ORDER BY created_at DESC LIMIT $3 OFFSET $4`
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, userID, status).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.db.Query(ctx, q, userID, status, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := []*models.Notification{}
+	for rows.Next() {
+		n := &models.Notification{}
+		if err := rows.Scan(&n.ID, &n.UserID, &n.Type, &n.Title, &n.Message, &n.Status, &n.IconKey, &n.CreatedAt); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, n)
+	}
+	return out, total, rows.Err()
+}
+
+func (r *CMSRepo) CreateNotification(ctx context.Context, n *models.Notification) error {
+	const q = `INSERT INTO notifications (id, user_id, type, title, message, status, icon_key) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING created_at`
+	if err := r.db.QueryRow(ctx, q, n.ID, n.UserID, n.Type, n.Title, n.Message, n.Status, n.IconKey).Scan(&n.CreatedAt); err != nil {
+		return err
+	}
+	_, _ = r.db.Exec(ctx, `INSERT INTO system_notifications (id,user_id,event_type,title,message,severity,payload,status,created_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9)
+		ON CONFLICT (id) DO NOTHING`,
+		n.ID, n.UserID, n.Type, n.Title, n.Message, notificationSeverity(n.Type), `{}`, n.Status, n.CreatedAt)
+	return nil
+}
+
+func notificationSeverity(kind string) string {
+	switch kind {
+	case "new_sign_in", "unusual_activity", "deploy_failed", "service_offline":
+		return "warning"
+	case "system_failure", "security_alert":
+		return "critical"
+	case "system_success", "backup_success":
+		return "success"
+	default:
+		return "info"
+	}
+}
+
+func (r *CMSRepo) UpdateNotificationStatus(ctx context.Context, id, userID, status string) error {
+	ct, err := r.db.Exec(ctx, `UPDATE notifications SET status=$3 WHERE id=$1 AND ($2='' OR user_id=$2 OR user_id IS NULL)`, id, userID, status)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) ClearNotifications(ctx context.Context, userID string) error {
+	_, err := r.db.Exec(ctx, `UPDATE notifications SET status='dismissed' WHERE ($1='' OR user_id=$1 OR user_id IS NULL)`, userID)
+	return err
+}
+
+func (r *CMSRepo) MarkAllNotificationsRead(ctx context.Context, userID string) error {
+	_, err := r.db.Exec(ctx, `UPDATE notifications SET status='read' WHERE status='unread' AND ($1='' OR user_id=$1 OR user_id IS NULL)`, userID)
+	return err
+}
+
+func (r *CMSRepo) UpsertInboundSubmission(ctx context.Context, s *models.InboundSubmission) error {
+	if s.ID == "" {
+		return errors.New("inbound submission id required")
+	}
+	if s.Payload == nil {
+		s.Payload = json.RawMessage(`{}`)
+	}
+	if s.InternalNotes == nil {
+		s.InternalNotes = json.RawMessage(`[]`)
+	}
+	if s.StatusState == "" {
+		s.StatusState = "unread"
+	}
+	if s.WorkflowStatus == "" {
+		s.WorkflowStatus = "pending_review"
+	}
+	const q = `INSERT INTO inbound_submissions (id,source_type,source_id,payload,status_state,workflow_status,assigned_admin_id,internal_notes)
+	           VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7,$8::jsonb)
+	           ON CONFLICT (source_type, source_id) DO UPDATE SET
+	             payload=EXCLUDED.payload,
+	             status_state=EXCLUDED.status_state,
+	             workflow_status=EXCLUDED.workflow_status,
+	             assigned_admin_id=COALESCE(EXCLUDED.assigned_admin_id, inbound_submissions.assigned_admin_id),
+	             updated_at=NOW()
+	           RETURNING created_at, updated_at`
+	return r.db.QueryRow(ctx, q, s.ID, s.SourceType, nullableText(s.SourceID), s.Payload, s.StatusState, s.WorkflowStatus, s.AssignedAdminID, s.InternalNotes).Scan(&s.CreatedAt, &s.UpdatedAt)
+}
+
+func (r *CMSRepo) ListInboundSubmissions(ctx context.Context, sourceType, status string, limit, offset int) ([]*models.InboundSubmission, int64, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	const countQ = `SELECT COUNT(*) FROM inbound_submissions WHERE ($1='' OR source_type=$1) AND ($2='' OR status_state=$2)`
+	const q = `SELECT id,source_type,COALESCE(source_id,''),payload,status_state,workflow_status,assigned_admin_id,internal_notes,created_at,updated_at
+	           FROM inbound_submissions
+	           WHERE ($1='' OR source_type=$1) AND ($2='' OR status_state=$2)
+	           ORDER BY created_at DESC LIMIT $3 OFFSET $4`
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, sourceType, status).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.db.Query(ctx, q, sourceType, status, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := []*models.InboundSubmission{}
+	for rows.Next() {
+		s := &models.InboundSubmission{}
+		if err := rows.Scan(&s.ID, &s.SourceType, &s.SourceID, &s.Payload, &s.StatusState, &s.WorkflowStatus, &s.AssignedAdminID, &s.InternalNotes, &s.CreatedAt, &s.UpdatedAt); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, s)
+	}
+	return out, total, rows.Err()
+}
+
+func (r *CMSRepo) InboundSubmissionCounts(ctx context.Context) (*models.InboundSubmissionCounts, error) {
+	rows, err := r.db.Query(ctx, `SELECT source_type, COUNT(*) FROM inbound_submissions WHERE status_state='unread' GROUP BY source_type`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	counts := &models.InboundSubmissionCounts{}
+	for rows.Next() {
+		var source string
+		var count int64
+		if err := rows.Scan(&source, &count); err != nil {
+			return nil, err
+		}
+		switch source {
+		case "blog_comment":
+			counts.BlogComments = count
+		case "contact_form":
+			counts.ContactForms = count
+		case "investment_request":
+			counts.InvestmentRequests = count
+		}
+		counts.Total += count
+	}
+	return counts, rows.Err()
+}
+
+func (r *CMSRepo) UpdateInboundSubmission(ctx context.Context, id, statusState, workflowStatus, adminID string) error {
+	if statusState == "" && workflowStatus == "" && adminID == "" {
+		return nil
+	}
+	ct, err := r.db.Exec(ctx, `UPDATE inbound_submissions
+		SET status_state=CASE WHEN $2='' THEN status_state ELSE $2 END,
+		    workflow_status=CASE WHEN $3='' THEN workflow_status ELSE $3 END,
+		    assigned_admin_id=CASE WHEN $4='' THEN assigned_admin_id ELSE $4 END,
+		    updated_at=NOW()
+		WHERE id=$1`, id, statusState, workflowStatus, adminID)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) ArchiveInboundBySource(ctx context.Context, sourceType, workflowStatus string) error {
+	if workflowStatus == "" {
+		workflowStatus = "archived"
+	}
+	_, err := r.db.Exec(ctx, `UPDATE inbound_submissions
+		SET status_state='archived', workflow_status=$2, updated_at=NOW()
+		WHERE source_type=$1`, sourceType, workflowStatus)
+	return err
+}
+
+func (r *CMSRepo) AddInboundSubmissionNote(ctx context.Context, id, adminID, note string) error {
+	payload, _ := json.Marshal(map[string]string{
+		"id":         "note_" + time.Now().UTC().Format("20060102150405.000000000"),
+		"admin_id":   adminID,
+		"note":       note,
+		"created_at": time.Now().UTC().Format(time.RFC3339),
+	})
+	ct, err := r.db.Exec(ctx, `UPDATE inbound_submissions
+		SET internal_notes = COALESCE(internal_notes, '[]'::jsonb) || jsonb_build_array($2::jsonb),
+		    updated_at=NOW()
+		WHERE id=$1`, id, string(payload))
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) ListContactMessages(ctx context.Context, status string, limit, offset int) ([]*models.ContactMessage, int64, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	const countQ = `SELECT COUNT(*) FROM contact_messages WHERE ($1='' OR status=$1)`
+	const q = `SELECT id, name, email, subject, message, status, created_at FROM contact_messages WHERE ($1='' OR status=$1) ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+	var total int64
+	if err := r.db.QueryRow(ctx, countQ, status).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	rows, err := r.db.Query(ctx, q, status, limit, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	out := []*models.ContactMessage{}
+	for rows.Next() {
+		m := &models.ContactMessage{}
+		if err := rows.Scan(&m.ID, &m.Name, &m.Email, &m.Subject, &m.Message, &m.Status, &m.CreatedAt); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, m)
+	}
+	return out, total, rows.Err()
+}
+
+func (r *CMSRepo) CreateContactMessage(ctx context.Context, m *models.ContactMessage) error {
+	const q = `INSERT INTO contact_messages (id, name, email, subject, message, status) VALUES ($1,$2,$3,$4,$5,$6) RETURNING created_at`
+	return r.db.QueryRow(ctx, q, m.ID, m.Name, m.Email, m.Subject, m.Message, m.Status).Scan(&m.CreatedAt)
+}
+
+func (r *CMSRepo) UpdateContactMessageStatus(ctx context.Context, id, status string) error {
+	ct, err := r.db.Exec(ctx, `UPDATE contact_messages SET status=$2 WHERE id=$1`, id, status)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func nullableText(value string) interface{} {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return strings.TrimSpace(value)
+}
+
+func (r *CMSRepo) DeleteContactMessage(ctx context.Context, id string) error {
+	ct, err := r.db.Exec(ctx, `DELETE FROM contact_messages WHERE id=$1`, id)
+	if err != nil {
+		return err
+	}
+	if ct.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *CMSRepo) ClearContactMessages(ctx context.Context) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM contact_messages`)
+	return err
 }
 
 func (r *CMSRepo) DeleteTeamMember(ctx context.Context, id string) error {

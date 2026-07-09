@@ -6,15 +6,15 @@ RUN apk add --no-cache git ca-certificates tzdata
 WORKDIR /app
 
 COPY go.mod .
+COPY go.sum .
 
-# Skip module proxy and checksum DB — fetch directly from VCS.
-# This avoids proxy.golang.org TLS issues on some networks.
-ENV GOPROXY="direct"
-ENV GONOSUMDB="*"
-ENV GOFLAGS="-mod=mod"
+# Prefer the checksum-verified module proxy and use source control as fallback.
+ENV GOPROXY="https://proxy.golang.org,direct"
+ENV GOSUMDB="sum.golang.org"
+ENV GOFLAGS="-mod=readonly"
 
 # Download all deps (including transitives) before copying source.
-RUN go mod download all
+RUN go mod download
 
 COPY . .
 

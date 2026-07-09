@@ -116,15 +116,20 @@ func (w *AuditWriter) enrich(job auditJob) {
 			e.GeoLongitude = location.Longitude
 			e.GeoTimezone = location.Timezone
 			e.GeoSource = location.Source
-			e.Platform = location.Platform
+			if location.Platform != "" && location.Platform != "Unknown" && location.Platform != "Other" {
+				e.Platform = location.Platform
+				e.OSName = location.Platform
+			}
 			e.VPNDetected = location.IsProxy || location.IsVPN || location.IsTor || location.IsHosting
 			e.Authenticated = job.userID != ""
-			if location.Browser != "" {
+			if location.Browser != "" && location.Browser != "Unknown" && location.Browser != "Other" {
 				e.Browser = location.Browser
 			}
-			if location.DeviceType != "" {
-				e.ClientType = location.DeviceType
+			if (e.ClientType == "" || e.ClientType == "Unknown" || e.ClientType == "Other") &&
+				location.ClientType != "" && location.ClientType != "Unknown" {
+				e.ClientType = location.ClientType
 			}
+			e.DeviceInfo = formatDeviceInfo(e.Platform, location.DeviceType, e.Browser, e.ClientType)
 		}
 	}
 	if e.GeoCountry == "" {

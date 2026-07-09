@@ -27,6 +27,7 @@ type Handlers struct {
 	Security      *SecurityHandler
 	Updates       *UpdatesHandler
 	UpdatesSvc    *services.UpdatesService
+	Analytics     *AnalyticsHandler
 }
 
 // New constructs all handlers and returns them alongside the repos (needed by main for audit middleware).
@@ -48,11 +49,14 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 	deployer := services.NewDeployer()
 
 	return &Handlers{
-		Auth:          &AuthHandler{svc: authSvc, users: repos.Users, cfg: cfg},
-		Users:         &UsersHandler{svc: userSvc, audit: repos.Audit},
-		Roles:         &RolesHandler{roles: repos.Roles, audit: repos.Audit},
-		Applications:  &ApplicationsHandler{svc: appSvc, audit: repos.Audit, storage: repos.CMS},
-		Dashboard:     &DashboardHandler{users: repos.Users, apps: repos.Applications},
+		Auth:         &AuthHandler{svc: authSvc, users: repos.Users, cfg: cfg},
+		Users:        &UsersHandler{svc: userSvc, audit: repos.Audit},
+		Roles:        &RolesHandler{roles: repos.Roles, audit: repos.Audit},
+		Applications: &ApplicationsHandler{svc: appSvc, audit: repos.Audit, storage: repos.CMS},
+		Dashboard: &DashboardHandler{
+			users: repos.Users, apps: repos.Applications, forms: repos.Forms,
+			nsmis: repos.NSMIS, organisations: repos.Organisations,
+		},
 		Audit:         &AuditHandler{repo: repos.Audit},
 		CMS:           &CMSHandler{repo: repos.CMS},
 		NSMIS:         &NSMISHandler{repo: repos.NSMIS, cfg: cfg},
@@ -63,7 +67,8 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 		Backups:       &BackupsHandler{repo: repos.Backups, cfg: cfg},
 		Forms:         &FormsHandler{svc: formSvc},
 		Security:      &SecurityHandler{svc: secSvc, users: repos.Users, audit: repos.Audit},
-		Updates:       &UpdatesHandler{svc: updSvc, deployer: deployer},
+		Updates:       &UpdatesHandler{svc: updSvc, deployer: deployer, backups: repos.Backups},
 		UpdatesSvc:    updSvc,
+		Analytics:     NewAnalyticsHandler(repos.Analytics, cfg),
 	}, repos
 }

@@ -262,6 +262,20 @@ func (h *FormsHandler) PortalSaveDraft(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, sub)
 }
 
+// GET /api/v1/portal/submissions
+func (h *FormsHandler) PortalListSubmissions(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	perPage, _ := strconv.Atoi(r.URL.Query().Get("per_page"))
+	p := &models.PaginationParams{Page: page, PerPage: perPage}
+	out, total, err := h.svc.ListUserSubmissions(r.Context(), userID, r.URL.Query().Get("status"), p)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list submissions")
+		return
+	}
+	response.JSONPaged(w, http.StatusOK, out, &response.Meta{Page: p.Page, PerPage: p.PerPage, Total: total})
+}
+
 // GET /api/v1/portal/submissions/{id}
 func (h *FormsHandler) PortalGetSubmission(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(models.CtxUserID).(string)

@@ -2,20 +2,19 @@
   <div
     ref="menuRoot"
     class="accessibility-menu"
-    @pointerenter="openFromHover"
-    @pointerleave="scheduleClose"
     @focusin="cancelScheduledClose"
     @focusout="onFocusOut"
   >
     <button
       type="button"
       class="accessibility-trigger"
-      aria-label="Open accessibility tools"
-      title="Accessibility tools"
+      :class="{ 'accessibility-trigger--active': anyActive }"
+      :aria-label="anyActive ? 'Turn off all accessibility adjustments' : 'Open accessibility tools'"
+      :title="anyActive ? 'Accessibility on — click to turn all off' : 'Accessibility tools'"
       :aria-expanded="open"
+      :aria-pressed="anyActive"
       aria-controls="visitor-accessibility-panel"
-      @focus="openPanel"
-      @click="openPanel"
+      @click="onTrigger"
     >
       <svg class="accessibility-trigger-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
         <circle cx="16" cy="4" r="1" />
@@ -74,13 +73,12 @@
       </section>
     </Transition>
 
-    <div v-if="preferences.readingGuide" class="a11y-reading-guide" :style="{ top: `${pointerY}px` }" aria-hidden="true"></div>
     <p class="sr-only" aria-live="polite">{{ announcement }}</p>
   </div>
 </template>
 
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
 const STORAGE_KEY = 'ncs_public_accessibility'
 const defaults = {
@@ -94,7 +92,6 @@ const defaults = {
   largeCursor: false,
   hideImages: false,
   reduceMotion: false,
-  readingGuide: false,
 }
 const tools = [
   { key: 'highContrast', label: 'High contrast' },
@@ -106,15 +103,16 @@ const tools = [
   { key: 'largeCursor', label: 'Large cursor' },
   { key: 'hideImages', label: 'Hide images' },
   { key: 'reduceMotion', label: 'Reduce motion' },
-  { key: 'readingGuide', label: 'Reading guide' },
 ]
 
 const open = ref(false)
 const panel = ref(null)
 const menuRoot = ref(null)
 const announcement = ref('')
-const pointerY = ref(window.innerHeight / 2)
 const preferences = reactive({ ...defaults })
+// True when any accessibility adjustment is active (text size changed or any
+// toggle on). Drives the FAB's master on/off behaviour + active styling.
+const anyActive = computed(() => preferences.textScale !== 100 || tools.some(tool => preferences[tool.key]))
 let closeTimer
 
 function readPreferences() {
@@ -156,6 +154,20 @@ function openPanel() {
   cancelScheduledClose()
   open.value = true
 }
+// The FAB is a master on/off control so visitors can bail out with one click:
+// - panel open        → close it
+// - features active    → turn everything off (quick reset)
+// - nothing active     → open the panel to choose adjustments
+function onTrigger() {
+  cancelScheduledClose()
+  if (open.value) { closePanel(true); return }
+  if (anyActive.value) {
+    resetPreferences()
+    announcement.value = 'All accessibility settings turned off'
+    return
+  }
+  open.value = true
+}
 function closePanel(returnFocus = false) {
   cancelScheduledClose()
   open.value = false
@@ -185,7 +197,6 @@ function trapFocus(event) {
 }
 function onKeydown(event) { if (event.key === 'Escape' && open.value) closePanel(true) }
 function onPointerDown(event) { if (open.value && menuRoot.value && !menuRoot.value.contains(event.target)) closePanel() }
-function onPointerMove(event) { if (preferences.readingGuide) pointerY.value = event.clientY }
 function readSelectedText() {
   const text = window.getSelection()?.toString().trim() || document.querySelector('main')?.innerText?.slice(0, 3000) || ''
   if (!text || !('speechSynthesis' in window)) { announcement.value = 'No readable text is selected'; return }
@@ -216,7 +227,6 @@ onMounted(() => {
   applyPreferences()
   document.addEventListener('keydown', onKeydown)
   document.addEventListener('pointerdown', onPointerDown)
-  document.addEventListener('pointermove', onPointerMove, { passive: true })
   window.addEventListener('open-accessibility-menu', onOpenRequest)
 })
 onBeforeUnmount(() => {
@@ -224,7 +234,6 @@ onBeforeUnmount(() => {
   document.documentElement.style.fontSize = ''
   document.removeEventListener('keydown', onKeydown)
   document.removeEventListener('pointerdown', onPointerDown)
-  document.removeEventListener('pointermove', onPointerMove)
   window.removeEventListener('open-accessibility-menu', onOpenRequest)
 })
 </script>

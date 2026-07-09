@@ -19,6 +19,7 @@ import (
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
+	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
@@ -104,7 +105,7 @@ func (h *OperatorHandler) SetMaintenance(w http.ResponseWriter, r *http.Request)
 	if input.DisplayMeta.CustomTitle != "" || input.DisplayMeta.CustomMessage != "" {
 		current.DisplayMeta = input.DisplayMeta
 	}
-	if len(input.BypassRules.AllowedRoles) > 0 || len(input.BypassRules.AllowedIPRanges) > 0 || input.BypassRules.SecretQueryParam != "" {
+	if len(input.BypassRules.AllowedRoles) > 0 || len(input.BypassRules.AllowedUserIDs) > 0 || len(input.BypassRules.AllowedIPRanges) > 0 || input.BypassRules.SecretQueryParam != "" {
 		current.BypassRules = input.BypassRules
 	}
 	s, err := h.repo.SaveMaintenanceScope(r.Context(), scope, current, actor)
@@ -155,6 +156,57 @@ func (h *OperatorHandler) ServiceLogs(w http.ResponseWriter, r *http.Request) {
 	response.JSON(w, http.StatusOK, map[string]any{"service": service, "lines": splitLogLines(out)})
 }
 
+func (h *OperatorHandler) ServiceLogStream(w http.ResponseWriter, r *http.Request) {
+	service := strings.TrimSpace(r.URL.Query().Get("service"))
+	if !allowedOpsService(service) {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Unknown service")
+		return
+	}
+	if !dockerAvailable() {
+		response.Err(w, http.StatusFailedDependency, "SERVICE_LOGS_UNAVAILABLE", "docker socket or docker CLI is unavailable")
+		return
+	}
+	lines := "100"
+	if raw := r.URL.Query().Get("lines"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil && parsed > 0 && parsed <= 500 {
+			lines = strconv.Itoa(parsed)
+		}
+	}
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		response.Err(w, http.StatusInternalServerError, "STREAM_UNAVAILABLE", "Streaming is not supported")
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	composeProject := strings.TrimSpace(os.Getenv("COMPOSE_PROJECT_NAME"))
+	if composeProject == "" {
+		composeProject = "ncs-online"
+	}
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "docker", "compose", "-p", composeProject, "logs", "--tail", lines, "-f", service)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "STREAM_FAILED", err.Error())
+		return
+	}
+	cmd.Stderr = cmd.Stdout
+	if err := cmd.Start(); err != nil {
+		response.Err(w, http.StatusFailedDependency, "STREAM_FAILED", err.Error())
+		return
+	}
+	defer cmd.Wait()
+	scanner := bufio.NewScanner(stdout)
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line, _ := json.Marshal(scanner.Text())
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", line)
+		flusher.Flush()
+	}
+}
+
 func (h *OperatorHandler) ServiceAction(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		Service      string `json:"service"`
@@ -168,7 +220,7 @@ func (h *OperatorHandler) ServiceAction(w http.ResponseWriter, r *http.Request) 
 	input.Service = strings.TrimSpace(input.Service)
 	input.Action = strings.ToLower(strings.TrimSpace(input.Action))
 	expected := strings.ToUpper(input.Action + " " + input.Service)
-	if !allowedOpsService(input.Service) || (input.Action != "restart" && input.Action != "stop") {
+	if !allowedOpsService(input.Service) || (input.Action != "restart" && input.Action != "stop" && input.Action != "start") {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Unsupported service action")
 		return
 	}
@@ -179,6 +231,9 @@ func (h *OperatorHandler) ServiceAction(w http.ResponseWriter, r *http.Request) 
 	args := []string{input.Action, input.Service}
 	if input.Action == "restart" {
 		args = []string{"up", "-d", "--no-deps", "--force-recreate", input.Service}
+	}
+	if input.Action == "start" {
+		args = []string{"up", "-d", "--no-deps", input.Service}
 	}
 	out, err := dockerComposeOutput(r.Context(), args...)
 	if err != nil {
@@ -263,6 +318,30 @@ func (h *OperatorHandler) RevokeSession(w http.ResponseWriter, r *http.Request) 
 	response.JSONMsg(w, http.StatusOK, "Session revoked")
 }
 
+func (h *OperatorHandler) DeleteSession(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	sessionID := chi.URLParam(r, "id")
+	if sessionID == "" {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Session id is required")
+		return
+	}
+	if err := h.repo.RevokeSession(r.Context(), userID, sessionID); err != nil {
+		response.Err(w, http.StatusBadRequest, "REVOKE_ERROR", err.Error())
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Session revoked")
+}
+
+func (h *OperatorHandler) DeleteOtherSessions(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	current, _ := r.Context().Value(models.CtxSessionID).(string)
+	if err := h.repo.RevokeOtherSessions(r.Context(), userID, current); err != nil {
+		response.Err(w, http.StatusBadRequest, "REVOKE_ERROR", err.Error())
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Other sessions revoked")
+}
+
 var resourceUpgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool {
 	return r.Header.Get("Origin") == "" || r.Header.Get("Origin") == "http://"+r.Host || r.Header.Get("Origin") == "https://"+r.Host
 }}
@@ -299,7 +378,8 @@ func (s *telemetrySampler) snapshot(state maintenance.Snapshot) map[string]any {
 
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
-	services := serviceStatuses()
+	dockerReady := dockerAvailable()
+	services := serviceStatuses(dockerReady)
 	events := recentSystemEvents(services, state, now)
 	public := state.Scoped(maintenance.ScopePublicCMS)
 	admin := state.Scoped(maintenance.ScopeAdminDashboard)
@@ -359,8 +439,9 @@ func (s *telemetrySampler) snapshot(state maintenance.Snapshot) map[string]any {
 			"connections":  len(conns),
 			"latency_ms":   nil,
 		},
-		"services": services,
-		"events":   events,
+		"services":         services,
+		"events":           events,
+		"docker_available": dockerReady,
 	}
 }
 
@@ -448,7 +529,7 @@ func perCorePayload(values []float64) []map[string]any {
 	return out
 }
 
-func serviceStatuses() []map[string]any {
+func serviceStatuses(dockerReady bool) []map[string]any {
 	services := []string{"nginx", "frontend", "backend", "postgres", "nsmis-worker", "backup", "location-service"}
 	out := make([]map[string]any, 0, len(services))
 	composeProject := strings.TrimSpace(os.Getenv("COMPOSE_PROJECT_NAME"))
@@ -456,9 +537,9 @@ func serviceStatuses() []map[string]any {
 		composeProject = "ncs-online"
 	}
 	for _, svc := range services {
-		out = append(out, map[string]any{"name": svc, "display_name": serviceDisplayName(svc), "status": "unknown", "health": "unknown", "actions": []string{"restart", "stop", "logs"}})
+		out = append(out, map[string]any{"name": svc, "display_name": serviceDisplayName(svc), "status": "idle", "health": "idle", "actions": []string{"start", "restart", "stop", "logs"}})
 	}
-	if !dockerAvailable() {
+	if !dockerReady {
 		return out
 	}
 	ctx, cancel := contextWithTimeout(4 * time.Second)
@@ -484,7 +565,7 @@ func serviceStatuses() []map[string]any {
 			state, _ := row["State"].(string)
 			health, _ := row["Health"].(string)
 			item["status"] = normalizeServiceState(state, health)
-			item["health"] = strings.TrimSpace(health)
+			item["health"] = normalizeServiceHealth(state, health)
 			item["container"] = row["Name"]
 			item["image"] = row["Image"]
 			item["published_ports"] = row["Publishers"]
@@ -495,17 +576,22 @@ func serviceStatuses() []map[string]any {
 
 func normalizeServiceState(state, health string) string {
 	state = strings.ToLower(strings.TrimSpace(state))
+	if state == "running" {
+		return "running"
+	}
+	return "idle"
+}
+
+func normalizeServiceHealth(state, health string) string {
+	state = strings.ToLower(strings.TrimSpace(state))
 	health = strings.ToLower(strings.TrimSpace(health))
-	if state == "running" && (health == "" || health == "healthy") {
+	if state != "running" {
+		return "idle"
+	}
+	if health == "" {
 		return "healthy"
 	}
-	if state == "running" {
-		return "degraded"
-	}
-	if state == "" {
-		return "unknown"
-	}
-	return "stopped"
+	return health
 }
 
 func serviceDisplayName(name string) string {
@@ -535,8 +621,9 @@ func recentSystemEvents(services []map[string]any, state maintenance.Snapshot, n
 		events = append(events, map[string]any{"timestamp": now, "severity": "critical", "source": "maintenance", "message": "Admin dashboard maintenance gate is active"})
 	}
 	for _, svc := range services {
-		if svc["status"] == "stopped" || svc["status"] == "degraded" {
-			events = append(events, map[string]any{"timestamp": now, "severity": "critical", "source": "service", "message": serviceDisplayName(fmt.Sprint(svc["name"])) + " is " + fmt.Sprint(svc["status"])})
+		health := strings.ToLower(strings.TrimSpace(fmt.Sprint(svc["health"])))
+		if svc["status"] == "running" && health != "" && health != "healthy" && health != "idle" {
+			events = append(events, map[string]any{"timestamp": now, "severity": "critical", "source": "service", "message": serviceDisplayName(fmt.Sprint(svc["name"])) + " health is " + health})
 		}
 	}
 	return events

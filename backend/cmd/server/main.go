@@ -61,20 +61,24 @@ func main() {
 
 	rl := middleware.NewRateLimiter(cfg.RateLimitReqs, cfg.RateLimitWindow)
 	authRL := middleware.NewRateLimiter(10, cfg.RateLimitWindow)
+	publicFormRL := middleware.NewRateLimiter(8, cfg.RateLimitWindow)
+	// Separate, much higher budget for the authenticated CMS area: a single
+	// dashboard load or "save" action legitimately fires dozens of parallel
+	// requests (and each save reloads the whole dashboard), which blew through
+	// the public-traffic budget above in minutes of completely normal use.
+	adminRL := middleware.NewRateLimiter(600, cfg.RateLimitWindow)
 
 	r := chi.NewRouter()
 	metricRegistry := appMetrics.New()
 
 	r.Use(chimiddleware.RequestID)
-	r.Use(metricRegistry.Middleware)
-	r.Use(middleware.SecurityHeaders)
-	r.Use(middleware.RejectAmbiguousPaths)
-	r.Use(middleware.LimitRequestBody(25 << 20))
-	r.Use(middleware.Logger)
-	r.Use(middleware.AuditLogger(auditWriter))
-	r.Use(middleware.HoneypotScanner)
-	r.Use(middleware.MaintenanceMode(h.SystemState, cfg.MaintenanceEnabled, cfg.JWTSecret))
-	r.Use(rl.Middleware)
+	// CORS must run BEFORE the rate limiter / maintenance / auth so that CORS
+	// headers are present on EVERY response — including 401, 429 and the
+	// OPTIONS preflight. If a rate-limited (429) or unauthorized (401) response
+	// lacks Access-Control-Allow-Origin, the browser reports it as a CORS
+	// failure (ERR_FAILED) instead of surfacing the real status. Handling the
+	// preflight here also keeps OPTIONS requests out of the rate-limit budget,
+	// so the CMS dashboard's burst of parallel loads isn't throttled.
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
@@ -83,7 +87,19 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+	r.Use(metricRegistry.Middleware)
+	r.Use(middleware.SecurityHeaders)
+	r.Use(middleware.RejectAmbiguousPaths)
+	r.Use(middleware.LimitRequestBodyByType(2<<20, 25<<20))
+	r.Use(middleware.Logger)
+	r.Use(middleware.AuditLogger(auditWriter))
+	r.Use(middleware.HoneypotScanner)
+	r.Use(middleware.MaintenanceMode(h.SystemState, cfg.MaintenanceEnabled, cfg.JWTSecret))
 	r.Use(chimiddleware.Recoverer)
+	// rl (the public-traffic budget) is applied per route group below instead
+	// of globally here — health checks, the authenticated CMS, and public
+	// content reads have very different legitimate request volumes, and a
+	// single shared budget across all of them 429s normal CMS usage.
 
 	healthHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -104,8 +120,15 @@ func main() {
 		_, _ = w.Write([]byte(`{"status":"ready"}`))
 	})
 	r.Handle("/metrics", metricRegistry)
-	r.Post("/ncs-ussd", h.USSD.ServeHTTP)
-	r.Get("/api/v1/system/maintenance-status", func(w http.ResponseWriter, r *http.Request) {
+	// Serve locally-stored uploads. In production nginx serves this directory
+	// directly (see nginx.conf "location /uploads/"); registering it here makes
+	// uploaded media reachable when the backend runs without nginx in front
+	// (e.g. local dev), so CMS upload previews and public images resolve
+	// instead of 404ing. Public + read-only by design.
+	r.With(rl.Middleware).Get("/uploads/*", h.CMS.ServeLocalUpload)
+	r.With(rl.Middleware).Head("/uploads/*", h.CMS.ServeLocalUpload)
+	r.With(rl.Middleware).Post("/ncs-ussd", h.USSD.ServeHTTP)
+	r.With(rl.Middleware).Get("/api/v1/system/maintenance-status", func(w http.ResponseWriter, r *http.Request) {
 		s := h.SystemState.Get()
 		response.JSON(w, http.StatusOK, map[string]any{
 			"public_cms":      s.Scoped(maintenance.ScopePublicCMS),
@@ -120,6 +143,7 @@ func main() {
 			r.Use(authRL.Middleware)
 			r.Post("/register", h.Auth.Register)
 			r.Post("/login", h.Auth.Login)
+			r.Post("/google", h.Auth.Google)
 			r.Post("/refresh", h.Auth.RefreshToken)
 			r.Post("/forgot-password", h.Auth.ForgotPassword)
 			r.Post("/reset-password", h.Auth.ResetPassword)
@@ -127,24 +151,35 @@ func main() {
 
 		// ── Public CMS (read-only, published content) ─────────────────
 		r.Route("/cms", func(r chi.Router) {
+			r.Use(rl.Middleware)
 			r.Get("/posts", h.CMS.ListPosts)
 			r.Get("/posts/{slug}", h.CMS.GetPost)
+			r.Get("/posts/{slug}/comments", h.CMS.ListPostComments)
+			r.Get("/blog/categories", h.CMS.ListBlogCategories)
 			r.Get("/events", h.CMS.ListEvents)
 			r.Get("/events/{slug}", h.CMS.GetEvent)
 			r.Get("/careers", h.CMS.ListCareers)
 			r.Get("/careers/{id}", h.CMS.GetCareer)
 			r.Get("/slides", h.CMS.ListSlides)
+			r.Get("/slideshows/{slug}", h.CMS.GetSlideshow)
 			r.Get("/menus/{name}", h.CMS.GetMenu)
 			r.Get("/settings/{key}", h.CMS.GetSetting)
 			r.Get("/fun-facts", h.CMS.ListFunFacts)
+			r.Get("/fonts", h.CMS.ListFonts)
 			r.Get("/faqs", h.CMS.ListFAQs)
 			r.Get("/resources", h.CMS.ListResources)
+			r.Get("/documents", h.CMS.ListDocuments)
 			r.Get("/facilities", h.CMS.ListFacilities)
+			r.Get("/facility-regions", h.CMS.ListFacilityRegions)
 			r.Get("/associations", h.CMS.ListAssociations)
 			r.Get("/invest", h.CMS.ListInvest)
+			r.With(publicFormRL.Middleware).Post("/invest/requests", h.CMS.CreateInvestmentRequest)
 			r.Get("/team", h.CMS.ListTeam)
 			r.Get("/departments", h.CMS.ListInstitutionalDepartments)
+			r.With(publicFormRL.Middleware).Post("/messages", h.CMS.CreateContactMessage)
+			r.With(publicFormRL.Middleware).Post("/newsletter/subscribe", h.CMS.SubscribeNewsletter)
 		})
+		r.With(rl.Middleware).Post("/analytics/collect", h.Analytics.Track)
 
 		// ── Authenticated routes (geo-blocked: Uganda only, no VPN) ─────
 		r.Group(func(r chi.Router) {
@@ -153,11 +188,40 @@ func main() {
 			r.Use(middleware.ValidateGlobalSession(h.SystemState))
 			r.Use(middleware.ValidateAuthenticatedUser(repos.Users))
 			r.Use(middleware.EnforceIPAllowlist(repos.Security))
+			r.Use(adminRL.Middleware)
+
+			r.Route("/notifications", func(r chi.Router) {
+				r.Get("/", h.CMS.ListNotifications)
+				r.Put("/{id}", h.CMS.UpdateNotification)
+				r.Delete("/{id}", h.CMS.DeleteNotification)
+				r.Delete("/clear-all", h.CMS.ClearNotifications)
+				r.Put("/mark-all-read", h.CMS.MarkAllNotificationsRead)
+			})
+
+			r.Route("/inbound-submissions", func(r chi.Router) {
+				r.Get("/", h.CMS.ListInboundSubmissions)
+				r.Get("/counts", h.CMS.InboundSubmissionCounts)
+				r.Put("/{id}", h.CMS.UpdateInboundSubmission)
+				r.Post("/{id}/notes", h.CMS.AddInboundSubmissionNote)
+			})
+
+			r.Route("/messages", func(r chi.Router) {
+				r.Get("/", h.CMS.ListContactMessages)
+				r.Put("/{id}", h.CMS.UpdateContactMessage)
+				r.Delete("/{id}", h.CMS.DeleteContactMessage)
+				r.Delete("/clear-all", h.CMS.ClearContactMessages)
+			})
 
 			// Self-service auth
 			r.Post("/auth/logout", h.Auth.Logout)
 			r.Get("/auth/me", h.Auth.Me)
+			r.Put("/auth/me", h.Auth.UpdateMyProfile)
 			r.Post("/auth/change-password", h.Auth.ChangePassword)
+			r.Post("/auth/update-password", h.Auth.ChangePassword)
+			r.Get("/auth/sessions", h.Operator.Sessions)
+			r.Delete("/auth/sessions/clear-all", h.Operator.DeleteOtherSessions)
+			r.Delete("/auth/sessions/{id}", h.Operator.DeleteSession)
+			r.Get("/account/audit-logs", h.Security.MyActivities)
 
 			// PIN management
 			r.Post("/auth/pin/set", h.Auth.SetPIN)
@@ -205,6 +269,7 @@ func main() {
 				r.Post("/{templateID}/draft", h.Forms.PortalSaveDraft)
 			})
 			r.Route("/portal/submissions", func(r chi.Router) {
+				r.Get("/", h.Forms.PortalListSubmissions)
 				r.Get("/{id}", h.Forms.PortalGetSubmission)
 				r.Post("/{id}/submit", h.Forms.PortalSubmit)
 				r.Post("/{id}/payment-proof", h.Forms.PortalUploadPaymentProof)
@@ -213,6 +278,7 @@ func main() {
 			// Generic authenticated file upload (used by the dynamic form
 			// dropzone for both applicants and admins).
 			r.Post("/media/upload", h.CMS.UploadMedia)
+			r.With(authRL.Middleware).Post("/cms/posts/{slug}/comments", h.CMS.SubmitPostComment)
 
 			// ── Self-service activity log + security settings ─────────
 			r.Get("/me/activities", h.Security.MyActivities)
@@ -259,10 +325,12 @@ func main() {
 				r.Use(middleware.RequireRoles("super_admin", "admin"))
 
 				r.Get("/admin/dashboard", h.Dashboard.Stats)
+				r.Get("/admin/analytics", h.Analytics.Dashboard)
 				r.Get("/admin/system/status", h.Operator.Status)
 				r.Get("/admin/system/resources", h.Operator.Resources)
 				r.Get("/admin/system/resources/ws", h.Operator.ResourceStream)
 				r.Get("/admin/system/service-logs", h.Operator.ServiceLogs)
+				r.Get("/admin/system/service-logs/stream", h.Operator.ServiceLogStream)
 
 				r.Route("/admin/users", func(r chi.Router) {
 					r.Get("/", h.Users.List)
@@ -301,6 +369,7 @@ func main() {
 				r.Post("/admin/storage-settings/google-drive/exchange", h.CMS.ExchangeGoogleDriveCode)
 				r.Post("/admin/storage-settings/google-drive/disconnect", h.CMS.DisconnectGoogleDrive)
 				r.Get("/admin/system/backups", h.Backups.List)
+				r.Get("/admin/system/backups/health", h.Backups.Health)
 				r.Get("/admin/system/backups/schema", h.Backups.DownloadSchema)
 				r.Post("/admin/system/backups/schema/import", h.Backups.ImportSchema)
 				r.Delete("/admin/system/backups/schema", h.Backups.DeleteSchema)
@@ -364,6 +433,23 @@ func main() {
 					r.Delete("/{id}", h.CMS.DeletePost)
 				})
 
+				r.Route("/admin/cms/blog/categories", func(r chi.Router) {
+					r.Get("/", h.CMS.ListBlogCategories)
+					r.Post("/", h.CMS.CreateBlogCategory)
+					r.Put("/{id}", h.CMS.UpdateBlogCategory)
+					r.Delete("/{id}", h.CMS.DeleteBlogCategory)
+				})
+
+				r.Route("/admin/cms/comments", func(r chi.Router) {
+					r.Get("/", h.CMS.ListCommentsModeration)
+					r.Post("/{id}/approve", h.CMS.ApproveComment)
+					r.Post("/{id}/flag", h.CMS.FlagComment)
+					r.Delete("/{id}", h.CMS.DeleteComment)
+				})
+
+				r.Get("/admin/cms/newsletter/subscribers", h.CMS.ListNewsletterSubscribers)
+				r.Get("/admin/cms/newsletter/subscribers/export", h.CMS.ExportNewsletterSubscribers)
+
 				r.Route("/admin/cms/events", func(r chi.Router) {
 					r.Get("/", h.CMS.ListEvents)
 					r.Post("/", h.CMS.CreateEvent)
@@ -384,6 +470,8 @@ func main() {
 					r.Put("/{id}", h.CMS.UpdateSlide)
 					r.Delete("/{id}", h.CMS.DeleteSlide)
 				})
+				r.Get("/admin/cms/slideshows/{slug}", h.CMS.GetSlideshow)
+				r.Put("/admin/cms/slideshows/{slug}", h.CMS.UpdateSlideshow)
 
 				r.Put("/admin/cms/menus/{name}", h.CMS.UpdateMenu)
 				r.Put("/admin/cms/settings/{key}", h.CMS.UpdateSetting)
@@ -393,6 +481,12 @@ func main() {
 					r.Post("/", h.CMS.CreateFunFact)
 					r.Put("/{id}", h.CMS.UpdateFunFact)
 					r.Delete("/{id}", h.CMS.DeleteFunFact)
+				})
+
+				r.Route("/admin/cms/fonts", func(r chi.Router) {
+					r.Get("/", h.CMS.ListFonts)
+					r.Post("/", h.CMS.UploadFont)
+					r.Delete("/{id}", h.CMS.DeleteFont)
 				})
 
 				r.Route("/admin/cms/faqs", func(r chi.Router) {
@@ -409,11 +503,25 @@ func main() {
 					r.Delete("/{id}", h.CMS.DeleteResource)
 				})
 
+				r.Route("/admin/cms/documents", func(r chi.Router) {
+					r.Get("/", h.CMS.ListDocuments)
+					r.Post("/", h.CMS.CreateDocument)
+					r.Put("/{id}", h.CMS.UpdateDocument)
+					r.Delete("/{id}", h.CMS.DeleteDocument)
+				})
+
 				r.Route("/admin/cms/facilities", func(r chi.Router) {
 					r.Get("/", h.CMS.ListFacilities)
 					r.Post("/", h.CMS.CreateFacility)
 					r.Put("/{id}", h.CMS.UpdateFacility)
 					r.Delete("/{id}", h.CMS.DeleteFacility)
+				})
+
+				r.Route("/admin/cms/facility-regions", func(r chi.Router) {
+					r.Get("/", h.CMS.ListFacilityRegions)
+					r.Post("/", h.CMS.CreateFacilityRegion)
+					r.Put("/{id}", h.CMS.UpdateFacilityRegion)
+					r.Delete("/{id}", h.CMS.DeleteFacilityRegion)
 				})
 
 				r.Route("/admin/cms/associations", func(r chi.Router) {
@@ -435,6 +543,13 @@ func main() {
 					r.Post("/", h.CMS.CreateTeamMember)
 					r.Put("/{id}", h.CMS.UpdateTeamMember)
 					r.Delete("/{id}", h.CMS.DeleteTeamMember)
+				})
+
+				r.Route("/admin/cms/departments", func(r chi.Router) {
+					r.Get("/", h.CMS.ListInstitutionalDepartments)
+					r.Post("/", h.CMS.CreateInstitutionalDepartment)
+					r.Put("/{id}", h.CMS.UpdateInstitutionalDepartment)
+					r.Delete("/{id}", h.CMS.DeleteInstitutionalDepartment)
 				})
 
 				r.Post("/admin/media/upload", h.CMS.UploadMedia)
@@ -473,6 +588,7 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    64 << 10,
 	}
 
 	quit := make(chan os.Signal, 1)

@@ -19,6 +19,12 @@ import (
 
 type OrganisationRepo struct{ db *pgxpool.Pool }
 
+func (r *OrganisationRepo) CountAll(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM organisations WHERE status <> 'ARCHIVED'`).Scan(&count)
+	return count, err
+}
+
 func (r *OrganisationRepo) ListForUser(ctx context.Context, userID string) ([]models.Organisation, error) {
 	const q = `SELECT o.id,o.profile_reference,o.organisation_type,o.legal_name,o.display_name,
 		o.official_email,o.official_phone,o.registration_number,o.status,m.role,o.created_at,o.updated_at
@@ -111,7 +117,7 @@ func (r *OrganisationRepo) ApproveAndProvision(ctx context.Context, app *models.
 			return nil, err
 		}
 		payload, _ := json.Marshal(map[string]string{"organisation_name": name, "activation_path": "/accept-organisation-invite?token=" + rawToken})
-		_, err = tx.Exec(ctx, `INSERT INTO notifications(id,template_code,recipient_address,channel,related_type,related_id,payload) VALUES($1,'ORGANISATION_INVITATION',$2,'EMAIL','ORGANISATION_INVITATION',$3,$4)`, uuid.NewString(), strings.ToLower(email), invitationID, payload)
+		_, err = tx.Exec(ctx, `INSERT INTO notification_deliveries(id,template_code,recipient_address,channel,related_type,related_id,payload) VALUES($1,'ORGANISATION_INVITATION',$2,'EMAIL','ORGANISATION_INVITATION',$3,$4)`, uuid.NewString(), strings.ToLower(email), invitationID, payload)
 		if err != nil {
 			return nil, err
 		}

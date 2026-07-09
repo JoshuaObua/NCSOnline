@@ -2,12 +2,40 @@ import apiClient from './client.js'
 
 // ── Public CMS (no auth required) ────────────────────────────────
 
+export function getMaintenanceStatus() {
+  return apiClient.get('/api/v1/system/maintenance-status')
+}
+
 export function listPosts(params = {}) {
   return apiClient.get('/api/v1/cms/posts', { params })
 }
 
 export function getPost(slug) {
   return apiClient.get(`/api/v1/cms/posts/${slug}`)
+}
+
+export function listBlogCategories(active = true) {
+  return apiClient.get('/api/v1/cms/blog/categories', { params: { active: active ? 'true' : 'false' } })
+}
+
+export function listCategoriesByType(contentType) {
+  return apiClient.get('/api/v1/cms/blog/categories', { params: { active: 'true', content_type: contentType } })
+}
+
+export function listPostComments(slug) {
+  return apiClient.get(`/api/v1/cms/posts/${slug}/comments`)
+}
+
+export function submitPostComment(slug, data) {
+  return apiClient.post(`/api/v1/cms/posts/${slug}/comments`, data)
+}
+
+export function submitContactMessage(data) {
+  return apiClient.post('/api/v1/cms/messages', data)
+}
+
+export function submitInvestmentRequest(data) {
+  return apiClient.post('/api/v1/cms/invest/requests', data)
 }
 
 export function listEvents(params = {}) {
@@ -42,6 +70,139 @@ export function adminUpdatePost(id, data) {
 
 export function adminDeletePost(id) {
   return apiClient.delete(`/api/v1/admin/cms/posts/${id}`)
+}
+
+export function adminListBlogCategories() {
+  return apiClient.get('/api/v1/admin/cms/blog/categories', { params: { active: 'false' } })
+}
+
+export function adminCreateBlogCategory(data) {
+  return apiClient.post('/api/v1/admin/cms/blog/categories', data)
+}
+
+export function adminUpdateBlogCategory(id, data) {
+  return apiClient.put(`/api/v1/admin/cms/blog/categories/${id}`, data)
+}
+
+export function adminDeleteBlogCategory(id) {
+  return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`)
+}
+
+export function adminListProjectCategories() {
+  return apiClient.get('/api/v1/admin/cms/blog/categories', { params: { active: 'false', content_type: 'project' } })
+}
+
+export function adminCreateProjectCategory(data) {
+  return apiClient.post('/api/v1/admin/cms/blog/categories', { ...data, content_type: 'project' })
+}
+
+export function adminUpdateProjectCategory(id, data) {
+  return apiClient.put(`/api/v1/admin/cms/blog/categories/${id}`, { ...data, content_type: 'project' })
+}
+
+export function adminDeleteProjectCategory(id) {
+  return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`)
+}
+
+export function adminListCaseStudyCategories() {
+  return apiClient.get('/api/v1/admin/cms/blog/categories', { params: { active: 'false', content_type: 'case_study' } })
+}
+
+export function adminCreateCaseStudyCategory(data) {
+  return apiClient.post('/api/v1/admin/cms/blog/categories', { ...data, content_type: 'case_study' })
+}
+
+export function adminUpdateCaseStudyCategory(id, data) {
+  return apiClient.put(`/api/v1/admin/cms/blog/categories/${id}`, { ...data, content_type: 'case_study' })
+}
+
+export function adminDeleteCaseStudyCategory(id) {
+  return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`)
+}
+
+function adminListScopedCategories(contentType) {
+  return apiClient.get('/api/v1/admin/cms/blog/categories', { params: { active: 'false', content_type: contentType } })
+}
+
+function adminCreateScopedCategory(contentType, data) {
+  return apiClient.post('/api/v1/admin/cms/blog/categories', { ...data, content_type: contentType })
+}
+
+function adminUpdateScopedCategory(contentType, id, data) {
+  return apiClient.put(`/api/v1/admin/cms/blog/categories/${id}`, { ...data, content_type: contentType })
+}
+
+export function adminListFAQCategories() { return adminListScopedCategories('faq') }
+export function adminCreateFAQCategory(data) { return adminCreateScopedCategory('faq', data) }
+export function adminUpdateFAQCategory(id, data) { return adminUpdateScopedCategory('faq', id, data) }
+export function adminDeleteFAQCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListResourceCategories() { return adminListScopedCategories('resource') }
+export function adminCreateResourceCategory(data) { return adminCreateScopedCategory('resource', data) }
+export function adminUpdateResourceCategory(id, data) { return adminUpdateScopedCategory('resource', id, data) }
+export function adminDeleteResourceCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListCareerCategories() { return adminListScopedCategories('career') }
+export function adminCreateCareerCategory(data) { return adminCreateScopedCategory('career', data) }
+export function adminUpdateCareerCategory(id, data) { return adminUpdateScopedCategory('career', id, data) }
+export function adminDeleteCareerCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListTeamDepartments() { return apiClient.get('/api/v1/admin/cms/departments') }
+export function adminCreateTeamDepartment(data) { return apiClient.post('/api/v1/admin/cms/departments', data) }
+export function adminUpdateTeamDepartment(id, data) { return apiClient.put(`/api/v1/admin/cms/departments/${id}`, data) }
+export function adminDeleteTeamDepartment(id) { return apiClient.delete(`/api/v1/admin/cms/departments/${id}`) }
+export function adminListFacilityCategories() { return adminListScopedCategories('facility') }
+export function adminCreateFacilityCategory(data) { return adminCreateScopedCategory('facility', data) }
+export function adminUpdateFacilityCategory(id, data) { return adminUpdateScopedCategory('facility', id, data) }
+export function adminDeleteFacilityCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListEventCategories() { return adminListScopedCategories('event') }
+export function adminCreateEventCategory(data) { return adminCreateScopedCategory('event', data) }
+export function adminUpdateEventCategory(id, data) { return adminUpdateScopedCategory('event', id, data) }
+export function adminDeleteEventCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListInvestCategories() { return adminListScopedCategories('investment') }
+export function adminCreateInvestCategory(data) { return adminCreateScopedCategory('investment', data) }
+export function adminUpdateInvestCategory(id, data) { return adminUpdateScopedCategory('investment', id, data) }
+export function adminDeleteInvestCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListFederationCategories() { return adminListScopedCategories('federation') }
+export function adminCreateFederationCategory(data) { return adminCreateScopedCategory('federation', data) }
+export function adminUpdateFederationCategory(id, data) { return adminUpdateScopedCategory('federation', id, data) }
+export function adminDeleteFederationCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListSportsRuleCategories() { return adminListScopedCategories('sports_rule') }
+export function adminCreateSportsRuleCategory(data) { return adminCreateScopedCategory('sports_rule', data) }
+export function adminUpdateSportsRuleCategory(id, data) { return adminUpdateScopedCategory('sports_rule', id, data) }
+export function adminDeleteSportsRuleCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListPressReleaseCategories() { return adminListScopedCategories('press_release') }
+export function adminCreatePressReleaseCategory(data) { return adminCreateScopedCategory('press_release', data) }
+export function adminUpdatePressReleaseCategory(id, data) { return adminUpdateScopedCategory('press_release', id, data) }
+export function adminDeletePressReleaseCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListReportCategories() { return adminListScopedCategories('report') }
+export function adminCreateReportCategory(data) { return adminCreateScopedCategory('report', data) }
+export function adminUpdateReportCategory(id, data) { return adminUpdateScopedCategory('report', id, data) }
+export function adminDeleteReportCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+export function adminListSpeechCategories() { return adminListScopedCategories('speech') }
+export function adminCreateSpeechCategory(data) { return adminCreateScopedCategory('speech', data) }
+export function adminUpdateSpeechCategory(id, data) { return adminUpdateScopedCategory('speech', id, data) }
+export function adminDeleteSpeechCategory(id) { return apiClient.delete(`/api/v1/admin/cms/blog/categories/${id}`) }
+
+export function adminListNewsletterSubscribers(params = {}) {
+  return apiClient.get('/api/v1/admin/cms/newsletter/subscribers', { params })
+}
+
+export function adminExportNewsletterSubscribers(format = 'csv') {
+  return apiClient.get('/api/v1/admin/cms/newsletter/subscribers/export', { params: { format }, responseType: 'blob' })
+}
+
+export function adminListComments(params = {}) {
+  return apiClient.get('/api/v1/admin/cms/comments', { params })
+}
+
+export function adminApproveComment(id) {
+  return apiClient.post(`/api/v1/admin/cms/comments/${id}/approve`)
+}
+
+export function adminFlagComment(id) {
+  return apiClient.post(`/api/v1/admin/cms/comments/${id}/flag`)
+}
+
+export function adminDeleteComment(id) {
+  return apiClient.delete(`/api/v1/admin/cms/comments/${id}`)
 }
 
 export function adminListEvents(params = {}) {
@@ -82,8 +243,20 @@ export function listSlides(activeOnly = true) {
   return apiClient.get('/api/v1/cms/slides', { params: { active: activeOnly ? 'true' : 'false' } })
 }
 
+export function getSlideshow(slug = 'homepage-hero', activeOnly = true) {
+  return apiClient.get(`/api/v1/cms/slideshows/${slug}`, { params: { active: activeOnly ? 'true' : 'false' } })
+}
+
 export function adminListSlides() {
   return apiClient.get('/api/v1/admin/cms/slides', { params: { active: 'false' } })
+}
+
+export function adminGetSlideshow(slug = 'homepage-hero') {
+  return apiClient.get(`/api/v1/admin/cms/slideshows/${slug}`, { params: { active: 'false' } })
+}
+
+export function adminUpdateSlideshow(slug, data) {
+  return apiClient.put(`/api/v1/admin/cms/slideshows/${slug}`, data)
 }
 
 export function adminCreateSlide(data) {
@@ -120,9 +293,10 @@ export function adminUpdateSettings(key, value) {
 
 // ── Media Upload ──────────────────────────────────────────────────
 
-export function uploadMedia(file) {
+export function uploadMedia(file, scope = 'public') {
   const fd = new FormData()
   fd.append('file', file)
+  fd.append('scope', scope)
   return apiClient.post('/api/v1/media/upload', fd, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
@@ -135,6 +309,23 @@ export function adminListFunFacts() { return apiClient.get('/api/v1/admin/cms/fu
 export function adminCreateFunFact(data) { return apiClient.post('/api/v1/admin/cms/fun-facts', data) }
 export function adminUpdateFunFact(id, data) { return apiClient.put(`/api/v1/admin/cms/fun-facts/${id}`, data) }
 export function adminDeleteFunFact(id) { return apiClient.delete(`/api/v1/admin/cms/fun-facts/${id}`) }
+
+// ── Appearance: custom fonts + typography mapping ──────────────────
+
+export function listFonts() { return apiClient.get('/api/v1/cms/fonts') }
+export function adminListFonts() { return apiClient.get('/api/v1/admin/cms/fonts') }
+export function adminUploadFont(file, displayName) {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('display_name', displayName)
+  return apiClient.post('/api/v1/admin/cms/fonts', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+export function adminDeleteFont(id) { return apiClient.delete(`/api/v1/admin/cms/fonts/${id}`) }
+
+export function getTypography() { return apiClient.get('/api/v1/cms/settings/typography') }
+export function adminUpdateTypography(value) { return apiClient.put('/api/v1/admin/cms/settings/typography', value) }
 
 // ── FAQs ──────────────────────────────────────────────────────────
 
@@ -152,13 +343,26 @@ export function adminCreateResource(data) { return apiClient.post('/api/v1/admin
 export function adminUpdateResource(id, data) { return apiClient.put(`/api/v1/admin/cms/resources/${id}`, data) }
 export function adminDeleteResource(id) { return apiClient.delete(`/api/v1/admin/cms/resources/${id}`) }
 
+// ── Documents (Sports Rules, Press Releases, Reports, Speeches) ────
+
+export function listDocuments(params = {}) { return apiClient.get('/api/v1/cms/documents', { params }) }
+export function adminListDocuments(params = {}) { return apiClient.get('/api/v1/admin/cms/documents', { params }) }
+export function adminCreateDocument(data) { return apiClient.post('/api/v1/admin/cms/documents', data) }
+export function adminUpdateDocument(id, data) { return apiClient.put(`/api/v1/admin/cms/documents/${id}`, data) }
+export function adminDeleteDocument(id) { return apiClient.delete(`/api/v1/admin/cms/documents/${id}`) }
+
 // ── Facilities ────────────────────────────────────────────────────
 
-export function listFacilities(params = {}) { return apiClient.get('/api/v1/cms/facilities', { params }) }
+export function listFacilities(params = {}, config = {}) { return apiClient.get('/api/v1/cms/facilities', { params, ...config }) }
+export function listFacilityRegions(params = {}) { return apiClient.get('/api/v1/cms/facility-regions', { params }) }
 export function adminListFacilities() { return apiClient.get('/api/v1/admin/cms/facilities', { params: { active: 'false' } }) }
 export function adminCreateFacility(data) { return apiClient.post('/api/v1/admin/cms/facilities', data) }
 export function adminUpdateFacility(id, data) { return apiClient.put(`/api/v1/admin/cms/facilities/${id}`, data) }
 export function adminDeleteFacility(id) { return apiClient.delete(`/api/v1/admin/cms/facilities/${id}`) }
+export function adminListFacilityRegions() { return apiClient.get('/api/v1/admin/cms/facility-regions', { params: { active: 'false' } }) }
+export function adminCreateFacilityRegion(data) { return apiClient.post('/api/v1/admin/cms/facility-regions', data) }
+export function adminUpdateFacilityRegion(id, data) { return apiClient.put(`/api/v1/admin/cms/facility-regions/${id}`, data) }
+export function adminDeleteFacilityRegion(id) { return apiClient.delete(`/api/v1/admin/cms/facility-regions/${id}`) }
 
 // ── Associations ──────────────────────────────────────────────────
 
@@ -183,6 +387,95 @@ export function adminListTeam(params = {}) { return apiClient.get('/api/v1/admin
 export function adminCreateTeam(data) { return apiClient.post('/api/v1/admin/cms/team', data) }
 export function adminUpdateTeam(id, data) { return apiClient.put(`/api/v1/admin/cms/team/${id}`, data) }
 export function adminDeleteTeam(id) { return apiClient.delete(`/api/v1/admin/cms/team/${id}`) }
+export function listInstitutionalDepartments() { return apiClient.get('/api/v1/cms/departments') }
+
+// ── Governing Council (shares the team_members table; member_group='council') ──
+
+export function listCouncil() { return apiClient.get('/api/v1/cms/team', { params: { group: 'council' } }) }
+export function adminListCouncil(params = {}) { return apiClient.get('/api/v1/admin/cms/team', { params: { active: 'false', group: 'council', ...params } }) }
+export function adminCreateCouncil(data) { return apiClient.post('/api/v1/admin/cms/team', { ...data, member_group: 'council' }) }
+export function adminUpdateCouncil(id, data) { return apiClient.put(`/api/v1/admin/cms/team/${id}`, data) }
+export function adminDeleteCouncil(id) { return apiClient.delete(`/api/v1/admin/cms/team/${id}`) }
+
+// ── Admin RBAC / Roles ────────────────────────────────────────────────
+
+export function adminListRoles() { return apiClient.get('/api/v1/admin/roles') }
+export function adminGetRole(id) { return apiClient.get(`/api/v1/admin/roles/${id}`) }
+export function adminCreateRole(data) { return apiClient.post('/api/v1/admin/roles', data) }
+export function adminUpdateRole(id, data) { return apiClient.put(`/api/v1/admin/roles/${id}`, data) }
+export function adminDeleteRole(id) { return apiClient.delete(`/api/v1/admin/roles/${id}`) }
+export function adminListPermissions() { return apiClient.get('/api/v1/admin/permissions') }
+export function adminAssignRolePermission(roleId, permissionId) {
+  return apiClient.post(`/api/v1/admin/roles/${roleId}/permissions`, { permission_id: permissionId })
+}
+export function adminRemoveRolePermission(roleId, permissionId) {
+  return apiClient.delete(`/api/v1/admin/roles/${roleId}/permissions/${permissionId}`)
+}
+
+export function adminListUsers(params = {}) { return apiClient.get('/api/v1/admin/users', { params }) }
+export function adminGetUser(id) { return apiClient.get(`/api/v1/admin/users/${id}`) }
+export function adminCreateUser(data) { return apiClient.post('/api/v1/admin/users', data) }
+export function adminUpdateUser(id, data) { return apiClient.put(`/api/v1/admin/users/${id}`, data) }
+export function adminDeleteUser(id) { return apiClient.delete(`/api/v1/admin/users/${id}`) }
+export function adminActivateUser(id) { return apiClient.post(`/api/v1/admin/users/${id}/activate`) }
+export function adminDeactivateUser(id) { return apiClient.post(`/api/v1/admin/users/${id}/deactivate`) }
+export function adminResetUserPassword(id, newPassword) { return apiClient.post(`/api/v1/admin/users/${id}/reset-password`, { new_password: newPassword }) }
+export function adminAssignUserRole(userId, roleId) { return apiClient.post(`/api/v1/admin/users/${userId}/roles`, { role_id: roleId }) }
+export function adminRemoveUserRole(userId, roleId) { return apiClient.delete(`/api/v1/admin/users/${userId}/roles/${roleId}`) }
+
+// ── Admin Audit Logs ──────────────────────────────────────────────────
+
+export function adminListAuditLogs(params = {}) {
+  return apiClient.get('/api/v1/admin/audit-logs', { params })
+}
+
+export function adminGetAuditLog(id) {
+  return apiClient.get(`/api/v1/admin/audit-logs/${id}`)
+}
+
+export function adminGetAnalytics(params = {}) {
+  return apiClient.get('/api/v1/admin/analytics', { params })
+}
+
+export function listNotifications(params = {}) {
+  return apiClient.get('/api/v1/notifications', { params })
+}
+export function updateNotification(id, data) {
+  return apiClient.put(`/api/v1/notifications/${id}`, data)
+}
+export function deleteNotification(id) {
+  return apiClient.delete(`/api/v1/notifications/${id}`)
+}
+export function clearNotifications() {
+  return apiClient.delete('/api/v1/notifications/clear-all')
+}
+export function markAllNotificationsRead() {
+  return apiClient.put('/api/v1/notifications/mark-all-read')
+}
+export function listInboundSubmissions(params = {}) {
+  return apiClient.get('/api/v1/inbound-submissions', { params })
+}
+export function getInboundSubmissionCounts() {
+  return apiClient.get('/api/v1/inbound-submissions/counts')
+}
+export function updateInboundSubmission(id, data) {
+  return apiClient.put(`/api/v1/inbound-submissions/${id}`, data)
+}
+export function addInboundSubmissionNote(id, note) {
+  return apiClient.post(`/api/v1/inbound-submissions/${id}/notes`, { note })
+}
+export function listMessages(params = {}) {
+  return apiClient.get('/api/v1/messages', { params })
+}
+export function updateMessage(id, data) {
+  return apiClient.put(`/api/v1/messages/${id}`, data)
+}
+export function deleteMessage(id) {
+  return apiClient.delete(`/api/v1/messages/${id}`)
+}
+export function clearMessages() {
+  return apiClient.delete('/api/v1/messages/clear-all')
+}
 
 // Compatibility placeholders for CMS sections whose backend modules are not
 // available yet. Keeping named exports prevents production bundlers from

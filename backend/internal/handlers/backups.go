@@ -56,8 +56,8 @@ func (h *BackupsHandler) Queue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if kind == "RESTORE" {
-		if input.Confirmation != "RESTORE VERIFIED BACKUP" {
-			response.Err(w, 400, "CONFIRMATION_REQUIRED", "Type RESTORE VERIFIED BACKUP to confirm")
+		if input.Confirmation != "CONFIRM RESTORE" {
+			response.Err(w, 400, "CONFIRMATION_REQUIRED", "Type CONFIRM RESTORE to confirm")
 			return
 		}
 		record, err := h.repo.Get(r.Context(), *input.BackupID)
@@ -76,6 +76,26 @@ func (h *BackupsHandler) Queue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSON(w, http.StatusAccepted, job)
+}
+
+func (h *BackupsHandler) Health(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 20*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "psql", h.cfg.DatabaseURL, "-v", "ON_ERROR_STOP=1", "-At", "-c", `
+SELECT json_build_object(
+  'database', current_database(),
+  'checked_at', now(),
+  'tables', (SELECT count(*) FROM information_schema.tables WHERE table_schema='public'),
+  'indexes', (SELECT count(*) FROM pg_indexes WHERE schemaname='public'),
+  'dead_tuples', COALESCE((SELECT sum(n_dead_tup) FROM pg_stat_user_tables),0),
+  'analyze_recommended', COALESCE((SELECT sum(n_dead_tup) FROM pg_stat_user_tables),0) > 10000
+)::text;
+`).CombinedOutput()
+	if err != nil {
+		response.Err(w, http.StatusFailedDependency, "DATABASE_HEALTH_FAILED", safeCommandOutput(out))
+		return
+	}
+	response.JSON(w, http.StatusOK, map[string]any{"status": "healthy", "result": json.RawMessage(strings.TrimSpace(string(out)))})
 }
 func (h *BackupsHandler) Download(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

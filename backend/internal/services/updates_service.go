@@ -35,10 +35,7 @@ import (
 const (
 	defaultRepo         = "atenimedia-llc/ncs-online"
 	defaultVersionPath  = "/app/VERSION"
-	pollInterval        = 5 * time.Minute
-	httpTimeout         = 10 * time.Second
 	githubReleasesURL   = "https://api.github.com/repos/%s/releases/latest"
-	minRecommendedFreeB = 1 << 30 // 1 GiB — refuse pre-flight under this.
 )
 
 type GithubRelease struct {
@@ -74,6 +71,8 @@ type Preflight struct {
 type SmartUpdateSettings struct {
 	RepoSlug       string     `json:"repo_slug"`
 	GithubToken    string     `json:"github_token,omitempty"`
+	TargetBranch   string     `json:"target_branch"`
+	WorkTree       string     `json:"work_tree"`
 	ComposeProject string     `json:"compose_project"`
 	DeployServices []string   `json:"deploy_services"`
 	DeployScript   string     `json:"deploy_script"`
@@ -110,7 +109,7 @@ func NewUpdatesService(db *pgxpool.Pool) *UpdatesService {
 		repoSlug:    repo,
 		versionPath: versionPath,
 		db:          db,
-		http:        &http.Client{Timeout: httpTimeout},
+		http:        &http.Client{Timeout: durationEnv("GITHUB_HTTP_TIMEOUT", 10*time.Second)},
 		stop:        make(chan struct{}),
 	}
 }
@@ -134,7 +133,7 @@ func (s *UpdatesService) Stop() {
 func (s *UpdatesService) loop(ctx context.Context) {
 	// First poll immediately so the UI doesn't show "never checked" on cold start.
 	_ = s.refresh(ctx)
-	t := time.NewTicker(pollInterval)
+	t := time.NewTicker(durationEnv("SMART_UPDATE_POLL_INTERVAL", 5*time.Minute))
 	defer t.Stop()
 	for {
 		select {
@@ -174,7 +173,7 @@ func (s *UpdatesService) fetchLatestRelease(ctx context.Context) (*GithubRelease
 	if repoSlug == "" {
 		repoSlug = s.repoSlug
 	}
-	url := fmt.Sprintf(githubReleasesURL, repoSlug)
+	url := fmt.Sprintf(firstNonEmpty(os.Getenv("GITHUB_RELEASES_URL_TEMPLATE"), githubReleasesURL), repoSlug)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
@@ -249,12 +248,14 @@ func (s *UpdatesService) Preflight(ctx context.Context) (*Preflight, error) {
 func (s *UpdatesService) Settings(ctx context.Context) SmartUpdateSettings {
 	settings := SmartUpdateSettings{
 		RepoSlug:       s.repoSlug,
+		TargetBranch:   firstNonEmpty(os.Getenv("GITHUB_TARGET_BRANCH"), "main"),
+		WorkTree:       firstNonEmpty(os.Getenv("APP_WORK_TREE"), "/app"),
 		ComposeProject: firstNonEmpty(os.Getenv("COMPOSE_PROJECT_NAME"), "ncs-online"),
-		DeployServices: []string{"backend", "frontend", "nsmis-worker", "backup"},
-		PreservePaths:  []string{"uploads_data", "private_data", "app_logs", "backups_data", "postgres_data"},
+		DeployServices: csvEnv("SMART_UPDATE_DEPLOY_SERVICES", []string{"backend", "frontend", "nsmis-worker", "backup"}),
+		PreservePaths:  csvEnv("SMART_UPDATE_PRESERVE_PATHS", []string{"uploads_data", "private_data", "app_logs", "backups_data", "postgres_data"}),
 	}
-	row := s.db.QueryRow(ctx, `SELECT repo_slug,github_token,compose_project,deploy_services,deploy_script,preserve_paths,updated_at,updated_by FROM smart_update_settings WHERE singleton=TRUE`)
-	_ = row.Scan(&settings.RepoSlug, &settings.GithubToken, &settings.ComposeProject, &settings.DeployServices, &settings.DeployScript, &settings.PreservePaths, &settings.UpdatedAt, &settings.UpdatedBy)
+	row := s.db.QueryRow(ctx, `SELECT repo_slug,github_token,target_branch,work_tree,compose_project,deploy_services,deploy_script,preserve_paths,updated_at,updated_by FROM smart_update_settings WHERE singleton=TRUE`)
+	_ = row.Scan(&settings.RepoSlug, &settings.GithubToken, &settings.TargetBranch, &settings.WorkTree, &settings.ComposeProject, &settings.DeployServices, &settings.DeployScript, &settings.PreservePaths, &settings.UpdatedAt, &settings.UpdatedBy)
 	return settings
 }
 
@@ -262,31 +263,39 @@ func (s *UpdatesService) SaveSettings(ctx context.Context, settings SmartUpdateS
 	if strings.TrimSpace(settings.RepoSlug) == "" {
 		settings.RepoSlug = defaultRepo
 	}
+	if strings.TrimSpace(settings.TargetBranch) == "" {
+		settings.TargetBranch = "main"
+	}
+	if strings.TrimSpace(settings.WorkTree) == "" {
+		settings.WorkTree = "/app"
+	}
 	if strings.TrimSpace(settings.ComposeProject) == "" {
 		settings.ComposeProject = "ncs-online"
 	}
 	if len(settings.DeployServices) == 0 {
-		settings.DeployServices = []string{"backend", "frontend", "nsmis-worker", "backup"}
+		settings.DeployServices = csvEnv("SMART_UPDATE_DEPLOY_SERVICES", []string{"backend", "frontend", "nsmis-worker", "backup"})
 	}
 	if len(settings.PreservePaths) == 0 {
-		settings.PreservePaths = []string{"uploads_data", "private_data", "app_logs", "backups_data", "postgres_data"}
+		settings.PreservePaths = csvEnv("SMART_UPDATE_PRESERVE_PATHS", []string{"uploads_data", "private_data", "app_logs", "backups_data", "postgres_data"})
 	}
 	var saved SmartUpdateSettings
 	err := s.db.QueryRow(ctx, `
-		INSERT INTO smart_update_settings(singleton,repo_slug,github_token,compose_project,deploy_services,deploy_script,preserve_paths,updated_by,updated_at)
-		VALUES(TRUE,$1,$2,$3,$4,$5,$6,$7,NOW())
+		INSERT INTO smart_update_settings(singleton,repo_slug,github_token,target_branch,work_tree,compose_project,deploy_services,deploy_script,preserve_paths,updated_by,updated_at)
+		VALUES(TRUE,$1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())
 		ON CONFLICT(singleton) DO UPDATE SET
 		  repo_slug=EXCLUDED.repo_slug,
 		  github_token=EXCLUDED.github_token,
+		  target_branch=EXCLUDED.target_branch,
+		  work_tree=EXCLUDED.work_tree,
 		  compose_project=EXCLUDED.compose_project,
 		  deploy_services=EXCLUDED.deploy_services,
 		  deploy_script=EXCLUDED.deploy_script,
 		  preserve_paths=EXCLUDED.preserve_paths,
 		  updated_by=EXCLUDED.updated_by,
 		  updated_at=NOW()
-		RETURNING repo_slug,github_token,compose_project,deploy_services,deploy_script,preserve_paths,updated_at,updated_by`,
-		settings.RepoSlug, settings.GithubToken, settings.ComposeProject, settings.DeployServices, settings.DeployScript, settings.PreservePaths, actor,
-	).Scan(&saved.RepoSlug, &saved.GithubToken, &saved.ComposeProject, &saved.DeployServices, &saved.DeployScript, &saved.PreservePaths, &saved.UpdatedAt, &saved.UpdatedBy)
+		RETURNING repo_slug,github_token,target_branch,work_tree,compose_project,deploy_services,deploy_script,preserve_paths,updated_at,updated_by`,
+		settings.RepoSlug, settings.GithubToken, settings.TargetBranch, settings.WorkTree, settings.ComposeProject, settings.DeployServices, settings.DeployScript, settings.PreservePaths, actor,
+	).Scan(&saved.RepoSlug, &saved.GithubToken, &saved.TargetBranch, &saved.WorkTree, &saved.ComposeProject, &saved.DeployServices, &saved.DeployScript, &saved.PreservePaths, &saved.UpdatedAt, &saved.UpdatedBy)
 	return saved.Redacted(), err
 }
 
@@ -304,6 +313,48 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func csvEnv(key string, fallback []string) []string {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if value := strings.TrimSpace(part); value != "" {
+			out = append(out, value)
+		}
+	}
+	if len(out) == 0 {
+		return fallback
+	}
+	return out
+}
+
+func durationEnv(key string, fallback time.Duration) time.Duration {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := time.ParseDuration(value)
+	if err != nil || parsed <= 0 {
+		return fallback
+	}
+	return parsed
+}
+
+func uint64Env(key string, fallback uint64) uint64 {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	var parsed uint64
+	if _, err := fmt.Sscanf(value, "%d", &parsed); err != nil || parsed == 0 {
+		return fallback
+	}
+	return parsed
 }
 
 func (s *UpdatesService) readVersionFile() string {

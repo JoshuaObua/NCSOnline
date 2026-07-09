@@ -83,6 +83,8 @@ func (u *Uploader) Upload(ctx context.Context, in UploadInput) (*UploadResult, e
 		return u.uploadGoogleDrive(ctx, in)
 	case "s3":
 		return u.uploadS3(ctx, in)
+	case "supabase":
+		return u.uploadSupabase(ctx, in)
 	default:
 		return nil, fmt.Errorf("unsupported storage provider %q", provider)
 	}
@@ -325,6 +327,50 @@ func (u *Uploader) s3PublicURL(key string) string {
 	}
 	endpoint, _ := u.s3ObjectURL(key)
 	return endpoint
+}
+
+// uploadSupabase pushes the file to a Supabase Storage bucket via its native
+// REST API (https://supabase.com/docs/guides/storage). Unlike S3 this needs
+// no request signing — just a bearer token — so the upload is a single PUT.
+func (u *Uploader) uploadSupabase(ctx context.Context, in UploadInput) (*UploadResult, error) {
+	if u.settings.SupabaseURL == "" || u.settings.SupabaseBucket == "" || u.settings.SupabaseServiceKey == "" {
+		return nil, errors.New("supabase url, bucket and service role key are not configured")
+	}
+	ext := strings.ToLower(filepath.Ext(in.Filename))
+	filename := uniqueName(ext)
+	key := path.Join(cleanSegment(u.settings.SupabasePrefix), cleanSegment(in.Subdir), filename)
+	endpoint := strings.TrimRight(u.settings.SupabaseURL, "/") + "/storage/v1/object/" +
+		url.PathEscape(u.settings.SupabaseBucket) + "/" + escapeKey(key)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, endpoint, in.Reader)
+	if err != nil {
+		return nil, err
+	}
+	if in.Size > 0 {
+		req.ContentLength = in.Size
+	}
+	req.Header.Set("Authorization", "Bearer "+u.settings.SupabaseServiceKey)
+	req.Header.Set("apikey", u.settings.SupabaseServiceKey)
+	req.Header.Set("Content-Type", contentType(in.ContentType, filename))
+	req.Header.Set("x-upsert", "true")
+	resp, err := u.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		b, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+		return nil, fmt.Errorf("supabase upload failed: %s %s", resp.Status, strings.TrimSpace(string(b)))
+	}
+	return &UploadResult{URL: u.supabasePublicURL(key), Filename: filename, Provider: "supabase", Key: key}, nil
+}
+
+func (u *Uploader) supabasePublicURL(key string) string {
+	base := strings.TrimRight(u.settings.SupabaseURL, "/")
+	visibility := "object"
+	if u.settings.SupabasePublicRead {
+		visibility = "object/public"
+	}
+	return base + "/storage/v1/" + visibility + "/" + url.PathEscape(u.settings.SupabaseBucket) + "/" + escapeKey(key)
 }
 
 func signS3(req *http.Request, cfg Settings, now time.Time, payloadHash string) {
