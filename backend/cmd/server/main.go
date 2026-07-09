@@ -269,6 +269,7 @@ func main() {
 				r.Post("/{templateID}/draft", h.Forms.PortalSaveDraft)
 			})
 			r.Route("/portal/submissions", func(r chi.Router) {
+				r.Get("/", h.Forms.PortalListSubmissions)
 				r.Get("/{id}", h.Forms.PortalGetSubmission)
 				r.Post("/{id}/submit", h.Forms.PortalSubmit)
 				r.Post("/{id}/payment-proof", h.Forms.PortalUploadPaymentProof)

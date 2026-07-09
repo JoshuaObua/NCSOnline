@@ -19,6 +19,12 @@ import (
 
 type OrganisationRepo struct{ db *pgxpool.Pool }
 
+func (r *OrganisationRepo) CountAll(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM organisations WHERE status <> 'ARCHIVED'`).Scan(&count)
+	return count, err
+}
+
 func (r *OrganisationRepo) ListForUser(ctx context.Context, userID string) ([]models.Organisation, error) {
 	const q = `SELECT o.id,o.profile_reference,o.organisation_type,o.legal_name,o.display_name,
 		o.official_email,o.official_phone,o.registration_number,o.status,m.role,o.created_at,o.updated_at

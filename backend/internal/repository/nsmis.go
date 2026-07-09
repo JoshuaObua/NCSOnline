@@ -25,6 +25,12 @@ type GovernanceDraftInput struct {
 
 type NSMISRepo struct{ db *pgxpool.Pool }
 
+func (r *NSMISRepo) CountAthletes(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM athletes WHERE deleted_at IS NULL`).Scan(&count)
+	return count, err
+}
+
 func (r *NSMISRepo) HasAnyPermission(ctx context.Context, userID string, names ...string) (bool, error) {
 	if len(names) == 0 {
 		return false, nil

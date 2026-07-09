@@ -6,11 +6,21 @@
           <img alt="NCS" class="h-16 mx-auto mb-4" src="/main-logo.png" />
         </router-link>
         <h1 class="text-2xl font-bold text-[#1a365d]">NCS Portal</h1>
-        <p class="text-gray-600 mt-1">Sign in to manage portal operations</p>
+        <p class="text-gray-600 mt-1">{{ registerMode ? 'Create your account to apply for NCS services' : 'Sign in to continue to your workspace' }}</p>
       </div>
 
       <div class="bg-white rounded-2xl shadow-lg p-8">
-        <form class="space-y-5" novalidate @submit.prevent="login">
+        <form class="space-y-5" novalidate @submit.prevent="submit">
+          <div v-if="registerMode" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-first-name">First Name</label>
+              <input id="portal-first-name" v-model.trim="firstName" class="mt-1 flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-[#f5a623] md:text-sm" autocomplete="given-name" required />
+            </div>
+            <div>
+              <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-last-name">Last Name</label>
+              <input id="portal-last-name" v-model.trim="lastName" class="mt-1 flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-[#f5a623] md:text-sm" autocomplete="family-name" required />
+            </div>
+          </div>
           <div>
             <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-email">Email Address</label>
             <div class="relative mt-1">
@@ -53,7 +63,14 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-between gap-4">
+          <div v-if="registerMode">
+            <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-confirm-password">Confirm Password</label>
+            <div class="relative mt-1">
+              <input id="portal-confirm-password" v-model="confirmPassword" :type="showPassword ? 'text' : 'password'" autocomplete="new-password" class="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-[#f5a623] md:text-sm" required />
+            </div>
+          </div>
+
+          <div v-if="!registerMode" class="flex items-center justify-between gap-4">
             <label class="flex items-center gap-2 cursor-pointer">
               <input id="remember-me" v-model="remember" type="checkbox" class="rounded border-gray-300 text-[#f5a623] focus:ring-[#f5a623]" />
               <span class="text-sm text-gray-600">Remember me</span>
@@ -71,11 +88,19 @@
             <span class="flex items-center justify-center gap-2">
               <svg v-if="!loading" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
               <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"/></svg>
-              {{ loading ? 'Signing in...' : 'Sign In' }}
+              {{ loading ? (registerMode ? 'Creating account...' : 'Signing in...') : (registerMode ? 'Create Account' : 'Sign In') }}
             </span>
           </button>
         </form>
 
+        <div class="mt-6 border-t border-gray-100 pt-5 text-center">
+          <p class="text-sm text-gray-600">
+            {{ registerMode ? 'Already have an account?' : 'New to the NCS Portal?' }}
+            <button type="button" class="ml-1 font-semibold text-[#d88700] hover:underline" @click="toggleMode">
+              {{ registerMode ? 'Sign in' : 'Create account' }}
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   </main>
@@ -84,7 +109,9 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import apiClient, { API_BASE_URL } from '@/api/client.js'
+import { API_BASE_URL } from '@/api/client.js'
+import { loginAccount, registerAccount } from '@/api/auth.js'
+import { portalDestination } from '@/utils/portalAuth.js'
 
 const router = useRouter()
 const email = ref('')
@@ -93,6 +120,14 @@ const loading = ref(false)
 const error = ref('')
 const remember = ref(false)
 const showPassword = ref(false)
+const registerMode = ref(false)
+const firstName = ref('')
+const lastName = ref('')
+const confirmPassword = ref('')
+
+function submit() {
+  return registerMode.value ? register() : login()
+}
 
 async function login() {
   loading.value = true
@@ -102,17 +137,50 @@ async function login() {
       enterPreviewMode()
       return
     }
-    const res = await apiClient.post('/api/v1/auth/login', { email: email.value, password: password.value })
+    const res = await loginAccount({ email: email.value, password: password.value })
     const data = res.data?.data || {}
     localStorage.setItem('ncsms_access_token', data.access_token || '')
     localStorage.setItem('ncsms_user', JSON.stringify(data.user || {}))
-    router.push('/portal')
+    router.push(portalDestination(data.user || {}))
   } catch (err) {
     if (!err.response && isDefaultPreviewLogin()) {
       enterPreviewMode()
       return
     }
     error.value = err.response?.data?.error?.message || 'Login failed. Check the portal credentials and API server.'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function register() {
+  error.value = ''
+  if (!firstName.value || !lastName.value || !email.value) {
+    error.value = 'Enter your name and email address.'
+    return
+  }
+  if (password.value.length < 8) {
+    error.value = 'Password must be at least 8 characters.'
+    return
+  }
+  if (password.value !== confirmPassword.value) {
+    error.value = 'Passwords do not match.'
+    return
+  }
+  loading.value = true
+  try {
+    const res = await registerAccount({
+      first_name: firstName.value,
+      last_name: lastName.value,
+      email: email.value,
+      password: password.value,
+    })
+    const data = res.data?.data || {}
+    localStorage.setItem('ncsms_access_token', data.access_token || '')
+    localStorage.setItem('ncsms_user', JSON.stringify(data.user || {}))
+    router.push('/dashboard')
+  } catch (err) {
+    error.value = err.response?.data?.error?.message || 'Registration failed. Please try again.'
   } finally {
     loading.value = false
   }
@@ -126,6 +194,13 @@ function enterPreviewMode() {
   localStorage.setItem('ncsms_access_token', 'local-portal-preview-token')
   localStorage.setItem('ncsms_user', JSON.stringify({ email: email.value, roles: ['super_admin'] }))
   router.push('/portal')
+}
+
+function toggleMode() {
+  registerMode.value = !registerMode.value
+  error.value = ''
+  password.value = ''
+  confirmPassword.value = ''
 }
 
 async function canReachApi() {

@@ -1,5 +1,13 @@
 import apiClient from './client.js'
 
+export function registerAccount(payload) {
+  return apiClient.post('/api/v1/auth/register', payload)
+}
+
+export function loginAccount(payload) {
+  return apiClient.post('/api/v1/auth/login', payload)
+}
+
 export function loginWithGoogleCredential(credential) {
   return apiClient.post('/api/v1/auth/google', { credential })
 }

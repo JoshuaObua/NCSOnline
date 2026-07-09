@@ -44,7 +44,7 @@ const apiClient = axios.create({
   }
 })
 
-const AUTH_ENDPOINTS = ['/auth/login', '/auth/google', '/auth/refresh', '/auth/logout']
+const AUTH_ENDPOINTS = ['/auth/login', '/auth/register', '/auth/google', '/auth/refresh', '/auth/logout']
 const isAuthEndpoint = url => AUTH_ENDPOINTS.some(path => url?.includes(path))
 
 function decodeJwtExpMs(token) {

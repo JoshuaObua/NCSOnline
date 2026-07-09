@@ -37,10 +37,13 @@
 const routes = [
   { name: 'Portal Login', path: '/login', purpose: 'Default entry point for all visitors.' },
   { name: 'Portal Dashboard', path: '/portal', purpose: 'Authenticated operations workspace.' },
+  { name: 'User Dashboard', path: '/dashboard', purpose: 'Ordinary-user applications and account workspace.' },
   { name: 'Legacy Portal Redirect', path: '/cms', purpose: 'Legacy /cms URL retained for rollback and bookmarks.' },
 ]
 
 const modules = [
+  { name: 'Admin Dashboard', slug: 'overview', scope: 'Operations' },
+  { name: 'All Applications', slug: 'applications', scope: 'Applications' },
   { name: 'Create User', slug: 'users', scope: 'Users' },
   { name: 'Manage Users', slug: 'manage-users', scope: 'Users' },
   { name: 'Add Role', slug: 'roles', scope: 'Roles' },
@@ -49,6 +52,7 @@ const modules = [
   { name: 'Manage Federations', slug: 'manage-federations', scope: 'Federations' },
   { name: 'Federation Categories', slug: 'create-federation-categories', scope: 'Federations' },
   { name: 'Manage Federation Categories', slug: 'manage-federation-categories', scope: 'Federations' },
+  { name: 'Custom Form Builder', slug: 'form-builder', scope: 'Applications' },
   { name: 'Audit Logs', slug: 'audit-logs', scope: 'Security' },
   { name: 'Third-Party Integrations', slug: 'third-party-integrations', scope: 'Settings' },
   { name: 'Portal Settings', slug: 'website-settings', scope: 'Settings' },

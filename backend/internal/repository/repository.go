@@ -315,6 +315,21 @@ func (r *UserRepo) CountAll(ctx context.Context) (int64, error) {
 	return n, err
 }
 
+func (r *UserRepo) CountOrdinary(ctx context.Context) (int64, error) {
+	var n int64
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM users u
+		WHERE u.deleted_at IS NULL
+		  AND NOT EXISTS (
+		    SELECT 1
+		    FROM user_roles ur
+		    JOIN roles r ON r.id = ur.role_id
+		    WHERE ur.user_id = u.id AND r.name <> 'user'
+		  )`).Scan(&n)
+	return n, err
+}
+
 func (r *UserRepo) CountSuperAdmins(ctx context.Context) (int64, error) {
 	const q = `SELECT COUNT(*) FROM user_roles ur
 	           JOIN roles ro ON ro.id = ur.role_id

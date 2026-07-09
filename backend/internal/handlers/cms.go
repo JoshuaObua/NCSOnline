@@ -444,12 +444,12 @@ func (h *CMSHandler) ListContactMessages(w http.ResponseWriter, r *http.Request)
 
 func (h *CMSHandler) CreateContactMessage(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Name         string `json:"name"`
-		Email        string `json:"email"`
-		Subject      string `json:"subject"`
-		Message      string `json:"message"`
-		Website      string `json:"website"`
-		CaptchaToken string `json:"captcha_token"`
+		Name          string `json:"name"`
+		Email         string `json:"email"`
+		Subject       string `json:"subject"`
+		Message       string `json:"message"`
+		Website       string `json:"website"`
+		CaptchaToken  string `json:"captcha_token"`
 		CaptchaAction string `json:"captcha_action"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -2149,9 +2149,11 @@ func (h *CMSHandler) UploadMedia(w http.ResponseWriter, r *http.Request) {
 	allowed := map[string]bool{
 		".jpg": true, ".jpeg": true, ".png": true, ".gif": true,
 		".webp": true, ".svg": true, ".pdf": true, ".mp4": true, ".webm": true,
+		".doc": true, ".docx": true, ".xls": true, ".xlsx": true,
+		".csv": true, ".txt": true,
 	}
 	if !allowed[ext] {
-		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "File type not allowed. Allowed: jpg, jpeg, png, gif, webp, svg, pdf, mp4, webm")
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "File type not allowed. Use an image, PDF, office document, CSV, text, or supported video file")
 		return
 	}
 	head := make([]byte, 512)
@@ -2164,7 +2166,7 @@ func (h *CMSHandler) UploadMedia(w http.ResponseWriter, r *http.Request) {
 	}
 
 	subDir := "images"
-	if ext == ".pdf" {
+	if map[string]bool{".pdf": true, ".doc": true, ".docx": true, ".xls": true, ".xlsx": true, ".csv": true, ".txt": true}[ext] {
 		subDir = "documents"
 	} else if ext == ".mp4" || ext == ".webm" {
 		subDir = "videos"
@@ -2175,8 +2177,12 @@ func (h *CMSHandler) UploadMedia(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load storage settings")
 		return
 	}
+	scope := storage.ScopePublic
+	if r.FormValue("scope") == string(storage.ScopeApplication) {
+		scope = storage.ScopeApplication
+	}
 	result, err := storage.NewUploader(settings).Upload(r.Context(), storage.UploadInput{
-		Scope:       storage.ScopePublic,
+		Scope:       scope,
 		Reader:      io.MultiReader(bytes.NewReader(head), file),
 		Filename:    header.Filename,
 		ContentType: detected,
@@ -2237,6 +2243,12 @@ func allowedMagic(ext, detected string, head []byte) bool {
 		return strings.HasPrefix(s, "<svg") || strings.Contains(s, "<svg")
 	case ".pdf":
 		return detected == "application/pdf"
+	case ".doc", ".xls":
+		return len(head) >= 8 && head[0] == 0xd0 && head[1] == 0xcf && head[2] == 0x11 && head[3] == 0xe0
+	case ".docx", ".xlsx":
+		return len(head) >= 4 && head[0] == 'P' && head[1] == 'K' && head[2] == 0x03 && head[3] == 0x04
+	case ".csv", ".txt":
+		return strings.HasPrefix(detected, "text/plain") || strings.HasPrefix(detected, "text/csv") || detected == "application/octet-stream"
 	case ".mp4":
 		return len(head) >= 12 && strings.Contains(string(head[4:12]), "ftyp")
 	case ".webm":

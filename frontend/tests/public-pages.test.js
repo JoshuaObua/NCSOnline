@@ -28,16 +28,18 @@ test('router is portal-only and sends legacy/public slugs to login', () => {
   }
 })
 
-test('portal login starts blank and enters the portal dashboard', () => {
+test('portal login starts blank and supports ordinary-user registration', () => {
   const login = read('../src/views/CMSLoginView.vue')
 
   assert.match(login, /NCS Portal/)
   assert.match(login, /const email = ref\(''\)/)
   assert.match(login, /const password = ref\(''\)/)
   assert.match(login, /const remember = ref\(false\)/)
-  assert.match(login, /router\.push\('\/portal'\)/)
+  assert.match(login, /registerAccount/)
+  assert.match(login, /portalDestination/)
+  assert.match(login, /Create Account/)
   assert.match(login, /local-portal-preview-token/)
-  assert.doesNotMatch(login, /Back to Home|Create Account|router\.push\('\/cms'\)/)
+  assert.doesNotMatch(login, /Back to Home|router\.push\('\/cms'\)/)
   assert.doesNotMatch(login, /const email = ref\('admin@ncs\.go\.ug'\)/)
   assert.doesNotMatch(login, /const password = ref\('NCS@Admin2026!'\)/)
 })
@@ -45,8 +47,9 @@ test('portal login starts blank and enters the portal dashboard', () => {
 test('portal shell exposes only retained operational modules', () => {
   const portal = read('../src/views/WebsiteContentManagerView.vue')
 
-  assert.match(portal, /const active = ref\('manage-users'\)/)
-  assert.match(portal, /const topSections = \[\]/)
+  assert.match(portal, /const active = ref\('overview'\)/)
+  assert.match(portal, /id:'overview', label:'Dashboard'/)
+  assert.match(portal, /id:'applications', label:'Applications'/)
   assert.match(portal, /const homepageSections = \[\]/)
   assert.match(portal, /const blogSections = \[\]/)
   assert.match(portal, /const facilitySections = \[\]/)
@@ -60,6 +63,7 @@ test('portal shell exposes only retained operational modules', () => {
     'manage-users',
     'associations',
     'manage-federations',
+    'form-builder',
     'audit-logs',
     'third-party-integrations',
     'website-settings',
@@ -93,8 +97,11 @@ test('sitemap documents portal routes and module slugs only', () => {
   assert.match(sitemap, /Portal Sitemap/)
   assert.match(sitemap, /path: '\/login'/)
   assert.match(sitemap, /path: '\/portal'/)
+  assert.match(sitemap, /path: '\/dashboard'/)
   assert.match(sitemap, /path: '\/cms'/)
   assert.match(sitemap, /slug: 'manage-users'/)
+  assert.match(sitemap, /slug: 'form-builder'/)
+  assert.match(sitemap, /slug: 'applications'/)
   assert.match(sitemap, /slug: 'maintenance'/)
 
   for (const publicPath of ['/news', '/pages/', '/events', '/careers', '/facilities']) {

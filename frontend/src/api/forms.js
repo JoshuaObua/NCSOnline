@@ -34,6 +34,8 @@ export const portalSaveDraft = (templateId, answers) =>
   apiClient.post(`/api/v1/portal/forms/${templateId}/draft`, { answers }).then(r => r.data?.data ?? r.data)
 export const portalGetSubmission = (id) =>
   apiClient.get(`/api/v1/portal/submissions/${id}`).then(r => r.data?.data ?? r.data)
+export const portalListSubmissions = (params = {}) =>
+  apiClient.get('/api/v1/portal/submissions', { params }).then(r => r.data)
 export const portalSubmit = (id) =>
   apiClient.post(`/api/v1/portal/submissions/${id}/submit`).then(r => r.data?.data ?? r.data)
 export const portalUploadPaymentProof = (id, paymentReference, paymentAmountUgx) =>

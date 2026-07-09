@@ -77,10 +77,6 @@ func (s *AuthService) Register(ctx context.Context, firstName, lastName, email, 
 		return nil, fmt.Errorf("create user: %w", err)
 	}
 
-	if role, err := s.users.GetRoleByName(ctx, "user"); err == nil {
-		_ = s.users.AssignRole(ctx, u.ID, role.ID, u.ID)
-	}
-
 	roles, _ := s.users.GetRoles(ctx, u.ID)
 	u.Roles = roles
 

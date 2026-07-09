@@ -293,9 +293,10 @@ export function adminUpdateSettings(key, value) {
 
 // ── Media Upload ──────────────────────────────────────────────────
 
-export function uploadMedia(file) {
+export function uploadMedia(file, scope = 'public') {
   const fd = new FormData()
   fd.append('file', file)
+  fd.append('scope', scope)
   return apiClient.post('/api/v1/media/upload', fd, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })

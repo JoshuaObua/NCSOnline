@@ -1,5 +1,30 @@
 # Changelog
 
+## 2026-07-09 - Admin and ordinary-user dashboards
+
+### Added
+- Added an administrative operations dashboard with live KPIs for all applications, athletes, organisation profiles, users, ordinary users, open forms, review queues, and application statuses.
+- Added an Applications sidebar module that combines standard applications and custom-form submissions into one searchable review workspace with details, notes, approvals, rejections, and information requests.
+- Added a responsive ordinary-user dashboard with Apply Now, My Applications, My Activities, Notifications, Messages, My Transactions, My Profile, and account navigation.
+- Added dynamic open-form cards below the ordinary-user KPIs and a complete application flow with generated fields, draft saving, document uploads, payment-proof capture, and final submission.
+- Added account registration to the login screen, role-aware routing, applicant submission listing, and common office-document support for application uploads.
+- Opened the authenticated gateway paths for applicant-owned applications and transactions while retaining the intranet block on administrative domain modules.
+- Added regression tests for role routing, ordinary-user navigation, registration, dashboard contracts, admin application integration, and applicant form APIs.
+
+### Changed
+- New email/password registrations now remain roleless and are treated as ordinary users; existing accounts with only the legacy `user` role receive the same applicant experience.
+- Staff accounts continue to enter the administrative portal, while ordinary users are isolated from administrative routes and controls.
+
+## 2026-07-09 - Custom form builder portal
+
+### Added
+- Added a Custom Form Builder module to the portal sidebar for authorized administrators and the General Secretary.
+- Added a complete form-management view with template filtering, department ownership, lifecycle status, UGX fees, banner uploads, ordered field authoring, option and file-type configuration, live previews, archiving, submission filtering, answer review, payment verification, review notes, and approval decisions.
+- Added frontend regression tests for form payload serialization, field configuration, paged submissions, sidebar registration, API integration, and the form-field database migration.
+
+### Fixed
+- Replaced the form field key constraint with an active-record unique index so templates can be edited repeatedly while historical soft-deleted fields remain available.
+
 ## 2026-07-09 - Portal-only application cutover
 
 ### Changed

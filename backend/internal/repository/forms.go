@@ -82,6 +82,30 @@ func (r *DepartmentRepo) UserDepartmentIDs(ctx context.Context, userID string) (
 
 type FormRepo struct{ db *pgxpool.Pool }
 
+func (r *FormRepo) CountSubmissionsByStatus(ctx context.Context) (map[string]int64, error) {
+	rows, err := r.db.Query(ctx, `SELECT status, COUNT(*) FROM form_submissions GROUP BY status`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]int64{}
+	for rows.Next() {
+		var status string
+		var count int64
+		if err := rows.Scan(&status, &count); err != nil {
+			return nil, err
+		}
+		out[status] = count
+	}
+	return out, rows.Err()
+}
+
+func (r *FormRepo) CountOpenTemplates(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM form_templates WHERE status='OPEN'`).Scan(&count)
+	return count, err
+}
+
 type ListFormTemplatesFilter struct {
 	DepartmentIDs []string // empty = no filter (super-admin)
 	Status        string   // "" = all
@@ -481,4 +505,3 @@ func (r *FormRepo) Review(ctx context.Context, id, status, reviewerID, notes str
 	_, err := r.db.Exec(ctx, q, id, status, reviewerID, notes)
 	return err
 }
-

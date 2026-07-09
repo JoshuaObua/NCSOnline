@@ -220,7 +220,13 @@
         <p v-if="message" class="cms-message">{{ message }}</p>
         <p v-if="error" class="cms-error">{{ error }}</p>
 
-        <section v-if="active === 'overview'" class="otika-dashboard">
+        <AdminDashboardPanel
+          v-if="active === 'overview'"
+          @open-applications="openApplications"
+          @open-forms="selectSection('form-builder')"
+        />
+
+        <section v-else-if="false" class="otika-dashboard">
           <div class="row">
             <div v-for="card in dashboardStatCards" :key="card.label" class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-xs-12">
               <div class="card">
@@ -356,6 +362,13 @@
             </div>
           </div>
         </section>
+
+        <AdminApplicationsPanel
+          v-else-if="active === 'applications'"
+          :initial-filter="applicationFilter"
+          @message="setMsg"
+          @error="setErr"
+        />
 
         <section v-else-if="active === 'analytics'" class="otika-dashboard">
           <div class="row">
@@ -1569,6 +1582,7 @@
               <AppearanceSettingsPanel v-else-if="active === 'appearance'" @message="setMsg" @error="setErr" />
               <ProfileSettingsPanel v-else-if="active === 'my-profile'" @message="setMsg" @error="setErr" @profile-updated="refreshStoredUser" />
               <StorageSettingsPanel v-else-if="active === 'storage'" @message="setMsg" @error="setErr" />
+              <FormBuilderPanel v-else-if="active === 'form-builder'" @message="setMsg" @error="setErr" />
               <SystemCommandCenterPanel v-else-if="active === 'command-center'" @message="setMsg" @error="setErr" />
               <MaintenanceModePanel v-else-if="active === 'maintenance'" @message="setMsg" @error="setErr" />
               <SmartUpdatesPanel v-else-if="active === 'smart-updates'" @message="setMsg" @error="setErr" />
@@ -1601,6 +1615,9 @@ import MenuBuilder from '@/components/cms/MenuBuilder.vue'
 import SlideshowManager from '@/components/cms/SlideshowManager.vue'
 import StaticPageBuilder from '@/components/cms/StaticPageBuilder.vue'
 import StorageSettingsPanel from '@/components/cms/StorageSettingsPanel.vue'
+import FormBuilderPanel from '@/components/cms/FormBuilderPanel.vue'
+import AdminApplicationsPanel from '@/components/portal/AdminApplicationsPanel.vue'
+import AdminDashboardPanel from '@/components/portal/AdminDashboardPanel.vue'
 import AppearanceSettingsPanel from '@/components/cms/AppearanceSettingsPanel.vue'
 import WebsiteSettingsPanel from '@/components/cms/WebsiteSettingsPanel.vue'
 import SitemapPanel from '@/components/cms/SitemapPanel.vue'
@@ -1614,7 +1631,8 @@ import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 import { normalizeMenuTree, toCmsMenuItems } from '@/utils/menuTree.js'
 
 const router = useRouter()
-const active = ref('manage-users')
+const active = ref('overview')
+const applicationFilter = ref('')
 const message = ref('')
 const error = ref('')
 const apiAvailable = ref(null)
@@ -1698,7 +1716,10 @@ const unreadMessageCount = computed(() => inboundCounts.value.total || contactMe
 const unreadNotificationCount = computed(() => cmsNotifications.value.filter(n => n.status === 'unread').length)
 const investmentRequests = computed(() => inboundSubmissions.value.filter(item => item.source_type === 'investment_request'))
 
-const topSections = []
+const topSections = [
+  { id:'overview', label:'Dashboard', icon:'icofont-dashboard-web' },
+  { id:'applications', label:'Applications', icon:'icofont-file-document' },
+]
 const homepageSections = []
 const slideshowSections = []
 const blogSections = []
@@ -1734,6 +1755,7 @@ const speechSections = []
 const funFactSections = []
 const newsletterSections = []
 const contentSections = [
+  { id:'form-builder', label:'Custom Form Builder', icon:'icofont-ui-edit' },
   { id:'audit-logs', label:'Audit Logs', icon:'icofont-shield-alt' },
   { id:'third-party-integrations', label:'Third-Party Integrations', icon:'icofont-plugin' },
   { id:'website-settings', label:'Portal Settings', icon:'icofont-globe' },
@@ -1753,6 +1775,7 @@ const currentSection = computed(() => sections.find(s => s.id === active.value) 
 
 const sectionPermissionMap = {
   overview:['dashboard:read'],
+  applications:['applications:admin:read'],
   analytics:['analytics:read','dashboard:read'],
   homepage:['homepage:read','homepage:update'],
   'homepage-about':['homepage:read','homepage:update'],
@@ -1822,6 +1845,7 @@ const sectionPermissionMap = {
   'investment-requests':['inbound_submissions:read'],
   notifications:['notifications:read'],
   comments:['comments:read'],
+  'form-builder':['applications:admin:read'],
   'audit-logs':['audit:read'],
   menus:['menus:read'],
   settings:['settings:read'],
@@ -1845,7 +1869,7 @@ const resourceLabels = {
   roles:'Roles', audit:'Audit Logs', dashboard:'Dashboard', cms:'Legacy Content', applications:'Applications',
   messages:'Contact Messages', notifications:'Notifications', inbound_submissions:'Inbound Submissions',
 }
-const portalPermissionResources = new Set(['users', 'roles', 'audit', 'settings', 'storage', 'dashboard', 'federations', 'federation_categories'])
+const portalPermissionResources = new Set(['users', 'roles', 'audit', 'settings', 'storage', 'dashboard', 'federations', 'federation_categories', 'applications'])
 const actionOrder = ['read', 'create', 'update', 'write', 'delete', 'activate', 'assign', 'roles', 'reset_password', 'export']
 
 const homepageDefaults = {
@@ -2372,6 +2396,12 @@ function hasPermission(permissionName) {
 }
 function canAccessSection(id) {
   if (!allowedPortalSectionIds.has(id)) return false
+  if (id === 'form-builder' || id === 'applications') {
+    const roles = normalizeRoleNames(storedUser.roles || storedUser.role || [])
+    return roles.some(role => ['super_admin', 'admin', 'general_secretary'].includes(role))
+      || currentPermissionNames.value.has('*')
+      || currentPermissionNames.value.has('applications:admin:read')
+  }
   const required = sectionPermissionMap[id] || []
   return !required.length || required.some(hasPermission)
 }
@@ -2549,6 +2579,11 @@ async function loadAll() {
     applyThirdPartySettings(data(results[5].value)?.value || {})
     if (active.value === 'manage-users' || active.value === 'users') await loadUsers()
   } catch (err) { setErr(err) }
+}
+
+function openApplications(filter = '') {
+  applicationFilter.value = filter
+  selectSection('applications')
 }
 
 async function loadAnalytics() {

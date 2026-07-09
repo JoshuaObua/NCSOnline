@@ -49,11 +49,14 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 	deployer := services.NewDeployer()
 
 	return &Handlers{
-		Auth:          &AuthHandler{svc: authSvc, users: repos.Users, cfg: cfg},
-		Users:         &UsersHandler{svc: userSvc, audit: repos.Audit},
-		Roles:         &RolesHandler{roles: repos.Roles, audit: repos.Audit},
-		Applications:  &ApplicationsHandler{svc: appSvc, audit: repos.Audit, storage: repos.CMS},
-		Dashboard:     &DashboardHandler{users: repos.Users, apps: repos.Applications},
+		Auth:         &AuthHandler{svc: authSvc, users: repos.Users, cfg: cfg},
+		Users:        &UsersHandler{svc: userSvc, audit: repos.Audit},
+		Roles:        &RolesHandler{roles: repos.Roles, audit: repos.Audit},
+		Applications: &ApplicationsHandler{svc: appSvc, audit: repos.Audit, storage: repos.CMS},
+		Dashboard: &DashboardHandler{
+			users: repos.Users, apps: repos.Applications, forms: repos.Forms,
+			nsmis: repos.NSMIS, organisations: repos.Organisations,
+		},
 		Audit:         &AuditHandler{repo: repos.Audit},
 		CMS:           &CMSHandler{repo: repos.CMS},
 		NSMIS:         &NSMISHandler{repo: repos.NSMIS, cfg: cfg},
