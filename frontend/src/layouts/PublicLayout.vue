@@ -6,7 +6,7 @@
           <img :src="maintenanceLogo" :alt="`${siteIdentity.name || 'NCS'} logo`" class="maintenance-logo" />
           <span>{{ siteIdentity.name || 'NCS Uganda' }}</span>
         </div>
-        <p class="maintenance-kicker">Public Website Maintenance</p>
+        <p class="maintenance-kicker">Public Portal Maintenance</p>
         <h1 id="public-maintenance-title">{{ maintenanceTitle }}</h1>
         <p class="maintenance-message">{{ maintenanceMessage }}</p>
         <div class="maintenance-actions" aria-label="Maintenance contact options">

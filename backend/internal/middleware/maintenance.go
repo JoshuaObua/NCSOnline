@@ -125,7 +125,7 @@ func publicMaintenanceHTML(scoped maintenance.ScopedSnapshot) string {
 <main class="shell">
 <section>
 <div class="brand"><img src="/main-logo.png" alt="National Council of Sports logo"><span>NCS Uganda</span></div>
-<p class="kicker">Public Website Maintenance</p>
+<p class="kicker">Public Portal Maintenance</p>
 <h1>%s</h1>
 <p class="message">%s</p>
 <div class="actions"><a href="mailto:info@ncs.go.ug">Email NCS</a><a class="alt" href="tel:+256414254477">Call NCS</a></div>

@@ -434,7 +434,7 @@ def _public_maintenance_html(title: str, message: str, expected_end: Any) -> str
 <main class="shell">
 <section>
 <div class="brand"><img src="/main-logo.png" alt="National Council of Sports logo"><span>NCS Uganda</span></div>
-<p class="kicker">Public Website Maintenance</p>
+<p class="kicker">Public Portal Maintenance</p>
 <h1>__TITLE__</h1>
 <p class="message">__MESSAGE__</p>
 <div class="actions"><a href="mailto:info@ncs.go.ug">Email NCS</a><a class="alt" href="tel:+256414254477">Call NCS</a></div>

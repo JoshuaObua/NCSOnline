@@ -110,7 +110,7 @@ import {
 const emit = defineEmits(['message', 'error'])
 
 const scopes = [
-  { key: 'public_cms', label: 'Public Website Maintenance' },
+  { key: 'public_cms', label: 'Public Portal Maintenance' },
   { key: 'admin_dashboard', label: 'Admin Dashboard Maintenance' },
 ]
 function emptyScope() {
