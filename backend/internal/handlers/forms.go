@@ -220,6 +220,24 @@ func (h *FormsHandler) AdminVerifySubmissionPayment(w http.ResponseWriter, r *ht
 	response.JSONMsg(w, http.StatusOK, "Payment verified")
 }
 
+// POST /api/v1/admin/forms/submissions/{id}/payment-status
+func (h *FormsHandler) AdminUpdateSubmissionPaymentStatus(w http.ResponseWriter, r *http.Request) {
+	reviewerID, _ := r.Context().Value(models.CtxUserID).(string)
+	id := chi.URLParam(r, "id")
+	var req struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if err := h.svc.UpdateSubmissionPaymentStatus(r.Context(), id, req.Status, reviewerID, isSuperAdmin(r)); err != nil {
+		h.writeServiceErr(w, err)
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Payment status updated")
+}
+
 // ── Public portal ────────────────────────────────────────────────
 
 // GET /api/v1/portal/forms/open

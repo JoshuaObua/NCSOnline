@@ -51,6 +51,7 @@ test('admin dashboard and application queue use operational APIs and KPI contrac
   const portal = read('../src/views/WebsiteContentManagerView.vue')
   const dashboard = read('../src/components/portal/AdminDashboardPanel.vue')
   const applications = read('../src/components/portal/AdminApplicationsPanel.vue')
+  const applicationDetail = read('../src/views/ApplicationDetailView.vue')
   const backend = read('../../backend/internal/handlers/dashboard.go')
 
   assert.match(portal, /<AdminDashboardPanel/)
@@ -61,8 +62,10 @@ test('admin dashboard and application queue use operational APIs and KPI contrac
   }
   assert.match(applications, /adminListApplications/)
   assert.match(applications, /adminListSubmissions/)
-  assert.match(applications, /adminReviewApplication/)
-  assert.match(applications, /adminReviewSubmission/)
+  assert.match(applications, /AdminApplicationDetail/)
+  assert.match(applicationDetail, /adminReviewApplication/)
+  assert.match(applicationDetail, /adminReviewSubmission/)
+  assert.match(applicationDetail, /adminUpdateSubmissionPaymentStatus/)
 })
 
 test('self-registration creates an intentionally roleless ordinary user', () => {

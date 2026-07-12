@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -536,20 +537,26 @@ func (r *ApplicationRepo) Create(ctx context.Context, a *models.Application) err
 }
 
 func (r *ApplicationRepo) GetByID(ctx context.Context, id string) (*models.Application, error) {
-	const q = `SELECT id, COALESCE(application_reference,''), user_id, form_type,
-	                  COALESCE(application_type,''), COALESCE(organisation_type,''),
-	                  status, payment_status, COALESCE(payment_method,''),
-	                  COALESCE(payment_reference,''), payment_amount_ugx, COALESCE(signed_form_url,''),
-	                  signed_form_uploaded_at, submitted_at, reviewer_id, COALESCE(review_notes,''),
-	                  approved_at, rejected_at, last_saved_step, form_data,
-	                  created_at, updated_at
-	           FROM applications WHERE id=$1`
+	const q = `SELECT a.id, COALESCE(a.application_reference,''), a.user_id, a.form_type,
+	                  COALESCE(a.application_type,''), COALESCE(a.organisation_type,''),
+	                  a.status, a.payment_status, COALESCE(a.payment_method,''),
+	                  COALESCE(a.payment_reference,''), a.payment_amount_ugx, COALESCE(a.signed_form_url,''),
+	                  a.signed_form_uploaded_at, a.submitted_at, a.reviewer_id, COALESCE(a.review_notes,''),
+	                  COALESCE(NULLIF(TRIM(COALESCE(rv.first_name,'') || ' ' || COALESCE(rv.last_name,'')), ''), rv.email, ''),
+	                  COALESCE(NULLIF(TRIM(COALESCE(pv.first_name,'') || ' ' || COALESCE(pv.last_name,'')), ''), pv.email, ''),
+	                  a.approved_at, a.rejected_at, a.last_saved_step, a.form_data,
+	                  a.created_at, a.updated_at
+	           FROM applications a
+	           LEFT JOIN users rv ON rv.id = a.reviewer_id
+	           LEFT JOIN users pv ON pv.id = a.payment_verified_by
+	           WHERE a.id=$1`
 	a := &models.Application{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
 		&a.ID, &a.ApplicationReference, &a.UserID, &a.FormType, &a.ApplicationType,
 		&a.OrganisationType, &a.Status, &a.PaymentStatus, &a.PaymentMethod,
 		&a.PaymentReference, &a.PaymentAmountUGX, &a.SignedFormURL,
 		&a.SignedFormUploadedAt, &a.SubmittedAt, &a.ReviewerID, &a.ReviewNotes,
+		&a.ReviewerName, &a.PaymentVerifierName,
 		&a.ApprovedAt, &a.RejectedAt, &a.LastSavedStep, &a.FormData,
 		&a.CreatedAt, &a.UpdatedAt,
 	)
@@ -627,6 +634,42 @@ func (r *ApplicationRepo) RequestInfo(ctx context.Context, id, reviewerID, notes
 	           updated_at=NOW() WHERE id=$1`
 	_, err := r.db.Exec(ctx, q, id, models.StatusNeedsInformation, reviewerID, notes)
 	return err
+}
+
+func (r *ApplicationRepo) UserDisplayName(ctx context.Context, userID string) (string, error) {
+	var name string
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE(NULLIF(TRIM(COALESCE(first_name,'') || ' ' || COALESCE(last_name,'')), ''), email, 'NCS reviewer')
+		FROM users
+		WHERE id=$1`, userID).Scan(&name)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "NCS reviewer", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
+func (r *ApplicationRepo) CreateApplicationNotification(ctx context.Context, userID, kind, title, message, iconKey string) error {
+	id := uuid.NewString()
+	if kind == "" {
+		kind = "application_update"
+	}
+	if iconKey == "" {
+		iconKey = "notification"
+	}
+	const q = `INSERT INTO notifications (id, user_id, type, title, message, status, icon_key)
+	           VALUES ($1,$2,$3,$4,$5,'unread',$6)
+	           RETURNING created_at`
+	var createdAt time.Time
+	if err := r.db.QueryRow(ctx, q, id, userID, kind, title, message, iconKey).Scan(&createdAt); err != nil {
+		return err
+	}
+	_, _ = r.db.Exec(ctx, `INSERT INTO system_notifications (id,user_id,event_type,title,message,severity,payload,status,created_at)
+		VALUES ($1,$2,$3,$4,$5,'info',$6::jsonb,'unread',$7)
+		ON CONFLICT (id) DO NOTHING`, id, userID, kind, title, message, `{}`, createdAt)
+	return nil
 }
 
 func (r *ApplicationRepo) VerifyPayment(ctx context.Context, id, verifiedBy string) error {

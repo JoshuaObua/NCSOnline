@@ -41,13 +41,13 @@ const props = defineProps({
 defineEmits(['start', 'view-all'])
 
 const visibleForms = computed(() => props.expanded ? props.forms : props.forms.slice(0, 6))
-const draftFor = id => props.submissions.find(item => item.template_id === id && item.status === 'DRAFT')
+const draftFor = id => props.submissions.find(item => item.template_id === id && ['DRAFT', 'NEEDS_INFORMATION'].includes(item.status))
 const pendingFor = id => props.submissions.find(item => item.template_id === id && isPendingSubmission(item))
-const actionLabel = id => pendingFor(id) ? 'Pending application' : (draftFor(id) ? 'Continue' : 'Start application')
+const actionLabel = id => pendingFor(id) ? 'Pending application' : (draftFor(id)?.status === 'NEEDS_INFORMATION' ? 'Edit queried' : (draftFor(id) ? 'Continue' : 'Start application'))
 const stepCount = form => buildSectionSteps(form).length
 const formatMoney = value => new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(Number(value || 0))
 const departmentLabel = value => /(^|_)(super_?admin|admin|user)($|_)/i.test(String(value || '')) ? 'NCS Service' : (value || 'NCS Service')
-const isPendingSubmission = item => item?.status && !['DRAFT', 'APPROVED', 'REJECTED'].includes(item.status)
+const isPendingSubmission = item => item?.status && !['DRAFT', 'NEEDS_INFORMATION', 'APPROVED', 'REJECTED'].includes(item.status)
 </script>
 
 <style scoped>

@@ -268,10 +268,15 @@ func (s *FormService) SaveOrCreateDraft(ctx context.Context, userID string, in S
 	}
 	existing, err := s.forms.GetActiveUserSubmissionForTemplate(ctx, userID, t.ID)
 	if err == nil {
-		if existing.Status != models.SubStatusDraft {
+		if existing.Status != models.SubStatusDraft && existing.Status != models.SubStatusNeedsInfo {
 			return nil, ErrDuplicatePending
 		}
-		if err := s.forms.UpdateAnswers(ctx, existing.ID, in.Answers); err != nil {
+		if existing.Status == models.SubStatusNeedsInfo {
+			err = s.forms.MakeEditable(ctx, existing.ID, in.Answers)
+		} else {
+			err = s.forms.UpdateAnswers(ctx, existing.ID, in.Answers)
+		}
+		if err != nil {
 			return nil, err
 		}
 		return s.forms.GetSubmission(ctx, existing.ID)
@@ -402,17 +407,124 @@ func (s *FormService) Review(ctx context.Context, id, status, reviewerID, notes 
 	if sub.Status == models.SubStatusDraft {
 		return ErrInvalidTransition
 	}
-	return s.forms.Review(ctx, id, status, reviewerID, notes)
+	status, err = normalizeSubmissionReviewStatus(status)
+	if err != nil {
+		return err
+	}
+	notes = strings.TrimSpace(notes)
+	if (status == models.SubStatusNeedsInfo || status == models.SubStatusRejected) && notes == "" {
+		return errors.New("review notes are required for queried or rejected applications")
+	}
+	if err := s.forms.Review(ctx, id, status, reviewerID, notes); err != nil {
+		return err
+	}
+	updated, err := s.forms.GetSubmission(ctx, id)
+	if err != nil {
+		return err
+	}
+	return s.notifyReviewDecision(ctx, updated, reviewerID, status, notes)
 }
 
 func (s *FormService) VerifySubmissionPayment(ctx context.Context, id, reviewerID string, isSuperAdmin bool) error {
+	return s.UpdateSubmissionPaymentStatus(ctx, id, "PAID", reviewerID, isSuperAdmin)
+}
+
+func (s *FormService) UpdateSubmissionPaymentStatus(ctx context.Context, id, status, reviewerID string, isSuperAdmin bool) error {
 	if _, err := s.GetSubmissionForAdmin(ctx, id, reviewerID, isSuperAdmin); err != nil {
 		return err
 	}
-	return s.forms.VerifyPayment(ctx, id, reviewerID)
+	status = strings.ToUpper(strings.TrimSpace(status))
+	if status == "" || status == "PENDING" {
+		status = "PROOF_UPLOADED"
+	}
+	switch status {
+	case "PROOF_UPLOADED", "VERIFICATION_FAILED", "PAID":
+	default:
+		return fmt.Errorf("invalid payment status: %s", status)
+	}
+	if err := s.forms.SetPaymentStatus(ctx, id, status, reviewerID); err != nil {
+		return err
+	}
+	updated, err := s.forms.GetSubmission(ctx, id)
+	if err != nil {
+		return err
+	}
+	return s.notifyPaymentDecision(ctx, updated, reviewerID, status)
 }
 
 // ── helpers ──────────────────────────────────────────────────────
+
+func normalizeSubmissionReviewStatus(status string) (string, error) {
+	status = strings.ToUpper(strings.TrimSpace(status))
+	switch status {
+	case models.SubStatusUnderReview, models.SubStatusNeedsInfo, models.SubStatusComplete, models.SubStatusApproved, models.SubStatusRejected:
+		return status, nil
+	case "QUERIED":
+		return models.SubStatusNeedsInfo, nil
+	default:
+		return "", fmt.Errorf("invalid status: %s", status)
+	}
+}
+
+func (s *FormService) notifyReviewDecision(ctx context.Context, sub *models.FormSubmission, reviewerID, status, notes string) error {
+	if sub == nil || sub.UserID == "" {
+		return nil
+	}
+	reviewerName := sub.ReviewerName
+	if reviewerName == "" {
+		name, err := s.forms.UserDisplayName(ctx, reviewerID)
+		if err != nil {
+			return err
+		}
+		reviewerName = name
+	}
+	formName := sub.TemplateTitle
+	if formName == "" {
+		formName = "your application"
+	}
+	messageSuffix := ""
+	if notes != "" {
+		messageSuffix = " Reason: " + notes
+	}
+	switch status {
+	case models.SubStatusNeedsInfo:
+		return s.forms.CreateSubmissionNotification(ctx, sub.UserID, "application_queried", "Application queried", fmt.Sprintf("%s queried %s.%s You can edit and resubmit it from your dashboard.", reviewerName, formName, messageSuffix), "question-circle")
+	case models.SubStatusRejected:
+		return s.forms.CreateSubmissionNotification(ctx, sub.UserID, "application_rejected", "Application rejected", fmt.Sprintf("%s rejected %s.%s", reviewerName, formName, messageSuffix), "close-circled")
+	case models.SubStatusApproved:
+		return s.forms.CreateSubmissionNotification(ctx, sub.UserID, "application_approved", "Application approved", fmt.Sprintf("%s approved %s.%s", reviewerName, formName, messageSuffix), "check-circled")
+	case models.SubStatusComplete:
+		return s.forms.CreateSubmissionNotification(ctx, sub.UserID, "application_complete", "Application marked complete", fmt.Sprintf("%s marked %s as complete.%s", reviewerName, formName, messageSuffix), "check")
+	default:
+		return nil
+	}
+}
+
+func (s *FormService) notifyPaymentDecision(ctx context.Context, sub *models.FormSubmission, reviewerID, status string) error {
+	if sub == nil || sub.UserID == "" {
+		return nil
+	}
+	reviewerName := sub.PaymentVerifierName
+	if reviewerName == "" {
+		name, err := s.forms.UserDisplayName(ctx, reviewerID)
+		if err != nil {
+			return err
+		}
+		reviewerName = name
+	}
+	formName := sub.TemplateTitle
+	if formName == "" {
+		formName = "your application"
+	}
+	switch status {
+	case "PAID":
+		return s.forms.CreateSubmissionNotification(ctx, sub.UserID, "payment_verified", "Payment verified", fmt.Sprintf("%s verified the payment for %s.", reviewerName, formName), "check-circled")
+	case "VERIFICATION_FAILED":
+		return s.forms.CreateSubmissionNotification(ctx, sub.UserID, "payment_failed", "Payment verification failed", fmt.Sprintf("%s marked the payment for %s as verification failed.", reviewerName, formName), "warning")
+	default:
+		return nil
+	}
+}
 
 func (s *FormService) normalizeAndSaveFields(ctx context.Context, templateID string, fields []*models.FormField) error {
 	seenKeys := map[string]bool{}

@@ -24,6 +24,8 @@ export const adminReviewSubmission = (id, status, notes) =>
   apiClient.post(`/api/v1/admin/forms/submissions/${id}/review`, { status, notes }).then(r => r.data)
 export const adminVerifySubmissionPayment = (id) =>
   apiClient.post(`/api/v1/admin/forms/submissions/${id}/verify-payment`).then(r => r.data)
+export const adminUpdateSubmissionPaymentStatus = (id, status) =>
+  apiClient.post(`/api/v1/admin/forms/submissions/${id}/payment-status`, { status }).then(r => r.data)
 
 // ── Public portal ──────────────────────────────────────────────
 export const portalListOpenForms = () =>

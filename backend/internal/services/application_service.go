@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
@@ -201,16 +202,25 @@ func (s *ApplicationService) Approve(ctx context.Context, id, reviewerID, notes 
 	}
 	if app.Status == models.StatusApproved && (app.FormType == "form_3" || app.FormType == "form_10") && s.organisations != nil {
 		_, err = s.organisations.ApproveAndProvision(ctx, app, reviewerID, notes)
-		return err
+		if err != nil {
+			return err
+		}
+		return s.notifyApplicationDecision(ctx, id, reviewerID, models.StatusApproved, notes)
 	}
 	if app.Status != models.StatusUnderReview && app.Status != models.StatusSubmitted && app.Status != models.StatusResubmitted {
 		return ErrInvalidTransition
 	}
 	if (app.FormType == "form_3" || app.FormType == "form_10") && s.organisations != nil {
 		_, err = s.organisations.ApproveAndProvision(ctx, app, reviewerID, notes)
+		if err != nil {
+			return err
+		}
+		return s.notifyApplicationDecision(ctx, id, reviewerID, models.StatusApproved, notes)
+	}
+	if err := s.apps.Approve(ctx, id, reviewerID, notes); err != nil {
 		return err
 	}
-	return s.apps.Approve(ctx, id, reviewerID, notes)
+	return s.notifyApplicationDecision(ctx, id, reviewerID, models.StatusApproved, notes)
 }
 
 func (s *ApplicationService) Reject(ctx context.Context, id, reviewerID, notes string) error {
@@ -221,11 +231,52 @@ func (s *ApplicationService) Reject(ctx context.Context, id, reviewerID, notes s
 	if app.Status != models.StatusUnderReview && app.Status != models.StatusSubmitted && app.Status != models.StatusResubmitted {
 		return ErrInvalidTransition
 	}
-	return s.apps.Reject(ctx, id, reviewerID, notes)
+	if err := s.apps.Reject(ctx, id, reviewerID, notes); err != nil {
+		return err
+	}
+	return s.notifyApplicationDecision(ctx, id, reviewerID, models.StatusRejected, notes)
 }
 
 func (s *ApplicationService) RequestInfo(ctx context.Context, id, reviewerID, notes string) error {
-	return s.apps.RequestInfo(ctx, id, reviewerID, notes)
+	if err := s.apps.RequestInfo(ctx, id, reviewerID, notes); err != nil {
+		return err
+	}
+	return s.notifyApplicationDecision(ctx, id, reviewerID, models.StatusNeedsInformation, notes)
+}
+
+func (s *ApplicationService) notifyApplicationDecision(ctx context.Context, id, reviewerID, status, notes string) error {
+	app, err := s.apps.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	reviewerName := app.ReviewerName
+	if reviewerName == "" {
+		reviewerName, err = s.apps.UserDisplayName(ctx, reviewerID)
+		if err != nil {
+			return err
+		}
+	}
+	title := app.ApplicationType
+	if title == "" {
+		title = strings.ReplaceAll(strings.TrimSpace(app.FormType), "_", " ")
+	}
+	if title == "" {
+		title = "your application"
+	}
+	noteSuffix := ""
+	if strings.TrimSpace(notes) != "" {
+		noteSuffix = " Reason: " + strings.TrimSpace(notes)
+	}
+	switch status {
+	case models.StatusNeedsInformation:
+		return s.apps.CreateApplicationNotification(ctx, app.UserID, "application_queried", "Application queried", fmt.Sprintf("%s queried %s.%s You can edit and resubmit it from your dashboard.", reviewerName, title, noteSuffix), "question-circle")
+	case models.StatusRejected:
+		return s.apps.CreateApplicationNotification(ctx, app.UserID, "application_rejected", "Application rejected", fmt.Sprintf("%s rejected %s.%s", reviewerName, title, noteSuffix), "close-circled")
+	case models.StatusApproved:
+		return s.apps.CreateApplicationNotification(ctx, app.UserID, "application_approved", "Application approved", fmt.Sprintf("%s approved %s.%s", reviewerName, title, noteSuffix), "check-circled")
+	default:
+		return nil
+	}
 }
 
 func (s *ApplicationService) VerifyPayment(ctx context.Context, id, reviewerID string) error {

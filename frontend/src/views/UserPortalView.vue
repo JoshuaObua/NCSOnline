@@ -151,7 +151,13 @@
                         <td data-label="Status"><span class="status" :class="statusClass(item.status)">{{ titleize(item.status) }}</span></td>
                         <td data-label="Payment">{{ titleize(item.payment_status || 'not required') }}</td>
                         <td data-label="Updated">{{ formatDate(item.updated_at) }}</td>
-                        <td data-label="Action"><button v-if="item.source === 'custom' && item.status === 'DRAFT'" type="button" title="Continue application" @click="continueApplication(item)"><i class="icofont-rounded-right"></i></button></td>
+                        <td data-label="Action">
+                          <span class="table-actions">
+                            <button type="button" title="View application" @click="viewApplication(item)"><i class="icofont-eye-alt"></i></button>
+                            <button type="button" title="Download application form" @click="downloadApplication(item)"><i class="icofont-download"></i></button>
+                            <button v-if="item.source === 'custom' && isEditableSubmission(item)" type="button" title="Edit application" @click="continueApplication(item)"><i class="icofont-rounded-right"></i></button>
+                          </span>
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -242,6 +248,7 @@ import { portalListOpenForms, portalListSubmissions } from '@/api/forms.js'
 import { mediaUrl } from '@/api/client.js'
 import OpenFormsPanel from '@/components/portal/OpenFormsPanel.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
+import { downloadApplicationForm } from '@/utils/applicationDownload.js'
 import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 
 const router = useRouter()
@@ -387,6 +394,12 @@ async function continueApplication(item) {
   if (form) startApplication(form)
   else error.value = 'This application form is no longer open.'
 }
+function viewApplication(item) {
+  router.push({ name: 'UserApplicationDetail', params: { id: item.id }, query: { source: item.source } })
+}
+function downloadApplication(item) {
+  downloadApplicationForm(item)
+}
 async function refreshSubmissions() {
   const result = await portalListSubmissions({ page: 1, per_page: 200 })
   dynamicSubmissions.value = asList(result)
@@ -420,12 +433,13 @@ function apiError(err, fallback) { return err.response?.data?.error?.message || 
 function titleize(value) { return String(value || '').toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, char => char.toUpperCase()) }
 function formatDate(value) { return value ? new Intl.DateTimeFormat('en-UG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : '-' }
 function formatMoney(value) { return new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(Number(value || 0)) }
-function statusClass(status) { if (status === 'APPROVED') return 'green'; if (status === 'REJECTED') return 'red'; if (['NEEDS_INFORMATION', 'PENDING_PAYMENT'].includes(status)) return 'amber'; return 'blue' }
-function paymentClass(status) { return status === 'PAID' || status === 'VERIFIED' ? 'green' : status === 'REJECTED' ? 'red' : 'amber' }
+function statusClass(status) { if (status === 'APPROVED' || status === 'COMPLETE') return 'green'; if (status === 'REJECTED') return 'red'; if (['NEEDS_INFORMATION', 'PENDING_PAYMENT'].includes(status)) return 'amber'; return 'blue' }
+function paymentClass(status) { return status === 'PAID' || status === 'VERIFIED' ? 'green' : ['REJECTED', 'VERIFICATION_FAILED'].includes(status) ? 'red' : 'amber' }
 function notificationIcon(item) { return item.icon_key ? `icofont-${item.icon_key}` : 'icofont-notification' }
 function activityTitle(item) { return titleize(item.action || item.event_type || 'Portal activity') }
 function activityDescription(item) { return item.endpoint ? `${item.method || 'Action'} ${item.endpoint}` : `Activity recorded from ${item.ip_address || 'your account'}.` }
-function isPendingSubmission(item) { return item?.status && !['DRAFT', 'APPROVED', 'REJECTED'].includes(item.status) }
+function isEditableSubmission(item) { return ['DRAFT', 'NEEDS_INFORMATION'].includes(item?.status) }
+function isPendingSubmission(item) { return item?.status && !['DRAFT', 'NEEDS_INFORMATION', 'APPROVED', 'REJECTED'].includes(item.status) }
 </script>
 
 <style scoped>
@@ -499,4 +513,5 @@ function isPendingSubmission(item) { return item?.status && !['DRAFT', 'APPROVED
 @media(max-width:760px){.user-kpis,.list-toolbar{grid-template-columns:1fr!important}.page-heading{flex-direction:column!important}.page-heading .primary-command,.page-heading .secondary-command,.otika-page-actions .btn{width:auto!important}.data-table{background:transparent!important;box-shadow:none!important}.data-table table,.data-table thead,.data-table tbody,.data-table tr,.data-table td{display:block!important;width:100%!important}.data-table thead{display:none!important}.data-table tr{margin-bottom:10px!important;padding:12px!important;border-radius:3px!important;background:#fff!important;box-shadow:0 4px 25px rgba(0,0,0,.08)!important}.data-table td{display:grid!important;grid-template-columns:minmax(90px,.38fr) minmax(0,1fr)!important;gap:8px!important;align-items:start!important;padding:8px 0!important;border-bottom:1px solid #f4f6f9!important}.data-table td:last-child{border-bottom:0!important}.data-table td::before{content:attr(data-label);color:#98a6ad;font-size:10px;font-weight:800;text-transform:uppercase}.data-table td.empty-cell{display:block!important;padding:24px 12px!important}.data-table td.empty-cell::before{content:""}.timeline-list article,.feed-list article{grid-template-columns:34px minmax(0,1fr)!important}.feed-list article>button{grid-column:2!important;justify-self:start!important}.user-portal .nav-link-user span:not(.nav-avatar-fallback){display:none!important}.user-portal .nav-link-user{width:38px!important;min-width:38px!important;padding:0!important}.navbar .dropdown-menu.show{position:fixed!important;top:62px!important;left:calc(var(--portal-sidebar-width) + 8px)!important;right:8px!important;width:auto!important;max-width:none!important}}
 @media(max-width:520px){.user-portal .main-wrapper,.user-portal .main-wrapper.sidebar-mini{--portal-sidebar-width:62px;--portal-page-pad:10px}.user-portal .cms-top-icon{width:34px!important;min-width:34px!important;height:34px!important}.user-portal .main-navbar{gap:4px!important}.user-portal .main-navbar .navbar-nav{gap:2px!important}.user-portal .section-header h1,.page-heading h1{font-size:19px!important}.page-heading .primary-command,.page-heading .secondary-command,.otika-page-actions .btn{width:100%!important}.user-kpis article{grid-template-columns:36px minmax(0,1fr)!important;padding:10px!important}.user-kpis article>span{width:36px!important;height:36px!important;flex-basis:36px!important}.data-table tr{padding:10px!important}.data-table td{grid-template-columns:1fr!important;gap:4px!important}.transaction-summary{align-items:flex-start!important;flex-direction:column!important}.user-portal .cms-main-footer{align-items:flex-start!important;flex-direction:column!important}.user-portal .cms-main-footer .footer-right{margin-left:0!important;text-align:left!important}}
 :global(.dark) .user-portal .data-table tr{background:#1f2937!important}
+.table-actions{display:flex!important;flex-wrap:wrap!important;gap:6px!important}.table-actions button{flex:0 0 32px!important}
 </style>

@@ -67,6 +67,7 @@ const (
 	SubStatusSubmitted   = "SUBMITTED"
 	SubStatusUnderReview = "UNDER_REVIEW"
 	SubStatusNeedsInfo   = "NEEDS_INFORMATION"
+	SubStatusComplete    = "COMPLETE"
 	SubStatusApproved    = "APPROVED"
 	SubStatusRejected    = "REJECTED"
 )
@@ -86,8 +87,11 @@ type FormSubmission struct {
 	PaymentProofURL     string          `json:"payment_proof_url,omitempty"`
 	PaymentAmountUGX    *float64        `json:"payment_amount_ugx,omitempty"`
 	PaymentVerifiedAt   *time.Time      `json:"payment_verified_at,omitempty"`
+	PaymentVerifiedBy   *string         `json:"payment_verified_by,omitempty"`
+	PaymentVerifierName string          `json:"payment_verifier_name,omitempty"`
 	Answers             json.RawMessage `json:"answers"`
 	ReviewerID          *string         `json:"reviewer_id,omitempty"`
+	ReviewerName        string          `json:"reviewer_name,omitempty"`
 	ReviewNotes         string          `json:"review_notes,omitempty"`
 	SubmittedAt         *time.Time      `json:"submitted_at,omitempty"`
 	ApprovedAt          *time.Time      `json:"approved_at,omitempty"`

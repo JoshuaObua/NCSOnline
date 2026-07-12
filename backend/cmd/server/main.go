@@ -416,6 +416,7 @@ func main() {
 					r.Get("/submissions/{id}", h.Forms.AdminGetSubmission)
 					r.Post("/submissions/{id}/review", h.Forms.AdminReviewSubmission)
 					r.Post("/submissions/{id}/verify-payment", h.Forms.AdminVerifySubmissionPayment)
+					r.Post("/submissions/{id}/payment-status", h.Forms.AdminUpdateSubmissionPaymentStatus)
 					r.Get("/{id}", h.Forms.AdminGetTemplate)
 					r.Put("/{id}", h.Forms.AdminUpdateTemplate)
 					r.Delete("/{id}", h.Forms.AdminDeleteTemplate)

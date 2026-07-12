@@ -170,7 +170,9 @@ type Application struct {
 	PDFGeneratedAt       *time.Time      `json:"pdf_generated_at,omitempty"`
 	SubmittedAt          *time.Time      `json:"submitted_at,omitempty"`
 	ReviewerID           *string         `json:"reviewer_id,omitempty"`
+	ReviewerName         string          `json:"reviewer_name,omitempty"`
 	ReviewNotes          string          `json:"review_notes,omitempty"`
+	PaymentVerifierName  string          `json:"payment_verifier_name,omitempty"`
 	ApprovedAt           *time.Time      `json:"approved_at,omitempty"`
 	RejectedAt           *time.Time      `json:"rejected_at,omitempty"`
 	DraftExpiresAt       *time.Time      `json:"draft_expires_at,omitempty"`

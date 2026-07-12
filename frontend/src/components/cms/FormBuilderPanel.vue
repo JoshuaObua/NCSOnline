@@ -269,7 +269,7 @@
           <table>
             <thead><tr><th>Reference</th><th>Applicant</th><th>Form</th><th>Status</th><th>Payment</th><th>Updated</th></tr></thead>
             <tbody>
-              <tr v-for="submission in submissions" :key="submission.id" class="clickable-row" @click="openSubmission(submission.id)">
+              <tr v-for="submission in submissions" :key="submission.id" class="clickable-row" @click="viewSubmission(submission.id)">
                 <td><strong>{{ submission.submission_reference || 'Draft' }}</strong></td>
                 <td>{{ submission.applicant_name || submission.applicant_email || 'Applicant' }}</td>
                 <td>{{ submission.template_title }}</td>
@@ -337,6 +337,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
 import {
   FIELD_TYPES,
@@ -366,9 +367,10 @@ import {
 } from '@/utils/formBuilder.js'
 
 const emit = defineEmits(['message', 'error'])
+const router = useRouter()
 
 const templateStatuses = ['DRAFT', 'OPEN', 'CLOSED', 'ARCHIVED']
-const submissionStatuses = ['DRAFT', 'PENDING_PAYMENT', 'SUBMITTED', 'UNDER_REVIEW', 'NEEDS_INFORMATION', 'APPROVED', 'REJECTED']
+const submissionStatuses = ['DRAFT', 'PENDING_PAYMENT', 'SUBMITTED', 'UNDER_REVIEW', 'NEEDS_INFORMATION', 'COMPLETE', 'APPROVED', 'REJECTED']
 const view = ref('templates')
 const templates = ref([])
 const departments = ref([])
@@ -735,6 +737,9 @@ async function openSubmission(id) {
   } finally {
     reviewing.value = false
   }
+}
+function viewSubmission(id) {
+  router.push({ name: 'AdminApplicationDetail', params: { id }, query: { source: 'custom' } })
 }
 async function submitReview() {
   if (!selectedSubmission.value) return

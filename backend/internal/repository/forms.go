@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -366,11 +367,17 @@ func (r *FormRepo) ListSubmissions(ctx context.Context, f ListSubmissionsFilter,
 	             COALESCE(u.first_name || ' ' || u.last_name,''), COALESCE(u.email,''),
 	             COALESCE(s.submission_reference,''), s.status, s.payment_status,
 	             COALESCE(s.payment_reference,''), COALESCE(s.payment_proof_url,''), s.payment_amount_ugx, s.payment_verified_at,
-	             s.answers, s.reviewer_id, COALESCE(s.review_notes,''),
+	             s.payment_verified_by,
+	             COALESCE(NULLIF(TRIM(COALESCE(pv.first_name,'') || ' ' || COALESCE(pv.last_name,'')), ''), pv.email, ''),
+	             s.answers, s.reviewer_id,
+	             COALESCE(NULLIF(TRIM(COALESCE(rv.first_name,'') || ' ' || COALESCE(rv.last_name,'')), ''), rv.email, ''),
+	             COALESCE(s.review_notes,''),
 	             s.submitted_at, s.approved_at, s.rejected_at, s.created_at, s.updated_at
 	      FROM form_submissions s
 	      LEFT JOIN form_templates t ON t.id = s.template_id
 	      LEFT JOIN users u          ON u.id = s.user_id
+	      LEFT JOIN users rv         ON rv.id = s.reviewer_id
+	      LEFT JOIN users pv         ON pv.id = s.payment_verified_by
 	      WHERE ` + where + ` ORDER BY s.updated_at DESC` + limitClause
 
 	rows, err := r.db.Query(ctx, q, args...)
@@ -386,7 +393,8 @@ func (r *FormRepo) ListSubmissions(ctx context.Context, f ListSubmissionsFilter,
 			&s.ApplicantName, &s.ApplicantEmail,
 			&s.SubmissionReference, &s.Status, &s.PaymentStatus,
 			&s.PaymentReference, &s.PaymentProofURL, &s.PaymentAmountUGX, &s.PaymentVerifiedAt,
-			&answers, &s.ReviewerID, &s.ReviewNotes,
+			&s.PaymentVerifiedBy, &s.PaymentVerifierName,
+			&answers, &s.ReviewerID, &s.ReviewerName, &s.ReviewNotes,
 			&s.SubmittedAt, &s.ApprovedAt, &s.RejectedAt, &s.CreatedAt, &s.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
@@ -405,11 +413,17 @@ func (r *FormRepo) GetSubmission(ctx context.Context, id string) (*models.FormSu
 	                  COALESCE(u.first_name || ' ' || u.last_name,''), COALESCE(u.email,''),
 	                  COALESCE(s.submission_reference,''), s.status, s.payment_status,
 	                  COALESCE(s.payment_reference,''), COALESCE(s.payment_proof_url,''), s.payment_amount_ugx, s.payment_verified_at,
-	                  s.answers, s.reviewer_id, COALESCE(s.review_notes,''),
+	                  s.payment_verified_by,
+	                  COALESCE(NULLIF(TRIM(COALESCE(pv.first_name,'') || ' ' || COALESCE(pv.last_name,'')), ''), pv.email, ''),
+	                  s.answers, s.reviewer_id,
+	                  COALESCE(NULLIF(TRIM(COALESCE(rv.first_name,'') || ' ' || COALESCE(rv.last_name,'')), ''), rv.email, ''),
+	                  COALESCE(s.review_notes,''),
 	                  s.submitted_at, s.approved_at, s.rejected_at, s.created_at, s.updated_at
 	           FROM form_submissions s
 	           LEFT JOIN form_templates t ON t.id = s.template_id
 	           LEFT JOIN users u          ON u.id = s.user_id
+	           LEFT JOIN users rv         ON rv.id = s.reviewer_id
+	           LEFT JOIN users pv         ON pv.id = s.payment_verified_by
 	           WHERE s.id=$1`
 	s := &models.FormSubmission{}
 	var answers []byte
@@ -417,7 +431,8 @@ func (r *FormRepo) GetSubmission(ctx context.Context, id string) (*models.FormSu
 		&s.ApplicantName, &s.ApplicantEmail,
 		&s.SubmissionReference, &s.Status, &s.PaymentStatus,
 		&s.PaymentReference, &s.PaymentProofURL, &s.PaymentAmountUGX, &s.PaymentVerifiedAt,
-		&answers, &s.ReviewerID, &s.ReviewNotes,
+		&s.PaymentVerifiedBy, &s.PaymentVerifierName,
+		&answers, &s.ReviewerID, &s.ReviewerName, &s.ReviewNotes,
 		&s.SubmittedAt, &s.ApprovedAt, &s.RejectedAt, &s.CreatedAt, &s.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -486,6 +501,17 @@ func (r *FormRepo) UpdateAnswers(ctx context.Context, id string, answers json.Ra
 	return err
 }
 
+func (r *FormRepo) MakeEditable(ctx context.Context, id string, answers json.RawMessage) error {
+	if len(answers) == 0 {
+		answers = json.RawMessage("{}")
+	}
+	_, err := r.db.Exec(ctx, `
+		UPDATE form_submissions
+		SET status='DRAFT', answers=$2::jsonb, updated_at=NOW()
+		WHERE id=$1`, id, string(answers))
+	return err
+}
+
 func (r *FormRepo) UpdateStatus(ctx context.Context, id, status string) error {
 	_, err := r.db.Exec(ctx,
 		`UPDATE form_submissions SET status=$2, updated_at=NOW() WHERE id=$1`, id, status)
@@ -504,7 +530,8 @@ func (r *FormRepo) SetPaymentProof(ctx context.Context, id, reference, proofURL 
 	_, err := r.db.Exec(ctx, `
 		UPDATE form_submissions
 		SET payment_status='PROOF_UPLOADED', payment_reference=$2,
-		    payment_proof_url=$3, payment_amount_ugx=$4, updated_at=NOW()
+		    payment_proof_url=$3, payment_amount_ugx=$4,
+		    payment_verified_by=NULL, payment_verified_at=NULL, updated_at=NOW()
 		WHERE id=$1`, id, reference, proofURL, amount)
 	return err
 }
@@ -515,6 +542,26 @@ func (r *FormRepo) VerifyPayment(ctx context.Context, id, reviewerID string) err
 		SET payment_status='PAID', payment_verified_by=$2, payment_verified_at=NOW(),
 		    updated_at=NOW()
 		WHERE id=$1`, id, reviewerID)
+	return err
+}
+
+func (r *FormRepo) SetPaymentStatus(ctx context.Context, id, status, reviewerID string) error {
+	if status == "PAID" {
+		return r.VerifyPayment(ctx, id, reviewerID)
+	}
+	if status == "VERIFICATION_FAILED" {
+		_, err := r.db.Exec(ctx, `
+			UPDATE form_submissions
+			SET payment_status=$2, payment_verified_by=$3, payment_verified_at=NOW(),
+			    updated_at=NOW()
+			WHERE id=$1`, id, status, reviewerID)
+		return err
+	}
+	_, err := r.db.Exec(ctx, `
+		UPDATE form_submissions
+		SET payment_status=$2, payment_verified_by=NULL, payment_verified_at=NULL,
+		    updated_at=NOW()
+		WHERE id=$1`, id, status)
 	return err
 }
 
@@ -539,4 +586,40 @@ func (r *FormRepo) Review(ctx context.Context, id, status, reviewerID, notes str
 		WHERE id=$1`, col)
 	_, err := r.db.Exec(ctx, q, id, status, reviewerID, notes)
 	return err
+}
+
+func (r *FormRepo) UserDisplayName(ctx context.Context, userID string) (string, error) {
+	var name string
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE(NULLIF(TRIM(COALESCE(first_name,'') || ' ' || COALESCE(last_name,'')), ''), email, 'NCS reviewer')
+		FROM users
+		WHERE id=$1`, userID).Scan(&name)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "NCS reviewer", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
+func (r *FormRepo) CreateSubmissionNotification(ctx context.Context, userID, kind, title, message, iconKey string) error {
+	id := uuid.NewString()
+	if kind == "" {
+		kind = "application_update"
+	}
+	if iconKey == "" {
+		iconKey = "notification"
+	}
+	const q = `INSERT INTO notifications (id, user_id, type, title, message, status, icon_key)
+	           VALUES ($1,$2,$3,$4,$5,'unread',$6)
+	           RETURNING created_at`
+	var createdAt any
+	if err := r.db.QueryRow(ctx, q, id, userID, kind, title, message, iconKey).Scan(&createdAt); err != nil {
+		return err
+	}
+	_, _ = r.db.Exec(ctx, `INSERT INTO system_notifications (id,user_id,event_type,title,message,severity,payload,status,created_at)
+		VALUES ($1,$2,$3,$4,$5,'info',$6::jsonb,'unread',$7)
+		ON CONFLICT (id) DO NOTHING`, id, userID, kind, title, message, `{}`, createdAt)
+	return nil
 }
