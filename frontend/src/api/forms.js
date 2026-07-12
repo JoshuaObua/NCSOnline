@@ -38,11 +38,8 @@ export const portalListSubmissions = (params = {}) =>
   apiClient.get('/api/v1/portal/submissions', { params }).then(r => r.data)
 export const portalSubmit = (id) =>
   apiClient.post(`/api/v1/portal/submissions/${id}/submit`).then(r => r.data?.data ?? r.data)
-export const portalUploadPaymentProof = (id, paymentReference, paymentAmountUgx) =>
-  apiClient.post(`/api/v1/portal/submissions/${id}/payment-proof`, {
-    payment_reference: paymentReference,
-    payment_amount_ugx: paymentAmountUgx,
-  }).then(r => r.data)
+export const portalUploadPaymentProof = (id, payload = {}) =>
+  apiClient.post(`/api/v1/portal/submissions/${id}/payment-proof`, payload).then(r => r.data)
 
 export const FIELD_TYPES = [
   { value: 'short_text', label: 'Short Text',     icon: 'text' },

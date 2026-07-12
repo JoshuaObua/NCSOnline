@@ -365,7 +365,7 @@ func (r *FormRepo) ListSubmissions(ctx context.Context, f ListSubmissionsFilter,
 	q := `SELECT s.id, s.template_id, COALESCE(t.title,''), s.department_id, s.user_id,
 	             COALESCE(u.first_name || ' ' || u.last_name,''), COALESCE(u.email,''),
 	             COALESCE(s.submission_reference,''), s.status, s.payment_status,
-	             COALESCE(s.payment_reference,''), s.payment_amount_ugx, s.payment_verified_at,
+	             COALESCE(s.payment_reference,''), COALESCE(s.payment_proof_url,''), s.payment_amount_ugx, s.payment_verified_at,
 	             s.answers, s.reviewer_id, COALESCE(s.review_notes,''),
 	             s.submitted_at, s.approved_at, s.rejected_at, s.created_at, s.updated_at
 	      FROM form_submissions s
@@ -385,7 +385,7 @@ func (r *FormRepo) ListSubmissions(ctx context.Context, f ListSubmissionsFilter,
 		if err := rows.Scan(&s.ID, &s.TemplateID, &s.TemplateTitle, &s.DepartmentID, &s.UserID,
 			&s.ApplicantName, &s.ApplicantEmail,
 			&s.SubmissionReference, &s.Status, &s.PaymentStatus,
-			&s.PaymentReference, &s.PaymentAmountUGX, &s.PaymentVerifiedAt,
+			&s.PaymentReference, &s.PaymentProofURL, &s.PaymentAmountUGX, &s.PaymentVerifiedAt,
 			&answers, &s.ReviewerID, &s.ReviewNotes,
 			&s.SubmittedAt, &s.ApprovedAt, &s.RejectedAt, &s.CreatedAt, &s.UpdatedAt); err != nil {
 			return nil, 0, err
@@ -404,7 +404,7 @@ func (r *FormRepo) GetSubmission(ctx context.Context, id string) (*models.FormSu
 	const q = `SELECT s.id, s.template_id, COALESCE(t.title,''), s.department_id, s.user_id,
 	                  COALESCE(u.first_name || ' ' || u.last_name,''), COALESCE(u.email,''),
 	                  COALESCE(s.submission_reference,''), s.status, s.payment_status,
-	                  COALESCE(s.payment_reference,''), s.payment_amount_ugx, s.payment_verified_at,
+	                  COALESCE(s.payment_reference,''), COALESCE(s.payment_proof_url,''), s.payment_amount_ugx, s.payment_verified_at,
 	                  s.answers, s.reviewer_id, COALESCE(s.review_notes,''),
 	                  s.submitted_at, s.approved_at, s.rejected_at, s.created_at, s.updated_at
 	           FROM form_submissions s
@@ -416,7 +416,7 @@ func (r *FormRepo) GetSubmission(ctx context.Context, id string) (*models.FormSu
 	err := r.db.QueryRow(ctx, q, id).Scan(&s.ID, &s.TemplateID, &s.TemplateTitle, &s.DepartmentID, &s.UserID,
 		&s.ApplicantName, &s.ApplicantEmail,
 		&s.SubmissionReference, &s.Status, &s.PaymentStatus,
-		&s.PaymentReference, &s.PaymentAmountUGX, &s.PaymentVerifiedAt,
+		&s.PaymentReference, &s.PaymentProofURL, &s.PaymentAmountUGX, &s.PaymentVerifiedAt,
 		&answers, &s.ReviewerID, &s.ReviewNotes,
 		&s.SubmittedAt, &s.ApprovedAt, &s.RejectedAt, &s.CreatedAt, &s.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -437,6 +437,21 @@ func (r *FormRepo) GetUserDraftForTemplate(ctx context.Context, userID, template
 	var id string
 	err := r.db.QueryRow(ctx,
 		`SELECT id FROM form_submissions WHERE user_id=$1 AND template_id=$2 AND status='DRAFT'
+		 ORDER BY updated_at DESC LIMIT 1`, userID, templateID).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return r.GetSubmission(ctx, id)
+}
+
+func (r *FormRepo) GetActiveUserSubmissionForTemplate(ctx context.Context, userID, templateID string) (*models.FormSubmission, error) {
+	var id string
+	err := r.db.QueryRow(ctx,
+		`SELECT id FROM form_submissions
+		 WHERE user_id=$1 AND template_id=$2 AND status NOT IN ('APPROVED','REJECTED')
 		 ORDER BY updated_at DESC LIMIT 1`, userID, templateID).Scan(&id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -485,12 +500,12 @@ func (r *FormRepo) SetSubmitted(ctx context.Context, id, reference string) error
 	return err
 }
 
-func (r *FormRepo) SetPaymentProof(ctx context.Context, id, reference string, amount float64) error {
+func (r *FormRepo) SetPaymentProof(ctx context.Context, id, reference, proofURL string, amount float64) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE form_submissions
 		SET payment_status='PROOF_UPLOADED', payment_reference=$2,
-		    payment_amount_ugx=$3, updated_at=NOW()
-		WHERE id=$1`, id, reference, amount)
+		    payment_proof_url=$3, payment_amount_ugx=$4, updated_at=NOW()
+		WHERE id=$1`, id, reference, proofURL, amount)
 	return err
 }
 

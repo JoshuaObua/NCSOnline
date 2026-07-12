@@ -16,7 +16,9 @@
           <p>{{ form.description || 'Complete this application online.' }}</p>
           <footer>
             <strong>{{ Number(form.price_ugx) ? `UGX ${formatMoney(form.price_ugx)}` : 'Free' }}</strong>
-            <button type="button" @click="$emit('start', form)">{{ draftFor(form.id) ? 'Continue' : 'Start application' }} <i class="icofont-rounded-right"></i></button>
+            <button type="button" :disabled="!!pendingFor(form.id)" @click="$emit('start', form)">
+              {{ actionLabel(form.id) }} <i v-if="!pendingFor(form.id)" class="icofont-rounded-right"></i>
+            </button>
           </footer>
         </div>
       </article>
@@ -40,9 +42,12 @@ defineEmits(['start', 'view-all'])
 
 const visibleForms = computed(() => props.expanded ? props.forms : props.forms.slice(0, 6))
 const draftFor = id => props.submissions.find(item => item.template_id === id && item.status === 'DRAFT')
+const pendingFor = id => props.submissions.find(item => item.template_id === id && isPendingSubmission(item))
+const actionLabel = id => pendingFor(id) ? 'Pending application' : (draftFor(id) ? 'Continue' : 'Start application')
 const stepCount = form => buildSectionSteps(form).length
 const formatMoney = value => new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(Number(value || 0))
 const departmentLabel = value => /(^|_)(super_?admin|admin|user)($|_)/i.test(String(value || '')) ? 'NCS Service' : (value || 'NCS Service')
+const isPendingSubmission = item => item?.status && !['DRAFT', 'APPROVED', 'REJECTED'].includes(item.status)
 </script>
 
 <style scoped>
@@ -69,6 +74,7 @@ const departmentLabel = value => /(^|_)(super_?admin|admin|user)($|_)/i.test(Str
 .forms-grid footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;min-width:0!important;flex-wrap:wrap!important}
 .forms-grid footer strong{flex:1 1 78px!important}
 .forms-grid footer button{flex:0 1 auto!important;max-width:100%!important;text-align:left!important}
+.forms-grid footer button:disabled{color:#98a6ad!important;cursor:not-allowed!important}
 .forms-empty{width:100%!important;max-width:100%!important;padding:28px 14px!important;overflow-wrap:anywhere!important}
 @media(max-width:760px){.forms-grid{grid-template-columns:1fr!important}.forms-grid article{grid-template-columns:58px minmax(0,1fr)!important}.forms-grid article>img,.form-mark{width:58px!important;min-width:58px!important}}
 @media(max-width:420px){.open-forms-section>header{align-items:flex-start!important;flex-direction:column!important}.forms-grid article{grid-template-columns:52px minmax(0,1fr)!important}.forms-grid article>img,.form-mark{width:52px!important;min-width:52px!important}.forms-grid footer{align-items:flex-start!important;flex-direction:column!important}.forms-grid footer button{width:100%!important}}

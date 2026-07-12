@@ -374,6 +374,12 @@ async function startApplication(form) {
     error.value = 'This application form is not available.'
     return
   }
+  const pending = dynamicSubmissions.value.find(item => item.template_id === form.id && isPendingSubmission(item))
+  if (pending) {
+    error.value = `You already have a pending application for ${form.title}.`
+    select('applications')
+    return
+  }
   router.push({ name: 'ApplicationWizard', params: { slug: form.slug } })
 }
 async function continueApplication(item) {
@@ -419,6 +425,7 @@ function paymentClass(status) { return status === 'PAID' || status === 'VERIFIED
 function notificationIcon(item) { return item.icon_key ? `icofont-${item.icon_key}` : 'icofont-notification' }
 function activityTitle(item) { return titleize(item.action || item.event_type || 'Portal activity') }
 function activityDescription(item) { return item.endpoint ? `${item.method || 'Action'} ${item.endpoint}` : `Activity recorded from ${item.ip_address || 'your account'}.` }
+function isPendingSubmission(item) { return item?.status && !['DRAFT', 'APPROVED', 'REJECTED'].includes(item.status) }
 </script>
 
 <style scoped>

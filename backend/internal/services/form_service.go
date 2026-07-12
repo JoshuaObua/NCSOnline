@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	ErrForbiddenDept   = errors.New("forbidden: outside your department")
-	ErrTemplateClosed  = errors.New("form is not accepting submissions")
-	ErrPaymentRequired = errors.New("payment is required before submission")
+	ErrForbiddenDept    = errors.New("forbidden: outside your department")
+	ErrTemplateClosed   = errors.New("form is not accepting submissions")
+	ErrPaymentRequired  = errors.New("payment is required before submission")
+	ErrDuplicatePending = errors.New("you already have a pending application for this form")
 )
 
 type FormService struct {
@@ -265,12 +266,18 @@ func (s *FormService) SaveOrCreateDraft(ctx context.Context, userID string, in S
 	if t.Status != models.FormStatusOpen {
 		return nil, ErrTemplateClosed
 	}
-	existing, err := s.forms.GetUserDraftForTemplate(ctx, userID, t.ID)
+	existing, err := s.forms.GetActiveUserSubmissionForTemplate(ctx, userID, t.ID)
 	if err == nil {
+		if existing.Status != models.SubStatusDraft {
+			return nil, ErrDuplicatePending
+		}
 		if err := s.forms.UpdateAnswers(ctx, existing.ID, in.Answers); err != nil {
 			return nil, err
 		}
 		return s.forms.GetSubmission(ctx, existing.ID)
+	}
+	if err != nil && !errors.Is(err, repository.ErrNotFound) {
+		return nil, err
 	}
 	sub := &models.FormSubmission{
 		TemplateID:    t.ID,
@@ -327,7 +334,7 @@ func (s *FormService) Submit(ctx context.Context, id, userID string) (*models.Fo
 	return s.forms.GetSubmission(ctx, id)
 }
 
-func (s *FormService) UploadPaymentProof(ctx context.Context, id, userID, reference string, amount float64) error {
+func (s *FormService) UploadPaymentProof(ctx context.Context, id, userID, reference, proofURL string, amount float64) error {
 	sub, err := s.forms.GetSubmission(ctx, id)
 	if err != nil {
 		return err
@@ -335,7 +342,15 @@ func (s *FormService) UploadPaymentProof(ctx context.Context, id, userID, refere
 	if sub.UserID != userID {
 		return ErrNotOwner
 	}
-	return s.forms.SetPaymentProof(ctx, id, reference, amount)
+	reference = strings.TrimSpace(reference)
+	proofURL = strings.TrimSpace(proofURL)
+	if (reference == "" && proofURL == "") || (reference != "" && proofURL != "") {
+		return errors.New("provide either a PRN payment reference or an uploaded proof file, not both")
+	}
+	if amount <= 0 {
+		return errors.New("payment_amount_ugx must be greater than 0")
+	}
+	return s.forms.SetPaymentProof(ctx, id, reference, proofURL, amount)
 }
 
 // ── Submissions (admin / dept-scoped) ────────────────────────────

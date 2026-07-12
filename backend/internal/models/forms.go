@@ -83,6 +83,7 @@ type FormSubmission struct {
 	Status              string          `json:"status"`
 	PaymentStatus       string          `json:"payment_status"`
 	PaymentReference    string          `json:"payment_reference,omitempty"`
+	PaymentProofURL     string          `json:"payment_proof_url,omitempty"`
 	PaymentAmountUGX    *float64        `json:"payment_amount_ugx,omitempty"`
 	PaymentVerifiedAt   *time.Time      `json:"payment_verified_at,omitempty"`
 	Answers             json.RawMessage `json:"answers"`

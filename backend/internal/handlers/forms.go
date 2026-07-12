@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
@@ -308,17 +309,26 @@ func (h *FormsHandler) PortalUploadPaymentProof(w http.ResponseWriter, r *http.R
 	id := chi.URLParam(r, "id")
 	var req struct {
 		PaymentReference string  `json:"payment_reference"`
+		PaymentProofURL  string  `json:"payment_proof_url"`
 		AmountUGX        float64 `json:"payment_amount_ugx"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
 		return
 	}
-	if req.PaymentReference == "" || req.AmountUGX <= 0 {
-		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "payment_reference and payment_amount_ugx required")
+	req.PaymentReference = strings.TrimSpace(req.PaymentReference)
+	req.PaymentProofURL = strings.TrimSpace(req.PaymentProofURL)
+	hasReference := req.PaymentReference != ""
+	hasProofFile := req.PaymentProofURL != ""
+	if hasReference == hasProofFile {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Provide either a PRN payment reference or one uploaded proof file, not both")
 		return
 	}
-	if err := h.svc.UploadPaymentProof(r.Context(), id, userID, req.PaymentReference, req.AmountUGX); err != nil {
+	if req.AmountUGX <= 0 {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "payment_amount_ugx must be greater than 0")
+		return
+	}
+	if err := h.svc.UploadPaymentProof(r.Context(), id, userID, req.PaymentReference, req.PaymentProofURL, req.AmountUGX); err != nil {
 		h.writeServiceErr(w, err)
 		return
 	}
@@ -339,6 +349,8 @@ func (h *FormsHandler) writeServiceErr(w http.ResponseWriter, err error) {
 		response.Err(w, http.StatusConflict, "TEMPLATE_CLOSED", err.Error())
 	case errors.Is(err, services.ErrPaymentRequired):
 		response.Err(w, http.StatusPaymentRequired, "PAYMENT_REQUIRED", err.Error())
+	case errors.Is(err, services.ErrDuplicatePending):
+		response.Err(w, http.StatusConflict, "DUPLICATE_PENDING", err.Error())
 	case errors.Is(err, services.ErrInvalidTransition):
 		response.Err(w, http.StatusBadRequest, "INVALID_STATUS", err.Error())
 	default:
