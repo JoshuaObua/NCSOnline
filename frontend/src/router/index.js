@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { portalUrl } from '@/utils/portal.js'
 
 const PublicLayout = () => import('@/layouts/PublicLayout.vue')
 
@@ -110,11 +111,19 @@ const routes = [
       { path: 'account/activities', name: 'AccountActivities', component: AccountActivitiesView },
     ],
   },
-  { path: '/login', name: 'CMSLogin', component: CMSLoginView },
+  { path: '/cms/login', name: 'CMSLogin', component: CMSLoginView },
   { path: '/cms', name: 'WebsiteCMS', component: WebsiteContentManagerView },
-  { path: '/apply', redirect: '/contact-us' },
-  { path: '/register', redirect: '/login' },
-  { path: '/my-portal/:pathMatch(.*)*', redirect: '/contact-us' },
+  { path: '/apply', redirect: '/portal/apply' },
+  { path: '/register', redirect: '/portal/register' },
+  { path: '/login', redirect: '/portal/login' },
+  { path: '/account/:pathMatch(.*)*', redirect: to => `/portal${to.fullPath}` },
+  { path: '/portal/:pathMatch(.*)*', name: 'PortalRedirect', beforeEnter: to => {
+    const envBase = import.meta.env?.VITE_INTRANET_URL?.replace(/\/$/, '')
+    const port = import.meta.env?.VITE_INTRANET_PORT
+    const origin = envBase || (port ? `${window.location.protocol}//${window.location.hostname}:${port}` : window.location.origin)
+    window.location.assign(`${origin}/${to.params.pathMatch || ''}`)
+    return false
+  } },
   { path: '/dashboard/:pathMatch(.*)*', redirect: '/' },
   { path: '/admin/:pathMatch(.*)*', redirect: '/cms' },
   { path: '/:pathMatch(.*)*', redirect: '/' },
@@ -162,6 +171,15 @@ const publicPageTitles = {
 router.afterEach((to) => {
   const title = publicPageTitles[to.name]
   if (title) document.title = `${title} - NCS Uganda`
+})
+
+// The website is public-facing; account and application workflows belong to
+// the separate portal even when someone opens an old bookmarked website URL.
+router.beforeEach((to) => {
+  if (to.path.startsWith('/account/')) {
+    window.location.assign(portalUrl(to.fullPath))
+    return false
+  }
 })
 
 export default router

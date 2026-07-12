@@ -120,8 +120,8 @@ function clearAuthAndRedirect() {
   localStorage.removeItem('ncsms_access_token')
   localStorage.removeItem('ncsms_user')
   // Use window.location for hard redirect outside of Vue context
-  if (window.location.pathname !== '/login') {
-    window.location.href = '/login'
+  if (window.location.pathname !== '/cms/login') {
+    window.location.href = '/cms/login'
   }
 }
 

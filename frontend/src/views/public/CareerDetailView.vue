@@ -67,12 +67,12 @@
                 </div>
 
                 <div class="pt-4">
-                  <router-link
-                    to="/contact-us"
+                  <a
+                    :href="portalUrl(`/careers/${career.id}/apply`)"
                     class="w-full flex items-center justify-center gap-2 bg-[#F48C06] hover:bg-[#d47b05] text-white font-semibold px-5 py-3 rounded-xl text-sm transition-colors"
                   >
-                    Contact Recruitment →
-                  </router-link>
+                    Apply for this role →
+                  </a>
                 </div>
 
                 <div class="pt-2 border-t border-[#F48C06]/20">
@@ -101,6 +101,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { getCareer } from '@/api/cms.js'
+import { portalUrl } from '@/utils/portal.js'
 
 const route = useRoute()
 const career = ref(null)

@@ -104,7 +104,7 @@
                 </div>
               </div>
 
-              <router-link to="/login">
+              <a :href="portalUrl('/login')">
                 <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-[#1a365d] px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-[#1a365d]/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623]">
                   Apply Now
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 ml-2" aria-hidden="true">
@@ -112,7 +112,7 @@
                     <path d="m12 5 7 7-7 7" />
                   </svg>
                 </button>
-              </router-link>
+              </a>
             </div>
           </div>
         </div>
@@ -135,9 +135,9 @@
             </h2>
             <p class="text-gray-600 mt-1">Current business opportunities with NCS</p>
           </div>
-          <router-link to="/invest">
+          <a :href="portalUrl('/invest')">
             <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-[#f5a623] px-4 py-2 text-sm font-medium text-[#f5a623] shadow-sm transition-colors hover:bg-[#f5a623] hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623]">Submit Proposal</button>
-          </router-link>
+          </a>
         </div>
 
         <div class="space-y-4">
@@ -172,7 +172,7 @@
                 </div>
               </div>
 
-              <router-link to="/invest">
+              <a :href="portalUrl('/invest')">
                 <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-[#f5a623] px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-[#e09612] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623]">
                   Submit Bid
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 ml-2" aria-hidden="true">
@@ -180,7 +180,7 @@
                     <path d="m12 5 7 7-7 7" />
                   </svg>
                 </button>
-              </router-link>
+              </a>
             </div>
           </div>
         </div>
@@ -200,12 +200,12 @@
               <h3 class="font-semibold text-lg mb-2">Procurement Information</h3>
               <p class="text-white/80 text-sm mb-4">All tender submissions must be accompanied by valid registration documents. For detailed tender documents and submission guidelines, please register or login to your account.</p>
               <div class="flex flex-wrap gap-3">
-                <router-link to="/register">
+                <a :href="portalUrl('/register')">
                   <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-[#f5a623] px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-[#e09612] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white">Register Now</button>
-                </router-link>
-                <router-link to="/login">
+                </a>
+                <a :href="portalUrl('/login')">
                   <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-white px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-white hover:text-[#1a365d] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white">Login</button>
-                </router-link>
+                </a>
               </div>
             </div>
           </div>
@@ -216,6 +216,7 @@
 </template>
 
 <script setup>
+import { portalUrl } from '@/utils/portal.js'
 const jobs = [
   {
     type: 'Full-time',

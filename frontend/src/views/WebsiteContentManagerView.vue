@@ -2362,7 +2362,7 @@ let inboundRefreshTimer = null
 
 onMounted(() => {
   if (!localStorage.getItem('ncsms_access_token')) {
-    router.replace('/login')
+    router.replace('/cms/login')
     return
   }
   const params = new URLSearchParams(window.location.search)
@@ -3643,7 +3643,7 @@ function downloadBlob(blob, filename) {
 function logout() {
   localStorage.removeItem('ncsms_access_token')
   localStorage.removeItem('ncsms_user')
-  router.push('/login')
+  router.push('/cms/login')
 }
 
 function toggleSidebar() {

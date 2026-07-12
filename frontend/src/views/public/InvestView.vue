@@ -63,12 +63,12 @@
       <div class="max-w-4xl mx-auto text-center relative z-10">
         <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Interested in partnering with NCS?</h2>
         <p class="text-white/60 mb-8 text-lg">Get in touch to discuss investment opportunities in Uganda's sports sector.</p>
-        <router-link
-          to="/contact-us"
+        <a
+          :href="portalUrl('/invest')"
           class="inline-flex items-center gap-2 bg-[#F48C06] hover:bg-[#d47b05] text-white font-bold px-8 py-4 rounded-full shadow-lg transition-colors"
         >
-          Start a Conversation <i class="icofont-arrow-right"></i>
-        </router-link>
+          Submit an Investment Proposal <i class="icofont-arrow-right"></i>
+        </a>
       </div>
     </div>
   </div>
@@ -78,6 +78,7 @@
 import { ref, onMounted } from 'vue'
 import { listInvest } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
+import { portalUrl } from '@/utils/portal.js'
 
 const items = ref([])
 const loading = ref(true)

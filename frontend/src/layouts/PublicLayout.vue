@@ -164,15 +164,15 @@
             </button>
             <ThemeToggle />
 
-            <div v-if="currentUser" class="account-menu">
+            <div v-if="currentUser" ref="accountMenu" class="account-menu">
               <button type="button" class="account-trigger" aria-haspopup="menu" :aria-expanded="accountOpen" @click="accountOpen = !accountOpen">
                 <img v-if="currentUser.avatar_url" :src="currentUser.avatar_url" alt="" referrerpolicy="no-referrer" />
                 <span v-else>{{ accountInitials }}</span>
               </button>
               <div v-show="accountOpen" class="account-dropdown" role="menu">
-                <router-link to="/account/profile" role="menuitem">Profile Overview</router-link>
-                <router-link to="/account/settings" role="menuitem">Settings & Security</router-link>
-                <router-link to="/account/activities" role="menuitem">My Audit Activities</router-link>
+                <a :href="portalUrl('/account/profile')" role="menuitem" @click="accountOpen = false">Profile Overview</a>
+                <a :href="portalUrl('/account/settings')" role="menuitem" @click="accountOpen = false">Settings & Security</a>
+                <a :href="portalUrl('/account/activities')" role="menuitem" @click="accountOpen = false">My Audit Activities</a>
                 <button type="button" role="menuitem" @click="logoutAccount">Sign out</button>
               </div>
             </div>
@@ -399,10 +399,12 @@ import ChatBotWidget from '@/components/public/ChatBotWidget.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import { useTheme } from '@/composables/useTheme.js'
 import { animatePublicPage, cleanupPublicMotion } from '@/utils/publicMotion.js'
+import { portalUrl } from '@/utils/portal.js'
 
 const mobileOpen = ref(false)
 const searchOpen = ref(false)
 const accountOpen = ref(false)
+const accountMenu = ref(null)
 const siteSearch = ref('')
 const scrolled = ref(false)
 const accountUser = ref(readAccountUser())
@@ -411,21 +413,6 @@ const router = useRouter()
 const { isDark } = useTheme()
 const maintenanceActive = ref(false)
 const maintenanceInfo = ref({})
-// Priority: explicit intranet URL, then the browser host plus VITE_INTRANET_PORT.
-// Mirrors resolveApiBase() in api/client.js so neither URL is pinned to a
-// specific host at build time.
-function resolveIntranetUrl() {
-  const envBase = import.meta.env?.VITE_INTRANET_URL
-  if (envBase) return envBase.replace(/\/$/, '')
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const port = import.meta.env?.VITE_INTRANET_PORT
-    return port
-      ? `${window.location.protocol}//${window.location.hostname}:${port}`
-      : window.location.origin
-  }
-  return ''
-}
-const intranetUrl = resolveIntranetUrl()
 const currentYear = computed(() => new Date().getFullYear())
 const maintenanceTitle = computed(() => maintenanceInfo.value?.display_meta?.custom_title || "We'll be right back")
 const maintenanceMessage = computed(() => maintenanceInfo.value?.display_meta?.custom_message
@@ -444,13 +431,29 @@ const accountInitials = computed(() => accountName.value.split(/\s+/).slice(0, 2
 
 function onScroll() { scrolled.value = window.scrollY > 20 }
 function openAccessibility() { window.dispatchEvent(new CustomEvent('open-accessibility-menu')) }
-function portalUrl(path = '') { return `${intranetUrl}${path}` }
 function submitSearch() {
   const query = siteSearch.value.trim()
   if (query) router.push({ path: '/news', query: { search: query } })
 }
-onMounted(() => window.addEventListener('scroll', onScroll, { passive: true }))
-onUnmounted(() => window.removeEventListener('scroll', onScroll))
+function closeNavigation(event) {
+  if (event.key && event.key !== 'Escape') return
+  if (!event.key && event.target && !accountMenu.value?.contains(event.target)) accountOpen.value = false
+  if (event.key === 'Escape') {
+    accountOpen.value = false
+    mobileOpen.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', onScroll, { passive: true })
+  document.addEventListener('pointerdown', closeNavigation)
+  document.addEventListener('keydown', closeNavigation)
+})
+onUnmounted(() => {
+  window.removeEventListener('scroll', onScroll)
+  document.removeEventListener('pointerdown', closeNavigation)
+  document.removeEventListener('keydown', closeNavigation)
+})
 
 watch(() => route.fullPath, async () => {
   accountUser.value = readAccountUser()
