@@ -53,4 +53,23 @@ const departmentLabel = value => /(^|_)(super_?admin|admin|user)($|_)/i.test(Str
 .open-forms-section{width:85%!important;max-width:1224px!important;margin-left:auto!important;margin-right:auto!important}.forms-grid article{max-width:100%!important}@media(max-width:991px){.open-forms-section{width:100%!important;max-width:none!important}}
 .open-forms-section{margin-left:0!important;margin-right:auto!important}
 .open-forms-section{width:100%!important;max-width:none!important}
+
+/* Final responsive layout layer for the applicant dashboard. */
+.open-forms-section{min-width:0!important;width:100%!important;max-width:100%!important;margin:0!important;overflow:hidden!important}
+.open-forms-section>header{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:12px!important;min-width:0!important;margin-bottom:12px!important}
+.open-forms-section>header>div{min-width:0!important}
+.open-forms-section>header h2{font-size:16px!important;line-height:1.25!important;overflow-wrap:anywhere!important}
+.open-forms-section>header button{flex:0 0 auto!important;max-width:100%!important;white-space:normal!important}
+.forms-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;width:100%!important;min-width:0!important}
+.forms-grid article{display:grid!important;grid-template-columns:64px minmax(0,1fr)!important;min-width:0!important;min-height:134px!important;overflow:hidden!important}
+.forms-grid article>img,.form-mark{width:64px!important;min-width:64px!important;height:100%!important;object-fit:cover!important}
+.forms-grid article>div{min-width:0!important;padding:11px 12px!important}
+.forms-grid small,.forms-grid h3,.forms-grid p,.forms-grid footer strong,.forms-grid footer button{min-width:0!important;overflow-wrap:anywhere!important;word-break:normal!important}
+.forms-grid h3{font-size:12.5px!important;line-height:1.25!important}
+.forms-grid footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;min-width:0!important;flex-wrap:wrap!important}
+.forms-grid footer strong{flex:1 1 78px!important}
+.forms-grid footer button{flex:0 1 auto!important;max-width:100%!important;text-align:left!important}
+.forms-empty{width:100%!important;max-width:100%!important;padding:28px 14px!important;overflow-wrap:anywhere!important}
+@media(max-width:760px){.forms-grid{grid-template-columns:1fr!important}.forms-grid article{grid-template-columns:58px minmax(0,1fr)!important}.forms-grid article>img,.form-mark{width:58px!important;min-width:58px!important}}
+@media(max-width:420px){.open-forms-section>header{align-items:flex-start!important;flex-direction:column!important}.forms-grid article{grid-template-columns:52px minmax(0,1fr)!important}.forms-grid article>img,.form-mark{width:52px!important;min-width:52px!important}.forms-grid footer{align-items:flex-start!important;flex-direction:column!important}.forms-grid footer button{width:100%!important}}
 </style>
