@@ -14,7 +14,10 @@ import (
 
 func domainPermission(resource string, write bool) []string {
 	if strings.HasPrefix(resource, "safeguarding-") {
-		return []string{"safeguarding:cases:manage"}
+		if write {
+			return []string{"safeguarding:cases:manage", "safeguarding_records:write:own", "safeguarding_records:write:any"}
+		}
+		return []string{"safeguarding:cases:manage", "safeguarding_records:read:own", "safeguarding_records:read:any"}
 	}
 	if strings.HasPrefix(resource, "federation-") {
 		if write {
@@ -22,10 +25,22 @@ func domainPermission(resource string, write bool) []string {
 		}
 		return []string{"federations:read:own", "federations:read:any"}
 	}
+	
+	permResource := strings.ReplaceAll(resource, "-", "_")
 	if write {
-		return []string{"reports:write:own", "reports:review:any"}
+		return []string{
+			permResource + ":write:own",
+			permResource + ":write:any",
+			"reports:write:own",
+			"reports:review:any",
+		}
 	}
-	return []string{"reports:read:own", "reports:read:any"}
+	return []string{
+		permResource + ":read:own",
+		permResource + ":read:any",
+		"reports:read:own",
+		"reports:read:any",
+	}
 }
 
 func (h *NSMISHandler) domainAccess(w http.ResponseWriter, r *http.Request, write bool) (string, []string, bool, bool) {

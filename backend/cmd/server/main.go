@@ -314,7 +314,7 @@ func main() {
 				r.Get("/jobs", h.NSMIS.ListJobs)
 				r.Post("/jobs", h.NSMIS.QueueJob)
 				r.Post("/jobs/{jobID}/retry", h.NSMIS.RetryJob)
-				r.Route("/{resource:federation-officers|federation-memberships|athletes|competitions|medals|coaches|technical-officials|talent|scholarships|safeguarding-aggregates|safeguarding-cases|disbursements|accountabilities|equipment}", func(r chi.Router) {
+				r.Route("/{resource:federation-officers|federation-memberships|athletes|competitions|medals|coaches|technical-officials|talent|scholarships|safeguarding-aggregates|safeguarding-cases|disbursements|accountabilities|equipment|clubs|national-team|medical-records|safeguarding-records|anti-doping|competition-results}", func(r chi.Router) {
 					r.Get("/", h.NSMIS.ListDomain)
 					r.Post("/", h.NSMIS.CreateDomain)
 					r.Put("/{id}", h.NSMIS.UpdateDomain)

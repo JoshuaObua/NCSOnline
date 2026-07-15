@@ -55,6 +55,10 @@
               <li v-for="item in visibleItems(topSections)" :key="item.id" :class="{ active: active === item.id }">
                 <button type="button" class="nav-link" @click="selectSection(item.id)"><i :class="item.icon"></i><span>{{ item.label }}</span></button>
               </li>
+              <li class="menu-header">Sports Registry</li>
+              <li v-for="item in visibleItems(namisSections)" :key="item.id" :class="{ active: active === item.id }">
+                <button type="button" class="nav-link" @click="selectSection(item.id)"><i :class="item.icon"></i><span>{{ item.label }}</span></button>
+              </li>
               <li class="menu-header">Portal</li>
               <li v-if="visibleItems(homepageSections).length" class="dropdown" :class="{ active: homepageGroupOpen || groupHasActive(homepageSections) }">
                 <button type="button" class="menu-toggle nav-link has-dropdown" @click="homepageGroupOpen = !homepageGroupOpen"><i class="icofont-home"></i><span>Homepage Management</span></button>
@@ -224,6 +228,16 @@
           v-if="active === 'overview'"
           @open-applications="openApplications"
           @open-forms="selectSection('form-builder')"
+        />
+
+        <NamisManagerPanel
+          v-else-if="active.startsWith('namis-') || active === 'namis-portal'"
+          :tab="active === 'namis-portal' ? 'analytics' : active.replace('namis-', '')"
+          :user-scope="storedUser.scope || []"
+        />
+
+        <SportsRegistryReportsPanel
+          v-else-if="active === 'reports-page'"
         />
 
         <section v-else-if="false" class="otika-dashboard">
@@ -1618,6 +1632,8 @@ import StorageSettingsPanel from '@/components/cms/StorageSettingsPanel.vue'
 import FormBuilderPanel from '@/components/cms/FormBuilderPanel.vue'
 import AdminApplicationsPanel from '@/components/portal/AdminApplicationsPanel.vue'
 import AdminDashboardPanel from '@/components/portal/AdminDashboardPanel.vue'
+import NamisManagerPanel from '@/components/portal/NamisManagerPanel.vue'
+import SportsRegistryReportsPanel from '@/components/portal/SportsRegistryReportsPanel.vue'
 import AppearanceSettingsPanel from '@/components/cms/AppearanceSettingsPanel.vue'
 import WebsiteSettingsPanel from '@/components/cms/WebsiteSettingsPanel.vue'
 import SitemapPanel from '@/components/cms/SitemapPanel.vue'
@@ -1660,6 +1676,7 @@ const reportsGroupOpen = ref(false)
 const speechesGroupOpen = ref(false)
 const funFactsGroupOpen = ref(false)
 const newsletterGroupOpen = ref(false)
+const namisGroupOpen = ref(false)
 const messagesOpen = ref(false)
 const notificationsOpen = ref(false)
 const profileOpen = ref(false)
@@ -1769,7 +1786,25 @@ const contentSections = [
 // of contentSections so it doesn't clutter Modules, but still included below
 // so currentSection resolves its label for the page header/breadcrumb.
 const profileSections = []
-const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections]
+const namisSections = [
+  { id: 'namis-analytics', label: 'Dashboard & KPIs', icon: 'icofont-chart-bar-graph' },
+  { id: 'namis-athletes', label: 'Athletes Registry', icon: 'icofont-users-alt-2' },
+  { id: 'namis-clubs', label: 'Clubs & Academies', icon: 'icofont-home' },
+  { id: 'namis-coaches', label: 'Coaches Registry', icon: 'icofont-businessman' },
+  { id: 'namis-competitions', label: 'Competitions Logs', icon: 'icofont-runner-alt-1' },
+  { id: 'namis-competition-results', label: 'Athlete Results', icon: 'icofont-listing-number' },
+  { id: 'namis-medals', label: 'Medals Standings', icon: 'icofont-medal' },
+  { id: 'namis-talent', label: 'Talent Pathways', icon: 'icofont-bulb-alt' },
+  { id: 'namis-national-team', label: 'National Squads', icon: 'icofont-flag' },
+  { id: 'namis-technical-officials', label: 'Technical Officials', icon: 'icofont-referee' },
+  { id: 'namis-medical-records', label: 'Medical Files', icon: 'icofont-first-aid' },
+  { id: 'namis-safeguarding-records', label: 'Safeguarding Records', icon: 'icofont-shield' },
+  { id: 'namis-anti-doping', label: 'Anti-Doping Compliance', icon: 'icofont-test-bulb' },
+  { id: 'namis-disbursements', label: 'Disbursements', icon: 'icofont-money' },
+  { id: 'namis-accountabilities', label: 'Financial Accountabilities', icon: 'icofont-file-document' },
+  { id: 'namis-equipment', label: 'Distributed Equipment', icon: 'icofont-package' }
+]
+const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections, ...namisSections]
 const allowedPortalSectionIds = new Set(sections.map(section => section.id))
 const currentSection = computed(() => sections.find(s => s.id === active.value) || sections[0])
 
@@ -1856,6 +1891,22 @@ const sectionPermissionMap = {
   'command-center':['dashboard:read'],
   maintenance:['dashboard:read'],
   'smart-updates':['dashboard:read'],
+  'namis-analytics': ['dashboard:athletes:read', 'reports:read:own', 'reports:read:any'],
+  'namis-athletes': ['athletes:read:own', 'athletes:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-clubs': ['clubs:read:own', 'clubs:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-coaches': ['coaches:read:own', 'coaches:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-competitions': ['competitions:read:own', 'competitions:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-competition-results': ['competition_results:read:own', 'competition_results:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-medals': ['medals:read:own', 'medals:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-talent': ['talent:read:own', 'talent:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-national-team': ['national_team:read:own', 'national_team:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-technical-officials': ['technical_officials:read:own', 'technical_officials:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-medical-records': ['medical_records:read:own', 'medical_records:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-safeguarding-records': ['safeguarding_records:read:own', 'safeguarding_records:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-anti-doping': ['anti_doping:read:own', 'anti_doping:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-disbursements': ['disbursements:read:own', 'disbursements:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-accountabilities': ['accountabilities:read:own', 'accountabilities:read:any', 'reports:read:own', 'reports:read:any'],
+  'namis-equipment': ['equipment:read:own', 'equipment:read:any', 'reports:read:own', 'reports:read:any'],
 }
 const resourceLabels = {
   homepage:'Homepage Management', slideshows:'Slideshows', blog_posts:'Blog Posts', blog_categories:'Blog Categories',

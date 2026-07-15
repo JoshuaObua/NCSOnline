@@ -128,6 +128,75 @@
                   @start="startApplication"
                   @view-all="select('apply')"
                 />
+
+                <!-- Athlete Dashboard Extension Panel -->
+                <div v-if="isAthlete && athleteData" class="athlete-registry-dashboard mt-4">
+                  <div class="card border-0 shadow-sm bg-gradient-primary-to-secondary text-white mb-4 overflow-hidden position-relative" style="border-radius: 12px;">
+                    <div class="card-body p-4 position-relative z-index-1">
+                      <div class="d-flex align-items-center gap-3">
+                        <span class="athlete-badge"><i class="icofont-runner-alt-1"></i></span>
+                        <div>
+                          <span class="text-uppercase tracking-wider small opacity-75 d-block" style="font-size: 10px; font-weight: 700; letter-spacing: 1px;">NCS Verified Athlete Registry</span>
+                          <h3 class="mb-0 fw-bold text-white fs-4">{{ athleteData.full_name }}</h3>
+                          <span class="small fw-medium opacity-85">ID: {{ athleteData.athlete_number }} &middot; Discipline: {{ athleteData.discipline }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="watermark-icon"><i class="icofont-trophy"></i></div>
+                  </div>
+
+                  <div class="athlete-stats-grid">
+                    <!-- General Details -->
+                    <article class="athlete-detail-card">
+                      <header><i class="icofont-id-card text-primary"></i> <h3>Classification</h3></header>
+                      <ul>
+                        <li><span>Age Category</span> <strong>{{ athleteData.age_category || 'Senior' }}</strong></li>
+                        <li><span>District / Region</span> <strong>{{ athleteData.district }} ({{ athleteData.region }})</strong></li>
+                        <li><span>Affiliated Club</span> <strong>{{ athleteData.club || '-' }}</strong></li>
+                        <li><span>License Status</span> <span class="badge bg-success-light text-success text-uppercase" style="font-size: 10px; font-weight: 700;">{{ athleteData.status }}</span></li>
+                      </ul>
+                    </article>
+
+                    <!-- National Team Caps -->
+                    <article class="athlete-detail-card">
+                      <header><i class="icofont-flag text-danger"></i> <h3>National Duty</h3></header>
+                      <ul v-if="athleteNationalTeam">
+                        <li><span>Squad Tier</span> <strong>{{ athleteNationalTeam.category }}</strong></li>
+                        <li><span>Team Name</span> <strong>{{ athleteNationalTeam.team_name }}</strong></li>
+                        <li><span>Total Caps</span> <strong class="badge bg-danger text-white fs-6 py-1 px-2 rounded-circle" style="min-width: 24px;">{{ athleteNationalTeam.appearances_count }}</strong></li>
+                        <li><span>First Call Up</span> <strong>{{ formatDate(athleteNationalTeam.first_call_up_on) }}</strong></li>
+                      </ul>
+                      <div v-else class="text-center py-4 text-muted small">
+                        No official national team caps recorded yet.
+                      </div>
+                    </article>
+
+                    <!-- Medical & Safeguarding -->
+                    <article class="athlete-detail-card">
+                      <header><i class="icofont-shield-alt text-warning"></i> <h3>Safeguarding & Medical</h3></header>
+                      <ul>
+                        <li><span>Blood Group</span> <strong>{{ athleteMedical?.blood_group || '-' }}</strong></li>
+                        <li><span>Injury Clearance</span> <strong>{{ athleteMedical?.current_injury_status || 'Fit' }}</strong></li>
+                        <li><span>Anti-Doping Ed.</span> <strong>{{ athleteSafeguarding?.anti_doping_education_completed ? 'Completed' : 'Pending' }}</strong></li>
+                        <li><span>Safeguarding Status</span> <span class="badge" :class="athleteSafeguarding?.consent_forms_url ? 'bg-success-light text-success' : 'bg-warning-light text-warning'" style="font-size: 10px; font-weight: 700;">{{ athleteSafeguarding?.consent_forms_url ? 'Cleared' : 'Pending Consent' }}</span></li>
+                      </ul>
+                    </article>
+
+                    <!-- Anti-Doping Compliance -->
+                    <article class="athlete-detail-card">
+                      <header><i class="icofont-test-bulb text-success"></i> <h3>WADA Compliance</h3></header>
+                      <ul v-if="athleteAntiDoping">
+                        <li><span>Testing Pool</span> <strong>{{ athleteAntiDoping.testing_status }}</strong></li>
+                        <li><span>Last Tested On</span> <strong>{{ formatDate(athleteAntiDoping.last_tested_on) }}</strong></li>
+                        <li><span>Test Result</span> <span class="badge" :class="athleteAntiDoping.last_test_result === 'NEGATIVE' ? 'bg-success-light text-success' : 'bg-danger-light text-danger'" style="font-size: 10px; font-weight: 700;">{{ athleteAntiDoping.last_test_result }}</span></li>
+                        <li><span>WADA Education</span> <strong>{{ athleteAntiDoping.wada_education_completed ? 'Completed' : 'Pending' }}</strong></li>
+                      </ul>
+                      <div v-else class="text-center py-4 text-muted small">
+                        No anti-doping tests or logs found.
+                      </div>
+                    </article>
+                  </div>
+                </div>
               </template>
 
               <template v-else-if="section === 'apply'">
@@ -311,6 +380,7 @@ import { listMyLegacyApplications, listMyTransactions } from '@/api/applications
 import { getMySecurity, enroll2FA, verify2FA, disable2FA, changePassword } from '@/api/security.js'
 import * as cms from '@/api/cms.js'
 import { portalListOpenForms, portalListSubmissions } from '@/api/forms.js'
+import { listNsmisDomain } from '@/api/nsmis.js'
 import { mediaUrl } from '@/api/client.js'
 import OpenFormsPanel from '@/components/portal/OpenFormsPanel.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
@@ -350,6 +420,13 @@ const toggling2FA = ref(false)
 const showTwoFAVerify = ref(false)
 const twofaVerifyCode = ref('')
 const verifying2FA = ref(false)
+
+const isAthlete = ref(false)
+const athleteData = ref(null)
+const athleteMedical = ref(null)
+const athleteSafeguarding = ref(null)
+const athleteAntiDoping = ref(null)
+const athleteNationalTeam = ref(null)
 
 ensureOtikaStyles()
 
@@ -456,6 +533,45 @@ async function loadPortal() {
     const sec = await getMySecurity()
     twofaEnabled.value = sec?.twofa?.enabled ?? false
   } catch (e) {}
+
+  if (profile && profile.email) {
+    try {
+      const athletesRes = await listNsmisDomain('athletes', { search: profile.email })
+      const athletesList = asList(athletesRes)
+      const match = athletesList.find(ath => String(ath.email_address || '').toLowerCase() === String(profile.email || '').toLowerCase())
+      if (match) {
+        isAthlete.value = true
+        athleteData.value = match
+        
+        const athleteId = match.id
+        const [medicalRes, safeguardingRes, antidopingRes, nationalTeamRes] = await Promise.allSettled([
+          listNsmisDomain('medical-records', { search: athleteId }),
+          listNsmisDomain('safeguarding-records', { search: athleteId }),
+          listNsmisDomain('anti-doping', { search: athleteId }),
+          listNsmisDomain('national-team', { search: athleteId })
+        ])
+        
+        if (medicalRes.status === 'fulfilled') {
+          const medItems = asList(medicalRes.value)
+          athleteMedical.value = medItems.find(r => r.athlete_id === athleteId) || null
+        }
+        if (safeguardingRes.status === 'fulfilled') {
+          const sgItems = asList(safeguardingRes.value)
+          athleteSafeguarding.value = sgItems.find(r => r.athlete_id === athleteId) || null
+        }
+        if (antidopingRes.status === 'fulfilled') {
+          const adItems = asList(antidopingRes.value)
+          athleteAntiDoping.value = adItems.find(r => r.athlete_id === athleteId) || null
+        }
+        if (nationalTeamRes.status === 'fulfilled') {
+          const ntItems = asList(nationalTeamRes.value)
+          athleteNationalTeam.value = ntItems.find(r => r.athlete_id === athleteId) || null
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load athlete context details:', e)
+    }
+  }
 
   loading.value = false
 }
@@ -1968,10 +2084,97 @@ function cancel2FAEnrollment() {
   .application-modal form > footer button {
     width: 100%!important;
   }
-  /* Profile button handled globally */
   .navbar .dropdown-menu.show {
     left: 8px!important;
     right: 8px!important;
   }
+}
+
+/* Athlete Dashboard Grid & Cards */
+.athlete-registry-dashboard {
+  margin-top: 30px!important;
+}
+.bg-gradient-primary-to-secondary {
+  background: linear-gradient(135deg, #6777ef 0%, #3abaf4 100%)!important;
+}
+.athlete-badge {
+  display: grid!important;
+  place-items: center!important;
+  width: 56px!important;
+  height: 56px!important;
+  background: rgba(255, 255, 255, 0.2)!important;
+  border-radius: 12px!important;
+  font-size: 28px!important;
+}
+.watermark-icon {
+  position: absolute!important;
+  right: -20px!important;
+  bottom: -30px!important;
+  font-size: 150px!important;
+  opacity: 0.1!important;
+  pointer-events: none!important;
+}
+.athlete-stats-grid {
+  display: grid!important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))!important;
+  gap: 20px!important;
+  margin-top: 20px!important;
+}
+.athlete-detail-card {
+  background: #fff!important;
+  border: 1px solid #f0f2f8!important;
+  border-radius: 12px!important;
+  padding: 20px!important;
+  box-shadow: 0 4px 15px rgba(0,0,0,.03)!important;
+}
+:global(.dark .athlete-detail-card) {
+  background: #1e293b!important;
+  border-color: #334155!important;
+}
+.athlete-detail-card header {
+  display: flex!important;
+  align-items: center!important;
+  gap: 10px!important;
+  margin-bottom: 16px!important;
+  border-bottom: 1px solid #f0f2f8!important;
+  padding-bottom: 10px!important;
+}
+:global(.dark .athlete-detail-card header) {
+  border-color: #334155!important;
+}
+.athlete-detail-card header i {
+  font-size: 20px!important;
+}
+.athlete-detail-card header h3 {
+  margin: 0!important;
+  font-size: 15px!important;
+  font-weight: 700!important;
+  color: #34395e!important;
+}
+:global(.dark .athlete-detail-card header h3) {
+  color: #f8fafc!important;
+}
+.athlete-detail-card ul {
+  list-style: none!important;
+  padding: 0!important;
+  margin: 0!important;
+  display: grid!important;
+  gap: 12px!important;
+}
+.athlete-detail-card li {
+  display: flex!important;
+  justify-content: space-between!important;
+  align-items: center!important;
+  font-size: 13px!important;
+}
+.athlete-detail-card li span {
+  color: #8a94ad!important;
+}
+.athlete-detail-card li strong {
+  color: #34395e!important;
+  font-weight: 600!important;
+}
+:global(.dark .athlete-detail-card li strong) {
+  color: #cbd5e1!important;
 }
 </style>
