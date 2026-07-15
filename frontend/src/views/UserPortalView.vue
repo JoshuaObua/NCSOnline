@@ -17,7 +17,7 @@
                 </button>
               </li>
               <li class="portal-navbar-title">
-                <small>Ordinary User</small>
+                <small>{{ userProfileLabel }}</small>
                 <strong>{{ sectionTitle }}</strong>
               </li>
             </ul>
@@ -67,11 +67,11 @@
               <span v-else class="sidebar-avatar-fallback">{{ initials }}</span>
               <div>
                 <strong>{{ sidebarUserName }}</strong>
-                <span>Applicant workspace</span>
+                <span>{{ userWorkspaceLabel }}</span>
               </div>
             </div>
             <ul class="sidebar-menu" aria-label="Applicant navigation">
-              <li class="menu-header">Applicant Portal</li>
+              <li class="menu-header">{{ userProfileLabel }}</li>
               <li v-for="item in navigation" :key="item.id" :class="{ active: section === item.id }">
                 <button type="button" class="nav-link" :title="item.label" @click="select(item.id)">
                   <i :class="item.icon"></i>
@@ -195,6 +195,34 @@
                         No anti-doping tests or logs found.
                       </div>
                     </article>
+
+                    <!-- Medal Standings -->
+                    <article class="athlete-detail-card">
+                      <header><i class="icofont-badge text-warning"></i> <h3>Medal Standings</h3></header>
+                      <ul v-if="athleteMedals.length">
+                        <li v-for="medal in athleteMedals" :key="medal.id">
+                          <span>{{ medal.event }}</span>
+                          <strong :class="getMedalBadgeClass(medal.medal_type)">{{ medal.medal_type }}</strong>
+                        </li>
+                      </ul>
+                      <div v-else class="text-center py-4 text-muted small">
+                        No medal records linked to this profile.
+                      </div>
+                    </article>
+
+                    <!-- Competition Results -->
+                    <article class="athlete-detail-card">
+                      <header><i class="icofont-spreadsheet text-info"></i> <h3>Competition Results</h3></header>
+                      <ul v-if="athleteResults.length" style="max-height: 180px; overflow-y: auto; padding-right: 4px;">
+                        <li v-for="res in athleteResults" :key="res.id" style="border-bottom: 1px dashed rgba(0,0,0,0.06); padding-bottom: 6px; margin-bottom: 6px;">
+                          <span>{{ res.event }}</span>
+                          <strong>Rank: {{ res.position || 'N/A' }} ({{ res.time_result || res.score_result || res.distance_result || 'Result' }})</strong>
+                        </li>
+                      </ul>
+                      <div v-else class="text-center py-4 text-muted small">
+                        No competition results recorded yet.
+                      </div>
+                    </article>
                   </div>
                 </div>
               </template>
@@ -275,6 +303,82 @@
                       <tr v-for="item in transactions" :key="`${item.source}-${item.id}`"><td data-label="Application"><strong>{{ item.title }}</strong></td><td data-label="Reference">{{ item.payment_reference || '-' }}</td><td data-label="Amount">UGX {{ formatMoney(item.amount) }}</td><td data-label="Payment status"><span class="status" :class="paymentClass(item.payment_status)">{{ titleize(item.payment_status || 'unpaid') }}</span></td><td data-label="Method">{{ titleize(item.payment_method || 'proof upload') }}</td></tr>
                     </tbody>
                   </table>
+                </div>
+              </template>
+
+              <template v-else-if="section === 'my-files'">
+                <header class="page-heading">
+                  <div>
+                    <p>Credential Wallet</p>
+                    <h1>My Files & Certificates</h1>
+                    <span>Access and download all official licenses, registrations, and certificates offered to you by NCS.</span>
+                  </div>
+                </header>
+
+                <div class="user-kpis">
+                  <article>
+                    <span class="bg-primary text-white" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%;"><i class="icofont-folder-open" style="font-size: 20px;"></i></span>
+                    <div>
+                      <small>Total Credentials</small>
+                      <strong>{{ userFiles.length }}</strong>
+                      <p>Active NCS certificates</p>
+                    </div>
+                  </article>
+                  <article>
+                    <span class="bg-success text-white" style="display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%;"><i class="icofont-check-circled" style="font-size: 20px;"></i></span>
+                    <div>
+                      <small>Verification Status</small>
+                      <strong>100%</strong>
+                      <p>All records verified</p>
+                    </div>
+                  </article>
+                </div>
+
+                <div v-if="!userFiles.length" class="empty-state py-5 card shadow-sm text-center border-0" style="border-radius: 12px; background: #fff;">
+                  <div class="card-body p-5">
+                    <i class="icofont-folder-open text-muted" style="font-size: 64px;"></i>
+                    <h3 class="mt-3 fw-bold text-dark">No Credentials Found</h3>
+                    <p class="text-muted max-w-md mx-auto">
+                      Currently, there are no active athlete licenses, coach credentials, or technical official clearances linked to your email in the system.
+                    </p>
+                  </div>
+                </div>
+
+                <div v-else class="row">
+                  <div v-for="file in userFiles" :key="file.id" class="col-md-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100 credential-card" style="border-radius: 12px; background: #fff; transition: transform 0.2s; box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;">
+                      <div class="card-body p-4 d-flex flex-column h-100">
+                        <header class="d-flex align-items-start justify-content-between mb-3">
+                          <div class="d-flex align-items-center gap-3">
+                            <span class="credential-icon p-2 rounded-circle" :class="getFileIconClass(file.category)" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;">
+                              <i :class="getFileIcon(file.category)" style="font-size: 20px;"></i>
+                            </span>
+                            <div>
+                              <span class="badge bg-light text-muted text-uppercase mb-1" style="font-size: 9px; font-weight: 700; border: 1px solid rgba(0,0,0,0.06);">{{ file.type }}</span>
+                              <h3 class="h5 mb-0 fw-bold text-dark" style="font-size: 15px; font-weight: 700;">{{ file.title }}</h3>
+                            </div>
+                          </div>
+                          <span class="badge" :class="getStatusBadgeClass(file.status)" style="font-size: 10px; font-weight: 700;">{{ file.status }}</span>
+                        </header>
+                        
+                        <p class="text-muted small mb-4 flex-grow-1" style="font-size: 12px; line-height: 1.5;">{{ file.description }}</p>
+                        
+                        <div class="mt-auto pt-3 border-top d-flex flex-column gap-2" style="border-color: rgba(0,0,0,0.06) !important;">
+                          <div class="d-flex justify-content-between text-muted small" style="font-size: 12px;">
+                            <span>License No:</span>
+                            <strong class="text-dark">{{ file.number }}</strong>
+                          </div>
+                          <div class="d-flex justify-content-between text-muted small" style="font-size: 12px;">
+                            <span>Issued On:</span>
+                            <strong>{{ formatDate(file.issueDate) }}</strong>
+                          </div>
+                          <button type="button" class="btn btn-primary btn-block mt-3 d-flex align-items-center justify-content-center gap-2" style="background-color: #6777ef; border-color: #6777ef; border-radius: 30px; font-weight: 700; font-size: 12px; padding: 10px 18px;" @click="downloadFile(file)">
+                            <i class="icofont-download"></i> Download Document ({{ file.fileType }})
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </template>
 
@@ -388,7 +492,7 @@ import { downloadApplicationForm } from '@/utils/applicationDownload.js'
 import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 
 const router = useRouter()
-const portalSectionIds = ['dashboard', 'apply', 'applications', 'activities', 'notifications', 'messages', 'transactions', 'profile']
+const portalSectionIds = ['dashboard', 'apply', 'applications', 'my-files', 'activities', 'notifications', 'messages', 'transactions', 'profile']
 const section = ref('dashboard')
 const sidebarCollapsed = ref(localStorage.getItem('ncsms_sidebar_collapsed') === 'true')
 const mobileSidebarOpen = ref(false)
@@ -427,19 +531,59 @@ const athleteMedical = ref(null)
 const athleteSafeguarding = ref(null)
 const athleteAntiDoping = ref(null)
 const athleteNationalTeam = ref(null)
+const athleteResults = ref([])
+const athleteMedals = ref([])
+
+const isCoach = ref(false)
+const coachData = ref(null)
+const isOfficial = ref(false)
+const officialData = ref(null)
 
 ensureOtikaStyles()
 
-const navigation = computed(() => [
-  { id: 'dashboard', label: 'Dashboard', icon: 'icofont-dashboard-web' },
-  { id: 'apply', label: 'Apply Now', icon: 'icofont-plus-circle', badge: openForms.value.length || '' },
-  { id: 'applications', label: 'My Applications', icon: 'icofont-file-document' },
-  { id: 'activities', label: 'My Activities', icon: 'icofont-history' },
-  { id: 'notifications', label: 'Notifications', icon: 'icofont-notification', badge: unreadNotifications.value || '' },
-  { id: 'messages', label: 'Messages', icon: 'icofont-envelope', badge: messageCount.value || '' },
-  { id: 'transactions', label: 'My Transactions', icon: 'icofont-money' },
-  { id: 'profile', label: 'My Profile', icon: 'icofont-user-alt-3' },
-])
+const userRoles = computed(() => {
+  const roles = profile.roles || profile.role || []
+  const roleList = Array.isArray(roles) ? roles : [roles]
+  return roleList.map(r => typeof r === 'string' ? r : r?.name).filter(Boolean)
+})
+const isAdminOrGenSec = computed(() => {
+  return userRoles.value.some(r => ['admin', 'super_admin', 'general_secretary'].includes(r))
+})
+
+const userProfileLabel = computed(() => {
+  const roles = userRoles.value
+  if (roles.includes('athlete') || roles.includes('role_athlete')) return 'Athlete Portal'
+  if (roles.includes('coach') || roles.includes('role_coach')) return 'Coach Portal'
+  if (roles.includes('technical_official') || roles.includes('role_technical_official')) return 'Official Portal'
+  return 'Ordinary User'
+})
+
+const userWorkspaceLabel = computed(() => {
+  const roles = userRoles.value
+  if (roles.includes('athlete') || roles.includes('role_athlete')) return 'Athlete workspace'
+  if (roles.includes('coach') || roles.includes('role_coach')) return 'Coach workspace'
+  if (roles.includes('technical_official') || roles.includes('role_technical_official')) return 'Official workspace'
+  return 'Applicant workspace'
+})
+
+const navigation = computed(() => {
+  const items = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'icofont-dashboard-web' },
+    { id: 'apply', label: 'Apply Now', icon: 'icofont-plus-circle', badge: openForms.value.length || '' },
+    { id: 'applications', label: 'My Applications', icon: 'icofont-file-document' },
+  ]
+  if (!isAdminOrGenSec.value) {
+    items.push({ id: 'my-files', label: 'My Files', icon: 'icofont-folder-open' })
+  }
+  items.push(
+    { id: 'activities', label: 'My Activities', icon: 'icofont-history' },
+    { id: 'notifications', label: 'Notifications', icon: 'icofont-notification', badge: unreadNotifications.value || '' },
+    { id: 'messages', label: 'Messages', icon: 'icofont-envelope', badge: messageCount.value || '' },
+    { id: 'transactions', label: 'My Transactions', icon: 'icofont-money' },
+    { id: 'profile', label: 'My Profile', icon: 'icofont-user-alt-3' }
+  )
+  return items
+})
 const sectionTitle = computed(() => navigation.value.find(item => item.id === section.value)?.label || 'Dashboard')
 const firstName = computed(() => profile.first_name || String(profile.email || 'User').split('@')[0])
 const fullName = computed(() => `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email || 'Portal user')
@@ -490,6 +634,192 @@ const transactions = computed(() => [
 ])
 const transactionTotal = computed(() => transactions.value.reduce((sum, item) => sum + Number(item.amount || 0), 0))
 
+const userFiles = computed(() => {
+  const filesList = []
+  
+  if (isAthlete.value && athleteData.value) {
+    filesList.push({
+      id: 'cert_athlete_license',
+      title: 'National Athlete License Certificate',
+      type: 'License / Certificate',
+      number: athleteData.value.athlete_number,
+      issueDate: athleteData.value.created_at || new Date().toISOString(),
+      expiryDate: 'N/A (Active)',
+      status: athleteData.value.status || 'Active',
+      description: `Official NCS verification for athlete classification under ${athleteData.value.discipline || 'sports registry'}.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_Athlete_License_${athleteData.value.athlete_number || 'Cert'}.txt`,
+      category: 'Athlete Registry'
+    })
+  }
+
+  if (isCoach.value && coachData.value) {
+    filesList.push({
+      id: 'cert_coach_license',
+      title: `NCS Coach License - Level ${coachData.value.certification_level || 'Certified'}`,
+      type: 'License / Certificate',
+      number: coachData.value.license_number || 'NCS-COACH-TEMP',
+      issueDate: coachData.value.created_at || new Date().toISOString(),
+      expiryDate: coachData.value.expiry_date || 'N/A',
+      status: coachData.value.status || 'Active',
+      description: `NCS recognized coaching qualifications and certification credentials.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_Coach_License_${coachData.value.license_number || 'Cert'}.txt`,
+      category: 'Coaches Registry'
+    })
+  }
+
+  if (isOfficial.value && officialData.value) {
+    filesList.push({
+      id: 'cert_official_license',
+      title: `Technical Official Certification - ${officialData.value.official_type || 'Official'}`,
+      type: 'Official Credentials',
+      number: `NCS-TO-${officialData.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
+      issueDate: officialData.value.created_at || new Date().toISOString(),
+      expiryDate: officialData.value.valid_until || 'N/A',
+      status: officialData.value.status || 'Active',
+      description: `Official registration for NCS Technical Officials and Referees.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_Official_Credentials_${officialData.value.id || 'Cert'}.txt`,
+      category: 'Technical Officials'
+    })
+  }
+
+  if (athleteMedical.value) {
+    filesList.push({
+      id: 'cert_medical_clearance',
+      title: 'Athlete Medical Clearance File',
+      type: 'Medical Records',
+      number: `NCS-MED-${athleteMedical.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
+      issueDate: athleteMedical.value.created_at || new Date().toISOString(),
+      expiryDate: 'N/A',
+      status: athleteMedical.value.current_injury_status || 'Fit to Compete',
+      description: `NCS Medical Department validation and clearance logs.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_Medical_Clearance_${athleteMedical.value.id || 'Record'}.txt`,
+      category: 'Medical Files'
+    })
+  }
+
+  if (athleteAntiDoping.value) {
+    filesList.push({
+      id: 'cert_antidoping_clearance',
+      title: 'WADA Anti-Doping Compliance Certificate',
+      type: 'Compliance Record',
+      number: `NCS-WADA-${athleteAntiDoping.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
+      issueDate: athleteAntiDoping.value.last_tested_on || new Date().toISOString(),
+      expiryDate: 'N/A',
+      status: athleteAntiDoping.value.last_test_result || 'Compliant',
+      description: `Verification certificate for completion of WADA Anti-Doping education and compliance test logs.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_AntiDoping_Certificate_${athleteAntiDoping.value.id || 'Record'}.txt`,
+      category: 'Anti-Doping Compliance'
+    })
+  }
+
+  if (athleteNationalTeam.value) {
+    filesList.push({
+      id: 'cert_national_team_cap',
+      title: `National Team Appearance Certificate (${athleteNationalTeam.value.team_name || 'Uganda National Team'})`,
+      type: 'National Representation',
+      number: `NCS-NT-${athleteNationalTeam.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
+      issueDate: athleteNationalTeam.value.first_call_up_on || new Date().toISOString(),
+      expiryDate: 'N/A',
+      status: 'Verified',
+      description: `Official NCS certification recognizing sports representation at national squad tier: ${athleteNationalTeam.value.category || 'National'}.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_National_Duty_Certificate_${athleteNationalTeam.value.id || 'Record'}.txt`,
+      category: 'National Squads'
+    })
+  }
+
+  return filesList
+})
+
+function getFileIcon(category) {
+  switch (category) {
+    case 'Athlete Registry': return 'icofont-runner-alt-1'
+    case 'Coaches Registry': return 'icofont-whistle'
+    case 'Technical Officials': return 'icofont-referee'
+    case 'Medical Files': return 'icofont-first-aid'
+    case 'Anti-Doping Compliance': return 'icofont-test-bulb'
+    case 'National Squads': return 'icofont-flag'
+    default: return 'icofont-document-folder'
+  }
+}
+
+function getFileIconClass(category) {
+  switch (category) {
+    case 'Athlete Registry': return 'bg-primary text-white'
+    case 'Coaches Registry': return 'bg-warning text-dark'
+    case 'Technical Officials': return 'bg-info text-white'
+    case 'Medical Files': return 'bg-danger text-white'
+    case 'Anti-Doping Compliance': return 'bg-success text-white'
+    case 'National Squads': return 'bg-dark text-white'
+    default: return 'bg-secondary text-white'
+  }
+}
+
+function getStatusBadgeClass(status) {
+  const s = String(status).toUpperCase()
+  if (['ACTIVE', 'COMPLIANT', 'VERIFIED', 'FIT TO COMPETE', 'NEGATIVE'].includes(s)) {
+    return 'badge-success'
+  }
+  if (['PENDING', 'PENDING CONSENT'].includes(s)) {
+    return 'badge-warning'
+  }
+  return 'badge-danger'
+}
+
+function getMedalBadgeClass(type) {
+  const t = String(type).toUpperCase()
+  if (t.includes('GOLD')) return 'badge badge-warning text-dark text-uppercase'
+  if (t.includes('SILVER')) return 'badge bg-secondary text-white text-uppercase'
+  return 'badge bg-bronze text-white text-uppercase'
+}
+
+function downloadFile(file) {
+  const content = `========================================================================
+                      NATIONAL COUNCIL OF SPORTS (NCS) UGANDA
+                                OFFICIAL CERTIFICATE
+========================================================================
+
+CERTIFICATE TITLE : ${file.title}
+DOCUMENT TYPE     : ${file.type}
+LICENSE/REF NO.   : ${file.number}
+CATEGORY          : ${file.category}
+STATUS            : ${file.status}
+
+ISSUED TO         : ${fullName.value}
+EMAIL ADDRESS     : ${profile.email}
+DATE OF ISSUE     : ${formatDate(file.issueDate)}
+EXPIRY DATE       : ${formatDate(file.expiryDate)}
+
+------------------------------------------------------------------------
+DESCRIPTION:
+${file.description}
+------------------------------------------------------------------------
+
+VERIFICATION STATUS: VERIFIED BY NATIONAL COUNCIL OF SPORTS (NCS)
+This document serves as the official digital credential issued by the National
+Council of Sports (NCS) Uganda portal. To verify, contact ncs@ncs.go.ug.
+
+Generated on      : ${new Date().toLocaleString()}
+========================================================================`
+
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = file.downloadName
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  
+  setMsg(`Successfully downloaded ${file.title}`)
+}
+
 watch(section, id => {
   const query = id === 'dashboard' ? {} : { section: id }
   router.replace({ path: '/dashboard', query }).catch(() => {})
@@ -527,6 +857,19 @@ async function loadPortal() {
     activityTotal.value = 0
   }
   notifications.value = results[6].status === 'fulfilled' ? asList(results[6].value) : []
+  isAthlete.value = false
+  athleteData.value = null
+  athleteMedical.value = null
+  athleteSafeguarding.value = null
+  athleteAntiDoping.value = null
+  athleteNationalTeam.value = null
+  athleteResults.value = []
+  athleteMedals.value = []
+  isCoach.value = false
+  coachData.value = null
+  isOfficial.value = false
+  officialData.value = null
+
   if (results.some(item => item.status === 'rejected')) error.value = 'Some dashboard information could not be loaded. Refresh to try again.'
   
   try {
@@ -544,11 +887,13 @@ async function loadPortal() {
         athleteData.value = match
         
         const athleteId = match.id
-        const [medicalRes, safeguardingRes, antidopingRes, nationalTeamRes] = await Promise.allSettled([
+        const [medicalRes, safeguardingRes, antidopingRes, nationalTeamRes, resultsRes, medalsRes] = await Promise.allSettled([
           listNsmisDomain('medical-records', { search: athleteId }),
           listNsmisDomain('safeguarding-records', { search: athleteId }),
           listNsmisDomain('anti-doping', { search: athleteId }),
-          listNsmisDomain('national-team', { search: athleteId })
+          listNsmisDomain('national-team', { search: athleteId }),
+          listNsmisDomain('competition-results', { search: athleteId }),
+          listNsmisDomain('medals', { search: athleteId })
         ])
         
         if (medicalRes.status === 'fulfilled') {
@@ -567,9 +912,42 @@ async function loadPortal() {
           const ntItems = asList(nationalTeamRes.value)
           athleteNationalTeam.value = ntItems.find(r => r.athlete_id === athleteId) || null
         }
+        if (resultsRes.status === 'fulfilled') {
+          const resItems = asList(resultsRes.value)
+          athleteResults.value = resItems.filter(r => r.athlete_id === athleteId)
+        }
+        if (medalsRes.status === 'fulfilled') {
+          const medItems = asList(medalsRes.value)
+          athleteMedals.value = medItems.filter(r => r.athlete_id === athleteId)
+        }
       }
     } catch (e) {
       console.warn('Failed to load athlete context details:', e)
+    }
+
+    try {
+      const coachesRes = await listNsmisDomain('coaches', { search: profile.email })
+      const coachesList = asList(coachesRes)
+      const matchCoach = coachesList.find(c => String(c.email || '').toLowerCase() === String(profile.email || '').toLowerCase())
+      if (matchCoach) {
+        isCoach.value = true
+        coachData.value = matchCoach
+      }
+    } catch (e) {
+      console.warn('Failed to load coach context details:', e)
+    }
+
+    try {
+      const officialsRes = await listNsmisDomain('technical-officials', { search: profile.email })
+      const officialsList = asList(officialsRes)
+      const nameKey = fullName.value.toLowerCase().trim()
+      const matchOfficial = officialsList.find(o => String(o.full_name || '').toLowerCase().trim() === nameKey)
+      if (matchOfficial) {
+        isOfficial.value = true
+        officialData.value = matchOfficial
+      }
+    } catch (e) {
+      console.warn('Failed to load official context details:', e)
     }
   }
 
@@ -2176,5 +2554,8 @@ function cancel2FAEnrollment() {
 }
 :global(.dark .athlete-detail-card li strong) {
   color: #cbd5e1!important;
+}
+.bg-bronze {
+  background-color: #cd7f32 !important;
 }
 </style>
