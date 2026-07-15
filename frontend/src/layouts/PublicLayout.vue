@@ -164,20 +164,7 @@
             </button>
             <ThemeToggle />
 
-            <div v-if="currentUser" ref="accountMenu" class="account-menu">
-              <button type="button" class="account-trigger" aria-haspopup="menu" :aria-expanded="accountOpen" @click="accountOpen = !accountOpen">
-                <img v-if="currentUser.avatar_url" :src="currentUser.avatar_url" alt="" referrerpolicy="no-referrer" />
-                <span v-else>{{ accountInitials }}</span>
-              </button>
-              <div v-show="accountOpen" class="account-dropdown" role="menu">
-                <a :href="portalUrl('/account/profile')" role="menuitem" @click="accountOpen = false">Profile Overview</a>
-                <a :href="portalUrl('/account/settings')" role="menuitem" @click="accountOpen = false">Settings & Security</a>
-                <a :href="portalUrl('/account/activities')" role="menuitem" @click="accountOpen = false">My Audit Activities</a>
-                <button type="button" role="menuitem" @click="logoutAccount">Sign out</button>
-              </div>
-            </div>
-
-            <a v-else :href="portalUrl('/login')" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
+            <a :href="portalUrl('/login')" class="hidden md:inline-flex h-8 items-center gap-2 rounded-md px-3 text-xs font-medium text-[#1a365d] hover:text-[#f5a623] hover:bg-[#f5a623]/10 transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
               Login
             </a>
@@ -403,11 +390,8 @@ import { portalUrl } from '@/utils/portal.js'
 
 const mobileOpen = ref(false)
 const searchOpen = ref(false)
-const accountOpen = ref(false)
-const accountMenu = ref(null)
 const siteSearch = ref('')
 const scrolled = ref(false)
-const accountUser = ref(readAccountUser())
 const route = useRoute()
 const router = useRouter()
 const { isDark } = useTheme()
@@ -422,13 +406,6 @@ const maintenanceExpectedEnd = computed(() => formatMaintenanceTime(maintenanceI
 const maintenanceStartedAt = computed(() => formatMaintenanceTime(maintenanceInfo.value?.scheduled_start || maintenanceInfo.value?.changed_at))
 const maintenanceEmailHref = computed(() => contact.email ? `mailto:${contact.email}` : '')
 const maintenancePhoneHref = computed(() => primaryPhone.value ? `tel:${primaryPhone.value}` : '')
-const currentUser = computed(() => accountUser.value)
-const accountName = computed(() => {
-  const user = currentUser.value || {}
-  return `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Account'
-})
-const accountInitials = computed(() => accountName.value.split(/\s+/).slice(0, 2).map(part => part[0] || '').join('').toUpperCase() || 'U')
-
 function onScroll() { scrolled.value = window.scrollY > 20 }
 function openAccessibility() { window.dispatchEvent(new CustomEvent('open-accessibility-menu')) }
 function submitSearch() {
@@ -437,28 +414,22 @@ function submitSearch() {
 }
 function closeNavigation(event) {
   if (event.key && event.key !== 'Escape') return
-  if (!event.key && event.target && !accountMenu.value?.contains(event.target)) accountOpen.value = false
   if (event.key === 'Escape') {
-    accountOpen.value = false
     mobileOpen.value = false
   }
 }
 
 onMounted(() => {
   window.addEventListener('scroll', onScroll, { passive: true })
-  document.addEventListener('pointerdown', closeNavigation)
   document.addEventListener('keydown', closeNavigation)
 })
 onUnmounted(() => {
   window.removeEventListener('scroll', onScroll)
-  document.removeEventListener('pointerdown', closeNavigation)
   document.removeEventListener('keydown', closeNavigation)
 })
 
 watch(() => route.fullPath, async () => {
-  accountUser.value = readAccountUser()
   mobileOpen.value = false
-  accountOpen.value = false
   trackPageView(route.path)
   trackGoogleAnalyticsPageView(route.path)
   await nextTick()
@@ -466,18 +437,6 @@ watch(() => route.fullPath, async () => {
   main?.focus({ preventScroll: true })
   animatePublicPage(main)
 })
-
-function logoutAccount() {
-  localStorage.removeItem('ncsms_access_token')
-  localStorage.removeItem('ncsms_user')
-  accountUser.value = null
-  accountOpen.value = false
-  router.push('/')
-}
-
-function readAccountUser() {
-  try { return JSON.parse(localStorage.getItem('ncsms_user') || 'null') } catch { return null }
-}
 
 const defaultMenu = [
   { label: 'Home',            url: '/' },
@@ -1147,7 +1106,6 @@ onUnmounted(() => {
 }
 .public-site > main { padding-top: 7rem; }
 .newsletter-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
-.account-menu{position:relative}.account-trigger{width:38px;height:38px;border:1px solid #e5e7eb;border-radius:999px;background:white;color:#112b4e;display:grid;place-items:center;overflow:hidden;font-weight:900}.account-trigger img{width:100%;height:100%;object-fit:cover}.account-dropdown{position:absolute;right:0;top:calc(100% + 10px);width:230px;background:white;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 18px 40px rgba(15,23,42,.16);padding:.45rem;z-index:70}.account-dropdown a,.account-dropdown button{display:block;width:100%;border:0;background:transparent;border-radius:6px;padding:.7rem .75rem;text-align:left;color:#112b4e;font-size:.88rem;font-weight:800}.account-dropdown a:hover,.account-dropdown button:hover{background:#f8fafc;color:#f48c06}
 
 /* Marquee — single continuous track, replicates the Header spec's CSS animation */
 .public-marquee-container { display: block; min-width: 0; }

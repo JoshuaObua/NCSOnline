@@ -44,6 +44,17 @@ test('public routes and page motion remain wired into the application shell', ()
   assert.match(pageView, /sanitizeRichHtml/)
 })
 
+test('portal CMS reads use the publicly reachable portal gateway', () => {
+  const portal = read('../src/utils/portal.js')
+  const home = read('../src/views/public/HomeView.vue')
+
+  assert.match(portal, /VITE_PORTAL_API_URL \|\| import\.meta\.env\?\.VITE_INTRANET_URL/)
+  assert.match(portal, /VITE_INTRANET_PORT \|\| '9081'/)
+  assert.doesNotMatch(portal, /:9200/)
+  assert.match(home, /portalApiUrl\('\/api\/v1\/cms\/stats'\)/)
+  assert.match(home, /portalApiUrl\('\/api\/v1\/cms\/associations'\)/)
+})
+
 test('facilities use managed regions and server-side query filtering', () => {
   const api = read('../src/api/cms.js')
   const facilitiesView = read('../src/views/public/FacilitiesView.vue')

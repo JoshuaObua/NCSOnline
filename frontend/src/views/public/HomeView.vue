@@ -22,29 +22,29 @@
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#f5a623]" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>
                   Current Leadership
                 </h3>
-                <div class="grid gap-4 md:grid-cols-[auto,1fr] md:items-center">
-                  <img
-                    v-if="leadershipLead?.image_url"
-                    :src="mediaUrl(leadershipLead.image_url)"
-                    :alt="leadershipLead.name"
-                    class="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md"
-                    data-testid="homepage-chairperson-image"
-                  />
-                  <div
-                    v-else
-                    class="w-20 h-20 rounded-full bg-[#1a365d]/10 flex items-center justify-center text-[#1a365d] border-2 border-white shadow-md"
-                    data-testid="homepage-chairperson-image"
-                    aria-hidden="true"
-                  >
-                    <i class="icofont-user-alt-3 text-2xl"></i>
-                  </div>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div v-for="(member, index) in displayedLeadershipMembers" :key="member.name || index">
-                      <p class="text-sm text-gray-500">{{ member.title }}</p>
-                      <p class="font-medium text-[#1a365d]">{{ member.name }}</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <article v-for="(member, index) in displayedLeadershipMembers" :key="member.id || member.name || index" class="flex items-center gap-3 rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+                    <img
+                      v-if="member.image_url"
+                      :src="mediaUrl(member.image_url)"
+                      :alt="member.name"
+                      class="w-16 h-16 flex-none rounded-full object-cover border-2 border-white shadow-md"
+                      :data-testid="index === 0 ? 'homepage-chairperson-image' : undefined"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <div v-else class="w-16 h-16 flex-none rounded-full bg-[#1a365d]/10 flex items-center justify-center text-[#1a365d] border-2 border-white shadow-md" aria-hidden="true">
+                      <i class="icofont-user-alt-3 text-xl"></i>
                     </div>
-                  </div>
+                    <div class="min-w-0">
+                      <p class="text-xs leading-5 text-gray-500">{{ member.title }}</p>
+                      <p class="font-medium leading-5 text-[#1a365d]">{{ member.name }}</p>
+                    </div>
+                  </article>
                 </div>
+                <router-link to="/governing-council" class="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#1a365d] transition-colors hover:text-[#f5a623]">
+                  View Governing Council <span aria-hidden="true">&rarr;</span>
+                </router-link>
               </div>
 
             </div>
@@ -280,9 +280,7 @@
         </div>
       </section>
 
-      <section v-else-if="section.id === 'cta'" id="section-cta" class="home-cta"><div class="home-shell"><div><span>National Council of Sports Uganda</span><h2>In Case You Need Instant Help</h2></div><div class="home-cta-actions"><button type="button" class="home-btn home-btn-outline-light" @click="liveChatOpen = true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Chat With Us Live</button><router-link to="/contact-us" class="home-btn home-btn-gold">Contact NCS</router-link></div></div></section>
-
-      <LiveChatWidget v-if="liveChatOpen" @close="liveChatOpen = false" />
+      <section v-else-if="section.id === 'cta'" id="section-cta" class="home-cta"><div class="home-shell"><div><span>National Council of Sports Uganda</span><h2>In Case You Need Instant Help</h2></div><div class="home-cta-actions"><button type="button" class="home-btn home-btn-outline-light" aria-label="Open NCS chatbot" @click="openChatbot"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Chat With Us Live</button><router-link to="/contact-us" class="home-btn home-btn-gold">Contact NCS</router-link></div></div></section>
 
       <section v-else-if="section.id === 'faq_facts'" id="section-faq" class="home-section bg-soft">
         <div class="home-shell faq-facts-grid"><div><span class="section-kicker">{{ home.faq_eyebrow }}</span><h2>{{ home.faq_title }}</h2><div class="space-y-4 mt-6">
@@ -319,12 +317,11 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { getSettings, getSlideshow, listAssociations, listEvents, listFAQs, listFunFacts, listPosts } from '@/api/cms.js'
+import { getSettings, getSlideshow, listAssociations, listCouncil, listEvents, listFAQs, listFunFacts, listPosts } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 import axios from 'axios'
 import { portalApiUrl } from '@/utils/portal.js'
 import PublicSlideshow from '@/components/public/PublicSlideshow.vue'
-import LiveChatWidget from '@/components/public/LiveChatWidget.vue'
 
 const defaultSections = ['hero','about','stats','news','find_sport','get_involved','events','cta','faq_facts'].map(id => ({ id, visible:true }))
 const home = reactive({
@@ -346,7 +343,7 @@ const facts = ref([
   { id: 'facilities', label: 'Sports Facilities', value: '10+', icon: 'icofont-stadium' },
   { id: 'athletes', label: 'Athletes Reached', value: '100K+', icon: 'icofont-users-alt-5' }
 ])
-const faqs=ref([]), associations=ref([])
+const faqs=ref([]), associations=ref([]), councilMembers=ref([])
 const totalAssociationCount=ref(0), associationsLoading=ref(false)
 
 const stats = ref({
@@ -357,7 +354,7 @@ const stats = ref({
 })
 const sportQuery=ref(''), activeCategory=ref('All Sports')
 const activeNewsCategory=ref('all')
-const liveChatOpen=ref(false)
+function openChatbot(){window.dispatchEvent(new CustomEvent('open-ncs-chatbot'))}
 const defaultNewsFilters = ['General', 'Infrastructure', 'Events', 'International', 'Football']
 const fallbackEvents = [
   { id:'event-1', title:'NCS Hosts CAA Heroes Luncheon', slug:'ncs-hosts-caa-heroes-luncheon', category:'Athletics', location:'Kampala', event_date:'2026-02-28T09:00:00Z' },
@@ -380,8 +377,17 @@ const openFaqIds=ref(new Set())
 function isFaqOpen(id){return openFaqIds.value.has(id)}
 function toggleFaq(id){const next=new Set(openFaqIds.value);next.has(id)?next.delete(id):next.add(id);openFaqIds.value=next}
 const displayedFacts=computed(() => Array.isArray(home.milestones) && home.milestones.length ? home.milestones : facts.value)
-const displayedLeadershipMembers=computed(() => Array.isArray(home.leadership?.members) ? home.leadership.members.slice(0, 2) : [])
-const leadershipLead=computed(() => displayedLeadershipMembers.value[0] || null)
+const displayedLeadershipMembers=computed(() => {
+  if (councilMembers.value.length) {
+    return councilMembers.value.slice(0, 4).map(member => ({
+      id: member.id,
+      name: member.full_name?.trim(),
+      title: member.designation?.trim(),
+      image_url: member.image_url,
+    }))
+  }
+  return Array.isArray(home.leadership?.members) ? home.leadership.members.slice(0, 4) : []
+})
 const cmsFacts=computed(() => facts.value)
 const displayFAQs=computed(() => faqs.value)
 const displayEvents=computed(() => events.value.length ? events.value : fallbackEvents)
@@ -463,7 +469,7 @@ function onSportSearchInput(){
 watch(activeCategory,()=>loadPortalAssociations())
 
 onMounted(async()=>{
-  const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),getSlideshow('homepage-hero'),listFunFacts(),listFAQs(),listAssociations(),getSettings('homepage'),getSettings('contact')]);
+  const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),getSlideshow('homepage-hero'),listFunFacts(),listFAQs(),listAssociations(),getSettings('homepage'),getSettings('contact'),listCouncil()]);
   posts.value=(dataOf(results[0])?.items||[]).filter(p=>!NON_NEWS_CATEGORIES.includes(p.category));
   events.value=dataOf(results[1])?.items||[];
   const show=dataOf(results[2])||{};
@@ -474,6 +480,7 @@ onMounted(async()=>{
   associations.value=itemsOf(results[5]);
   mergeHome(dataOf(results[6])?.value);
   Object.assign(contact,dataOf(results[7])?.value||{});
+  councilMembers.value=itemsOf(results[8]);
 
   // Fetch dynamic stats from Portal
   await fetchStats()

@@ -127,6 +127,15 @@ async function scrollToBottom() {
 function onKeydown(event) {
   if (event.key === 'Escape' && open.value) open.value = false
 }
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+function openChatbot() {
+  open.value = true
+}
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  window.addEventListener('open-ncs-chatbot', openChatbot)
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('open-ncs-chatbot', openChatbot)
+})
 </script>
