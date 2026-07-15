@@ -2368,6 +2368,15 @@ func allowedFontMagic(format string, head []byte) bool {
 	}
 }
 
+func (h *CMSHandler) GetExcellenceStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.repo.GetExcellenceStats(r.Context())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not fetch stats")
+		return
+	}
+	response.JSON(w, http.StatusOK, stats)
+}
+
 // ── Fun Facts ─────────────────────────────────────────────────────
 
 func (h *CMSHandler) ListFunFacts(w http.ResponseWriter, r *http.Request) {
@@ -3097,7 +3106,9 @@ func (h *CMSHandler) DeleteFacility(w http.ResponseWriter, r *http.Request) {
 
 func (h *CMSHandler) ListAssociations(w http.ResponseWriter, r *http.Request) {
 	activeOnly := r.URL.Query().Get("active") != "false"
-	items, err := h.repo.ListAssociations(r.Context(), activeOnly)
+	search := r.URL.Query().Get("search")
+	category := r.URL.Query().Get("category")
+	items, err := h.repo.ListAssociations(r.Context(), activeOnly, search, category)
 	if err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list associations")
 		return

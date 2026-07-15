@@ -90,7 +90,7 @@
             <h2>{{ currentTabLabel }}</h2>
             <span>Create, edit, search, and manage {{ currentTabLabel.toLowerCase() }} entries.</span>
           </div>
-          <button type="button" class="action-btn-primary" @click="openCreate">
+          <button v-if="canCreateOrUpdate" type="button" class="action-btn-primary" @click="openCreate">
             <i class="icofont-plus"></i> Add Entry
           </button>
         </header>
@@ -138,8 +138,8 @@
                   <span v-else>{{ item[col.key] || '-' }}</span>
                 </td>
                 <td class="table-actions">
-                  <button type="button" class="action-btn edit-btn" title="Edit Entry" @click="openEdit(item)"><i class="icofont-ui-edit"></i></button>
-                  <button type="button" class="action-btn delete-btn" title="Delete Entry" @click="deleteItem(item)"><i class="icofont-ui-delete"></i></button>
+                  <button v-if="canCreateOrUpdate" type="button" class="action-btn edit-btn" title="Edit Entry" @click="openEdit(item)"><i class="icofont-ui-edit"></i></button>
+                  <button v-if="canDelete" type="button" class="action-btn delete-btn" title="Delete Entry" @click="deleteItem(item)"><i class="icofont-ui-delete"></i></button>
                 </td>
               </tr>
             </tbody>
@@ -171,20 +171,110 @@
               <option v-for="opt in field.options" :key="opt" :value="opt">{{ opt }}</option>
             </select>
 
-            <select v-else-if="field.type === 'federation_select'" v-model="formPayload[field.key]" class="form-control" :required="field.required">
-              <option value="">Select Sports Federation</option>
-              <option v-for="fed in federationsList" :key="fed.id" :value="fed.id">{{ fed.name }} ({{ fed.acronym }})</option>
-            </select>
+            <!-- Custom Searchable Dropdown for Federations -->
+            <div v-else-if="field.type === 'federation_select'" class="searchable-select-container">
+              <div class="searchable-select-trigger" @click="toggleSelectDropdown(field.key)">
+                <span>{{ resolveFederationName(formPayload[field.key]) || 'Select Sports Federation' }}</span>
+                <i class="icofont-rounded-down"></i>
+              </div>
+              <div v-if="selectDropdownsOpen[field.key]" class="searchable-select-dropdown">
+                <input 
+                  type="text" 
+                  v-model="selectSearchQueries[field.key]" 
+                  placeholder="Type to filter..." 
+                  class="searchable-select-searchbox" 
+                  @click.stop
+                />
+                <div class="searchable-select-options">
+                  <div 
+                    class="searchable-select-option" 
+                    :class="{ selected: !formPayload[field.key] }"
+                    @click="selectDropdownOption(field.key, '')"
+                  >
+                    Select Sports Federation
+                  </div>
+                  <div 
+                    v-for="fed in filteredFederations(field.key)" 
+                    :key="fed.id" 
+                    class="searchable-select-option"
+                    :class="{ selected: formPayload[field.key] === fed.id }"
+                    @click="selectDropdownOption(field.key, fed.id)"
+                  >
+                    {{ fed.name }} ({{ fed.acronym }})
+                  </div>
+                </div>
+              </div>
+            </div>
 
-            <select v-else-if="field.type === 'athlete_select'" v-model="formPayload[field.key]" class="form-control" :required="field.required">
-              <option value="">Select Registered Athlete</option>
-              <option v-for="ath in athletesList" :key="ath.id" :value="ath.id">{{ ath.full_name }} ({{ ath.athlete_number }})</option>
-            </select>
+            <!-- Custom Searchable Dropdown for Athletes -->
+            <div v-else-if="field.type === 'athlete_select'" class="searchable-select-container">
+              <div class="searchable-select-trigger" @click="toggleSelectDropdown(field.key)">
+                <span>{{ resolveAthleteName(formPayload[field.key]) || 'Select Registered Athlete' }}</span>
+                <i class="icofont-rounded-down"></i>
+              </div>
+              <div v-if="selectDropdownsOpen[field.key]" class="searchable-select-dropdown">
+                <input 
+                  type="text" 
+                  v-model="selectSearchQueries[field.key]" 
+                  placeholder="Type to filter..." 
+                  class="searchable-select-searchbox" 
+                  @click.stop
+                />
+                <div class="searchable-select-options">
+                  <div 
+                    class="searchable-select-option" 
+                    :class="{ selected: !formPayload[field.key] }"
+                    @click="selectDropdownOption(field.key, '')"
+                  >
+                    Select Registered Athlete
+                  </div>
+                  <div 
+                    v-for="ath in filteredAthletes(field.key)" 
+                    :key="ath.id" 
+                    class="searchable-select-option"
+                    :class="{ selected: formPayload[field.key] === ath.id }"
+                    @click="selectDropdownOption(field.key, ath.id)"
+                  >
+                    {{ ath.full_name }} ({{ ath.athlete_number }})
+                  </div>
+                </div>
+              </div>
+            </div>
 
-            <select v-else-if="field.type === 'competition_select'" v-model="formPayload[field.key]" class="form-control" :required="field.required">
-              <option value="">Select Competition</option>
-              <option v-for="comp in competitionsList" :key="comp.id" :value="comp.id">{{ comp.name }} - {{ comp.venue }}</option>
-            </select>
+            <!-- Custom Searchable Dropdown for Competitions -->
+            <div v-else-if="field.type === 'competition_select'" class="searchable-select-container">
+              <div class="searchable-select-trigger" @click="toggleSelectDropdown(field.key)">
+                <span>{{ resolveCompetitionName(formPayload[field.key]) || 'Select Competition' }}</span>
+                <i class="icofont-rounded-down"></i>
+              </div>
+              <div v-if="selectDropdownsOpen[field.key]" class="searchable-select-dropdown">
+                <input 
+                  type="text" 
+                  v-model="selectSearchQueries[field.key]" 
+                  placeholder="Type to filter..." 
+                  class="searchable-select-searchbox" 
+                  @click.stop
+                />
+                <div class="searchable-select-options">
+                  <div 
+                    class="searchable-select-option" 
+                    :class="{ selected: !formPayload[field.key] }"
+                    @click="selectDropdownOption(field.key, '')"
+                  >
+                    Select Competition
+                  </div>
+                  <div 
+                    v-for="comp in filteredCompetitions(field.key)" 
+                    :key="comp.id" 
+                    class="searchable-select-option"
+                    :class="{ selected: formPayload[field.key] === comp.id }"
+                    @click="selectDropdownOption(field.key, comp.id)"
+                  >
+                    {{ comp.name }} - {{ comp.venue }}
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div v-else-if="field.type === 'boolean'" class="checkbox-container">
               <input type="checkbox" v-model="formPayload[field.key]" />
@@ -216,7 +306,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   listNsmisDomain,
   createNsmisDomain,
@@ -227,7 +317,89 @@ import {
 
 const props = defineProps({
   userScope: { type: Array, default: () => [] },
-  tab: { type: String, default: 'analytics' }
+  tab: { type: String, default: 'analytics' },
+  userPermissions: { type: Array, default: () => [] }
+})
+
+const currentResourceName = computed(() => {
+  const t = activeTab.value
+  return t.replace(/-/g, '_')
+})
+
+const hasPermission = (permission) => {
+  const perms = props.userPermissions
+  if (perms.includes('*') || perms.includes(permission)) return true
+  return false
+}
+
+const canCreateOrUpdate = computed(() => {
+  if (props.userPermissions.includes('*')) return true
+  const res = currentResourceName.value
+  return hasPermission(`${res}:write:own`) || hasPermission(`${res}:write:any`)
+})
+
+const canDelete = computed(() => {
+  if (props.userPermissions.includes('*')) return true
+  const res = currentResourceName.value
+  return hasPermission(`${res}:write:any`) || hasPermission(`${res}:write:own`)
+})
+
+// Searchable selects states & logic
+const selectSearchQueries = ref({})
+const selectDropdownsOpen = ref({})
+
+function toggleSelectDropdown(key) {
+  const currentVal = !!selectDropdownsOpen.value[key]
+  selectDropdownsOpen.value = {}
+  selectSearchQueries.value = {}
+  selectDropdownsOpen.value[key] = !currentVal
+}
+
+function selectDropdownOption(key, val) {
+  formPayload.value[key] = val
+  selectDropdownsOpen.value[key] = false
+  selectSearchQueries.value[key] = ''
+}
+
+function filteredFederations(key) {
+  const query = (selectSearchQueries.value[key] || '').toLowerCase().trim()
+  if (!query) return federationsList.value
+  return federationsList.value.filter(fed => 
+    (fed.name || '').toLowerCase().includes(query) || 
+    (fed.acronym || '').toLowerCase().includes(query)
+  )
+}
+
+function filteredAthletes(key) {
+  const query = (selectSearchQueries.value[key] || '').toLowerCase().trim()
+  if (!query) return athletesList.value
+  return athletesList.value.filter(ath => 
+    (ath.full_name || '').toLowerCase().includes(query) || 
+    (ath.athlete_number || '').toLowerCase().includes(query)
+  )
+}
+
+function filteredCompetitions(key) {
+  const query = (selectSearchQueries.value[key] || '').toLowerCase().trim()
+  if (!query) return competitionsList.value
+  return competitionsList.value.filter(comp => 
+    (comp.name || '').toLowerCase().includes(query) || 
+    (comp.venue || '').toLowerCase().includes(query)
+  )
+}
+
+function closeAllDropdowns(e) {
+  if (!e.target.closest('.searchable-select-container')) {
+    selectDropdownsOpen.value = {}
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('click', closeAllDropdowns)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeAllDropdowns)
 })
 
 const tabs = [
@@ -365,7 +537,9 @@ const currentColumns = computed(() => columnsConfig[activeTab.value] || [])
 // Forms mapping layout
 const fieldsConfig = {
   athletes: [
-    { key: 'full_name', label: 'Full Name', required: true },
+    { key: 'first_name', label: 'First Name', required: true },
+    { key: 'middle_name', label: 'Middle Name' },
+    { key: 'last_name', label: 'Last Name', required: true },
     { key: 'gender', label: 'Gender', type: 'select', options: ['MALE', 'FEMALE', 'OTHER', 'NOT_STATED'], required: true },
     { key: 'date_of_birth', label: 'Date of Birth', type: 'date', required: true },
     { key: 'national_id_passport', label: 'National ID/Passport' },
@@ -646,6 +820,11 @@ function openCreate() {
   currentFields.value.forEach(f => {
     formPayload.value[f.key] = f.type === 'boolean' ? false : f.type === 'json' ? {} : ''
   })
+  if (activeTab.value === 'athletes') {
+    formPayload.value.first_name = ''
+    formPayload.value.middle_name = ''
+    formPayload.value.last_name = ''
+  }
   editId.value = ''
   formError.value = ''
   showModal.value = true
@@ -653,6 +832,12 @@ function openCreate() {
 
 function openEdit(item) {
   formPayload.value = { ...item }
+  if (activeTab.value === 'athletes') {
+    const names = (item.full_name || '').trim().split(/\s+/)
+    formPayload.value.first_name = names[0] || ''
+    formPayload.value.middle_name = names.length > 2 ? names.slice(1, -1).join(' ') : ''
+    formPayload.value.last_name = names.length > 1 ? names[names.length - 1] : ''
+  }
   // format dates to YYYY-MM-DD for date inputs
   currentFields.value.forEach(f => {
     if (f.type === 'date' && formPayload.value[f.key]) {
@@ -668,10 +853,22 @@ async function submitForm() {
   formSaving.value = true
   formError.value = ''
   try {
+    const payload = { ...formPayload.value }
+    if (activeTab.value === 'athletes') {
+      const parts = [
+        payload.first_name,
+        payload.middle_name,
+        payload.last_name
+      ].map(x => (x || '').trim()).filter(Boolean)
+      payload.full_name = parts.join(' ')
+      delete payload.first_name
+      delete payload.middle_name
+      delete payload.last_name
+    }
     if (editId.value) {
-      await updateNsmisDomain(activeTab.value, editId.value, formPayload.value)
+      await updateNsmisDomain(activeTab.value, editId.value, payload)
     } else {
-      await createNsmisDomain(activeTab.value, formPayload.value)
+      await createNsmisDomain(activeTab.value, payload)
     }
     showModal.value = false
     loadData()
@@ -1202,5 +1399,78 @@ async function deleteItem(item) {
   color: #98a6ad;
   text-align: center;
   margin: 20px 0;
+}
+/* Custom Searchable Select Dropdown */
+.searchable-select-container {
+  position: relative;
+  width: 100%;
+}
+
+.searchable-select-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  cursor: pointer;
+  user-select: none;
+}
+
+.searchable-select-trigger:hover {
+  border-color: #6777ef;
+}
+
+.searchable-select-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 6px;
+  margin-top: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  max-height: 250px;
+}
+
+.searchable-select-searchbox {
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  font-size: 13px;
+  outline: none;
+  border-radius: 6px 6px 0 0;
+  width: 100%;
+}
+
+.searchable-select-options {
+  overflow-y: auto;
+  flex: 1;
+  max-height: 200px;
+}
+
+.searchable-select-option {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.1s;
+  color: #333;
+}
+
+.searchable-select-option:hover {
+  background: #f1f3f4;
+  color: #6777ef;
+}
+
+.searchable-select-option.selected {
+  background: rgba(103,119,239,0.08);
+  color: #6777ef;
+  font-weight: 700;
 }
 </style>

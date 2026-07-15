@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -2163,16 +2164,35 @@ func (r *CMSRepo) DeleteFacility(ctx context.Context, id string) error {
 
 // ── Associations ──────────────────────────────────────────────────
 
-func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool) ([]*models.CMSAssociation, error) {
+func (r *CMSRepo) ListAssociations(ctx context.Context, activeOnly bool, search string, category string) ([]*models.CMSAssociation, error) {
 	q := `SELECT id, name, slug, COALESCE(abbreviation,''), COALESCE(description,''), COALESCE(logo_url,''), COALESCE(website_url,''),
 	             COALESCE(category,'Other'), COALESCE(president,''), COALESCE(secretary,''), COALESCE(address,''), COALESCE(phone,''),
 	             sort_order, is_active, created_at, updated_at
-	      FROM cms_associations`
+	      FROM cms_associations WHERE 1=1`
+	
+	args := []interface{}{}
+	argCount := 1
+
 	if activeOnly {
-		q += ` WHERE is_active=true`
+		q += ` AND is_active=true`
 	}
+
+	search = strings.TrimSpace(search)
+	if search != "" {
+		q += fmt.Sprintf(` AND (name ILIKE $%d OR abbreviation ILIKE $%d OR description ILIKE $%d)`, argCount, argCount, argCount)
+		args = append(args, "%"+search+"%")
+		argCount++
+	}
+
+	category = strings.TrimSpace(category)
+	if category != "" && strings.ToLower(category) != "all" && strings.ToLower(category) != "all sports" {
+		q += fmt.Sprintf(` AND category = $%d`, argCount)
+		args = append(args, category)
+		argCount++
+	}
+
 	q += ` ORDER BY sort_order ASC, name ASC`
-	rows, err := r.db.Query(ctx, q)
+	rows, err := r.db.Query(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -2686,6 +2706,48 @@ func (r *CMSRepo) ClearContactMessages(ctx context.Context) error {
 func (r *CMSRepo) DeleteTeamMember(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, `DELETE FROM cms_team_members WHERE id=$1`, id)
 	return err
+}
+
+type ExcellenceStats struct {
+	YearsOfExcellence  int `json:"years_of_excellence"`
+	SportsAssociations int `json:"sports_associations"`
+	SportsFacilities   int `json:"sports_facilities"`
+	AthletesReached    int `json:"athletes_reached"`
+}
+
+func (r *CMSRepo) GetExcellenceStats(ctx context.Context) (*ExcellenceStats, error) {
+	stats := &ExcellenceStats{}
+
+	// Years of excellence: current year - 1964
+	currentYear := time.Now().Year()
+	stats.YearsOfExcellence = currentYear - 1964
+
+	// Count sports associations/federations
+	var fedCount int
+	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM federations WHERE deleted_at IS NULL`).Scan(&fedCount)
+	if err != nil {
+		_ = r.db.QueryRow(ctx, `SELECT COUNT(*) FROM cms_associations WHERE is_active=true`).Scan(&fedCount)
+	}
+	if fedCount == 0 {
+		fedCount = 54
+	}
+	stats.SportsAssociations = fedCount
+
+	// Count sports facilities
+	var facCount int
+	err = r.db.QueryRow(ctx, `SELECT COUNT(*) FROM cms_facilities WHERE is_active=true`).Scan(&facCount)
+	if err == nil && facCount > 0 {
+		stats.SportsFacilities = facCount
+	} else {
+		stats.SportsFacilities = 32
+	}
+
+	// Count athletes reached
+	var athleteCount int
+	_ = r.db.QueryRow(ctx, `SELECT COUNT(*) FROM athletes WHERE deleted_at IS NULL`).Scan(&athleteCount)
+	stats.AthletesReached = athleteCount
+
+	return stats, nil
 }
 
 // ── Helpers ───────────────────────────────────────────────────────

@@ -165,6 +165,7 @@ func main() {
 			r.Get("/slideshows/{slug}", h.CMS.GetSlideshow)
 			r.Get("/menus/{name}", h.CMS.GetMenu)
 			r.Get("/settings/{key}", h.CMS.GetSetting)
+			r.Get("/stats", h.CMS.GetExcellenceStats)
 			r.Get("/fun-facts", h.CMS.ListFunFacts)
 			r.Get("/fonts", h.CMS.ListFonts)
 			r.Get("/faqs", h.CMS.ListFAQs)
