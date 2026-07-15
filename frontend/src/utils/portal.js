@@ -14,3 +14,15 @@ export function portalUrl(path = '') {
 
   return path
 }
+
+export function portalApiUrl(path = '') {
+  const base = import.meta.env?.VITE_PORTAL_API_URL?.replace(/\/$/, '')
+  if (base) return `${base}${path}`
+
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const origin = `${window.location.protocol}//${window.location.hostname}:9200`
+    return `${origin}${path}`
+  }
+
+  return `http://localhost:9200${path}`
+}

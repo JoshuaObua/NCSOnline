@@ -48,7 +48,7 @@
                 </svg>
               </div>
               <div>
-                <h3 class="font-semibold text-[#1a365d]">Tenders &amp; Procurement</h3>
+                <h3 class="font-semibold text-[#1a365d]">Bids, Tenders &amp; Procurement</h3>
                 <p class="text-sm text-gray-500">{{ tenders.length }} active tenders</p>
               </div>
             </div>
@@ -77,11 +77,12 @@
         </div>
 
         <div class="space-y-4">
-          <div v-for="job in jobs" :key="job.title" class="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all border border-gray-100 hover:border-[#f5a623]/30">
+          <div v-if="jobsLoading" class="rounded-xl border border-gray-100 bg-white p-8 text-center text-gray-500" role="status">Loading current opportunities...</div>
+          <div v-for="job in jobs" v-else :key="job.id" class="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all border border-gray-100 hover:border-[#f5a623]/30">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div class="flex-1">
                 <div class="flex items-center gap-2 mb-2">
-                  <div class="inline-flex items-center rounded-md border border-transparent bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700 transition-colors">{{ job.type }}</div>
+                  <div class="inline-flex items-center rounded-md border border-transparent bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700 transition-colors">{{ jobTypeLabel(job.job_type) }}</div>
                   <div class="inline-flex items-center rounded-md border border-transparent bg-[#1a365d]/10 px-2.5 py-0.5 text-xs font-semibold text-[#1a365d] shadow transition-colors">{{ job.department }}</div>
                 </div>
                 <h3 class="text-xl font-semibold text-[#1a365d] mb-2">{{ job.title }}</h3>
@@ -99,7 +100,7 @@
                       <circle cx="12" cy="12" r="10" />
                       <polyline points="12 6 12 12 16 14" />
                     </svg>
-                    Deadline: {{ job.deadline }}
+                    Deadline: {{ formatDeadline(job.deadline_at) }}
                   </span>
                 </div>
               </div>
@@ -115,6 +116,7 @@
               </a>
             </div>
           </div>
+          <div v-if="!jobsLoading && !jobs.length" class="rounded-xl border border-gray-100 bg-white p-8 text-center text-gray-500">There are currently no published job opportunities.</div>
         </div>
       </div>
     </section>
@@ -131,22 +133,23 @@
                 <path d="M16 13H8" />
                 <path d="M16 17H8" />
               </svg>
-              Tenders &amp; Procurement
+              Bids &amp; Tenders
             </h2>
             <p class="text-gray-600 mt-1">Current business opportunities with NCS</p>
           </div>
-          <a :href="portalUrl('/invest')">
+          <a :href="portalUrl('/login')">
             <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-[#f5a623] px-4 py-2 text-sm font-medium text-[#f5a623] shadow-sm transition-colors hover:bg-[#f5a623] hover:text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623]">Submit Proposal</button>
           </a>
         </div>
 
         <div class="space-y-4">
-          <div v-for="tender in tenders" :key="tender.ref" class="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all border border-gray-100 hover:border-[#f5a623]/30">
+          <div v-if="jobsLoading" class="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-500" role="status">Loading current bids and tenders...</div>
+          <div v-for="tender in tenders" v-else :key="tender.id" class="bg-white rounded-xl p-6 shadow-sm hover:shadow-lg transition-all border border-gray-100 hover:border-[#f5a623]/30">
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div class="flex-1">
                 <div class="flex items-center gap-2 mb-2">
-                  <div class="inline-flex items-center rounded-md border border-transparent bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700 shadow transition-colors">{{ tender.status }}</div>
-                  <div class="inline-flex items-center rounded-md border border-transparent bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700 transition-colors">{{ tender.category }}</div>
+                  <div class="inline-flex items-center rounded-md border border-transparent bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700 shadow transition-colors">{{ opportunityTypeLabel(tender.opportunity_type) }}</div>
+                  <div class="inline-flex items-center rounded-md border border-transparent bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-700 transition-colors">{{ jobTypeLabel(tender.category) }}</div>
                 </div>
                 <h3 class="text-xl font-semibold text-[#1a365d] mb-2">{{ tender.title }}</h3>
                 <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500">
@@ -158,7 +161,7 @@
                       <path d="M16 13H8" />
                       <path d="M16 17H8" />
                     </svg>
-                    Ref: {{ tender.ref }}
+                    Ref: {{ tender.reference_number || 'To be confirmed' }}
                   </span>
                   <span class="flex items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true">
@@ -167,12 +170,12 @@
                       <rect width="18" height="18" x="3" y="4" rx="2" />
                       <path d="M3 10h18" />
                     </svg>
-                    Closing: {{ tender.closing }}
+                    Closing: {{ formatDeadline(tender.deadline_at) }}
                   </span>
                 </div>
               </div>
 
-              <a :href="portalUrl('/invest')">
+              <a :href="portalUrl('/login')">
                 <button type="button" class="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-[#f5a623] px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-[#e09612] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623]">
                   Submit Bid
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 ml-2" aria-hidden="true">
@@ -183,6 +186,7 @@
               </a>
             </div>
           </div>
+          <div v-if="!jobsLoading && !tenders.length" class="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-500">There are currently no published bids or tenders.</div>
         </div>
 
         <div class="mt-8 bg-[#1a365d] rounded-xl p-6 text-white">
@@ -216,57 +220,51 @@
 </template>
 
 <script setup>
+import { onMounted, ref } from 'vue'
+import { listCareers } from '@/api/cms.js'
 import { portalUrl } from '@/utils/portal.js'
-const jobs = [
-  {
-    type: 'Full-time',
-    department: 'Sports Officers',
-    title: 'Sports Development Officer',
-    description: 'Coordinate sports programs and athlete development initiatives across regions.',
-    location: 'Kampala',
-    deadline: 'January 30, 2026',
-  },
-  {
-    type: 'Full-time',
-    department: 'Finance',
-    title: 'Finance Officer',
-    description: 'Manage financial operations and budget planning for NCS programs.',
-    location: 'Kampala',
-    deadline: 'February 15, 2026',
-  },
-  {
-    type: 'Full-time',
-    department: 'ICT',
-    title: 'ICT Support Specialist',
-    description: 'Provide technical support and maintain NCS IT infrastructure.',
-    location: 'Kampala',
-    deadline: 'February 28, 2026',
-  },
-]
+const jobs = ref([])
+const tenders = ref([])
+const jobsLoading = ref(true)
 
-const tenders = [
-  {
-    status: 'Open',
-    category: 'Goods',
-    title: 'Supply of Sports Equipment for Regional Centers',
-    ref: 'NCS/PROC/2026/001',
-    closing: 'February 10, 2026',
-  },
-  {
-    status: 'Open',
-    category: 'Works',
-    title: 'Construction of Volleyball Courts - Eastern Region',
-    ref: 'NCS/PROC/2026/002',
-    closing: 'February 25, 2026',
-  },
-  {
-    status: 'Open',
-    category: 'Services',
-    title: 'Provision of Catering Services for National Events',
-    ref: 'NCS/PROC/2026/003',
-    closing: 'March 5, 2026',
-  },
-]
+function plainText(value) {
+  const element = document.createElement('div')
+  element.innerHTML = value || ''
+  return element.textContent?.trim() || ''
+}
+
+function jobTypeLabel(value) {
+  return String(value || 'full_time').replace(/_/g, ' ').replace(/\b\w/g, character => character.toUpperCase())
+}
+
+function opportunityTypeLabel(value) {
+  return value === 'bid' ? 'Open Bid' : 'Open Tender'
+}
+
+function formatDeadline(value) {
+  return value ? new Date(value).toLocaleDateString('en-UG', { day:'numeric', month:'long', year:'numeric' }) : 'Open until filled'
+}
+
+onMounted(async () => {
+  try {
+    const response = await listCareers({ status:'published', per_page:100 })
+    const items = response.data?.data?.items
+    const opportunities = (Array.isArray(items) ? items : []).map(item => ({
+      ...item,
+      department: item.department_name || item.department || 'National Council of Sports',
+      description: plainText(item.description),
+    }))
+    jobs.value = opportunities.filter(item => (item.opportunity_type || 'job') === 'job')
+    tenders.value = opportunities.filter(item => ['tender', 'bid'].includes(item.opportunity_type))
+  } catch (error) {
+    console.error('Failed to load career opportunities:', error)
+    jobs.value = []
+    tenders.value = []
+  } finally {
+    jobsLoading.value = false
+  }
+})
+
 </script>
 
 <style scoped>

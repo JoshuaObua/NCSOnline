@@ -1349,11 +1349,11 @@ func (r *CMSRepo) DeleteEvent(ctx context.Context, id string) error {
 // Careers
 
 func (r *CMSRepo) CreateCareer(ctx context.Context, c *models.CMSCareer) error {
-	const q = `INSERT INTO cms_careers (id, title, department, department_id, location, job_type, category, description, requirements, salary_range, status, deadline_at, author_id)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING created_at, updated_at`
+	const q = `INSERT INTO cms_careers (id, title, department, department_id, location, job_type, opportunity_type, reference_number, category, description, requirements, salary_range, status, deadline_at, author_id)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING created_at, updated_at`
 	return r.db.QueryRow(ctx, q,
-		c.ID, c.Title, c.Department, c.DepartmentID, c.Location, c.JobType, c.Category, c.Description,
-		c.Requirements, c.SalaryRange, c.Status, c.DeadlineAt, c.AuthorID,
+		c.ID, c.Title, c.Department, c.DepartmentID, c.Location, c.JobType, c.OpportunityType, c.ReferenceNumber,
+		c.Category, c.Description, c.Requirements, c.SalaryRange, c.Status, c.DeadlineAt, c.AuthorID,
 	).Scan(&c.CreatedAt, &c.UpdatedAt)
 }
 
@@ -1368,7 +1368,7 @@ func (r *CMSRepo) GetCareerByID(ctx context.Context, id string) (*models.CMSCare
 	c := &models.CMSCareer{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
 		&c.ID, &c.Title, &c.Department, &c.DepartmentID, &c.DepartmentName,
-		&c.Location, &c.JobType, &c.Category, &c.Description,
+		&c.Location, &c.JobType, &c.OpportunityType, &c.ReferenceNumber, &c.Category, &c.Description,
 		&c.Requirements, &c.SalaryRange, &c.Status, &c.DeadlineAt, &c.AuthorID,
 		&c.CreatedAt, &c.UpdatedAt,
 	)
@@ -1378,20 +1378,21 @@ func (r *CMSRepo) GetCareerByID(ctx context.Context, id string) (*models.CMSCare
 	return c, err
 }
 
-func (r *CMSRepo) ListCareers(ctx context.Context, status, category string, limit, offset int) ([]*models.CMSCareer, int64, error) {
-	const countQ = `SELECT COUNT(*) FROM cms_careers WHERE ($1='' OR status=$1) AND ($2='' OR COALESCE(category,'jobs')=$2)`
+func (r *CMSRepo) ListCareers(ctx context.Context, status, category, opportunityType string, limit, offset int) ([]*models.CMSCareer, int64, error) {
+	const countQ = `SELECT COUNT(*) FROM cms_careers WHERE ($1='' OR status=$1) AND ($2='' OR COALESCE(category,'jobs')=$2) AND ($3='' OR COALESCE(opportunity_type,'job')=$3)`
 	const q = `SELECT c.id, c.title, COALESCE(c.department,''), c.department_id, COALESCE(d.name,''),
-	                  COALESCE(c.location,''), c.job_type,
-	                  COALESCE(c.category,'jobs'), COALESCE(c.salary_range,''), c.status, c.deadline_at, c.author_id, c.created_at, c.updated_at
+	                  COALESCE(c.location,''), c.job_type, COALESCE(c.opportunity_type,'job'), COALESCE(c.reference_number,''),
+	                  COALESCE(c.category,'jobs'), c.description, COALESCE(c.requirements,''),
+	                  COALESCE(c.salary_range,''), c.status, c.deadline_at, c.author_id, c.created_at, c.updated_at
 	           FROM cms_careers c
 	           LEFT JOIN departments d ON d.id = c.department_id
-	           WHERE ($1='' OR c.status=$1) AND ($2='' OR COALESCE(c.category,'jobs')=$2)
-	           ORDER BY c.created_at DESC LIMIT $3 OFFSET $4`
+	           WHERE ($1='' OR c.status=$1) AND ($2='' OR COALESCE(c.category,'jobs')=$2) AND ($3='' OR COALESCE(c.opportunity_type,'job')=$3)
+	           ORDER BY c.created_at DESC LIMIT $4 OFFSET $5`
 	var total int64
-	if err := r.db.QueryRow(ctx, countQ, status, category).Scan(&total); err != nil {
+	if err := r.db.QueryRow(ctx, countQ, status, category, opportunityType).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	rows, err := r.db.Query(ctx, q, status, category, limit, offset)
+	rows, err := r.db.Query(ctx, q, status, category, opportunityType, limit, offset)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -1400,7 +1401,8 @@ func (r *CMSRepo) ListCareers(ctx context.Context, status, category string, limi
 	for rows.Next() {
 		c := &models.CMSCareer{}
 		if err := rows.Scan(&c.ID, &c.Title, &c.Department, &c.DepartmentID, &c.DepartmentName,
-			&c.Location, &c.JobType, &c.Category, &c.SalaryRange, &c.Status, &c.DeadlineAt, &c.AuthorID, &c.CreatedAt, &c.UpdatedAt); err != nil {
+			&c.Location, &c.JobType, &c.OpportunityType, &c.ReferenceNumber, &c.Category, &c.Description, &c.Requirements,
+			&c.SalaryRange, &c.Status, &c.DeadlineAt, &c.AuthorID, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, 0, err
 		}
 		careers = append(careers, c)
@@ -1410,10 +1412,10 @@ func (r *CMSRepo) ListCareers(ctx context.Context, status, category string, limi
 
 func (r *CMSRepo) UpdateCareer(ctx context.Context, c *models.CMSCareer) error {
 	const q = `UPDATE cms_careers SET title=$2, department=$3, department_id=$4, location=$5, job_type=$6,
-	           category=$7, description=$8, requirements=$9, salary_range=$10, status=$11,
-	           deadline_at=$12, updated_at=NOW() WHERE id=$1`
+	           opportunity_type=$7, reference_number=$8, category=$9, description=$10, requirements=$11, salary_range=$12, status=$13,
+	           deadline_at=$14, updated_at=NOW() WHERE id=$1`
 	_, err := r.db.Exec(ctx, q, c.ID, c.Title, c.Department, c.DepartmentID, c.Location, c.JobType,
-		c.Category, c.Description, c.Requirements, c.SalaryRange, c.Status, c.DeadlineAt)
+		c.OpportunityType, c.ReferenceNumber, c.Category, c.Description, c.Requirements, c.SalaryRange, c.Status, c.DeadlineAt)
 	return err
 }
 

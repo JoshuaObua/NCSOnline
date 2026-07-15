@@ -68,7 +68,7 @@
 
                 <div class="pt-4">
                   <a
-                    :href="portalUrl(`/careers/${career.id}/apply`)"
+                    :href="portalUrl('/login')"
                     class="w-full flex items-center justify-center gap-2 bg-[#F48C06] hover:bg-[#d47b05] text-white font-semibold px-5 py-3 rounded-xl text-sm transition-colors"
                   >
                     Apply for this role →

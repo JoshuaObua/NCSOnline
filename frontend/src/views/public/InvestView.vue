@@ -64,7 +64,7 @@
         <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Interested in partnering with NCS?</h2>
         <p class="text-white/60 mb-8 text-lg">Get in touch to discuss investment opportunities in Uganda's sports sector.</p>
         <a
-          :href="portalUrl('/invest')"
+          :href="portalUrl('/login')"
           class="inline-flex items-center gap-2 bg-[#F48C06] hover:bg-[#d47b05] text-white font-bold px-8 py-4 rounded-full shadow-lg transition-colors"
         >
           Submit an Investment Proposal <i class="icofont-arrow-right"></i>

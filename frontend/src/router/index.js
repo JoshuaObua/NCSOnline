@@ -113,7 +113,7 @@ const routes = [
   },
   { path: '/cms/login', name: 'CMSLogin', component: CMSLoginView },
   { path: '/cms', name: 'WebsiteCMS', component: WebsiteContentManagerView },
-  { path: '/apply', redirect: '/portal/apply' },
+  { path: '/apply', redirect: '/portal/login' },
   { path: '/register', redirect: '/portal/register' },
   { path: '/login', redirect: '/portal/login' },
   { path: '/account/:pathMatch(.*)*', redirect: to => `/portal${to.fullPath}` },

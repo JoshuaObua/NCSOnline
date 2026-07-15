@@ -1058,15 +1058,17 @@
         <section v-else-if="active === 'careers'" class="cms-panel">
           <form class="otika-form-card" @submit.prevent="saveCareer">
             <div class="card">
-              <div class="card-header"><h4>{{ careerForm.id ? 'Edit Career Post' : 'Add Career Post' }}</h4></div>
+              <div class="card-header"><h4>{{ careerForm.id ? 'Edit Opportunity' : 'Add Job, Tender or Bid' }}</h4></div>
               <div class="card-body">
                 <div class="section-title mt-0">Post Details</div>
                 <div class="row">
+                  <div class="form-group col-lg-4"><label>Opportunity Type</label><select v-model="careerForm.opportunity_type" class="form-control selectric"><option value="job">Job</option><option value="tender">Tender</option><option value="bid">Bid</option></select></div>
                   <div class="form-group col-lg-8"><label>Title</label><input v-model="careerForm.title" class="form-control" required /></div>
                   <div class="form-group col-lg-4"><label>Status</label><select v-model="careerForm.status" class="form-control selectric"><option value="draft">Draft</option><option value="published">Published</option><option value="closed">Closed</option></select></div>
                   <div class="form-group col-lg-4"><label>Department</label><select v-model="careerForm.department_id" class="form-control selectric" @change="syncCareerDepartment"><option value="">Select department</option><option v-for="dept in departmentOptions" :key="dept.id" :value="dept.id">{{ dept.name }}</option></select></div>
                   <div class="form-group col-lg-4"><label>Category</label><select v-model="careerForm.category" class="form-control selectric"><option value="jobs">Jobs</option><option v-for="category in careerCategories" :key="category.slug || category.id" :value="category.slug || category.name">{{ category.name }}</option></select></div>
-                  <div class="form-group col-lg-4"><label>Job Type</label><select v-model="careerForm.job_type" class="form-control selectric"><option value="full_time">Full Time</option><option value="part_time">Part Time</option><option value="contract">Contract</option><option value="internship">Internship</option></select></div>
+                  <div v-if="careerForm.opportunity_type === 'job'" class="form-group col-lg-4"><label>Job Type</label><select v-model="careerForm.job_type" class="form-control selectric"><option value="full_time">Full Time</option><option value="part_time">Part Time</option><option value="contract">Contract</option><option value="internship">Internship</option></select></div>
+                  <div v-else class="form-group col-lg-4"><label>Reference Number</label><input v-model="careerForm.reference_number" class="form-control" placeholder="NCS/PROC/2026/001" /></div>
                   <div class="form-group col-lg-4"><label>Location</label><input v-model="careerForm.location" class="form-control" /></div>
                   <div class="form-group col-lg-4"><label>Salary Range</label><input v-model="careerForm.salary_range" class="form-control" /></div>
                   <div class="form-group col-lg-4"><label>Deadline</label><input v-model="careerForm.deadline_at" type="datetime-local" class="form-control" /></div>
@@ -1076,56 +1078,20 @@
                 <div class="section-title">Requirements</div>
                 <CmsRichTextEditor v-model="careerForm.requirements" />
               </div>
-              <div class="card-footer text-right"><button type="submit" class="btn btn-primary mr-1">{{ careerForm.id ? 'Update Career Post' : 'Create Career Post' }}</button></div>
+              <div class="card-footer text-right"><button type="submit" class="btn btn-primary mr-1">{{ careerForm.id ? 'Update Opportunity' : 'Create Opportunity' }}</button></div>
             </div>
           </form>
         </section>
 
         <section v-else-if="active === 'manage-careers'" class="cms-panel">
-          <div class="cms-panel-head"><h2>Manage Career Posts</h2><button type="button" @click="resetCareerForm(); active = 'careers'">New post</button></div>
-          <ContentTable :items="careers" title-key="title" subtitle-key="status" @edit="editCareer" @delete="removeCareer" />
-        </section>
-
-        <section v-else-if="active === 'career-page-ui'" class="cms-panel">
-          <div class="cms-panel-head"><h2>Careers Page UI</h2><button type="button" @click="saveCareerPageSettings">Save page UI</button></div>
-          <div class="cms-two">
-            <label>Hero eyebrow<input v-model="careersPage.eyebrow" class="form-control" /></label>
-            <label>Open roles eyebrow<input v-model="careersPage.jobs_eyebrow" class="form-control" /></label>
-            <label class="wide">Hero title<input v-model="careersPage.title" class="form-control" /></label>
-            <label class="wide">Hero intro<textarea v-model="careersPage.intro" class="form-control"></textarea></label>
-            <label class="wide">Open roles title<input v-model="careersPage.jobs_title" class="form-control" /></label>
-            <label class="wide">Open roles intro<textarea v-model="careersPage.jobs_intro" class="form-control"></textarea></label>
-            <label>Empty state title<input v-model="careersPage.empty_title" class="form-control" /></label>
-            <label>Recruitment process eyebrow<input v-model="careersPage.process_eyebrow" class="form-control" /></label>
-            <label class="wide">Empty state text<textarea v-model="careersPage.empty_text" class="form-control"></textarea></label>
-            <label class="wide">Recruitment process title<input v-model="careersPage.process_title" class="form-control" /></label>
-            <label>CTA eyebrow<input v-model="careersPage.cta_eyebrow" class="form-control" /></label>
-            <label>CTA title<input v-model="careersPage.cta_title" class="form-control" /></label>
-            <label class="wide">CTA text<textarea v-model="careersPage.cta_text" class="form-control"></textarea></label>
-          </div>
-          <article class="cms-subpanel">
-            <div class="cms-panel-head"><h2>Stat Cards</h2><button type="button" @click="careersPage.stats.push({ value:'', label:'', text:'' })">Add stat</button></div>
-            <div v-for="(stat, index) in careersPage.stats" :key="`career-stat-${index}`" class="career-page-repeater">
-              <input v-model="stat.value" class="form-control" placeholder="Value" />
-              <input v-model="stat.label" class="form-control" placeholder="Label" />
-              <textarea v-model="stat.text" class="form-control" placeholder="Short description"></textarea>
-              <button type="button" class="footer-remove-btn" @click="careersPage.stats.splice(index, 1)">Remove</button>
-            </div>
-          </article>
-          <article class="cms-subpanel">
-            <div class="cms-panel-head"><h2>Process Steps</h2><button type="button" @click="careersPage.process.push({ title:'', text:'' })">Add step</button></div>
-            <div v-for="(step, index) in careersPage.process" :key="`career-step-${index}`" class="career-page-repeater career-page-repeater--steps">
-              <input v-model="step.title" class="form-control" placeholder="Step title" />
-              <textarea v-model="step.text" class="form-control" placeholder="Step description"></textarea>
-              <button type="button" class="footer-remove-btn" @click="careersPage.process.splice(index, 1)">Remove</button>
-            </div>
-          </article>
+          <div class="cms-panel-head"><h2>Manage Jobs, Tenders and Bids</h2><button type="button" @click="resetCareerForm(); active = 'careers'">New opportunity</button></div>
+          <ContentTable :items="careers" title-key="title" subtitle-key="opportunity_type" @edit="editCareer" @delete="removeCareer" />
         </section>
 
         <section v-else-if="active === 'create-career-categories'" class="cms-panel">
           <form class="otika-form-card" @submit.prevent="saveCareerCategory">
             <div class="card">
-              <div class="card-header"><h4>{{ careerCategoryForm.id ? 'Edit Career Category' : 'Create Career Category' }}</h4></div>
+              <div class="card-header"><h4>{{ careerCategoryForm.id ? 'Edit Opportunity Category' : 'Create Opportunity Category' }}</h4></div>
               <div class="card-body">
                 <div class="row">
                   <div class="form-group col-lg-6"><label>Name</label><input v-model="careerCategoryForm.name" class="form-control" required /></div>
@@ -1141,7 +1107,7 @@
         </section>
 
         <section v-else-if="active === 'manage-career-categories'" class="cms-panel">
-          <div class="cms-panel-head"><h2>Manage Career Categories</h2><button type="button" @click="resetCareerCategoryForm(); active = 'create-career-categories'">New category</button></div>
+          <div class="cms-panel-head"><h2>Manage Job, Tender and Bid Categories</h2><button type="button" @click="resetCareerCategoryForm(); active = 'create-career-categories'">New category</button></div>
           <ContentTable :items="careerCategories" title-key="name" subtitle-key="slug" @edit="editCareerCategory" @delete="removeCareerCategory" />
         </section>
 
@@ -1782,11 +1748,10 @@ const resourceSections = [
   { id:'manage-resource-categories', label:'Manage Article Categories', icon:'icofont-tags' },
 ]
 const careerSections = [
-  { id:'careers', label:'Add New Post', icon:'icofont-plus-circle' },
-  { id:'manage-careers', label:'Manage Posts', icon:'icofont-list' },
-  { id:'career-page-ui', label:'Page UI', icon:'icofont-layout' },
-  { id:'create-career-categories', label:'Create Category', icon:'icofont-folder-open' },
-  { id:'manage-career-categories', label:'Manage Categories', icon:'icofont-tags' },
+  { id:'careers', label:'Add Job, Tender or Bid', icon:'icofont-plus-circle' },
+  { id:'manage-careers', label:'Manage Opportunities', icon:'icofont-list' },
+  { id:'create-career-categories', label:'Create Opportunity Category', icon:'icofont-folder-open' },
+  { id:'manage-career-categories', label:'Manage Opportunity Categories', icon:'icofont-tags' },
 ]
 const teamSections = [
   { id:'team', label:'Add Team Member', icon:'icofont-user-suited' },
@@ -1923,7 +1888,6 @@ const sectionPermissionMap = {
   'manage-resource-categories':['resource_categories:read'],
   careers:['careers:create'],
   'manage-careers':['careers:read'],
-  'career-page-ui':['settings:read'],
   'create-career-categories':['career_categories:create'],
   'manage-career-categories':['career_categories:read'],
   team:['team_members:create'],
@@ -2028,32 +1992,6 @@ const contact = reactive({
   social:{ facebook:'', twitter:'', linkedin:'', instagram:'', youtube:'' },
 })
 const footer = reactive({ about:'', copyright:'', columns:[] })
-const careersPageDefaults = {
-  eyebrow:'Careers at NCS',
-  title:'Join the team shaping Uganda sport',
-  intro:'Work with the National Council of Sports to strengthen federations, support athletes, and build a more active Uganda.',
-  jobs_eyebrow:'Open opportunities',
-  jobs_title:'Current vacancies',
-  jobs_intro:'Explore published career opportunities and review the role details before contacting the recruitment team.',
-  empty_title:'No open positions at this time',
-  empty_text:'Please check back later for new opportunities with the National Council of Sports.',
-  process_eyebrow:'Recruitment process',
-  process_title:'What to expect',
-  cta_eyebrow:'Need support?',
-  cta_title:'Have a question about a vacancy?',
-  cta_text:'Our team can help with application guidance, deadlines, and role-specific enquiries.',
-  stats:[
-    { value:'1964', label:'Established', text:'Serving Uganda sport through a statutory national mandate.' },
-    { value:'50+', label:'Sports bodies', text:'Working alongside recognised national associations.' },
-    { value:'1', label:'National mission', text:'Maximising opportunities for all Ugandans in sport.' },
-  ],
-  process:[
-    { title:'Review the role', text:'Read the job description, requirements, deadline, and department details.' },
-    { title:'Prepare documents', text:'Match your CV, references, and supporting documents to the published requirements.' },
-    { title:'Contact recruitment', text:'Use the listed role details and official NCS contacts for application guidance.' },
-  ],
-}
-const careersPage = reactive(JSON.parse(JSON.stringify(careersPageDefaults)))
 const captchaSettings = reactive({
   captcha_provider: 'none',
   cloudflare_site_key: '',
@@ -2198,7 +2136,7 @@ const sportsRuleForm = reactive({ id:'', doc_type:'sports_rule', title:'', categ
 const pressReleaseForm = reactive({ id:'', doc_type:'press_release', title:'', category:'', file_url:'', video_url:'', description:'', sort_order:0, is_active:true })
 const reportForm = reactive({ id:'', doc_type:'report', title:'', category:'', file_url:'', description:'', sort_order:0, is_active:true })
 const speechForm = reactive({ id:'', doc_type:'speech', title:'', category:'', file_url:'', description:'', sort_order:0, is_active:true })
-const careerForm = reactive({ id:'', title:'', department:'', department_id:'', location:'', job_type:'full_time', category:'jobs', description:'', requirements:'', salary_range:'', status:'draft', deadline_at:'' })
+const careerForm = reactive({ id:'', title:'', department:'', department_id:'', location:'', job_type:'full_time', opportunity_type:'job', reference_number:'', category:'jobs', description:'', requirements:'', salary_range:'', status:'draft', deadline_at:'' })
 const investForm = reactive({ id:'', title:'', subtitle:'', content:'', image_url:'', sort_order:0, is_active:true })
 const teamForm = reactive({ id:'', full_name:'', designation:'', department_id:'', image_url:'', bio:'', sort_order:0, is_active:true })
 const councilForm = reactive({ id:'', full_name:'', designation:'', image_url:'', bio:'', sort_order:0, is_active:true })
@@ -2476,6 +2414,7 @@ function clean(payload) {
       .filter(([k, v]) => k !== 'id' && !(k.endsWith('_id') && v === '') && !(isNullableDateField(k) && v === ''))
       .map(([k, v]) => {
         if (isNumericField(k)) { const n = Number(v); return [k, Number.isFinite(n) ? n : 0] }
+        if (isNullableDateField(k) && typeof v === 'string' && v && !/[zZ]|[+-]\d\d:\d\d$/.test(v)) return [k, new Date(v).toISOString()]
         return [k, v]
       }),
   )
@@ -2746,7 +2685,6 @@ async function loadAll() {
     speechCategories.value = listData(results[51].value)
     councilMembers.value = listData(results[52].value)
     facilityRegions.value = listData(results[53].value)
-    await loadCareerPageSettings()
   } catch (err) { setErr(err) }
 }
 
@@ -2819,31 +2757,6 @@ async function saveThirdPartySettings() {
   } catch (err) { setErr(err) }
 }
 
-function applyCareerPageSettings(value = {}) {
-  Object.assign(careersPage, JSON.parse(JSON.stringify(careersPageDefaults)), value || {})
-  careersPage.stats = Array.isArray(value?.stats) && value.stats.length ? value.stats : JSON.parse(JSON.stringify(careersPageDefaults.stats))
-  careersPage.process = Array.isArray(value?.process) && value.process.length ? value.process : JSON.parse(JSON.stringify(careersPageDefaults.process))
-}
-
-async function loadCareerPageSettings() {
-  try {
-    const res = await cms.getSettings('careers_page')
-    applyCareerPageSettings(data(res)?.value || {})
-  } catch {
-    applyCareerPageSettings({})
-  }
-}
-
-async function saveCareerPageSettings() {
-  try {
-    const payload = JSON.parse(JSON.stringify(careersPage))
-    payload.stats = payload.stats.filter(item => item.value || item.label || item.text)
-    payload.process = payload.process.filter(item => item.title || item.text)
-    await cms.adminUpdateSettings('careers_page', payload)
-    applyCareerPageSettings(payload)
-    setMsg('Careers page UI saved')
-  } catch (err) { setErr(err) }
-}
 async function createSlide() { try { await cms.adminCreateSlide({ title:'New slide', subtitle:'National Council of Sports', description:'', image_url:'', button_text:'Learn More', button_url:'/', sort_order:slides.value.length + 1, is_active:true }); await loadAll(); setMsg('Slide added') } catch (err) { setErr(err) } }
 function editSlide(item) { active.value = 'homepage'; Object.assign(homepage, { hero_quick_edit: item.title }) }
 async function removeSlide(item) {
@@ -2974,7 +2887,7 @@ function editSportsRule(item) { copyInto(sportsRuleForm, item); sportsRuleForm.d
 function editPressRelease(item) { copyInto(pressReleaseForm, item); pressReleaseForm.doc_type = 'press_release'; active.value = 'press-releases' }
 function editReport(item) { copyInto(reportForm, item); reportForm.doc_type = 'report'; active.value = 'reports' }
 function editSpeech(item) { copyInto(speechForm, item); speechForm.doc_type = 'speech'; active.value = 'speeches' }
-function editCareer(item) { copyInto(careerForm, item); if (item.deadline_at) careerForm.deadline_at = item.deadline_at; active.value = 'careers' }
+function editCareer(item) { copyInto(careerForm, item); if (item.deadline_at) careerForm.deadline_at = item.deadline_at.slice(0, 16); active.value = 'careers' }
 function editInvest(item) { copyInto(investForm, item); active.value = 'invest' }
 function editTeam(item) { copyInto(teamForm, item); active.value = 'team' }
 function editCouncil(item) { copyInto(councilForm, item); active.value = 'council' }
@@ -3715,7 +3628,7 @@ function resetResourceCategoryForm() {
 }
 
 function resetCareerForm() {
-  Object.assign(careerForm, { id:'', title:'', department:'', department_id:'', location:'', job_type:'full_time', category:'jobs', description:'', requirements:'', salary_range:'', status:'draft', deadline_at:'' })
+  Object.assign(careerForm, { id:'', title:'', department:'', department_id:'', location:'', job_type:'full_time', opportunity_type:'job', reference_number:'', category:'jobs', description:'', requirements:'', salary_range:'', status:'draft', deadline_at:'' })
 }
 
 function resetCareerCategoryForm() {

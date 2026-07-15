@@ -92,6 +92,7 @@ services:
         VITE_INTRANET_URL: ${VITE_INTRANET_URL}
         VITE_API_PORT: ${VITE_API_PORT}
         VITE_INTRANET_PORT: ${VITE_INTRANET_PORT}
+        VITE_PORTAL_API_URL: ${VITE_PORTAL_API_URL:-}
     restart: unless-stopped
     expose: ["80"]
     healthcheck:

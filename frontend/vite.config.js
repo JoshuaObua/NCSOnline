@@ -12,6 +12,17 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [vue()],
+    build: {
+      rollupOptions: {
+        output: {
+          assetFileNames: assetInfo => assetInfo.names?.includes('icofont.woff2')
+            ? 'assets/icofont.woff2'
+            : assetInfo.names?.includes('icofont.woff')
+              ? 'assets/icofont.woff'
+              : 'assets/[name]-[hash][extname]'
+        }
+      }
+    },
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) }
     },

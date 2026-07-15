@@ -335,6 +335,8 @@ type CMSCareer struct {
 	DepartmentName string     `json:"department_name,omitempty"`
 	Location       string     `json:"location,omitempty"`
 	JobType        string     `json:"job_type"`
+	OpportunityType string    `json:"opportunity_type"`
+	ReferenceNumber string    `json:"reference_number,omitempty"`
 	Category       string     `json:"category"`
 	Description    string     `json:"description"`
 	Requirements   string     `json:"requirements,omitempty"`

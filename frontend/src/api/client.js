@@ -46,6 +46,11 @@ const apiClient = axios.create({
 
 const AUTH_ENDPOINTS = ['/auth/login', '/auth/google', '/auth/refresh', '/auth/logout']
 const isAuthEndpoint = url => AUTH_ENDPOINTS.some(path => url?.includes(path))
+const hasAccessToken = () => Boolean(localStorage.getItem('ncsms_access_token'))
+const isPublicCmsRequest = config =>
+  String(config?.method || 'get').toLowerCase() === 'get' &&
+  config?.url?.includes('/api/v1/cms/')
+const skipsAuth = config => Boolean(config?.skipAuth) || isPublicCmsRequest(config)
 
 function decodeJwtExpMs(token) {
   try {
@@ -82,13 +87,13 @@ function refreshAccessToken() {
 apiClient.interceptors.request.use(
   async config => {
     let token = localStorage.getItem('ncsms_access_token')
-    if (token && token !== 'local-cms-preview-token' && !isAuthEndpoint(config.url)) {
+    if (token && token !== 'local-cms-preview-token' && !isAuthEndpoint(config.url) && !skipsAuth(config)) {
       const expMs = decodeJwtExpMs(token)
       if (expMs && expMs - Date.now() < 30_000) {
         try { token = await refreshAccessToken() } catch { /* let the request go; the response interceptor will handle the 401 */ }
       }
     }
-    if (token) config.headers.Authorization = `Bearer ${token}`
+    if (token && !skipsAuth(config)) config.headers.Authorization = `Bearer ${token}`
     return config
   },
   error => Promise.reject(error)
@@ -101,7 +106,7 @@ apiClient.interceptors.response.use(
   response => response,
   async error => {
     const originalRequest = error.config
-    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint(originalRequest.url)) {
+    if (error.response?.status === 401 && hasAccessToken() && !skipsAuth(originalRequest) && !originalRequest._retry && !isAuthEndpoint(originalRequest.url)) {
       originalRequest._retry = true
       try {
         const token = await refreshAccessToken()

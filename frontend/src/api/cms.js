@@ -3,7 +3,7 @@ import apiClient from './client.js'
 // ── Public CMS (no auth required) ────────────────────────────────
 
 export function getMaintenanceStatus() {
-  return apiClient.get('/api/v1/system/maintenance-status')
+  return apiClient.get('/api/v1/system/maintenance-status', { skipAuth: true })
 }
 
 export function listPosts(params = {}) {

@@ -1409,8 +1409,9 @@ func (h *CMSHandler) DeleteEvent(w http.ResponseWriter, r *http.Request) {
 func (h *CMSHandler) ListCareers(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	category := r.URL.Query().Get("category")
+	opportunityType := r.URL.Query().Get("opportunity_type")
 	limit, offset := paginate(r)
-	careers, total, err := h.repo.ListCareers(r.Context(), status, category, limit, offset)
+	careers, total, err := h.repo.ListCareers(r.Context(), status, category, opportunityType, limit, offset)
 	if err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not list careers")
 		return
@@ -1442,6 +1443,8 @@ func (h *CMSHandler) CreateCareer(w http.ResponseWriter, r *http.Request) {
 		DepartmentID *string    `json:"department_id"`
 		Location     string     `json:"location"`
 		JobType      string     `json:"job_type"`
+		OpportunityType string  `json:"opportunity_type"`
+		ReferenceNumber string  `json:"reference_number"`
 		Category     string     `json:"category"`
 		Description  string     `json:"description"`
 		Requirements string     `json:"requirements"`
@@ -1467,6 +1470,9 @@ func (h *CMSHandler) CreateCareer(w http.ResponseWriter, r *http.Request) {
 	if req.JobType == "" {
 		req.JobType = "full_time"
 	}
+	if req.OpportunityType == "" {
+		req.OpportunityType = "job"
+	}
 	if req.Category == "" {
 		req.Category = "jobs"
 	}
@@ -1480,6 +1486,8 @@ func (h *CMSHandler) CreateCareer(w http.ResponseWriter, r *http.Request) {
 		DepartmentID: nullableID(req.DepartmentID),
 		Location:     req.Location,
 		JobType:      req.JobType,
+		OpportunityType: req.OpportunityType,
+		ReferenceNumber: req.ReferenceNumber,
 		Category:     req.Category,
 		Description:  req.Description,
 		Requirements: req.Requirements,
@@ -1513,6 +1521,8 @@ func (h *CMSHandler) UpdateCareer(w http.ResponseWriter, r *http.Request) {
 		DepartmentID *string    `json:"department_id"`
 		Location     string     `json:"location"`
 		JobType      string     `json:"job_type"`
+		OpportunityType string  `json:"opportunity_type"`
+		ReferenceNumber string  `json:"reference_number"`
 		Category     string     `json:"category"`
 		Description  string     `json:"description"`
 		Requirements string     `json:"requirements"`
@@ -1539,6 +1549,10 @@ func (h *CMSHandler) UpdateCareer(w http.ResponseWriter, r *http.Request) {
 	if req.JobType != "" {
 		career.JobType = req.JobType
 	}
+	if req.OpportunityType != "" {
+		career.OpportunityType = req.OpportunityType
+	}
+	career.ReferenceNumber = req.ReferenceNumber
 	if req.Category != "" {
 		career.Category = req.Category
 	}

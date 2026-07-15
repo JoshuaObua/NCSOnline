@@ -85,17 +85,38 @@
       <section v-else-if="section.id === 'stats'" id="section-stats" class="py-16 md:py-20 bg-[#1a365d] text-white">
         <div class="max-w-7xl mx-auto px-4">
           <div class="text-center max-w-2xl mx-auto mb-12">
-            <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">{{ home.stats_title }}</h2>
-            <p class="text-white/70 leading-relaxed">{{ home.stats_intro }}</p>
+            <h2 class="text-3xl md:text-4xl font-bold text-white mb-3">Sports Excellence in Numbers</h2>
+            <p class="text-white/70 leading-relaxed">Driving the development of sports across Uganda through dedicated programs and world-class facilities</p>
           </div>
           <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div v-for="(fact, index) in displayedFacts" :key="fact.id || fact.label" class="text-center p-6 rounded-xl bg-white/5 backdrop-blur border border-white/10 hover:border-[#f5a623]/40 hover:bg-white/10 transition-all">
+            <div class="text-center p-6 rounded-xl bg-white/5 backdrop-blur border border-white/10 hover:border-[#f5a623]/40 hover:bg-white/10 transition-all">
               <div class="w-14 h-14 rounded-xl bg-[#f5a623]/20 text-[#f5a623] flex items-center justify-center mx-auto mb-4">
-                <i :class="[fact.icon || 'icofont-chart-growth', 'text-2xl']" aria-hidden="true"></i>
+                <i class="icofont-award text-2xl" aria-hidden="true"></i>
               </div>
-              <div class="text-3xl md:text-4xl font-bold text-white mb-1">{{ counterValue(fact, index) }}</div>
-              <div class="text-sm text-white/70">{{ fact.label }}</div>
-              <p v-if="fact.description" class="mt-3 text-xs leading-relaxed text-white/55">{{ fact.description }}</p>
+              <div class="text-3xl md:text-4xl font-bold text-white mb-1">{{ stats.years_of_excellence }}</div>
+              <div class="text-sm text-white/70">Years of Excellence</div>
+            </div>
+            <div class="text-center p-6 rounded-xl bg-white/5 backdrop-blur border border-white/10 hover:border-[#f5a623]/40 hover:bg-white/10 transition-all">
+              <div class="w-14 h-14 rounded-xl bg-[#f5a623]/20 text-[#f5a623] flex items-center justify-center mx-auto mb-4">
+                <i class="icofont-trophy text-2xl" aria-hidden="true"></i>
+              </div>
+              <div class="text-3xl md:text-4xl font-bold text-white mb-1">{{ stats.sports_associations }}</div>
+              <div class="text-sm text-white/70">Sports Associations</div>
+            </div>
+            <div class="text-center p-6 rounded-xl bg-white/5 backdrop-blur border border-white/10 hover:border-[#f5a623]/40 hover:bg-white/10 transition-all">
+              <div class="w-14 h-14 rounded-xl bg-[#f5a623]/20 text-[#f5a623] flex items-center justify-center mx-auto mb-4">
+                <i class="icofont-stadium text-2xl" aria-hidden="true"></i>
+              </div>
+              <div class="text-3xl md:text-4xl font-bold text-white mb-1">{{ stats.sports_facilities }}</div>
+              <div class="text-sm text-white/70">Sports Facilities</div>
+            </div>
+            <div class="text-center p-6 rounded-xl bg-white/5 backdrop-blur border border-white/10 hover:border-[#f5a623]/40 hover:bg-white/10 transition-all">
+              <div class="w-14 h-14 rounded-xl bg-[#f5a623]/20 text-[#f5a623] flex items-center justify-center mx-auto mb-4">
+                <i class="icofont-users-alt-5 text-2xl" aria-hidden="true"></i>
+              </div>
+              <div class="text-3xl md:text-4xl font-bold text-white mb-1">{{ stats.athletes_reached }}</div>
+              <div class="text-sm text-white/70">Athletes Reached</div>
+              <p class="mt-3 text-xs leading-relaxed text-white/55">Athletes, coaches, and administrators served through NCS programs.</p>
             </div>
           </div>
         </div>
@@ -208,17 +229,18 @@
 
       <section v-else-if="section.id === 'find_sport'" id="section-find_sport" class="home-section finder-section">
         <div class="home-shell"><div class="section-heading light"><span class="section-kicker gold">{{ home.finder_eyebrow }}</span><h2>{{ home.finder_title }}</h2><p>{{ home.finder_intro }}</p></div>
-          <div class="finder-search"><i class="icofont-search-1" aria-hidden="true"></i><label for="sport-search" class="sr-only">Search for a sport or federation</label><input id="sport-search" v-model="sportQuery" type="search" placeholder='Try "rugby", "football", "tennis"' /></div>
+          <div class="finder-search"><i class="icofont-search-1" aria-hidden="true"></i><label for="sport-search" class="sr-only">Search for a sport or federation</label><input id="sport-search" v-model="sportQuery" type="search" placeholder='Try "rugby", "football", "tennis"' data-testid="homepage-sport-search" @input="onSportSearchInput" /></div>
           <div class="filter-chips" aria-label="Sport categories"><button v-for="category in sportCategories" :key="category" type="button" :class="{ active:category===activeCategory }" @click="activeCategory=category">{{ category }}</button></div>
-          <div class="finder-meta"><span>Showing <strong>{{ filteredAssociations.length }}</strong> of {{ associations.length }} federations</span><router-link to="/associations">View directory →</router-link></div>
-          <div class="association-grid">
-            <article v-for="item in filteredAssociations.slice(0,8)" :key="item.id" class="association-card">
+          <div class="finder-meta"><span>Showing <strong>{{ associations.length }}</strong> of {{ totalAssociationCount }} federations</span><router-link to="/associations">View directory →</router-link></div>
+          <div v-if="associationsLoading" class="finder-loading" role="status" data-testid="homepage-associations-loading">Searching recognized sports federations...</div>
+          <div v-else class="association-grid" data-testid="homepage-association-grid">
+            <article v-for="item in associations.slice(0,8)" :key="item.id" class="association-card" :data-testid="`homepage-association-${item.id}`">
               <img v-if="item.logo_url" :src="mediaUrl(item.logo_url)" :alt="`${item.name} logo`" /><div v-else class="association-logo"><i class="icofont-trophy"></i></div>
               <div><span>{{ item.category || 'Sport Federation' }}</span><h3>{{ item.name }}</h3><p>{{ item.description }}</p>
                 <details><summary>Contact details</summary><ul><li v-if="item.president"><b>President:</b> {{ item.president }}</li><li v-if="item.secretary"><b>Secretary:</b> {{ item.secretary }}</li><li v-if="item.address"><b>Address:</b> {{ item.address }}</li><li v-if="item.phone"><b>Phone:</b> {{ item.phone }}</li></ul><a v-if="item.website_url" :href="item.website_url" target="_blank" rel="noopener">Visit website</a></details>
               </div>
             </article>
-            <div v-if="!filteredAssociations.length" class="finder-empty"><i class="icofont-trophy"></i><p>No federations match your search. Try a different sport name.</p></div>
+            <div v-if="!associations.length" class="finder-empty"><i class="icofont-trophy"></i><p>No registered federations match your query.</p></div>
           </div>
         </div>
       </section>
@@ -299,6 +321,8 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { getSettings, getSlideshow, listAssociations, listEvents, listFAQs, listFunFacts, listPosts } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
+import axios from 'axios'
+import { portalApiUrl } from '@/utils/portal.js'
 import PublicSlideshow from '@/components/public/PublicSlideshow.vue'
 import LiveChatWidget from '@/components/public/LiveChatWidget.vue'
 
@@ -315,7 +339,22 @@ const home = reactive({
 })
 const contact = reactive({ phone:'+256 414254477 / 343688', email:'info@ncs.go.ug', address:'Plot 2-10, Coronation Avenue', postal_address:'P.O. Box 20077, Lugogo, Kampala - UGANDA', fax:'+256 414 258350' })
 const slideshow = reactive({ name:'Homepage Hero', slug:'homepage-hero', transition_effect:'fade', transition_duration:700, autoplay_speed:6500, pause_on_hover:true })
-const posts=ref([]), events=ref([]), slides=ref([]), facts=ref([]), faqs=ref([]), associations=ref([])
+const posts=ref([]), events=ref([]), slides=ref([])
+const facts = ref([
+  { id: 'years', label: 'Years of Excellence', value: '62+', icon: 'icofont-award' },
+  { id: 'associations', label: 'Sports Associations', value: '52+', icon: 'icofont-trophy' },
+  { id: 'facilities', label: 'Sports Facilities', value: '10+', icon: 'icofont-stadium' },
+  { id: 'athletes', label: 'Athletes Reached', value: '100K+', icon: 'icofont-users-alt-5' }
+])
+const faqs=ref([]), associations=ref([])
+const totalAssociationCount=ref(0), associationsLoading=ref(false)
+
+const stats = ref({
+  years_of_excellence: '60+',
+  sports_associations: '54+',
+  sports_facilities: '32+',
+  athletes_reached: '0+'
+})
 const sportQuery=ref(''), activeCategory=ref('All Sports')
 const activeNewsCategory=ref('all')
 const liveChatOpen=ref(false)
@@ -360,8 +399,8 @@ const filteredHomePosts=computed(() => activeNewsCategory.value === 'all'
   : posts.value.filter(post => newsCategoryKey(post.category) === activeNewsCategory.value))
 const featuredNewsPost=computed(() => filteredHomePosts.value[0] || null)
 const secondaryNewsPosts=computed(() => filteredHomePosts.value.slice(1, 4))
-const sportCategories=computed(() => ['All Sports',...new Set(associations.value.map(item=>item.category).filter(Boolean))])
-const filteredAssociations=computed(() => { const q=sportQuery.value.trim().toLowerCase(); return associations.value.filter(item => (activeCategory.value==='All Sports'||item.category===activeCategory.value) && (!q||[item.name,item.category,item.description].some(value=>String(value||'').toLowerCase().includes(q)))) })
+const associationCategories=ref([])
+const sportCategories=computed(() => ['All Sports', ...associationCategories.value])
 function formatDate(value){return value?new Date(value).toLocaleDateString('en-UG',{day:'numeric',month:'short',year:'numeric'}):'Date TBA'}
 function newsCategoryKey(value){return String(value || 'general').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'general'}
 function newsCategoryLabel(value){return String(value || 'General').replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim().replace(/(^|\s)\S/g, part => part.toUpperCase())}
@@ -379,12 +418,80 @@ const NON_NEWS_CATEGORIES = ['page', 'case_study', 'project']
 function dataOf(result){return result.status==='fulfilled'?result.value.data?.data:null}
 function itemsOf(result){const value=dataOf(result);return Array.isArray(value)?value:(value?.items||[])}
 watch(displayedFacts, animateCounters, { immediate:true, deep:true })
-onMounted(async()=>{const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),getSlideshow('homepage-hero'),listFunFacts(),listFAQs(),listAssociations(),getSettings('homepage'),getSettings('contact')]);posts.value=(dataOf(results[0])?.items||[]).filter(p=>!NON_NEWS_CATEGORIES.includes(p.category));events.value=dataOf(results[1])?.items||[];const show=dataOf(results[2])||{};Object.assign(slideshow,show);slides.value=show.slides||[];facts.value=itemsOf(results[3]);faqs.value=itemsOf(results[4]);associations.value=itemsOf(results[5]);mergeHome(dataOf(results[6])?.value);Object.assign(contact,dataOf(results[7])?.value||{});startFactRotation();if(faqs.value.length)openFaqIds.value=new Set([faqs.value[0].id])})
-onBeforeUnmount(stopFactRotation)
+async function fetchStats() {
+  try {
+    const response = await axios.get(portalApiUrl('/api/v1/cms/stats'))
+    const result = response.data
+    if (result.success && result.data) {
+      const data = result.data
+      stats.value = {
+        years_of_excellence: `${data.years_of_excellence}+`,
+        sports_associations: `${data.sports_associations}+`,
+        sports_facilities: `${data.sports_facilities}+`,
+        athletes_reached: data.athletes_reached >= 1000 ? `${Math.round(data.athletes_reached / 1000)}K+` : `${data.athletes_reached}+`
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load excellence stats:', error)
+  }
+}
+
+let sportSearchTimeout=null
+async function loadPortalAssociations({ updateDirectory = false } = {}) {
+  associationsLoading.value=true
+  try {
+    const params={ active:'true' }
+    if(sportQuery.value.trim()) params.search=sportQuery.value.trim()
+    if(activeCategory.value!=='All Sports') params.category=activeCategory.value
+    const response=await axios.get(portalApiUrl('/api/v1/cms/associations'), { params })
+    const data=response.data?.data || response.data
+    associations.value=Array.isArray(data) ? data : []
+    if(updateDirectory){
+      totalAssociationCount.value=associations.value.length
+      associationCategories.value=[...new Set(associations.value.map(item=>item.category).filter(Boolean))]
+    }
+  } catch(error) {
+    console.warn('Failed to load portal associations, using website data:', error)
+  } finally {
+    associationsLoading.value=false
+  }
+}
+function onSportSearchInput(){
+  clearTimeout(sportSearchTimeout)
+  sportSearchTimeout=setTimeout(()=>loadPortalAssociations(),350)
+}
+watch(activeCategory,()=>loadPortalAssociations())
+
+onMounted(async()=>{
+  const results=await Promise.allSettled([listPosts({status:'published',per_page:6}),listEvents({status:'published',per_page:6}),getSlideshow('homepage-hero'),listFunFacts(),listFAQs(),listAssociations(),getSettings('homepage'),getSettings('contact')]);
+  posts.value=(dataOf(results[0])?.items||[]).filter(p=>!NON_NEWS_CATEGORIES.includes(p.category));
+  events.value=dataOf(results[1])?.items||[];
+  const show=dataOf(results[2])||{};
+  Object.assign(slideshow,show);
+  slides.value=show.slides||[];
+  facts.value=itemsOf(results[3]);
+  faqs.value=itemsOf(results[4]);
+  associations.value=itemsOf(results[5]);
+  mergeHome(dataOf(results[6])?.value);
+  Object.assign(contact,dataOf(results[7])?.value||{});
+
+  // Fetch dynamic stats from Portal
+  await fetchStats()
+
+  // Fetch the dynamic associations/federations directory from Portal.
+  totalAssociationCount.value=associations.value.length
+  associationCategories.value=[...new Set(associations.value.map(item=>item.category).filter(Boolean))]
+  await loadPortalAssociations({ updateDirectory:true })
+
+  startFactRotation();
+  if(faqs.value.length)openFaqIds.value=new Set([faqs.value[0].id])
+})
+onBeforeUnmount(()=>{stopFactRotation();clearTimeout(sportSearchTimeout)})
 </script>
 
 <style scoped>
 .home-redesign{color:#334155}.home-shell{width:min(80rem,100%);margin:auto;padding-left:1.25rem;padding-right:1.25rem}.home-section{padding:5rem 0}.bg-soft{background:#f7f9fc}.home-section h2,.home-cta h2{color:#1a365d;font-size:clamp(2rem,4vw,3rem);font-weight:800;line-height:1.12}.home-section p{line-height:1.75}.section-kicker,.home-pill{display:inline-block;margin-bottom:1rem;border-radius:999px;background:rgb(245 166 35/.13);padding:.4rem .85rem;color:#d88700;font-size:.8rem;font-weight:800}.home-hero{position:relative;height:clamp(31rem,65vw,43rem);overflow:hidden;background:#1a365d}.home-hero-slide{position:absolute;inset:0;opacity:0;transition:opacity .7s}.home-hero-slide.active{opacity:1;z-index:1}.home-hero-slide>img,.home-hero-fallback{width:100%;height:100%;object-fit:cover}.home-hero-fallback{background:linear-gradient(120deg,#1a365d,#274d7e)}.home-hero-overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgb(15 31 61/.94),rgb(26 54 93/.68),transparent)}.home-hero-content{position:absolute;inset:0;display:flex;align-items:center;color:white}.home-hero-content>div{max-width:43rem}.home-hero h1{font-size:clamp(2.5rem,6vw,4.6rem);font-weight:850;line-height:1.05}.home-hero p{max-width:39rem;margin:1.25rem 0 2rem;font-size:clamp(1.05rem,2vw,1.3rem)}.home-actions{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:1.6rem}.home-btn{display:inline-flex;gap:.5rem;min-height:44px;align-items:center;justify-content:center;border-radius:.55rem;padding:.7rem 1.2rem;font-size:.86rem;font-weight:800;transition:.2s}.home-btn-gold{background:#f5a623;color:#172b4d}.home-btn-gold:hover{background:#ffc154}.home-btn-navy{margin-top:1rem;background:#1a365d;color:white}.home-btn-outline-light{border:1px solid rgb(255 255 255/.75);color:white}.home-btn-outline-navy{border:1px solid #1a365d;color:#1a365d}.hero-arrow{position:absolute;z-index:3;top:50%;width:2.8rem;height:2.8rem;border-radius:50%;background:rgb(255 255 255/.16);color:white;font-size:2rem}.hero-prev{left:1rem}.hero-next{right:1rem}.hero-dots{position:absolute;z-index:3;bottom:1.5rem;left:50%;display:flex;gap:.5rem;transform:translateX(-50%)}.hero-dots button{width:.65rem;height:.65rem;border-radius:50%;background:rgb(255 255 255/.5)}.hero-dots button.active{width:2rem;border-radius:1rem;background:#f5a623}.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem}.home-lead{margin:1.2rem 0;font-size:1.08rem}.milestone-grid{display:flex;flex-wrap:wrap;gap:1.5rem;margin-top:2rem}.milestone{display:grid;grid-template-columns:auto auto;align-items:center;gap:.25rem .5rem}.milestone i{color:#f5a623;font-size:1.4rem}.milestone strong{color:#1a365d;font-size:2rem}.milestone span{grid-column:1/-1;font-size:.76rem}.value-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.value-card{border:1px solid #e8edf3;border-radius:1rem;background:#f8fafc;padding:1.25rem}.value-card.featured{background:#1a365d;color:white}.value-card h3{margin:.6rem 0;color:#1a365d;font-weight:800}.value-card.featured h3{color:white}.value-card p{font-size:.82rem}.value-icon{display:flex;width:2.8rem;height:2.8rem;align-items:center;justify-content:center;border-radius:.7rem;background:rgb(26 54 93/.1);color:#1a365d;font-size:1.3rem}.featured .value-icon{background:rgb(245 166 35/.2);color:#f5a623}.core-functions{margin-top:4rem;border-top:1px solid #e8edf3;padding-top:4rem;text-align:center}.section-heading{max-width:45rem;margin:0 auto 2.5rem;text-align:center}.section-heading p{margin-top:.7rem}.row-heading{display:flex;max-width:none;align-items:end;justify-content:space-between;text-align:left}.row-heading a,.text-link{color:#d88700;font-weight:800}.core-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin-bottom:2rem;text-align:left}.core-grid div{display:flex;align-items:center;gap:.7rem;border:1px solid #e5eaf0;border-radius:.7rem;padding:1rem;font-weight:650}.core-grid span{display:flex;width:2rem;height:2rem;flex:none;align-items:center;justify-content:center;border-radius:50%;background:#f5a623;color:#1a365d}.stats-section,.home-cta{background:#1a365d;color:white}.section-heading.light h2{color:white}.section-heading.light p{color:rgb(255 255 255/.7)}.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}.stats-grid div{text-align:center}.stats-grid i{display:block;color:#f5a623;font-size:1.8rem}.stats-grid strong{display:block;margin:.45rem 0;color:white;font-size:2.5rem}.stats-grid span{color:rgb(255 255 255/.72)}.card-grid{display:grid;gap:1.25rem}.card-grid-3{grid-template-columns:repeat(3,1fr)}.content-card,.image-card{overflow:hidden;border:1px solid #e5eaf0;border-radius:1rem;background:white;box-shadow:0 12px 32px rgb(15 31 61/.07)}.content-card>img,.content-card>.card-placeholder,.image-card>img,.image-card>.card-placeholder{width:100%;height:13rem;object-fit:cover}.card-placeholder{display:flex;align-items:center;justify-content:center;background:#e8eef5;color:#9aa9ba;font-size:3rem}.content-card-body,.image-card>div:last-child{padding:1.25rem}.content-card-body>span{color:#d88700;font-size:.72rem;font-weight:800;text-transform:uppercase}.content-card h3,.image-card h3{margin:.5rem 0;color:#1a365d;font-size:1.15rem;font-weight:800}.content-card p,.image-card p{display:-webkit-box;overflow:hidden;color:#64748b;font-size:.85rem;-webkit-box-orient:vertical;-webkit-line-clamp:2}.finder-section{position:relative;overflow:hidden;background:#0f1f3d;color:white}.finder-search{position:relative;max-width:42rem;margin:0 auto 1rem}.finder-search i{position:absolute;top:50%;left:1.1rem;transform:translateY(-50%);color:#94a3b8}.finder-search input{width:100%;border-radius:1rem;background:white;padding:1rem 1.2rem 1rem 3rem;color:#1a365d}.filter-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;margin:1rem 0 2rem}.filter-chips button{border-radius:999px;background:rgb(255 255 255/.1);padding:.45rem .9rem;font-size:.78rem}.filter-chips button.active{background:#f5a623;color:#1a365d}.finder-meta{display:flex;justify-content:space-between;margin-bottom:1rem;color:rgb(255 255 255/.72);font-size:.85rem}.finder-meta a{color:#f5a623}.association-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}.association-card{display:flex;gap:1rem;border:1px solid rgb(255 255 255/.12);border-radius:1rem;background:rgb(255 255 255/.07);padding:1rem}.association-card img,.association-logo{width:3.2rem;height:3.2rem;flex:none;object-fit:contain;border-radius:.7rem;background:white;padding:.25rem}.association-logo{display:flex;align-items:center;justify-content:center;color:#1a365d}.association-card>div:last-child{min-width:0}.association-card span{color:#f5a623;font-size:.68rem}.association-card h3{margin:.15rem 0;color:white;font-size:.9rem;font-weight:800}.association-card p{display:-webkit-box;overflow:hidden;color:rgb(255 255 255/.62);font-size:.72rem;-webkit-box-orient:vertical;-webkit-line-clamp:2}.association-card details{margin-top:.6rem;font-size:.72rem}.association-card summary{cursor:pointer;color:#f5a623}.association-card ul{margin:.5rem 0}.association-card a{color:#f5a623}.finder-empty{grid-column:1/-1;padding:3rem;text-align:center;background:rgb(255 255 255/.05);border-radius:1rem}.finder-empty i{font-size:2.5rem;color:rgb(255 255 255/.3)}.involved-grid{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:4rem}.quick-contact{border-radius:1rem;background:#f4f7fb;padding:2rem}.quick-contact h3{margin-bottom:1.4rem;color:#1a365d;font-size:1.4rem;font-weight:800}.quick-contact>div{display:flex;gap:1rem;margin-top:1rem}.quick-contact i{color:#f5a623;font-size:1.4rem}.quick-contact p{display:flex;flex-direction:column}.quick-contact span,.quick-contact a{color:#64748b;font-size:.85rem}.event-card{display:flex;overflow:hidden;border-radius:1rem;background:white;box-shadow:0 8px 24px rgb(15 31 61/.07)}.event-card time{display:flex;width:7rem;flex:none;align-items:center;justify-content:center;background:#1a365d;padding:1rem;color:white;text-align:center;font-weight:800}.event-card>div{padding:1.2rem}.event-card h3{color:#1a365d;font-weight:800}.event-card p{color:#64748b;font-size:.82rem}.event-card a{color:#d88700;font-size:.8rem;font-weight:800}.associations-strip{background:#f5f7fa}.logo-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem}.logo-strip>div{display:flex;min-height:8rem;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;border-radius:.8rem;background:white;padding:1rem;text-align:center;box-shadow:0 6px 20px rgb(15 31 61/.05)}.logo-strip img{width:3.5rem;height:3.5rem;object-fit:contain}.logo-strip i{font-size:2rem;color:#1a365d}.logo-strip span{font-size:.72rem;font-weight:700}.help-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.help-grid a{border:1px solid #e5eaf0;border-radius:1rem;padding:1.5rem;transition:.2s}.help-grid a:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgb(15 31 61/.08)}.help-grid i{color:#f5a623;font-size:2rem}.help-grid h3{margin:.8rem 0;color:#1a365d;font-weight:800}.help-grid p{color:#64748b;font-size:.85rem}.home-cta{padding:3rem 0}.home-cta .home-shell{display:flex;align-items:center;justify-content:space-between;gap:2rem}.home-cta h2{margin-top:.3rem;color:white;font-size:2rem}.home-cta span{color:#f5a623;font-size:.8rem;font-weight:800}.home-cta-actions{display:flex;flex-wrap:wrap;gap:.75rem}.faq-facts-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem}.empty-state{grid-column:1/-1;padding:2rem;text-align:center;color:#64748b}
+.finder-loading{padding:2rem;text-align:center;color:rgb(255 255 255/.6)}
 @media(max-width:1024px){.about-grid,.involved-grid,.faq-facts-grid{grid-template-columns:1fr}.association-grid{grid-template-columns:repeat(2,1fr)}.logo-strip{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:720px){.home-section{padding:3.5rem 0}.home-hero-overlay{background:rgb(15 31 61/.82)}.hero-arrow{display:none}.about-grid{gap:2.5rem}.value-grid,.card-grid-3,.stats-grid,.help-grid,.core-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr 1fr}.association-grid{grid-template-columns:1fr}.logo-strip{grid-template-columns:1fr 1fr}.row-heading,.home-cta .home-shell{align-items:flex-start;flex-direction:column}.milestone-grid{display:grid;grid-template-columns:1fr 1fr}.finder-meta{gap:1rem}.event-card{flex-direction:column}.event-card time{width:100%}}
 </style>
