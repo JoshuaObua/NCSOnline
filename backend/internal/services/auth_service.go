@@ -176,6 +176,63 @@ func (s *AuthService) Login(ctx context.Context, email, password, ip, ua string)
 	}, nil
 }
 
+func (s *AuthService) Login2FA(ctx context.Context, userID, ip, ua string) (*LoginResult, error) {
+	user, err := s.users.GetByID(ctx, userID)
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil, ErrInvalidCredentials
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+
+	if !user.IsActive {
+		return nil, ErrAccountDisabled
+	}
+
+	roles, err := s.users.GetRoles(ctx, user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("get roles: %w", err)
+	}
+	user.Roles = roles
+
+	roleNames := user.RoleNames()
+
+	accessToken, err := middleware.GenerateAccessToken(s.cfg.JWTSecret, s.cfg.AccessTokenTTL, user.ID, user.Email, roleNames)
+	if err != nil {
+		return nil, fmt.Errorf("generate access token: %w", err)
+	}
+
+	rawRefresh, tokenHash, err := generateRefreshToken()
+	if err != nil {
+		return nil, fmt.Errorf("generate refresh token: %w", err)
+	}
+
+	rt := &models.RefreshToken{
+		ID:        uuid.NewString(),
+		UserID:    user.ID,
+		TokenHash: tokenHash,
+		ExpiresAt: time.Now().Add(s.cfg.RefreshTokenTTL),
+		IPAddress: ip,
+		UserAgent: ua,
+	}
+	if err := s.tokens.StoreRefreshToken(ctx, rt); err != nil {
+		return nil, fmt.Errorf("store refresh token: %w", err)
+	}
+
+	_ = s.users.UpdateLastLogin(ctx, user.ID)
+
+	user.PasswordHash = ""
+	user.PinHash = ""
+
+	return &LoginResult{
+		AccessToken:       accessToken,
+		RefreshToken:      rawRefresh,
+		ExpiresIn:         int(s.cfg.AccessTokenTTL.Seconds()),
+		PinChangeRequired: user.PinChangeRequired,
+		User:              user,
+	}, nil
+}
+
 func (s *AuthService) RefreshToken(ctx context.Context, rawToken, ip, ua string) (*LoginResult, error) {
 	hash := hashToken(rawToken)
 	rt, err := s.tokens.GetByHash(ctx, hash)

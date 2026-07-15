@@ -115,6 +115,18 @@ func (s *SecurityService) Disable(ctx context.Context, userID string) error {
 	return s.repo.DisableTwoFA(ctx, userID)
 }
 
+func (s *SecurityService) SetSecretDirectly(ctx context.Context, userID, secret string) error {
+	return s.repo.SetTwoFASecret(ctx, userID, secret)
+}
+
+func (s *SecurityService) GetSecretDirectly(ctx context.Context, userID string) (string, bool, error) {
+	return s.repo.GetTwoFASecret(ctx, userID)
+}
+
+func (s *SecurityService) EnableDirectly(ctx context.Context, userID string) error {
+	return s.repo.EnableTwoFA(ctx, userID)
+}
+
 // VerifyCode returns whether the supplied code is valid for the user's
 // enabled 2FA secret (used by the login flow once we wire it up).
 func (s *SecurityService) VerifyCode(ctx context.Context, userID, code string) (bool, error) {

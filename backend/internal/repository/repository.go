@@ -208,6 +208,25 @@ func (r *UserRepo) UpdatePassword(ctx context.Context, userID, hash string) erro
 	return err
 }
 
+func (r *UserRepo) GetTwoFAEnabled(ctx context.Context, userID string) (bool, string, error) {
+	var enabled bool
+	var secret *string
+	err := r.db.QueryRow(ctx, "SELECT twofa_enabled, twofa_secret FROM users WHERE id=$1", userID).Scan(&enabled, &secret)
+	if err != nil {
+		return false, "", err
+	}
+	sec := ""
+	if secret != nil {
+		sec = *secret
+	}
+	return enabled, sec, nil
+}
+
+func (r *UserRepo) SetTwoFASecretDirectly(ctx context.Context, userID, secret string) error {
+	_, err := r.db.Exec(ctx, "UPDATE users SET twofa_secret=$2 WHERE id=$1", userID, secret)
+	return err
+}
+
 func (r *UserRepo) SetActive(ctx context.Context, userID string, active bool) error {
 	status := models.AccountStatusSuspended
 	if active {

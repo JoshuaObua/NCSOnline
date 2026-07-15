@@ -10,96 +10,124 @@
       </div>
 
       <div class="bg-white rounded-2xl shadow-lg p-8">
-        <form class="space-y-5" novalidate @submit.prevent="submit">
-          <div v-if="registerMode" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div v-if="requires2FA">
+          <h2 class="text-xl font-bold text-[#1a365d] mb-2 text-center">Security Verification</h2>
+          <p class="text-gray-600 text-sm text-center mb-6">We've sent a 6-digit verification code to your email. Enter it below to complete your sign-in.</p>
+          <form class="space-y-5" @submit.prevent="submit2FA">
             <div>
-              <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-first-name">First Name</label>
-              <input id="portal-first-name" v-model.trim="firstName" class="mt-1 flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-[#f5a623] md:text-sm" autocomplete="given-name" required />
-            </div>
-            <div>
-              <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-last-name">Last Name</label>
-              <input id="portal-last-name" v-model.trim="lastName" class="mt-1 flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-[#f5a623] md:text-sm" autocomplete="family-name" required />
-            </div>
-          </div>
-          <div>
-            <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-email">Email Address</label>
-            <div class="relative mt-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+              <label class="text-sm font-medium leading-none text-[#1a365d]" for="twofa-code">Verification Code</label>
               <input
-                id="portal-email"
-                v-model="email"
-                type="email"
-                autocomplete="email"
-                class="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#f5a623] focus:border-[#f5a623] md:text-sm pl-10"
-                placeholder="Enter your email"
+                id="twofa-code"
+                v-model.trim="twofaCode"
+                type="text"
+                maxlength="6"
+                placeholder="123456"
                 required
+                class="mt-2 flex h-10 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-center font-bold tracking-widest text-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-[#f5a623] md:text-sm"
                 autofocus
               />
             </div>
-          </div>
-
-          <div>
-            <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-password">Password</label>
-            <div class="relative mt-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              <input
-                id="portal-password"
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                autocomplete="current-password"
-                class="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#f5a623] focus:border-[#f5a623] md:text-sm pl-10 pr-10"
-                placeholder="Enter your password"
-                required
-              />
-              <button
-                type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                :aria-label="showPassword ? 'Hide password' : 'Show password'"
-                @click="showPassword = !showPassword"
-              >
-                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
-                <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20"/><path d="M6.71 6.71C4.87 7.93 3.31 9.73 2.06 12a1 1 0 0 0 0 .7 10.75 10.75 0 0 0 15.23 4.59"/><path d="M10.58 10.58a2 2 0 0 0 2.83 2.83"/><path d="M14.12 5.22A10.65 10.65 0 0 1 21.94 12a1 1 0 0 1 0 .7 10.8 10.8 0 0 1-2.1 3.13"/></svg>
+            <p v-if="error" class="rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{{ error }}</p>
+            <div class="flex gap-4">
+              <button type="button" class="w-1/2 py-2 px-4 border border-gray-200 rounded-md text-gray-700 hover:bg-gray-50 font-semibold" @click="cancel2FA">Cancel</button>
+              <button type="submit" :disabled="loading" class="w-1/2 py-2 px-4 bg-[#f5a623] text-white rounded-md hover:bg-[#e09612] font-semibold disabled:opacity-70">
+                {{ loading ? 'Verifying...' : 'Verify' }}
               </button>
             </div>
-          </div>
-
-          <div v-if="registerMode">
-            <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-confirm-password">Confirm Password</label>
-            <div class="relative mt-1">
-              <input id="portal-confirm-password" v-model="confirmPassword" :type="showPassword ? 'text' : 'password'" autocomplete="new-password" class="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-[#f5a623] md:text-sm" required />
+          </form>
+        </div>
+        <div v-else>
+          <form class="space-y-5" novalidate @submit.prevent="submit">
+            <div v-if="registerMode" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-first-name">First Name</label>
+                <input id="portal-first-name" v-model.trim="firstName" class="mt-1 flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-[#f5a623] md:text-sm" autocomplete="given-name" required />
+              </div>
+              <div>
+                <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-last-name">Last Name</label>
+                <input id="portal-last-name" v-model.trim="lastName" class="mt-1 flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-[#f5a623] md:text-sm" autocomplete="family-name" required />
+              </div>
             </div>
-          </div>
+            <div>
+              <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-email">Email Address</label>
+              <div class="relative mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+                <input
+                  id="portal-email"
+                  v-model="email"
+                  type="email"
+                  autocomplete="email"
+                  class="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#f5a623] focus:border-[#f5a623] md:text-sm pl-10"
+                  placeholder="Enter your email"
+                  required
+                  autofocus
+                />
+              </div>
+            </div>
 
-          <div v-if="!registerMode" class="flex items-center justify-between gap-4">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input id="remember-me" v-model="remember" type="checkbox" class="rounded border-gray-300 text-[#f5a623] focus:ring-[#f5a623]" />
-              <span class="text-sm text-gray-600">Remember me</span>
-            </label>
-            <a href="#" class="text-sm text-[#f5a623] hover:underline" @click.prevent>Forgot password?</a>
-          </div>
+            <div>
+              <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-password">Password</label>
+              <div class="relative mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <input
+                  id="portal-password"
+                  v-model="password"
+                  :type="showPassword ? 'text' : 'password'"
+                  autocomplete="current-password"
+                  class="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#f5a623] focus:border-[#f5a623] md:text-sm pl-10 pr-10"
+                  placeholder="Enter your password"
+                  required
+                />
+                <button
+                  type="button"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                  @click="showPassword = !showPassword"
+                >
+                  <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20"/><path d="M6.71 6.71C4.87 7.93 3.31 9.73 2.06 12a1 1 0 0 0 0 .7 10.75 10.75 0 0 0 15.23 4.59"/><path d="M10.58 10.58a2 2 0 0 0 2.83 2.83"/><path d="M14.12 5.22A10.65 10.65 0 0 1 21.94 12a1 1 0 0 1 0 .7 10.8 10.8 0 0 1-2.1 3.13"/></svg>
+                </button>
+              </div>
+            </div>
 
-          <p v-if="error" class="rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{{ error }}</p>
+            <div v-if="registerMode">
+              <label class="text-sm font-medium leading-none text-[#1a365d]" for="portal-confirm-password">Confirm Password</label>
+              <div class="relative mt-1">
+                <input id="portal-confirm-password" v-model="confirmPassword" :type="showPassword ? 'text' : 'password'" autocomplete="new-password" class="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm focus:outline-none focus:ring-1 focus:ring-[#f5a623] md:text-sm" required />
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            :disabled="loading"
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623] shadow h-12 px-4 w-full bg-[#f5a623] hover:bg-[#e09612] text-white text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70"
-          >
-            <span class="flex items-center justify-center gap-2">
-              <svg v-if="!loading" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
-              <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"/></svg>
-              {{ loading ? (registerMode ? 'Creating account...' : 'Signing in...') : (registerMode ? 'Create Account' : 'Sign In') }}
-            </span>
-          </button>
-        </form>
+            <div v-if="!registerMode" class="flex items-center justify-between gap-4">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input id="remember-me" v-model="remember" type="checkbox" class="rounded border-gray-300 text-[#f5a623] focus:ring-[#f5a623]" />
+                <span class="text-sm text-gray-600">Remember me</span>
+              </label>
+              <a href="#" class="text-sm text-[#f5a623] hover:underline" @click.prevent>Forgot password?</a>
+            </div>
 
-        <div class="mt-6 border-t border-gray-100 pt-5 text-center">
-          <p class="text-sm text-gray-600">
-            {{ registerMode ? 'Already have an account?' : 'New to the NCS Portal?' }}
-            <button type="button" class="ml-1 font-semibold text-[#d88700] hover:underline" @click="toggleMode">
-              {{ registerMode ? 'Sign in' : 'Create account' }}
+            <p v-if="error" class="rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{{ error }}</p>
+
+            <button
+              type="submit"
+              :disabled="loading"
+              class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623] shadow h-12 px-4 w-full bg-[#f5a623] hover:bg-[#e09612] text-white text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <span class="flex items-center justify-center gap-2">
+                <svg v-if="!loading" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"/></svg>
+                {{ loading ? (registerMode ? 'Creating account...' : 'Signing in...') : (registerMode ? 'Create Account' : 'Sign In') }}
+              </span>
             </button>
-          </p>
+          </form>
+
+          <div class="mt-6 border-t border-gray-100 pt-5 text-center">
+            <p class="text-sm text-gray-600">
+              {{ registerMode ? 'Already have an account?' : 'New to the NCS Portal?' }}
+              <button type="button" class="ml-1 font-semibold text-[#d88700] hover:underline" @click="toggleMode">
+                {{ registerMode ? 'Sign in' : 'Create account' }}
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -110,7 +138,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { API_BASE_URL } from '@/api/client.js'
-import { loginAccount, registerAccount } from '@/api/auth.js'
+import { loginAccount, registerAccount, verifyLogin2FA } from '@/api/auth.js'
 import { portalDestination } from '@/utils/portalAuth.js'
 
 const router = useRouter()
@@ -124,6 +152,10 @@ const registerMode = ref(false)
 const firstName = ref('')
 const lastName = ref('')
 const confirmPassword = ref('')
+
+const requires2FA = ref(false)
+const ticket = ref('')
+const twofaCode = ref('')
 
 function submit() {
   return registerMode.value ? register() : login()
@@ -139,6 +171,12 @@ async function login() {
     }
     const res = await loginAccount({ email: email.value, password: password.value })
     const data = res.data?.data || {}
+    if (data.requires_2fa) {
+      requires2FA.value = true
+      ticket.value = data.ticket || ''
+      twofaCode.value = ''
+      return
+    }
     localStorage.setItem('ncsms_access_token', data.access_token || '')
     localStorage.setItem('ncsms_user', JSON.stringify(data.user || {}))
     router.push(portalDestination(data.user || {}))
@@ -151,6 +189,33 @@ async function login() {
   } finally {
     loading.value = false
   }
+}
+
+async function submit2FA() {
+  if (twofaCode.value.length < 6) {
+    error.value = 'Please enter a valid 6-digit verification code.'
+    return
+  }
+  loading.value = true
+  error.value = ''
+  try {
+    const res = await verifyLogin2FA({ ticket: ticket.value, code: twofaCode.value })
+    const data = res.data?.data || {}
+    localStorage.setItem('ncsms_access_token', data.access_token || '')
+    localStorage.setItem('ncsms_user', JSON.stringify(data.user || {}))
+    router.push(portalDestination(data.user || {}))
+  } catch (err) {
+    error.value = err.response?.data?.error?.message || 'Verification failed. Please check the code and try again.'
+  } finally {
+    loading.value = false
+  }
+}
+
+function cancel2FA() {
+  requires2FA.value = false
+  ticket.value = ''
+  twofaCode.value = ''
+  error.value = ''
 }
 
 async function register() {

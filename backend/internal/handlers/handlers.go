@@ -49,7 +49,7 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 	deployer := services.NewDeployer()
 
 	return &Handlers{
-		Auth:         &AuthHandler{svc: authSvc, users: repos.Users, cfg: cfg},
+		Auth:         &AuthHandler{svc: authSvc, users: repos.Users, cfg: cfg, cms: repos.CMS},
 		Users:        &UsersHandler{svc: userSvc, audit: repos.Audit},
 		Roles:        &RolesHandler{roles: repos.Roles, audit: repos.Audit},
 		Applications: &ApplicationsHandler{svc: appSvc, audit: repos.Audit, storage: repos.CMS},
@@ -66,7 +66,7 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 		SystemState:   state,
 		Backups:       &BackupsHandler{repo: repos.Backups, cfg: cfg},
 		Forms:         &FormsHandler{svc: formSvc},
-		Security:      &SecurityHandler{svc: secSvc, users: repos.Users, audit: repos.Audit},
+		Security:      &SecurityHandler{svc: secSvc, users: repos.Users, audit: repos.Audit, cfg: cfg},
 		Updates:       &UpdatesHandler{svc: updSvc, deployer: deployer, backups: repos.Backups},
 		UpdatesSvc:    updSvc,
 		Analytics:     NewAnalyticsHandler(repos.Analytics, cfg),

@@ -65,7 +65,7 @@ const isPendingSubmission = item => item?.status && !['DRAFT', 'NEEDS_INFORMATIO
 .open-forms-section>header>div{min-width:0!important}
 .open-forms-section>header h2{font-size:16px!important;line-height:1.25!important;overflow-wrap:anywhere!important}
 .open-forms-section>header button{flex:0 0 auto!important;max-width:100%!important;white-space:normal!important}
-.forms-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;width:100%!important;min-width:0!important}
+.forms-grid{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))!important;gap:12px!important;width:100%!important;min-width:0!important}
 .forms-grid article{display:grid!important;grid-template-columns:64px minmax(0,1fr)!important;min-width:0!important;min-height:134px!important;overflow:hidden!important}
 .forms-grid article>img,.form-mark{width:64px!important;min-width:64px!important;height:100%!important;object-fit:cover!important}
 .forms-grid article>div{min-width:0!important;padding:11px 12px!important}

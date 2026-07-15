@@ -3,9 +3,14 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
+	"net/smtp"
 	"strconv"
+	"strings"
 
+	"github.com/atenimedia-llc/ncs-online/backend/internal/config"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
@@ -17,6 +22,7 @@ type SecurityHandler struct {
 	svc   *services.SecurityService
 	users *repository.UserRepo
 	audit *repository.AuditRepo
+	cfg   *config.Config
 }
 
 // GET /api/v1/me/activities
@@ -94,27 +100,56 @@ func (h *SecurityHandler) RemoveIPWhitelist(w http.ResponseWriter, r *http.Reque
 	response.JSONMsg(w, http.StatusOK, "Removed")
 }
 
+func (h *SecurityHandler) send2FAEmail(recipientEmail, code string, purpose string) error {
+	if h.cfg.SMTPHost == "" {
+		slog.Info("DEVELOPMENT: SMTP_HOST not configured. 2FA activation code email bypassed.", "email", recipientEmail, "code", code, "purpose", purpose)
+		return nil
+	}
+	subject := "NCS Uganda 2FA Code"
+	var body string
+	if purpose == "enroll" {
+		subject = "NCS Uganda 2FA Activation Code"
+		body = fmt.Sprintf("Use this code to activate two-factor authentication (2FA) for your account: %s\r\n\r\nIf you did not request this, please ignore this email.", code)
+	} else {
+		subject = "NCS Uganda 2FA Verification Code"
+		body = fmt.Sprintf("Your NCS Uganda two-factor authentication verification code is: %s\r\n\r\nThis code will expire in 5 minutes.", code)
+	}
+	
+	fromAddress := h.cfg.SMTPFrom
+	if i := strings.LastIndex(fromAddress, "<"); i >= 0 && strings.HasSuffix(fromAddress, ">") {
+		fromAddress = fromAddress[i+1 : len(fromAddress)-1]
+	}
+	message := []byte("From: " + h.cfg.SMTPFrom + "\r\nTo: " + recipientEmail + "\r\nSubject: " + subject + "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + body)
+	var auth smtp.Auth
+	if h.cfg.SMTPUser != "" {
+		auth = smtp.PlainAuth("", h.cfg.SMTPUser, h.cfg.SMTPPassword, h.cfg.SMTPHost)
+	}
+	return smtp.SendMail(h.cfg.SMTPHost+":"+h.cfg.SMTPPort, auth, fromAddress, []string{recipientEmail}, message)
+}
+
 // POST /api/v1/me/security/2fa/enroll
-// Generates and persists a new TOTP secret in a pending state, returns the
-// otpauth URI for QR rendering. The frontend renders that URI as a QR code
-// via a public service (e.g. api.qrserver.com) or displays the secret as
-// text for manual entry.
 func (h *SecurityHandler) Enroll2FA(w http.ResponseWriter, r *http.Request) {
 	userID, _ := r.Context().Value(models.CtxUserID).(string)
 	email, _ := r.Context().Value(models.CtxUserEmail).(string)
 	if email == "" {
-		// Fall back to db lookup if the JWT didn't carry the email.
 		u, err := h.users.GetByID(r.Context(), userID)
 		if err == nil {
 			email = u.Email
 		}
 	}
-	enr, err := h.svc.BeginEnrollment(r.Context(), userID, email)
-	if err != nil {
-		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+	
+	code := cryptoRand6DigitCode()
+	if err := h.svc.SetSecretDirectly(r.Context(), userID, code); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not save verification secret")
 		return
 	}
-	response.JSON(w, http.StatusOK, enr)
+	
+	if err := h.send2FAEmail(email, code, "enroll"); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not send 2FA activation email: "+err.Error())
+		return
+	}
+	
+	response.JSON(w, http.StatusOK, map[string]string{"status": "pending_verification"})
 }
 
 // POST /api/v1/me/security/2fa/verify  { code }
@@ -127,17 +162,27 @@ func (h *SecurityHandler) Verify2FA(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
 		return
 	}
-	if err := h.svc.VerifyAndEnable(r.Context(), userID, req.Code); err != nil {
-		switch {
-		case errors.Is(err, services.ErrTwoFAInvalid):
-			response.Err(w, http.StatusBadRequest, "TWOFA_INVALID", "That code didn't match. Try again with a fresh code from your authenticator app.")
-		case errors.Is(err, services.ErrTwoFANotSetup):
-			response.Err(w, http.StatusConflict, "TWOFA_NOT_SETUP", "Start enrollment first.")
-		default:
-			response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
-		}
+	
+	secret, _, err := h.svc.GetSecretDirectly(r.Context(), userID)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 		return
 	}
+	if secret == "" {
+		response.Err(w, http.StatusConflict, "TWOFA_NOT_SETUP", "Start enrollment first.")
+		return
+	}
+	
+	if secret != req.Code {
+		response.Err(w, http.StatusBadRequest, "TWOFA_INVALID", "That code didn't match. Try again with the fresh code sent to your email.")
+		return
+	}
+	
+	if err := h.svc.EnableDirectly(r.Context(), userID); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+	
 	response.JSONMsg(w, http.StatusOK, "Two-factor authentication enabled")
 }
 

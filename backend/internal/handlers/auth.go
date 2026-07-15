@@ -1,10 +1,16 @@
 package handlers
 
 import (
+	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"net/smtp"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -14,12 +20,14 @@ import (
 	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
 	"github.com/atenimedia-llc/ncs-online/backend/internal/services"
+	"github.com/atenimedia-llc/ncs-online/backend/internal/storage"
 )
 
 type AuthHandler struct {
 	svc   *services.AuthService
 	users *repository.UserRepo
 	cfg   *config.Config
+	cms   *repository.CMSRepo
 }
 
 const (
@@ -130,9 +138,189 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "An unexpected error occurred")
 		return
 	}
+
+	twofaEnabled, _, err := h.users.GetTwoFAEnabled(r.Context(), result.User.ID)
+	if err == nil && twofaEnabled {
+		code := cryptoRand6DigitCode()
+		_ = h.users.SetTwoFASecretDirectly(r.Context(), result.User.ID, code)
+		
+		ticket, err := middleware.GenerateAccessToken(h.cfg.JWTSecret, 5 * time.Minute, result.User.ID, result.User.Email, []string{"2fa_pending"})
+		if err != nil {
+			response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not generate 2FA ticket")
+			return
+		}
+		
+		if err := h.send2FAEmail(result.User.Email, code); err != nil {
+			slog.Error("failed to send login 2FA email", "error", err.Error(), "email", result.User.Email)
+			response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not send 2FA verification email")
+			return
+		}
+		
+		response.JSON(w, http.StatusOK, map[string]interface{}{
+			"requires_2fa": true,
+			"ticket":       ticket,
+		})
+		return
+	}
+
 	middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
 	h.secureResult(w, result)
 	response.JSON(w, http.StatusOK, result)
+}
+
+func cryptoRand6DigitCode() string {
+	b := make([]byte, 6)
+	if _, err := rand.Read(b); err != nil {
+		return fmt.Sprintf("%06d", time.Now().UnixNano()%1000000)
+	}
+	var val uint32
+	for _, x := range b {
+		val = (val << 8) | uint32(x)
+	}
+	code := 100000 + (val % 900000)
+	return fmt.Sprintf("%06d", code)
+}
+
+func (h *AuthHandler) send2FAEmail(recipientEmail, code string) error {
+	if h.cfg.SMTPHost == "" {
+		slog.Info("DEVELOPMENT: SMTP_HOST not configured. 2FA verification email bypassed.", "email", recipientEmail, "code", code)
+		return nil
+	}
+	subject := "NCS Uganda 2FA Verification Code"
+	body := fmt.Sprintf("Your NCS Uganda two-factor authentication verification code is: %s\r\n\r\nThis code will expire in 5 minutes.", code)
+	
+	fromAddress := h.cfg.SMTPFrom
+	if i := strings.LastIndex(fromAddress, "<"); i >= 0 && strings.HasSuffix(fromAddress, ">") {
+		fromAddress = fromAddress[i+1 : len(fromAddress)-1]
+	}
+	message := []byte("From: " + h.cfg.SMTPFrom + "\r\nTo: " + recipientEmail + "\r\nSubject: " + subject + "\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + body)
+	var auth smtp.Auth
+	if h.cfg.SMTPUser != "" {
+		auth = smtp.PlainAuth("", h.cfg.SMTPUser, h.cfg.SMTPPassword, h.cfg.SMTPHost)
+	}
+	return smtp.SendMail(h.cfg.SMTPHost+":"+h.cfg.SMTPPort, auth, fromAddress, []string{recipientEmail}, message)
+}
+
+// POST /api/v1/auth/login/2fa
+func (h *AuthHandler) VerifyLogin2FA(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Ticket string `json:"ticket"`
+		Code   string `json:"code"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	if req.Ticket == "" || req.Code == "" {
+		response.ValidationErr(w, map[string]string{"ticket": "required", "code": "required"})
+		return
+	}
+
+	claims, err := middleware.ParseToken(h.cfg.JWTSecret, req.Ticket)
+	if err != nil {
+		response.Err(w, http.StatusUnauthorized, "TICKET_INVALID", "The session has expired. Please log in again.")
+		return
+	}
+	if len(claims.Roles) != 1 || claims.Roles[0] != "2fa_pending" {
+		response.Err(w, http.StatusUnauthorized, "TICKET_INVALID", "Invalid session context.")
+		return
+	}
+
+	enabled, secret, err := h.users.GetTwoFAEnabled(r.Context(), claims.UserID)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load security state")
+		return
+	}
+	if !enabled || secret == "" {
+		response.Err(w, http.StatusConflict, "TWOFA_NOT_ENABLED", "Two-factor authentication is not active for this account.")
+		return
+	}
+
+	if secret != req.Code {
+		response.Err(w, http.StatusUnauthorized, "TWOFA_INVALID", "The verification code is incorrect. Please check your email and try again.")
+		return
+	}
+
+	_ = h.users.SetTwoFASecretDirectly(r.Context(), claims.UserID, "")
+
+	result, err := h.svc.Login2FA(r.Context(), claims.UserID, r.RemoteAddr, r.UserAgent())
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not complete login flow")
+		return
+	}
+
+	middleware.SetAuditIdentity(r, result.User.ID, result.User.Email, "")
+	h.secureResult(w, result)
+	response.JSON(w, http.StatusOK, result)
+}
+
+// POST /api/v1/auth/me/avatar
+func (h *AuthHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Could not parse form (max 10MB)")
+		return
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "No file uploaded (field: 'file')")
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	allowed := map[string]bool{
+		".jpg": true, ".jpeg": true, ".png": true, ".gif": true, ".webp": true,
+	}
+	if !allowed[ext] {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "File type not allowed. Use an image (jpg, jpeg, png, gif, webp)")
+		return
+	}
+	head := make([]byte, 512)
+	n, _ := io.ReadFull(file, head)
+	head = head[:n]
+	detected := http.DetectContentType(head)
+	
+	if !strings.HasPrefix(detected, "image/") {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Uploaded file content does not match an allowed image type")
+		return
+	}
+
+	settings := storage.DefaultSettings()
+	if h.cms != nil {
+		s, err := h.cms.GetSetting(r.Context(), storage.SettingsKey)
+		if err == nil {
+			if parsed, err := storage.ParseSettings(s.Value); err == nil {
+				settings = parsed
+			}
+		}
+	}
+
+	result, err := storage.NewUploader(settings).Upload(r.Context(), storage.UploadInput{
+		Scope:       storage.ScopePublic,
+		Reader:      io.MultiReader(bytes.NewReader(head), file),
+		Filename:    header.Filename,
+		ContentType: detected,
+		Size:        header.Size,
+		Subdir:      "avatars",
+	})
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "UPLOAD_FAILED", err.Error())
+		return
+	}
+
+	user, err := h.users.GetByID(r.Context(), userID)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load user")
+		return
+	}
+	user.AvatarURL = result.URL
+	if err := h.users.Update(r.Context(), user); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update user avatar")
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]string{"avatar_url": result.URL})
 }
 
 // POST /api/v1/auth/google
