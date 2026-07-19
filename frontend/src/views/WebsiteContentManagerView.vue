@@ -1306,11 +1306,11 @@
                         <span v-if="!(user.roles || []).length" class="text-muted">No roles</span>
                       </td>
                       <td class="table-actions text-right">
-                        <button v-if="hasPermission('users:update')" type="button" class="btn btn-sm btn-primary" @click="editUser(user)">Edit</button>
-                        <button v-if="hasPermission('users:roles') || hasPermission('roles:assign')" type="button" class="btn btn-sm btn-info" @click="openUserRoles(user)">Roles</button>
-                        <button v-if="hasPermission('users:reset_password')" type="button" class="btn btn-sm btn-warning" @click="promptResetPassword(user)">Reset</button>
-                        <button v-if="hasPermission('users:activate')" type="button" class="btn btn-sm btn-secondary" @click="toggleUserActive(user)">{{ user.is_active ? 'Disable' : 'Activate' }}</button>
-                        <button v-if="hasPermission('users:delete')" type="button" class="btn btn-sm btn-danger" @click="removeUser(user)">Delete</button>
+                        <button v-if="hasPermission('users:update') || hasPermission('users:write:own')" type="button" class="btn btn-sm btn-primary" @click="editUser(user)">Edit</button>
+                        <button v-if="hasPermission('users:roles') || hasPermission('roles:assign') || hasPermission('users:roles:own')" type="button" class="btn btn-sm btn-info" @click="openUserRoles(user)">Roles</button>
+                        <button v-if="hasPermission('users:reset_password') || hasPermission('users:write:own')" type="button" class="btn btn-sm btn-warning" @click="promptResetPassword(user)">Reset</button>
+                        <button v-if="hasPermission('users:activate') || hasPermission('users:write:own')" type="button" class="btn btn-sm btn-secondary" @click="toggleUserActive(user)">{{ user.is_active ? 'Disable' : 'Activate' }}</button>
+                        <button v-if="hasPermission('users:delete') || hasPermission('users:write:own')" type="button" class="btn btn-sm btn-danger" @click="removeUser(user)">Delete</button>
                       </td>
                     </tr>
                     <tr v-if="!users.length"><td colspan="4" class="text-center text-muted py-4">No users found.</td></tr>
@@ -1895,8 +1895,8 @@ const sectionPermissionMap = {
   'manage-council':['team_members:read'],
   roles:['roles:write'],
   'manage-roles':['roles:read'],
-  users:['users:create'],
-  'manage-users':['users:read'],
+  users:['users:create', 'users:write:own'],
+  'manage-users':['users:read', 'users:read:own'],
   facilities:['facilities:create'],
   'manage-facilities':['facilities:read'],
   'create-facility-regions':['facilities:create'],
@@ -2421,7 +2421,6 @@ function isLocalPreviewSession() {
   return ['local-portal-preview-token', 'local-cms-preview-token'].includes(localStorage.getItem('ncsms_access_token'))
 }
 async function canReachApi(force = false) {
-  if (isLocalPreviewSession()) return false
   if (!force && apiAvailable.value !== null) return apiAvailable.value
   let timer
   try {
@@ -2665,6 +2664,12 @@ async function loadAll() {
   try {
     apiAvailable.value = null
     if (isLocalPreviewSession()) {
+      if (await canReachApi(true)) {
+        localStorage.removeItem('ncsms_access_token')
+        localStorage.removeItem('ncsms_user')
+        await router.replace('/login')
+        return
+      }
       error.value = 'Portal preview mode: backend API is offline, so live operations are paused.'
       return
     }
