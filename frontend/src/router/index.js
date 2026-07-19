@@ -11,7 +11,7 @@ const routes = [
   { path: '/', redirect: '/login' },
   { path: '/login', name: 'PortalLogin', component: PortalLoginView },
   { path: '/portal', name: 'PortalDashboard', component: PortalManagerView },
-  { path: '/portal/namis/equipment/new', name: 'NamisEquipmentCreate', component: PortalManagerView },
+  { path: '/portal/namis/:resource/new', name: 'NamisRegistryCreate', component: PortalManagerView },
   { path: '/portal/applications/:id', name: 'AdminApplicationDetail', component: ApplicationDetailView },
   { path: '/dashboard', name: 'UserDashboard', component: UserPortalView },
   { path: '/dashboard/apply/:slug', name: 'ApplicationWizard', component: ApplicationWizardView },
@@ -38,7 +38,7 @@ const pageTitles = {
   UserDashboard: 'My Dashboard',
   ApplicationWizard: 'Application Form',
   AdminApplicationDetail: 'Application Review',
-  NamisEquipmentCreate: 'Add Distributed Equipment',
+  NamisRegistryCreate: 'Add Sports Registry Record',
   UserApplicationDetail: 'Application Details',
 }
 

@@ -315,6 +315,7 @@ import {
   deleteNsmisDomain,
   getAthleteDashboard
 } from '@/api/nsmis.js'
+import { registryResources } from '@/utils/namisRegistryConfig.js'
 
 const props = defineProps({
   userScope: { type: Array, default: () => [] },
@@ -419,6 +420,8 @@ const tabs = [
   { id: 'medical-records', label: 'Medical Files', icon: 'icofont-first-aid' },
   { id: 'safeguarding-records', label: 'Safeguarding Records', icon: 'icofont-shield' },
   { id: 'anti-doping', label: 'Anti-Doping Compliance', icon: 'icofont-test-bulb' },
+  { id: 'disbursements', label: 'Disbursements', icon: 'icofont-money' },
+  { id: 'accountabilities', label: 'Financial Accountabilities', icon: 'icofont-file-document' },
   { id: 'equipment', label: 'Distributed Equipment', icon: 'icofont-package' }
 ]
 
@@ -540,6 +543,22 @@ const columnsConfig = {
     { key: 'unit', label: 'Unit' },
     { key: 'quantity_received', label: 'Received' },
     { key: 'quantity_distributed', label: 'Distributed' }
+  ],
+  disbursements: [
+    { key: 'reference', label: 'Reference' },
+    { key: 'federation_id', label: 'Federation' },
+    { key: 'amount', label: 'Amount' },
+    { key: 'currency', label: 'Currency' },
+    { key: 'released_on', label: 'Released', type: 'date' },
+    { key: 'status', label: 'Status' }
+  ],
+  accountabilities: [
+    { key: 'federation_id', label: 'Federation' },
+    { key: 'reporting_period_id', label: 'Reporting Period' },
+    { key: 'currency', label: 'Currency' },
+    { key: 'government_grant', label: 'Government Grant' },
+    { key: 'equipment', label: 'Equipment' },
+    { key: 'status', label: 'Status' }
   ]
 }
 
@@ -703,7 +722,16 @@ const fieldsConfig = {
   ]
 }
 
-const currentFields = computed(() => fieldsConfig[activeTab.value] || [])
+const currentFields = computed(() => {
+  if (fieldsConfig[activeTab.value]) return fieldsConfig[activeTab.value]
+  return (registryResources[activeTab.value]?.fields || []).map(item => ({
+    ...item,
+    type: item.type === 'federation' ? 'federation_select'
+      : item.type === 'athlete' ? 'athlete_select'
+        : item.type === 'competition' ? 'competition_select'
+          : item.type,
+  }))
+})
 
 watch(activeTab, () => {
   page.value = 1
@@ -834,22 +862,7 @@ function updateJsonField(key, text) {
 }
 
 function openCreate() {
-  if (activeTab.value === 'equipment') {
-    router.push('/portal/namis/equipment/new')
-    return
-  }
-  formPayload.value = {}
-  currentFields.value.forEach(f => {
-    formPayload.value[f.key] = f.type === 'boolean' ? false : f.type === 'json' ? {} : ''
-  })
-  if (activeTab.value === 'athletes') {
-    formPayload.value.first_name = ''
-    formPayload.value.middle_name = ''
-    formPayload.value.last_name = ''
-  }
-  editId.value = ''
-  formError.value = ''
-  showModal.value = true
+  router.push(`/portal/namis/${activeTab.value}/new`)
 }
 
 function openEdit(item) {

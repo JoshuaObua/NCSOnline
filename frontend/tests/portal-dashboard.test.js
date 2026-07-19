@@ -70,18 +70,29 @@ test('admin dashboard and application queue use operational APIs and KPI contrac
 
 test('NAMIS equipment uses a dedicated linked entry page with a complete form', () => {
   const manager = read('../src/components/portal/NamisManagerPanel.vue')
-  const entry = read('../src/views/NamisEquipmentEntryView.vue')
+  const entry = read('../src/views/NamisRegistryEntryView.vue')
   const router = read('../src/router/index.js')
 
-  assert.match(router, /\/portal\/namis\/equipment\/new/)
-  assert.match(router, /NamisEquipmentCreate[^\n]+PortalManagerView/)
-  assert.match(manager, /router\.push\('\/portal\/namis\/equipment\/new'\)/)
+  assert.match(router, /\/portal\/namis\/:resource\/new/)
+  assert.match(router, /NamisRegistryCreate[^\n]+PortalManagerView/)
+  assert.match(manager, /router\.push\(`\/portal\/namis\/\$\{activeTab\.value\}\/new`\)/)
   assert.match(manager, /quantity_received/)
   assert.match(manager, /quantity_distributed/)
-  assert.match(entry, /Back to equipment/)
-  assert.match(entry, /createNsmisDomain\('equipment'/)
+  assert.match(entry, /Back to \{\{ listLabel \}\}/)
+  assert.match(entry, /createNsmisDomain\(resource\.value/)
   assert.match(entry, /Quantity distributed cannot exceed quantity received/)
-  assert.match(read('../src/views/WebsiteContentManagerView.vue'), /active === 'namis-equipment-new'/)
+  assert.match(read('../src/views/WebsiteContentManagerView.vue'), /active === 'namis-registry-new'/)
+})
+
+test('every Sports Registry resource has a complete standalone form schema', () => {
+  const config = read('../src/utils/namisRegistryConfig.js')
+  const entry = read('../src/views/NamisRegistryEntryView.vue')
+  for (const resource of ['athletes','clubs','coaches','competitions','competition-results','medals','talent','national-team','technical-officials','medical-records','safeguarding-records','anti-doping','disbursements','accountabilities','equipment']) {
+    assert.match(config, new RegExp(`['\"]?${resource.replaceAll('-', '\\-')}['\"]?\\s*:`))
+  }
+  assert.match(entry, /createNsmisDomain\(resource\.value/)
+  assert.match(entry, /loadingReferences/)
+  assert.match(entry, /definition\.sensitive/)
 })
 
 test('self-registration creates an intentionally roleless ordinary user', () => {

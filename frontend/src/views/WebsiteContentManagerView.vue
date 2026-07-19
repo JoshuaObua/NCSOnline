@@ -230,8 +230,8 @@
           @open-forms="selectSection('form-builder')"
         />
 
-        <NamisEquipmentEntryView
-          v-else-if="active === 'namis-equipment-new'"
+        <NamisRegistryEntryView
+          v-else-if="active === 'namis-registry-new'"
         />
 
         <NamisManagerPanel
@@ -1679,7 +1679,7 @@ import FormBuilderPanel from '@/components/cms/FormBuilderPanel.vue'
 import AdminApplicationsPanel from '@/components/portal/AdminApplicationsPanel.vue'
 import AdminDashboardPanel from '@/components/portal/AdminDashboardPanel.vue'
 import NamisManagerPanel from '@/components/portal/NamisManagerPanel.vue'
-import NamisEquipmentEntryView from '@/views/NamisEquipmentEntryView.vue'
+import NamisRegistryEntryView from '@/views/NamisRegistryEntryView.vue'
 import SportsRegistryReportsPanel from '@/components/portal/SportsRegistryReportsPanel.vue'
 import AppearanceSettingsPanel from '@/components/cms/AppearanceSettingsPanel.vue'
 import WebsiteSettingsPanel from '@/components/cms/WebsiteSettingsPanel.vue'
@@ -1852,7 +1852,7 @@ const namisSections = [
   { id: 'namis-equipment', label: 'Distributed Equipment', icon: 'icofont-package' }
 ]
 const routeOnlySections = [
-  { id: 'namis-equipment-new', label: 'Add Distributed Equipment', icon: 'icofont-plus-circle' },
+  { id: 'namis-registry-new', label: 'Add Sports Registry Record', icon: 'icofont-plus-circle' },
 ]
 const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections, ...namisSections, ...routeOnlySections]
 const allowedPortalSectionIds = new Set(sections.map(section => section.id))
@@ -2376,8 +2376,8 @@ onMounted(() => {
   // Returning from the Google Drive OAuth consent screen lands back on this
   // same route with ?code=&state= — land on the Storage Settings tab so the
   // admin sees the connect flow finish instead of the Overview tab.
-  if (router.currentRoute.value.name === 'NamisEquipmentCreate') {
-    active.value = 'namis-equipment-new'
+  if (router.currentRoute.value.name === 'NamisRegistryCreate') {
+    active.value = 'namis-registry-new'
     namisGroupOpen.value = true
   } else if (params.get('code')) {
     active.value = 'storage'
@@ -2538,7 +2538,7 @@ function selectSection(id) {
     setErr(new Error('You do not have permission to access that portal section.'))
     return
   }
-  if (router.currentRoute.value.name === 'NamisEquipmentCreate') {
+  if (router.currentRoute.value.name === 'NamisRegistryCreate') {
     router.push({ path: '/portal', query: id === 'overview' ? {} : { section: id } })
     return
   }
