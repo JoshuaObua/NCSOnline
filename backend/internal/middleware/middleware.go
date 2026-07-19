@@ -594,6 +594,7 @@ func AuditLogger(writer *AuditWriter) func(http.Handler) http.Handler {
 			if fingerprintEvent != "" {
 				eventType = fingerprintEvent
 			}
+			eventStatus := classifyEventStatus(statusCode)
 			var uid *string
 			if userID != "" {
 				uid = &userID
@@ -603,7 +604,7 @@ func AuditLogger(writer *AuditWriter) func(http.Handler) http.Handler {
 				UserID:          uid,
 				Username:        userEmail,
 				SessionID:       sessionID,
-				Action:          method + " " + endpoint,
+				Action:          canonicalAuditAction(eventType, method),
 				Resource:        extractResource(endpoint),
 				Method:          method,
 				Endpoint:        endpoint,
@@ -618,7 +619,7 @@ func AuditLogger(writer *AuditWriter) func(http.Handler) http.Handler {
 				ResponseCode:    statusCode,
 				ResponseTimeMs:  elapsed,
 				EventType:       eventType,
-				EventStatus:     classifyEventStatus(statusCode),
+				EventStatus:     eventStatus,
 				AnomalyDetected: anomaly,
 				PayloadExcerpt:  payloadExcerpt,
 			}
@@ -716,17 +717,33 @@ func classifyEventStatus(code int) string {
 	switch {
 	case code >= 200 && code < 300:
 		return "SUCCESS"
-	case code == 401:
-		return "AUTH_FAILED"
 	case code == 403:
 		return "DENIED"
-	case code >= 400 && code < 500:
+	case code >= 400:
 		return "FAILED"
-	case code >= 500:
-		return "ERROR"
 	default:
 		return "UNKNOWN"
 	}
+}
+
+func canonicalAuditAction(eventType, method string) string {
+	eventKind := strings.ToLower(strings.TrimSpace(eventType))
+	value := eventKind
+	value = strings.TrimPrefix(value, "auth_")
+	value = strings.ReplaceAll(value, "_", ":")
+	if strings.Contains(value, ".") {
+		value = strings.ReplaceAll(value, ".", ":")
+	}
+	if value == "" || value == "action" {
+		return strings.ToLower(method) + ":request"
+	}
+	if strings.HasPrefix(eventKind, "auth_") {
+		return "auth:" + value
+	}
+	if !strings.Contains(value, ":") {
+		return "request:" + value
+	}
+	return value
 }
 
 func computeThreatScore(country string, vpn bool, statusCode int) int {
@@ -756,11 +773,8 @@ func classifySeverity(eventStatus string, threatScore int, vpn bool) string {
 	if threatScore >= 70 || (vpn && eventStatus != "SUCCESS") {
 		return "CRITICAL"
 	}
-	if threatScore >= 40 || eventStatus == "DENIED" || eventStatus == "AUTH_FAILED" || vpn {
-		return "WARNING"
-	}
-	if eventStatus == "ERROR" {
-		return "ERROR"
+	if threatScore >= 40 || eventStatus == "DENIED" || eventStatus == "FAILED" || vpn {
+		return "WARN"
 	}
 	return "INFO"
 }

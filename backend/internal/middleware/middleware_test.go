@@ -194,6 +194,30 @@ func TestDeviceFingerprintPreservesClientAndDeviceDetails(t *testing.T) {
 	}
 }
 
+func TestAuditClassifiersUseSpecificationValues(t *testing.T) {
+	if got := classifyEventStatus(http.StatusOK); got != "SUCCESS" {
+		t.Fatalf("200 status = %q, want SUCCESS", got)
+	}
+	if got := classifyEventStatus(http.StatusUnauthorized); got != "FAILED" {
+		t.Fatalf("401 status = %q, want FAILED", got)
+	}
+	if got := classifyEventStatus(http.StatusForbidden); got != "DENIED" {
+		t.Fatalf("403 status = %q, want DENIED", got)
+	}
+	if got := classifySeverity("FAILED", 10, false); got != "WARN" {
+		t.Fatalf("failed severity = %q, want WARN", got)
+	}
+	if got := classifySeverity("SUCCESS", 80, false); got != "CRITICAL" {
+		t.Fatalf("high threat severity = %q, want CRITICAL", got)
+	}
+	if got := canonicalAuditAction("AUTH_LOGIN", http.MethodPost); got != "auth:login" {
+		t.Fatalf("login action = %q, want auth:login", got)
+	}
+	if got := canonicalAuditAction("USER_PASSWORD_RESET", http.MethodPost); got != "user:password:reset" {
+		t.Fatalf("password action = %q, want user:password:reset", got)
+	}
+}
+
 func TestRequireRoles(t *testing.T) {
 	h := RequireRoles("admin")(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)

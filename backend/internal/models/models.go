@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"strings"
 	"time"
 )
 
@@ -255,6 +256,108 @@ type AuditLog struct {
 	FirstName       string          `json:"first_name,omitempty"`
 	LastName        string          `json:"last_name,omitempty"`
 	CreatedAt       time.Time       `json:"created_at"`
+}
+
+func (a AuditLog) MarshalJSON() ([]byte, error) {
+	type Alias AuditLog
+	actorID := "anonymous"
+	if a.UserID != nil && strings.TrimSpace(*a.UserID) != "" {
+		actorID = strings.TrimSpace(*a.UserID)
+	}
+	actorType := "ANONYMOUS"
+	if actorID != "anonymous" {
+		actorType = "USER"
+	} else if strings.EqualFold(a.ClientType, "API Client") || strings.EqualFold(a.ClientType, "Go/HTTP") {
+		actorType = "SYSTEM_JOB"
+	}
+	status := strings.ToUpper(strings.TrimSpace(a.EventStatus))
+	if status == "" {
+		status = "UNKNOWN"
+	}
+	severity := strings.ToUpper(strings.TrimSpace(a.SeverityLevel))
+	if severity == "WARNING" {
+		severity = "WARN"
+	}
+	if severity == "" {
+		severity = "INFO"
+	}
+	correlationID := strings.TrimSpace(a.SessionID)
+	if correlationID == "" {
+		correlationID = a.ID
+	}
+	accessMedium := auditAccessMedium(a.ClientType, a.UserAgent)
+	parsedAgent := strings.TrimSpace(a.ClientType)
+	if parsedAgent == "" || strings.EqualFold(parsedAgent, "Unknown") || strings.EqualFold(parsedAgent, "Other") {
+		parsedAgent = strings.TrimSpace(a.Browser)
+	}
+	resourceType := strings.TrimSpace(a.Resource)
+	if resourceType == "" {
+		resourceType = "unknown"
+	}
+	return json.Marshal(struct {
+		Alias
+		Timestamp         time.Time       `json:"timestamp"`
+		Timezone          string          `json:"timezone,omitempty"`
+		EventID           string          `json:"event_id"`
+		CorrelationID     string          `json:"correlation_id"`
+		Status            string          `json:"status"`
+		Severity          string          `json:"severity"`
+		ActorID           string          `json:"actor_id"`
+		ActorType         string          `json:"actor_type"`
+		ActorUsername     string          `json:"actor_username,omitempty"`
+		ClientIP          string          `json:"client_ip"`
+		AccessMedium      string          `json:"access_medium"`
+		UserAgentRaw      string          `json:"user_agent_raw,omitempty"`
+		ParsedClientAgent string          `json:"parsed_client_agent,omitempty"`
+		ParsedOS          string          `json:"parsed_os,omitempty"`
+		ParsedBrowser     string          `json:"parsed_browser,omitempty"`
+		RequestURL        string          `json:"request_url,omitempty"`
+		HTTPMethod        string          `json:"http_method,omitempty"`
+		ResourceType      string          `json:"resource_type"`
+		PayloadBefore     json.RawMessage `json:"payload_before,omitempty"`
+		PayloadAfter      json.RawMessage `json:"payload_after,omitempty"`
+		Signature         string          `json:"signature,omitempty"`
+	}{
+		Alias:             Alias(a),
+		Timestamp:         a.CreatedAt.UTC(),
+		Timezone:          a.GeoTimezone,
+		EventID:           a.ID,
+		CorrelationID:     correlationID,
+		Status:            status,
+		Severity:          severity,
+		ActorID:           actorID,
+		ActorType:         actorType,
+		ActorUsername:     a.Username,
+		ClientIP:          a.IPAddress,
+		AccessMedium:      accessMedium,
+		UserAgentRaw:      a.UserAgent,
+		ParsedClientAgent: parsedAgent,
+		ParsedOS:          a.OSName,
+		ParsedBrowser:     a.Browser,
+		RequestURL:        a.Endpoint,
+		HTTPMethod:        a.Method,
+		ResourceType:      resourceType,
+		PayloadBefore:     a.OldValues,
+		PayloadAfter:      a.NewValues,
+		Signature:         a.EntryHash,
+	})
+}
+
+func auditAccessMedium(clientType, userAgent string) string {
+	lowerClient := strings.ToLower(clientType)
+	lowerUA := strings.ToLower(userAgent)
+	switch {
+	case strings.Contains(lowerClient, "mobile") || strings.Contains(lowerUA, "okhttp") || strings.Contains(lowerUA, "cfnetwork"):
+		return "MOBILE_APP"
+	case strings.Contains(lowerClient, "browser") || strings.Contains(lowerUA, "mozilla"):
+		return "WEB_UI"
+	case strings.Contains(lowerClient, "ussd"):
+		return "USSD_GATEWAY"
+	case strings.Contains(lowerUA, "curl") || strings.Contains(lowerUA, "httpie") || strings.Contains(lowerUA, "wget"):
+		return "CLI"
+	default:
+		return "REST_API"
+	}
 }
 
 // ── CMS ───────────────────────────────────────────────────────────

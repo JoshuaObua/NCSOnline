@@ -68,6 +68,23 @@ test('admin dashboard and application queue use operational APIs and KPI contrac
   assert.match(applicationDetail, /adminUpdateSubmissionPaymentStatus/)
 })
 
+test('audit log viewer uses friendly fields and hides raw API endpoints', () => {
+  const portal = read('../src/views/WebsiteContentManagerView.vue')
+  const backendModel = read('../../backend/internal/models/models.go')
+  const backendMiddleware = read('../../backend/internal/middleware/middleware.go')
+
+  assert.match(portal, /auditActivityName\(log\)/)
+  assert.match(portal, /auditLocation\(log\)/)
+  assert.match(portal, /auditClientSummary\(log\)/)
+  assert.match(portal, /auditDetailRows\(selectedAuditLog\)/)
+  assert.doesNotMatch(portal, /\{\{\s*log\.method\s*\|\|\s*log\.action\s*\}\}\s*\{\{\s*log\.endpoint/)
+  assert.doesNotMatch(portal, /<pre>\{\{ selectedAuditLog \}\}<\/pre>/)
+  assert.match(backendModel, /Timestamp\s+time\.Time\s+`json:"timestamp"`/)
+  assert.match(backendModel, /AccessMedium\s+string\s+`json:"access_medium"`/)
+  assert.match(backendModel, /Signature\s+string\s+`json:"signature,omitempty"`/)
+  assert.match(backendMiddleware, /canonicalAuditAction\(eventType, method\)/)
+})
+
 test('NAMIS equipment uses a dedicated linked entry page with a complete form', () => {
   const manager = read('../src/components/portal/NamisManagerPanel.vue')
   const entry = read('../src/views/NamisRegistryEntryView.vue')
