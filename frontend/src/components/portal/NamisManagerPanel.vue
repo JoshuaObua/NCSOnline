@@ -307,6 +307,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   listNsmisDomain,
   createNsmisDomain,
@@ -320,6 +321,8 @@ const props = defineProps({
   tab: { type: String, default: 'analytics' },
   userPermissions: { type: Array, default: () => [] }
 })
+
+const router = useRouter()
 
 const currentResourceName = computed(() => {
   const t = activeTab.value
@@ -415,7 +418,8 @@ const tabs = [
   { id: 'technical-officials', label: 'Technical Officials', icon: 'icofont-referee' },
   { id: 'medical-records', label: 'Medical Files', icon: 'icofont-first-aid' },
   { id: 'safeguarding-records', label: 'Safeguarding Records', icon: 'icofont-shield' },
-  { id: 'anti-doping', label: 'Anti-Doping Compliance', icon: 'icofont-test-bulb' }
+  { id: 'anti-doping', label: 'Anti-Doping Compliance', icon: 'icofont-test-bulb' },
+  { id: 'equipment', label: 'Distributed Equipment', icon: 'icofont-package' }
 ]
 
 const activeTab = ref(props.tab || 'analytics')
@@ -529,6 +533,13 @@ const columnsConfig = {
     { key: 'athlete_id', label: 'Athlete' },
     { key: 'testing_status', label: 'Pool Status' },
     { key: 'wada_education_completed', label: 'WADA Complete', type: 'boolean' }
+  ],
+  equipment: [
+    { key: 'federation_id', label: 'Federation' },
+    { key: 'item_name', label: 'Equipment' },
+    { key: 'unit', label: 'Unit' },
+    { key: 'quantity_received', label: 'Received' },
+    { key: 'quantity_distributed', label: 'Distributed' }
   ]
 }
 
@@ -682,6 +693,13 @@ const fieldsConfig = {
     { key: 'last_test_result', label: 'Last Test Result' },
     { key: 'wada_education_completed', label: 'WADA Course Completed', type: 'boolean' },
     { key: 'suspension_history', label: 'Suspension History Logs', type: 'textarea' }
+  ],
+  equipment: [
+    { key: 'federation_id', label: 'Federation', type: 'federation_select', required: true },
+    { key: 'item_name', label: 'Equipment Name', required: true },
+    { key: 'unit', label: 'Unit', type: 'select', options: ['ITEM', 'PIECE', 'PAIR', 'SET', 'BOX', 'CARTON', 'KIT', 'BAG'], required: true },
+    { key: 'quantity_received', label: 'Quantity Received', type: 'number', required: true },
+    { key: 'quantity_distributed', label: 'Quantity Distributed', type: 'number', required: true }
   ]
 }
 
@@ -816,6 +834,10 @@ function updateJsonField(key, text) {
 }
 
 function openCreate() {
+  if (activeTab.value === 'equipment') {
+    router.push('/portal/namis/equipment/new')
+    return
+  }
   formPayload.value = {}
   currentFields.value.forEach(f => {
     formPayload.value[f.key] = f.type === 'boolean' ? false : f.type === 'json' ? {} : ''

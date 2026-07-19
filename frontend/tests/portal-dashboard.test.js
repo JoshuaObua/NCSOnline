@@ -68,6 +68,20 @@ test('admin dashboard and application queue use operational APIs and KPI contrac
   assert.match(applicationDetail, /adminUpdateSubmissionPaymentStatus/)
 })
 
+test('NAMIS equipment uses a dedicated linked entry page with a complete form', () => {
+  const manager = read('../src/components/portal/NamisManagerPanel.vue')
+  const entry = read('../src/views/NamisEquipmentEntryView.vue')
+  const router = read('../src/router/index.js')
+
+  assert.match(router, /\/portal\/namis\/equipment\/new/)
+  assert.match(manager, /router\.push\('\/portal\/namis\/equipment\/new'\)/)
+  assert.match(manager, /quantity_received/)
+  assert.match(manager, /quantity_distributed/)
+  assert.match(entry, /Back to equipment/)
+  assert.match(entry, /createNsmisDomain\('equipment'/)
+  assert.match(entry, /Quantity distributed cannot exceed quantity received/)
+})
+
 test('self-registration creates an intentionally roleless ordinary user', () => {
   const authService = read('../../backend/internal/services/auth_service.go')
   const registerSection = authService.slice(authService.indexOf('func (s *AuthService) Register'), authService.indexOf('func (s *AuthService) Login'))

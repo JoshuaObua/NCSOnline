@@ -6,11 +6,13 @@ const PortalManagerView = () => import('@/views/WebsiteContentManagerView.vue')
 const UserPortalView = () => import('@/views/UserPortalView.vue')
 const ApplicationWizardView = () => import('@/views/ApplicationWizardView.vue')
 const ApplicationDetailView = () => import('@/views/ApplicationDetailView.vue')
+const NamisEquipmentEntryView = () => import('@/views/NamisEquipmentEntryView.vue')
 
 const routes = [
   { path: '/', redirect: '/login' },
   { path: '/login', name: 'PortalLogin', component: PortalLoginView },
   { path: '/portal', name: 'PortalDashboard', component: PortalManagerView },
+  { path: '/portal/namis/equipment/new', name: 'NamisEquipmentCreate', component: NamisEquipmentEntryView },
   { path: '/portal/applications/:id', name: 'AdminApplicationDetail', component: ApplicationDetailView },
   { path: '/dashboard', name: 'UserDashboard', component: UserPortalView },
   { path: '/dashboard/apply/:slug', name: 'ApplicationWizard', component: ApplicationWizardView },
@@ -37,6 +39,7 @@ const pageTitles = {
   UserDashboard: 'My Dashboard',
   ApplicationWizard: 'Application Form',
   AdminApplicationDetail: 'Application Review',
+  NamisEquipmentCreate: 'Add Distributed Equipment',
   UserApplicationDetail: 'Application Details',
 }
 
