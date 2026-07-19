@@ -1664,7 +1664,7 @@
 
 <script setup>
 import { computed, defineComponent, h, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
 import { API_BASE_URL, mediaUrl } from '@/api/client.js'
 import * as cms from '@/api/cms.js'
@@ -1694,6 +1694,7 @@ import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 import { normalizeMenuTree, toCmsMenuItems } from '@/utils/menuTree.js'
 
 const router = useRouter()
+const route = useRoute()
 const active = ref('overview')
 const applicationFilter = ref('')
 const message = ref('')
@@ -2412,6 +2413,19 @@ watch(active, (id) => {
   else query.section = id
   router.replace({ query }).catch(() => {})
 })
+
+// Vue Router reuses this dashboard component when navigating from /portal to
+// /portal/namis/:resource/new. onMounted therefore does not run again, so keep
+// the visible panel synchronized with the named route explicitly.
+watch(
+  () => [route.name, route.params.resource],
+  ([name]) => {
+    if (name === 'NamisRegistryCreate') {
+      active.value = 'namis-registry-new'
+      namisGroupOpen.value = true
+    }
+  },
+)
 
 function fields(short = [], long = []) {
   return [...short.map(name => ({

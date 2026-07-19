@@ -82,7 +82,11 @@ test('NAMIS equipment uses a dedicated linked entry page with a complete form', 
   assert.match(entry, /Back to \{\{ listLabel \}\}/)
   assert.match(entry, /createNsmisDomain\(resource\.value/)
   assert.match(entry, /Quantity distributed cannot exceed quantity received/)
-  assert.match(read('../src/views/WebsiteContentManagerView.vue'), /active === 'namis-registry-new'/)
+  const dashboard = read('../src/views/WebsiteContentManagerView.vue')
+  assert.match(dashboard, /active === 'namis-registry-new'/)
+  assert.match(dashboard, /useRoute\(\)/)
+  assert.match(dashboard, /\(\) => \[route\.name, route\.params\.resource\]/)
+  assert.match(dashboard, /name === 'NamisRegistryCreate'[\s\S]+active\.value = 'namis-registry-new'/)
 })
 
 test('every Sports Registry resource has a complete standalone form schema', () => {
