@@ -91,6 +91,7 @@ function installClickAuditor() {
     if (!label) return
     const href = target.getAttribute('href') || target.dataset?.href || ''
     const path = typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : ''
+    const isPortalMenu = Boolean(target.closest?.('.sidebar-menu, .main-sidebar, .dropdown-menu, .navbar-nav'))
     const key = `${path}:${label}:${href}`
     const now = Date.now()
     if (key === lastClickKey && now - lastClickAt < 1000) return
@@ -102,8 +103,12 @@ function installClickAuditor() {
       path,
       page_name: cleanLabel(document.title.replace(/ - NCS Uganda$/, '')) || 'Portal',
       label,
-      resource: 'Frontend Interaction',
+      section: currentSectionFromPath(path),
+      resource: isPortalMenu ? 'Portal Menu' : 'Frontend Interaction',
       metadata: {
+        portal_menu: isPortalMenu,
+        menu_label: isPortalMenu ? label : '',
+        current_section: currentSectionFromPath(path),
         target_tag: target.tagName?.toLowerCase?.() || '',
         target_path: href ? cleanPath(href) : '',
       },
@@ -169,6 +174,14 @@ function sectionPath(basePath, section) {
   const value = cleanLabel(section || '', 80)
   if (!value || value === 'overview' || value === 'dashboard') return base
   return `${base}?section=${encodeURIComponent(value)}`
+}
+
+function currentSectionFromPath(path) {
+  try {
+    return cleanLabel(new URL(path || '/', 'http://local.test').searchParams.get('section') || '', 80)
+  } catch {
+    return ''
+  }
 }
 
 function titleize(value) {

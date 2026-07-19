@@ -942,6 +942,8 @@ func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mo
 	const countQ = `SELECT COUNT(*) FROM audit_logs al
 	               LEFT JOIN users u ON al.user_id = u.id
 	               WHERE ($1='' OR al.action ILIKE $1 OR al.resource ILIKE $1 OR
+	                      COALESCE(al.resource_id,'') ILIKE $1 OR COALESCE(al.endpoint,'') ILIKE $1 OR
+	                      COALESCE(al.payload_excerpt::text,'') ILIKE $1 OR
 	                      COALESCE(al.ip_address,'') ILIKE $1 OR COALESCE(al.username,'') ILIKE $1 OR
 	                      COALESCE(u.first_name,'') ILIKE $1 OR COALESCE(u.last_name,'') ILIKE $1 OR
 	                      COALESCE(al.geo_country,'') ILIKE $1 OR COALESCE(al.event_type,'') ILIKE $1)`
@@ -956,13 +958,15 @@ func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mo
 	                  COALESCE(al.vpn_detected,false), COALESCE(al.browser,''), COALESCE(al.os_name,''),
 	                  COALESCE(al.client_type,''), COALESCE(al.threat_score,0),
 	                  COALESCE(al.anomaly_detected,false), COALESCE(al.session_id,''),
-	                  COALESCE(al.username,''),
+	                  COALESCE(al.username,''), al.payload_excerpt,
 	                  COALESCE(al.previous_hash,''), COALESCE(al.entry_hash,''), COALESCE(al.chain_sequence,0),
 	                  COALESCE(u.first_name,''), COALESCE(u.last_name,''),
 	                  al.created_at
 	           FROM audit_logs al
 	           LEFT JOIN users u ON al.user_id = u.id
 	           WHERE ($1='' OR al.action ILIKE $1 OR al.resource ILIKE $1 OR
+	                  COALESCE(al.resource_id,'') ILIKE $1 OR COALESCE(al.endpoint,'') ILIKE $1 OR
+	                  COALESCE(al.payload_excerpt::text,'') ILIKE $1 OR
 	                  COALESCE(al.ip_address,'') ILIKE $1 OR COALESCE(al.username,'') ILIKE $1 OR
 	                  COALESCE(u.first_name,'') ILIKE $1 OR COALESCE(u.last_name,'') ILIKE $1 OR
 	                  COALESCE(al.geo_country,'') ILIKE $1 OR COALESCE(al.event_type,'') ILIKE $1)
@@ -993,7 +997,7 @@ func (r *AuditRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mo
 			&l.GeoSource, &l.Platform, &l.Authenticated,
 			&l.VPNDetected, &l.Browser, &l.OSName,
 			&l.ClientType, &l.ThreatScore,
-			&l.AnomalyDetected, &l.SessionID, &l.Username,
+			&l.AnomalyDetected, &l.SessionID, &l.Username, &l.PayloadExcerpt,
 			&l.PreviousHash, &l.EntryHash, &l.ChainSequence,
 			&l.FirstName, &l.LastName,
 			&l.CreatedAt,

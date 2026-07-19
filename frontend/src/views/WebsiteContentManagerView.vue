@@ -1487,10 +1487,11 @@
 	          <div class="audit-table">
 	            <article v-for="log in auditLogs" :key="log.id" class="audit-row">
 	              <div class="audit-row-main">
-	                <strong>{{ auditActivityName(log) }}</strong>
-	                <span>{{ auditActorName(log) }} · {{ auditLocation(log) }} · {{ formatDateTime(log.timestamp || log.created_at) }}</span>
-	                <small>{{ auditClientSummary(log) }}</small>
-	              </div>
+		                <strong>{{ auditActivityName(log) }}</strong>
+		                <span>{{ auditActorName(log) }} · {{ auditLocation(log) }} · {{ formatDateTime(log.timestamp || log.created_at) }}</span>
+		                <small v-if="auditEventContext(log)">{{ auditEventContext(log) }}</small>
+		                <small>{{ auditClientSummary(log) }}</small>
+		              </div>
 	              <div class="audit-row-meta">
 	                <span :class="['audit-code', statusClass(log)]">{{ auditStatusLabel(log) }}</span>
 	                <span>{{ log.response_time_ms || 0 }}ms</span>
@@ -3583,6 +3584,10 @@ async function viewAuditLog(log) {
 }
 
 function auditActivityName(log = {}) {
+  const meta = auditPayloadMeta(log)
+  const friendlyTarget = meta.menu_label || meta.label || log.resource_id || titleize(log.endpoint || '')
+  if (log.action === 'ui:navigate') return friendlyTarget ? `Navigated to ${titleize(friendlyTarget)}` : 'Navigation'
+  if (log.action === 'ui:click') return friendlyTarget ? `Clicked ${titleize(friendlyTarget)}` : 'Clicked interface control'
   const raw = String(log.action || log.event_type || '').trim()
   const normalized = raw
     .replace(/^GET\s+\S+/i, 'view')
@@ -3625,7 +3630,9 @@ function auditActivityName(log = {}) {
     'cms:create': 'Content created',
     'cms:update': 'Content updated',
     'cms:delete': 'Content deleted',
-    'dashboard:view': 'Dashboard viewed',
+	    'dashboard:view': 'Dashboard viewed',
+	    'ui:navigate': 'Navigation',
+	    'ui:click': 'Clicked interface control',
     'security:client:fingerprint': 'Client fingerprint warning',
     'security:admin:no:referrer': 'Admin access without referrer',
     'view': 'Record viewed',
@@ -3634,6 +3641,26 @@ function auditActivityName(log = {}) {
     'delete': 'Record deleted',
   }
   return actionMap[normalized] || titleize(normalized || log.resource || 'Activity')
+}
+
+function auditEventContext(log = {}) {
+  const meta = auditPayloadMeta(log)
+  const portal = meta.portal || (log.resource === 'Portal Menu' ? 'Portal Menu' : '')
+  const from = meta.from_section || meta.from_page || ''
+  const to = meta.to_section || meta.section || log.resource_id || ''
+  if (portal || from || to) {
+    const movement = from && to ? `${titleize(from)} → ${titleize(to)}` : titleize(to || from)
+    return [portal, movement].filter(Boolean).join(' · ')
+  }
+  if (log.resource_id && log.resource === 'Portal Menu') return `Portal Menu · ${titleize(log.resource_id)}`
+  return ''
+}
+
+function auditPayloadMeta(log = {}) {
+  const payload = log.payload_excerpt || log.payload_after || log.new_values || null
+  if (!payload) return {}
+  if (typeof payload === 'object' && !Array.isArray(payload)) return payload
+  try { return JSON.parse(String(payload)) || {} } catch { return {} }
 }
 
 function auditActorName(log = {}) {
