@@ -53,6 +53,7 @@ func main() {
 	locationClient := middleware.NewLocationClient(cfg.LocationServiceURL, cfg.LocationServiceToken, cfg.LocationTimeout)
 	middleware.ConfigureLocationService(locationClient, cfg.JWTSecret, cfg.GeoAllowedCountries, cfg.GeoFailClosed)
 	auditWriter := middleware.NewAuditWriter(repos.Audit, 4096)
+	h.Audit.SetWriter(auditWriter)
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -225,6 +226,7 @@ func main() {
 			r.Delete("/auth/sessions/clear-all", h.Operator.DeleteOtherSessions)
 			r.Delete("/auth/sessions/{id}", h.Operator.DeleteSession)
 			r.Get("/account/audit-logs", h.Security.MyActivities)
+			r.Post("/account/activity-events", h.Audit.RecordFrontendActivity)
 
 			// PIN management
 			r.Post("/auth/pin/set", h.Auth.SetPIN)
@@ -285,6 +287,7 @@ func main() {
 
 			// ── Self-service activity log + security settings ─────────
 			r.Get("/me/activities", h.Security.MyActivities)
+			r.Post("/me/activity-events", h.Audit.RecordFrontendActivity)
 			r.Route("/me/security", func(r chi.Router) {
 				r.Get("/", h.Security.GetMySecurity)
 				r.Post("/ip-whitelist", h.Security.AddIPWhitelist)

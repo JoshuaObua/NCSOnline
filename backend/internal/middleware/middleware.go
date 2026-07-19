@@ -547,7 +547,8 @@ func GeoBlocker(next http.Handler) http.Handler {
 func AuditLogger(writer *AuditWriter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/health" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/metrics" {
+			if r.URL.Path == "/health" || r.URL.Path == "/healthz" || r.URL.Path == "/readyz" || r.URL.Path == "/metrics" ||
+				r.URL.Path == "/api/v1/account/activity-events" || r.URL.Path == "/api/v1/me/activity-events" {
 				next.ServeHTTP(w, r)
 				return
 			}

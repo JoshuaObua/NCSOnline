@@ -72,6 +72,10 @@ test('audit log viewer uses friendly fields and hides raw API endpoints', () => 
   const portal = read('../src/views/WebsiteContentManagerView.vue')
   const backendModel = read('../../backend/internal/models/models.go')
   const backendMiddleware = read('../../backend/internal/middleware/middleware.go')
+  const router = read('../src/router/index.js')
+  const activityAudit = read('../src/services/activityAudit.js')
+  const server = read('../../backend/cmd/server/main.go')
+  const auditHandler = read('../../backend/internal/handlers/audit.go')
 
   assert.match(portal, /auditActivityName\(log\)/)
   assert.match(portal, /auditLocation\(log\)/)
@@ -83,6 +87,16 @@ test('audit log viewer uses friendly fields and hides raw API endpoints', () => 
   assert.match(backendModel, /AccessMedium\s+string\s+`json:"access_medium"`/)
   assert.match(backendModel, /Signature\s+string\s+`json:"signature,omitempty"`/)
   assert.match(backendMiddleware, /canonicalAuditAction\(eventType, method\)/)
+  assert.match(router, /installActivityAuditor\(router\)/)
+  assert.match(activityAudit, /recordNavigation\(to, from\)/)
+  assert.match(activityAudit, /ACTIVITY_ENDPOINT = '\/api\/v1\/account\/activity-events'/)
+  assert.match(activityAudit, /document\.addEventListener\('click'/)
+  assert.match(activityAudit, /password\|token\|secret\|credential/i)
+  assert.match(server, /h\.Audit\.SetWriter\(auditWriter\)/)
+  assert.match(server, /r\.Post\("\/account\/activity-events", h\.Audit\.RecordFrontendActivity\)/)
+  assert.match(auditHandler, /Action:\s+normalized\.Action/)
+  assert.match(auditHandler, /EventType:\s+normalized\.EventType/)
+  assert.match(auditHandler, /"ui:" \+ kind/)
 })
 
 test('command center uses live system resources and functional service actions', () => {

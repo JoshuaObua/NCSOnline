@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { installActivityAuditor } from '@/services/activityAudit.js'
 import { isOrdinaryUser, storedPortalUser } from '@/utils/portalAuth.js'
 
 const PortalLoginView = () => import('@/views/CMSLoginView.vue')
@@ -56,5 +57,7 @@ router.afterEach((to) => {
   const title = pageTitles[to.name] || 'Portal Login'
   document.title = `${title} - NCS Uganda`
 })
+
+installActivityAuditor(router)
 
 export default router
