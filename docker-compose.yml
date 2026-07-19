@@ -33,11 +33,13 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       PORT: ${PORT}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
     volumes:
       - portal_uploads_data:/app/uploads
       - portal_private_data:/app/private-data
       - portal_app_logs:/var/log/app
       - portal_backups_data:/var/backups/ncs
+      - /var/run/docker.sock:/var/run/docker.sock
     expose: ["${PORT}"]
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:${PORT}/healthz || exit 1"]
@@ -124,7 +126,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    networks: [ncsportal_net]
+    networks: [ncsportal_net, ncsbot_net]
 
 volumes:
   portal_postgres_data:
@@ -138,3 +140,6 @@ volumes:
 networks:
   ncsportal_net:
     driver: bridge
+  ncsbot_net:
+    external: true
+    name: ncsbot_default

@@ -37,13 +37,13 @@
         <tbody>
           <tr v-for="svc in resources?.services || []" :key="svc.name">
             <td>{{ svc.display_name }}</td>
-            <td><span class="ops-badge" :class="displayServiceStatus(svc)">{{ displayServiceStatus(svc) }}</span></td>
+            <td><span class="ops-badge" :class="serviceStatusClass(svc)">{{ displayServiceStatus(svc) }}</span></td>
             <td>{{ displayServiceHealth(svc) }}</td>
             <td class="ops-actions">
-              <button type="button" :disabled="busyService === svc.name" @click="serviceAction(svc.name, 'start')">Start</button>
-              <button type="button" :disabled="busyService === svc.name" @click="serviceAction(svc.name, 'restart')">Restart</button>
-              <button type="button" class="ops-danger" :disabled="busyService === svc.name" @click="serviceAction(svc.name, 'stop')">Stop</button>
-              <button type="button" @click="loadLogs(svc.name)">Logs</button>
+              <button type="button" :disabled="!canRunServiceAction(svc, 'start')" @click="serviceAction(svc, 'start')">Start</button>
+              <button type="button" :disabled="!canRunServiceAction(svc, 'restart')" @click="serviceAction(svc, 'restart')">Restart</button>
+              <button type="button" class="ops-danger" :disabled="!canRunServiceAction(svc, 'stop')" @click="serviceAction(svc, 'stop')">Stop</button>
+              <button type="button" :disabled="!canRunServiceAction(svc, 'logs')" @click="loadLogs(svc.name)">Logs</button>
             </td>
           </tr>
           <tr v-if="!resources?.services?.length"><td colspan="4" class="cms-empty">No service telemetry yet.</td></tr>
@@ -103,12 +103,25 @@ function formatDateTime(value) {
   return value ? new Date(value).toLocaleString() : ''
 }
 function displayServiceStatus(service = {}) {
-  return service.status === 'running' ? 'running' : 'idle'
+  return String(service.status || 'unavailable').trim().toLowerCase()
 }
 function displayServiceHealth(service = {}) {
   const health = String(service.health || '').trim().toLowerCase()
   if (!health || health === 'unknown') return displayServiceStatus(service)
   return health
+}
+function serviceStatusClass(service = {}) {
+  const status = displayServiceStatus(service)
+  if (status === 'running') return 'running'
+  if (['restarting', 'created', 'paused'].includes(status)) return 'pending'
+  if (status === 'stopped') return 'stopped'
+  return 'unavailable'
+}
+function serviceActions(service = {}) {
+  return Array.isArray(service.actions) ? service.actions : []
+}
+function canRunServiceAction(service = {}, action) {
+  return !dockerUnavailable.value && busyService.value !== service.name && serviceActions(service).includes(action)
 }
 
 async function loadResources() {
@@ -127,9 +140,11 @@ async function loadLogs(service) {
 }
 
 async function serviceAction(service, action) {
-  const expected = `${action.toUpperCase()} ${service.toUpperCase()}`
+  const serviceName = typeof service === 'string' ? service : service?.name
+  if (!serviceName || !canRunServiceAction(typeof service === 'string' ? { name: serviceName, actions: [action] } : service, action)) return
+  const expected = `${action.toUpperCase()} ${serviceName.toUpperCase()}`
   const result = await Swal.fire({
-    title: `${action[0].toUpperCase()}${action.slice(1)} ${service}?`,
+    title: `${action[0].toUpperCase()}${action.slice(1)} ${serviceName}?`,
     text: `Type ${expected} to confirm.`,
     input: 'text',
     inputPlaceholder: expected,
@@ -140,10 +155,10 @@ async function serviceAction(service, action) {
     inputValidator: value => value !== expected ? `Type exactly: ${expected}` : undefined,
   })
   if (!result.isConfirmed) return
-  busyService.value = service
+  busyService.value = serviceName
   try {
-    await runServiceAction(service, action, expected)
-    emit('message', `${service} ${action} requested`)
+    await runServiceAction(serviceName, action, expected)
+    emit('message', `${serviceName} ${action} requested`)
     await loadResources()
   } catch (err) {
     emit('error', err)
@@ -198,7 +213,9 @@ onUnmounted(() => {
 .ops-table td { padding: 10px; border-bottom: 1px solid #f1f2fb; color: #34395e; vertical-align: middle; }
 .ops-badge { border-radius: 30px; padding: 3px 10px; font-size: 11px; font-weight: 700; text-transform: capitalize; background: #eef0fd; color: #6777ef; }
 .ops-badge.running { background: #e8f7f0; color: #47c363; }
-.ops-badge.idle { background: #fff4e6; color: #ffa426; }
+.ops-badge.pending { background: #fff4e6; color: #ffa426; }
+.ops-badge.stopped { background: #fdeaea; color: #fc544b; }
+.ops-badge.unavailable { background: #f1f5f9; color: #64748b; }
 .ops-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .ops-actions button { border: 0; border-radius: 30px; background: #6777ef; color: #fff; padding: 6px 12px; font-size: 11px; font-weight: 700; }
 .ops-actions button:disabled { opacity: .5; }

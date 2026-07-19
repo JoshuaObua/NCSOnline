@@ -117,11 +117,14 @@ test('operations statuses and audit logs avoid unknown states', () => {
   const operatorHandler = read('../../backend/internal/handlers/operator.go')
 
   assert.match(commandCenter, /displayServiceStatus/)
-  assert.match(commandCenter, /return service\.status === 'running' \? 'running' : 'idle'/)
+  assert.match(commandCenter, /return String\(service\.status \|\| 'unavailable'\)/)
   assert.match(commandCenter, /displayServiceHealth/)
+  assert.match(commandCenter, /serviceStatusClass/)
+  assert.match(commandCenter, /canRunServiceAction/)
   assert.match(commandCenter, /docker_available === false/)
-  assert.match(operatorHandler, /"status": "idle"/)
+  assert.match(operatorHandler, /"status": "unavailable"/)
   assert.match(operatorHandler, /normalizeServiceState/)
+  assert.match(operatorHandler, /opsServiceCatalog/)
   assert.doesNotMatch(operatorHandler, /"status": "unknown"/)
 
   assert.match(portal, /auditPage = ref\(1\)/)

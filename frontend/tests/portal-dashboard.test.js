@@ -85,6 +85,29 @@ test('audit log viewer uses friendly fields and hides raw API endpoints', () => 
   assert.match(backendMiddleware, /canonicalAuditAction\(eventType, method\)/)
 })
 
+test('command center uses live system resources and functional service actions', () => {
+  const panel = read('../src/components/cms/SystemCommandCenterPanel.vue')
+  const operatorApi = read('../src/api/operator.js')
+  const routes = read('../../backend/cmd/server/main.go')
+  const handler = read('../../backend/internal/handlers/operator.go')
+  const compose = read('../../docker-compose.yml')
+
+  assert.match(panel, /getSystemResources/)
+  assert.match(panel, /getServiceLogs/)
+  assert.match(panel, /runServiceAction/)
+  assert.match(panel, /displayServiceStatus\(service = \{\}\)[\s\S]+service\.status \|\| 'unavailable'/)
+  assert.match(panel, /canRunServiceAction\(svc, 'restart'\)/)
+  assert.match(panel, /dockerUnavailable\.value/)
+  assert.match(operatorApi, /\/api\/v1\/admin\/system\/resources/)
+  assert.match(operatorApi, /\/api\/v1\/admin\/system\/service-logs/)
+  assert.match(operatorApi, /\/api\/v1\/admin\/system\/services\/action/)
+  assert.match(routes, /r\.Get\("\/admin\/system\/resources", h\.Operator\.Resources\)/)
+  assert.match(routes, /r\.Post\("\/admin\/system\/services\/action", h\.Operator\.ServiceAction\)/)
+  assert.match(handler, /opsServiceCatalog\(\)[\s\S]+"worker"/)
+  assert.match(handler, /composeProject = "ncsportal"/)
+  assert.match(compose, /\/var\/run\/docker\.sock:\/var\/run\/docker\.sock/)
+})
+
 test('NAMIS equipment uses a dedicated linked entry page with a complete form', () => {
   const manager = read('../src/components/portal/NamisManagerPanel.vue')
   const entry = read('../src/views/NamisRegistryEntryView.vue')

@@ -182,7 +182,7 @@ func (h *OperatorHandler) ServiceLogStream(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Connection", "keep-alive")
 	composeProject := strings.TrimSpace(os.Getenv("COMPOSE_PROJECT_NAME"))
 	if composeProject == "" {
-		composeProject = "ncs-online"
+		composeProject = "ncsportal"
 	}
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
@@ -530,14 +530,14 @@ func perCorePayload(values []float64) []map[string]any {
 }
 
 func serviceStatuses(dockerReady bool) []map[string]any {
-	services := []string{"nginx", "frontend", "backend", "postgres", "nsmis-worker", "backup", "location-service"}
+	services := opsServiceCatalog()
 	out := make([]map[string]any, 0, len(services))
 	composeProject := strings.TrimSpace(os.Getenv("COMPOSE_PROJECT_NAME"))
 	if composeProject == "" {
-		composeProject = "ncs-online"
+		composeProject = "ncsportal"
 	}
 	for _, svc := range services {
-		out = append(out, map[string]any{"name": svc, "display_name": serviceDisplayName(svc), "status": "idle", "health": "idle", "actions": []string{"start", "restart", "stop", "logs"}})
+		out = append(out, map[string]any{"name": svc, "display_name": serviceDisplayName(svc), "status": "unavailable", "health": "unavailable", "actions": []string{}})
 	}
 	if !dockerReady {
 		return out
@@ -569,6 +569,8 @@ func serviceStatuses(dockerReady bool) []map[string]any {
 			item["container"] = row["Name"]
 			item["image"] = row["Image"]
 			item["published_ports"] = row["Publishers"]
+			item["raw_status"] = row["Status"]
+			item["actions"] = []string{"start", "restart", "stop", "logs"}
 		}
 	}
 	return out
@@ -576,20 +578,32 @@ func serviceStatuses(dockerReady bool) []map[string]any {
 
 func normalizeServiceState(state, health string) string {
 	state = strings.ToLower(strings.TrimSpace(state))
-	if state == "running" {
+	switch state {
+	case "running":
 		return "running"
+	case "exited", "dead", "removing":
+		return "stopped"
+	case "restarting":
+		return "restarting"
+	case "paused":
+		return "paused"
+	case "created":
+		return "created"
+	case "":
+		return "unavailable"
+	default:
+		return state
 	}
-	return "idle"
 }
 
 func normalizeServiceHealth(state, health string) string {
 	state = strings.ToLower(strings.TrimSpace(state))
 	health = strings.ToLower(strings.TrimSpace(health))
 	if state != "running" {
-		return "idle"
+		return normalizeServiceState(state, health)
 	}
-	if health == "" {
-		return "healthy"
+	if health == "" || health == "unknown" {
+		return "no healthcheck"
 	}
 	return health
 }
@@ -600,13 +614,17 @@ func serviceDisplayName(name string) string {
 		return "Go API Daemon"
 	case "postgres":
 		return "PostgreSQL"
-	case "nsmis-worker":
+	case "worker":
 		return "NSMIS Worker"
 	case "location-service":
 		return "Location Guard"
 	default:
 		return strings.ToUpper(name[:1]) + name[1:]
 	}
+}
+
+func opsServiceCatalog() []string {
+	return []string{"nginx", "frontend", "backend", "postgres", "worker", "location-service"}
 }
 
 func recentSystemEvents(services []map[string]any, state maintenance.Snapshot, now time.Time) []map[string]any {
@@ -644,12 +662,12 @@ func dockerAvailable() bool {
 }
 
 func allowedOpsService(service string) bool {
-	switch service {
-	case "nginx", "frontend", "backend", "postgres", "nsmis-worker", "backup", "location-service":
-		return true
-	default:
-		return false
+	for _, allowed := range opsServiceCatalog() {
+		if service == allowed {
+			return true
+		}
 	}
+	return false
 }
 
 func dockerComposeOutput(parent context.Context, args ...string) (string, error) {
@@ -658,7 +676,7 @@ func dockerComposeOutput(parent context.Context, args ...string) (string, error)
 	}
 	composeProject := strings.TrimSpace(os.Getenv("COMPOSE_PROJECT_NAME"))
 	if composeProject == "" {
-		composeProject = "ncs-online"
+		composeProject = "ncsportal"
 	}
 	ctx, cancel := context.WithTimeout(parent, 45*time.Second)
 	defer cancel()
