@@ -230,6 +230,10 @@
           @open-forms="selectSection('form-builder')"
         />
 
+        <NamisEquipmentEntryView
+          v-else-if="active === 'namis-equipment-new'"
+        />
+
         <NamisManagerPanel
           v-else-if="active.startsWith('namis-') || active === 'namis-portal'"
           :tab="active === 'namis-portal' ? 'analytics' : active.replace('namis-', '')"
@@ -1675,6 +1679,7 @@ import FormBuilderPanel from '@/components/cms/FormBuilderPanel.vue'
 import AdminApplicationsPanel from '@/components/portal/AdminApplicationsPanel.vue'
 import AdminDashboardPanel from '@/components/portal/AdminDashboardPanel.vue'
 import NamisManagerPanel from '@/components/portal/NamisManagerPanel.vue'
+import NamisEquipmentEntryView from '@/views/NamisEquipmentEntryView.vue'
 import SportsRegistryReportsPanel from '@/components/portal/SportsRegistryReportsPanel.vue'
 import AppearanceSettingsPanel from '@/components/cms/AppearanceSettingsPanel.vue'
 import WebsiteSettingsPanel from '@/components/cms/WebsiteSettingsPanel.vue'
@@ -1846,7 +1851,10 @@ const namisSections = [
   { id: 'namis-accountabilities', label: 'Financial Accountabilities', icon: 'icofont-file-document' },
   { id: 'namis-equipment', label: 'Distributed Equipment', icon: 'icofont-package' }
 ]
-const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections, ...namisSections]
+const routeOnlySections = [
+  { id: 'namis-equipment-new', label: 'Add Distributed Equipment', icon: 'icofont-plus-circle' },
+]
+const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections, ...namisSections, ...routeOnlySections]
 const allowedPortalSectionIds = new Set(sections.map(section => section.id))
 const currentSection = computed(() => sections.find(s => s.id === active.value) || sections[0])
 
@@ -2368,7 +2376,10 @@ onMounted(() => {
   // Returning from the Google Drive OAuth consent screen lands back on this
   // same route with ?code=&state= — land on the Storage Settings tab so the
   // admin sees the connect flow finish instead of the Overview tab.
-  if (params.get('code')) {
+  if (router.currentRoute.value.name === 'NamisEquipmentCreate') {
+    active.value = 'namis-equipment-new'
+    namisGroupOpen.value = true
+  } else if (params.get('code')) {
     active.value = 'storage'
   } else {
     // Restore the active panel from the URL (?section=) so a browser refresh
@@ -2525,6 +2536,10 @@ function syncCareerDepartment() {
 function selectSection(id) {
   if (!canAccessSection(id)) {
     setErr(new Error('You do not have permission to access that portal section.'))
+    return
+  }
+  if (router.currentRoute.value.name === 'NamisEquipmentCreate') {
+    router.push({ path: '/portal', query: id === 'overview' ? {} : { section: id } })
     return
   }
   active.value = id

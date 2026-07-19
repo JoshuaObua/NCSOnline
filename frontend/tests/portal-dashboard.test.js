@@ -74,12 +74,14 @@ test('NAMIS equipment uses a dedicated linked entry page with a complete form', 
   const router = read('../src/router/index.js')
 
   assert.match(router, /\/portal\/namis\/equipment\/new/)
+  assert.match(router, /NamisEquipmentCreate[^\n]+PortalManagerView/)
   assert.match(manager, /router\.push\('\/portal\/namis\/equipment\/new'\)/)
   assert.match(manager, /quantity_received/)
   assert.match(manager, /quantity_distributed/)
   assert.match(entry, /Back to equipment/)
   assert.match(entry, /createNsmisDomain\('equipment'/)
   assert.match(entry, /Quantity distributed cannot exceed quantity received/)
+  assert.match(read('../src/views/WebsiteContentManagerView.vue'), /active === 'namis-equipment-new'/)
 })
 
 test('self-registration creates an intentionally roleless ordinary user', () => {

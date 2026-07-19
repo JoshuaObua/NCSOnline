@@ -141,8 +141,8 @@ async function saveEquipment() {
 </script>
 
 <style scoped>
-.equipment-entry-page { min-height: 100vh; padding: 32px; background: #f4f6f9; color: #34395e; }
-.equipment-card { max-width: 980px; margin: 0 auto; padding: 30px; background: #fff; border: 1px solid #e8eaf0; border-radius: 14px; box-shadow: 0 8px 30px rgba(44, 62, 80, .08); }
+.equipment-entry-page { padding: 0; background: transparent; color: #34395e; }
+.equipment-card { width: 100%; padding: 30px; box-sizing: border-box; background: #fff; border: 1px solid #e8eaf0; border-radius: 14px; box-shadow: 0 8px 30px rgba(44, 62, 80, .08); }
 .page-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; padding-bottom: 24px; border-bottom: 1px solid #eceef3; }
 .page-header p { margin: 0 0 5px; color: #6777ef; font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .page-header h1 { margin: 0 0 8px; font-size: 28px; }
