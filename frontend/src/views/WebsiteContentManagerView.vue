@@ -2418,11 +2418,19 @@ watch(active, (id) => {
 // /portal/namis/:resource/new. onMounted therefore does not run again, so keep
 // the visible panel synchronized with the named route explicitly.
 watch(
-  () => [route.name, route.params.resource],
-  ([name]) => {
+  () => [route.name, route.params.resource, route.query.section],
+  ([name, , requestedSection]) => {
     if (name === 'NamisRegistryCreate') {
       active.value = 'namis-registry-new'
       namisGroupOpen.value = true
+      return
+    }
+    if (name === 'PortalDashboard') {
+      const requested = String(requestedSection || 'overview')
+      active.value = sections.some(section => section.id === requested) && canAccessSection(requested)
+        ? requested
+        : 'overview'
+      namisGroupOpen.value = active.value.startsWith('namis-')
     }
   },
 )

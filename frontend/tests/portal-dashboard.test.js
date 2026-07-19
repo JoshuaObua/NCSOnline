@@ -85,8 +85,9 @@ test('NAMIS equipment uses a dedicated linked entry page with a complete form', 
   const dashboard = read('../src/views/WebsiteContentManagerView.vue')
   assert.match(dashboard, /active === 'namis-registry-new'/)
   assert.match(dashboard, /useRoute\(\)/)
-  assert.match(dashboard, /\(\) => \[route\.name, route\.params\.resource\]/)
+  assert.match(dashboard, /\(\) => \[route\.name, route\.params\.resource, route\.query\.section\]/)
   assert.match(dashboard, /name === 'NamisRegistryCreate'[\s\S]+active\.value = 'namis-registry-new'/)
+  assert.match(dashboard, /name === 'PortalDashboard'[\s\S]+requestedSection[\s\S]+active\.value = sections\.some/)
 })
 
 test('every Sports Registry resource has a complete standalone form schema', () => {
