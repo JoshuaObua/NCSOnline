@@ -490,6 +490,7 @@ import OpenFormsPanel from '@/components/portal/OpenFormsPanel.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import { downloadApplicationForm } from '@/utils/applicationDownload.js'
 import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
+import { recordMenuNavigation } from '@/services/activityAudit.js'
 
 const router = useRouter()
 const portalSectionIds = ['dashboard', 'apply', 'applications', 'my-files', 'activities', 'notifications', 'messages', 'transactions', 'profile']
@@ -967,6 +968,16 @@ async function loadActivities(page = 1) {
 }
 
 async function select(id) {
+  const previous = section.value
+  const next = navigation.value.find(item => item.id === id)
+  recordMenuNavigation({
+    portal: 'Applicant Portal',
+    fromSection: previous,
+    toSection: id,
+    label: next?.label || id,
+    basePath: '/dashboard',
+    routeName: 'UserDashboard',
+  })
   section.value = id
   profileOpen.value = false
   mobileSidebarOpen.value = false
@@ -1044,7 +1055,12 @@ async function saveProfile() {
 }
 function logout() { localStorage.removeItem('ncsms_access_token'); localStorage.removeItem('ncsms_user'); router.push('/login') }
 function unwrap(value) { return value?.data?.data ?? value?.data ?? value ?? {} }
-function asList(value) { const data = unwrap(value); return Array.isArray(data) ? data : [] }
+function asList(value) {
+  const data = unwrap(value)
+  if (Array.isArray(data)) return data
+  if (data && Array.isArray(data.items)) return data.items
+  return []
+}
 function apiError(err, fallback) { return err.response?.data?.error?.message || fallback }
 function titleize(value) { return String(value || '').toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, char => char.toUpperCase()) }
 function formatDate(value) { return value ? new Intl.DateTimeFormat('en-UG', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value)) : '-' }

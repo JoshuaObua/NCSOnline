@@ -43,6 +43,38 @@ export function recordNavigation(to, from) {
   })
 }
 
+export function recordMenuNavigation({
+  portal = 'Portal',
+  fromSection = '',
+  toSection = '',
+  label = '',
+  basePath = '/portal',
+  routeName = 'PortalDashboard',
+} = {}) {
+  const targetSection = cleanLabel(toSection || label || 'overview', 80)
+  const previousSection = cleanLabel(fromSection || '', 80)
+  const pageLabel = cleanLabel(label || titleize(targetSection), MAX_LABEL_LENGTH)
+  const toPath = sectionPath(basePath, targetSection)
+  recordActivityEvent({
+    type: 'navigation',
+    action: 'navigate',
+    from_path: previousSection ? sectionPath(basePath, previousSection) : '',
+    to_path: toPath,
+    page_name: pageLabel,
+    from_page: previousSection ? titleize(previousSection) : '',
+    label: pageLabel,
+    route_name: routeName,
+    section: targetSection,
+    resource: 'Portal Menu',
+    metadata: {
+      portal,
+      menu_label: pageLabel,
+      from_section: previousSection,
+      to_section: targetSection,
+    },
+  })
+}
+
 export function installActivityAuditor(router) {
   router.afterEach((to, from) => recordNavigation(to, from))
   installClickAuditor()
@@ -130,6 +162,13 @@ function cleanPath(value) {
   } catch {}
   path = path.split('#')[0]
   return path.length > 240 ? path.slice(0, 240) : path
+}
+
+function sectionPath(basePath, section) {
+  const base = cleanPath(basePath || '/portal') || '/portal'
+  const value = cleanLabel(section || '', 80)
+  if (!value || value === 'overview' || value === 'dashboard') return base
+  return `${base}?section=${encodeURIComponent(value)}`
 }
 
 function titleize(value) {

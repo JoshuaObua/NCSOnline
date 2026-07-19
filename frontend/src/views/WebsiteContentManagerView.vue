@@ -35,8 +35,8 @@
               </button>
               <div class="dropdown-menu dropdown-menu-right pullDown" :class="{ show: profileOpen }">
                 <div class="dropdown-title">Hello {{ currentUserName }}</div>
-                <button type="button" class="dropdown-item has-icon" @click="active = 'audit-logs'; profileOpen = false"><i class="fas fa-bolt"></i> Activities</button>
-                <button type="button" class="dropdown-item has-icon" @click="active = 'website-settings'; profileOpen = false"><i class="fas fa-cog"></i> Portal Settings</button>
+                <button type="button" class="dropdown-item has-icon" @click="selectSection('audit-logs')"><i class="fas fa-bolt"></i> Activities</button>
+                <button type="button" class="dropdown-item has-icon" @click="selectSection('website-settings')"><i class="fas fa-cog"></i> Portal Settings</button>
                 <div class="dropdown-divider"></div>
                 <button type="button" class="dropdown-item has-icon text-danger" @click="logout"><i class="fas fa-sign-out-alt"></i> Logout</button>
               </div>
@@ -1698,6 +1698,7 @@ import SmartUpdatesPanel from '@/components/cms/SmartUpdatesPanel.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 import { normalizeMenuTree, toCmsMenuItems } from '@/utils/menuTree.js'
+import { recordMenuNavigation } from '@/services/activityAudit.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -2566,6 +2567,16 @@ function selectSection(id) {
     setErr(new Error('You do not have permission to access that portal section.'))
     return
   }
+  const previous = active.value
+  const next = sections.find(section => section.id === id)
+  recordMenuNavigation({
+    portal: 'Admin Portal',
+    fromSection: previous,
+    toSection: id,
+    label: next?.label || id,
+    basePath: '/portal',
+    routeName: 'PortalDashboard',
+  })
   if (router.currentRoute.value.name === 'NamisRegistryCreate') {
     router.push({ path: '/portal', query: id === 'overview' ? {} : { section: id } })
     return
