@@ -37,6 +37,10 @@
             <option value="">Select competition</option>
             <option v-for="option in competitions" :key="option.id" :value="option.id">{{ option.name }}{{ option.venue ? ` - ${option.venue}` : '' }}</option>
           </select>
+          <select v-else-if="item.type === 'user'" :id="`registry-${item.key}`" v-model="form[item.key]" :required="item.required" :disabled="loadingReferences">
+            <option value="">Select user</option>
+            <option v-for="option in users" :key="option.id" :value="option.id">{{ option.first_name }} {{ option.last_name }} ({{ option.email }})</option>
+          </select>
           <label v-else-if="item.type === 'boolean'" class="checkbox-field">
             <input :id="`registry-${item.key}`" v-model="form[item.key]" type="checkbox" />
             <span>Yes</span>
@@ -61,6 +65,7 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createNsmisDomain, listNsmisDomain } from '@/api/nsmis.js'
+import apiClient from '@/api/client.js'
 import { registryResources } from '@/utils/namisRegistryConfig.js'
 
 const route = useRoute()
@@ -73,6 +78,7 @@ const form = reactive({})
 const federations = ref([])
 const athletes = ref([])
 const competitions = ref([])
+const users = ref([])
 const loadingReferences = ref(false)
 const saving = ref(false)
 const loadError = ref('')
@@ -95,6 +101,7 @@ async function loadReferences() {
   if (types.has('federation')) requests.push(listNsmisDomain('federations', { per_page: 100 }).then(res => { federations.value = res.data?.data?.items || res.data?.items || [] }))
   if (types.has('athlete')) requests.push(listNsmisDomain('athletes', { per_page: 100 }).then(res => { athletes.value = res.data?.data?.items || res.data?.items || [] }))
   if (types.has('competition')) requests.push(listNsmisDomain('competitions', { per_page: 100 }).then(res => { competitions.value = res.data?.data?.items || res.data?.items || [] }))
+  if (types.has('user')) requests.push(apiClient.get('/api/v1/admin/users', { params: { per_page: 100 } }).then(res => { users.value = res.data?.data?.items || res.data?.data || res.data?.items || [] }))
   if (!requests.length) return
   loadingReferences.value = true
   try { await Promise.all(requests) } catch (err) { loadError.value = err.response?.data?.error?.message || 'Could not load form options.' } finally { loadingReferences.value = false }

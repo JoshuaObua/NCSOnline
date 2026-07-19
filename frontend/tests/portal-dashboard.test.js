@@ -75,7 +75,8 @@ test('NAMIS equipment uses a dedicated linked entry page with a complete form', 
 
   assert.match(router, /\/portal\/namis\/:resource\/new/)
   assert.match(router, /NamisRegistryCreate[^\n]+PortalManagerView/)
-  assert.match(manager, /router\.push\(`\/portal\/namis\/\$\{activeTab\.value\}\/new`\)/)
+  assert.match(manager, /params: \{ resource \}/)
+  assert.match(manager, /const resource = props\.tab \|\| activeTab\.value/)
   assert.match(manager, /quantity_received/)
   assert.match(manager, /quantity_distributed/)
   assert.match(entry, /Back to \{\{ listLabel \}\}/)

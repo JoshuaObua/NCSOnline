@@ -745,7 +745,8 @@ watch(activeTab, () => {
 })
 
 onMounted(() => {
-  loadAnalytics()
+  if (activeTab.value === 'analytics') loadAnalytics()
+  else loadData()
   loadSelectionReferences()
 })
 
@@ -862,7 +863,8 @@ function updateJsonField(key, text) {
 }
 
 function openCreate() {
-  router.push(`/portal/namis/${activeTab.value}/new`)
+  const resource = props.tab || activeTab.value
+  router.push({ name: 'NamisRegistryCreate', params: { resource } })
 }
 
 function openEdit(item) {

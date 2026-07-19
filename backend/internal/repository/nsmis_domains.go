@@ -134,7 +134,8 @@ func (r *NSMISRepo) SaveDomain(ctx context.Context, resource, id, actorID string
 			}
 		}
 	}
-	if resource == "athletes" && strings.TrimSpace(fmt.Sprint(payload["athlete_number"])) == "" {
+	athleteNumber, hasAthleteNumber := payload["athlete_number"]
+	if resource == "athletes" && (!hasAthleteNumber || athleteNumber == nil || strings.TrimSpace(fmt.Sprint(athleteNumber)) == "") {
 		payload["athlete_number"] = fmt.Sprintf("NCS-%d-%s", time.Now().Year(), strings.ToUpper(uuid.NewString()[:8]))
 	}
 	if fed, exists := payload["federation_id"]; exists && !all {
@@ -190,7 +191,11 @@ func (r *NSMISRepo) SaveDomain(ctx context.Context, resource, id, actorID string
 		}
 		defer tx.Rollback(ctx)
 		q := "INSERT INTO " + d.table + " (" + strings.Join(cols, ",") + extraCols + ") VALUES (" + strings.Join(vals, ",") + extraVals + ") RETURNING to_jsonb(" + d.table + ".*)"
-		if e = tx.QueryRow(ctx, q, raw, actorID).Scan(&out); e != nil {
+		queryArgs := []interface{}{raw}
+		if extraCols != "" {
+			queryArgs = append(queryArgs, actorID)
+		}
+		if e = tx.QueryRow(ctx, q, queryArgs...).Scan(&out); e != nil {
 			if isDuplicate(e) {
 				return nil, ErrDuplicate
 			}
