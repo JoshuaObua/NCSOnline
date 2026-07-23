@@ -338,6 +338,16 @@ func main() {
 				r.Get("/admin/system/service-logs", h.Operator.ServiceLogs)
 				r.Get("/admin/system/service-logs/stream", h.Operator.ServiceLogStream)
 
+				r.Route("/admin/audit-logs", func(r chi.Router) {
+					r.Get("/", h.Audit.List)
+					r.Get("/{id}", h.Audit.Get)
+					r.Get("/export", h.Audit.Export)
+				})
+			})
+
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RequireRoles("super_admin", "admin", "federation_profile"))
+
 				r.Route("/admin/users", func(r chi.Router) {
 					r.Get("/", h.Users.List)
 					r.Post("/", h.Users.Create)
@@ -352,13 +362,7 @@ func main() {
 					r.Delete("/{id}/roles/{roleID}", h.Users.RemoveRole)
 				})
 
-				r.Route("/admin/audit-logs", func(r chi.Router) {
-					r.Get("/", h.Audit.List)
-					r.Get("/{id}", h.Audit.Get)
-					r.Get("/export", h.Audit.Export)
-				})
-
-				// Admin needs read access to roles list (for assignment UI)
+				// Admin/federation profile needs read access to roles list (for assignment UI)
 				r.Get("/admin/roles-list", h.Roles.List)
 			})
 

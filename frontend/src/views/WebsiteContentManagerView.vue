@@ -3586,7 +3586,10 @@ async function viewAuditLog(log) {
 function auditActivityName(log = {}) {
   const meta = auditPayloadMeta(log)
   const friendlyTarget = meta.menu_label || meta.label || log.resource_id || titleize(log.endpoint || '')
-  if (log.action === 'ui:navigate') return friendlyTarget ? `Navigated to ${titleize(friendlyTarget)}` : 'Navigation'
+  if (log.action === 'ui:navigate') {
+    const page = meta.page || friendlyTarget
+    return page ? `Visited ${titleize(page)}` : 'Navigation'
+  }
   if (log.action === 'ui:click') return friendlyTarget ? `Clicked ${titleize(friendlyTarget)}` : 'Clicked interface control'
   const raw = String(log.action || log.event_type || '').trim()
   const normalized = raw
@@ -3640,7 +3643,25 @@ function auditActivityName(log = {}) {
     'update': 'Record updated',
     'delete': 'Record deleted',
   }
-  return actionMap[normalized] || titleize(normalized || log.resource || 'Activity')
+  if (actionMap[normalized]) return actionMap[normalized]
+  const apiPage = auditApiPageName(log)
+  if (apiPage) {
+    const verbMap = { 'request:view': 'Viewed', 'request:create': 'Created', 'request:update': 'Updated', 'request:delete': 'Deleted' }
+    const verb = verbMap[normalized]
+    if (verb) return `${verb} ${apiPage}`
+  }
+  return titleize(normalized || log.resource || 'Activity')
+}
+
+// Derives a human page/resource name from a backend API endpoint,
+// e.g. /api/v1/inbound-submissions/counts -> "Inbound Submissions".
+function auditApiPageName(log = {}) {
+  const endpoint = String(log.endpoint || '')
+  if (!endpoint || endpoint.startsWith('/portal') || endpoint.startsWith('/dashboard')) return titleize(log.resource || '')
+  const cleanSegments = endpoint.split('?')[0].split('/').filter(seg => seg && !['api', 'v1', 'admin', 'account', 'portal', 'cms', 'public'].includes(seg))
+  const named = cleanSegments.filter(seg => !/^[0-9a-f-]{8,}$/i.test(seg) && !/^\d+$/.test(seg))
+  if (!named.length) return titleize(log.resource || '')
+  return titleize(named.slice(0, 2).join(' '))
 }
 
 function auditEventContext(log = {}) {
@@ -3648,12 +3669,19 @@ function auditEventContext(log = {}) {
   const portal = meta.portal || (log.resource === 'Portal Menu' ? 'Portal Menu' : '')
   const from = meta.from_section || meta.from_page || ''
   const to = meta.to_section || meta.section || log.resource_id || ''
+  const visitedPath = auditVisitedPath(log)
   if (portal || from || to) {
     const movement = from && to ? `${titleize(from)} → ${titleize(to)}` : titleize(to || from)
-    return [portal, movement].filter(Boolean).join(' · ')
+    return [portal, movement, visitedPath].filter(Boolean).join(' · ')
   }
-  if (log.resource_id && log.resource === 'Portal Menu') return `Portal Menu · ${titleize(log.resource_id)}`
-  return ''
+  if (log.resource_id && log.resource === 'Portal Menu') return `Portal Menu · ${titleize(log.resource_id)}${visitedPath ? ` · ${visitedPath}` : ''}`
+  return visitedPath
+}
+
+// The exact frontend page URL that was visited (for UI events) or the API path.
+function auditVisitedPath(log = {}) {
+  const meta = auditPayloadMeta(log)
+  return String(meta.to_path || log.endpoint || '').trim()
 }
 
 function auditPayloadMeta(log = {}) {
@@ -3686,8 +3714,12 @@ function auditStatusLabel(log = {}) {
 }
 
 function auditDetailRows(log = {}) {
+  const meta = auditPayloadMeta(log)
   const rows = [
     ['Activity', auditActivityName(log)],
+    ['Page visited', meta.page ? titleize(meta.page) : auditApiPageName(log) || 'n/a'],
+    ['Page URL', auditVisitedPath(log) || 'n/a'],
+    ['Came from', meta.from_page ? `${titleize(meta.from_page)}${meta.from_path ? ` (${meta.from_path})` : ''}` : meta.from_path || 'n/a'],
     ['Status', auditStatusLabel(log)],
     ['Severity', String(log.severity || log.severity_level || 'INFO').toUpperCase()],
     ['Actor', auditActorName(log)],

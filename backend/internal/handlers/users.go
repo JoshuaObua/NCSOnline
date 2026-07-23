@@ -28,6 +28,45 @@ type UsersHandler struct {
 	audit *repository.AuditRepo
 }
 
+func (h *UsersHandler) checkAccess(w http.ResponseWriter, r *http.Request, targetUserID, requiredGlobalPerm, requiredScopedPerm string) (bool, []string) {
+	actorID, _ := r.Context().Value(models.CtxUserID).(string)
+
+	global, err := h.svc.HasPermission(r.Context(), actorID, requiredGlobalPerm)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not check permissions")
+		return false, nil
+	}
+	if global {
+		return true, nil
+	}
+
+	scoped, err := h.svc.HasPermission(r.Context(), actorID, requiredScopedPerm)
+	if err != nil || !scoped {
+		response.Err(w, http.StatusForbidden, "FORBIDDEN", "You do not have permission to perform this action")
+		return false, nil
+	}
+
+	federations, err := h.svc.GetFederationIDs(r.Context(), actorID)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not load federation scope")
+		return false, nil
+	}
+	if len(federations) == 0 {
+		response.Err(w, http.StatusForbidden, "FORBIDDEN", "You are not associated with any active federation")
+		return false, nil
+	}
+
+	if targetUserID != "" {
+		inFed, err := h.svc.IsUserInFederations(r.Context(), targetUserID, federations)
+		if err != nil || !inFed {
+			response.Err(w, http.StatusForbidden, "FORBIDDEN", "The target user does not belong to your federation")
+			return false, nil
+		}
+	}
+
+	return true, federations
+}
+
 // GET /api/v1/admin/users
 func (h *UsersHandler) List(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -35,7 +74,12 @@ func (h *UsersHandler) List(w http.ResponseWriter, r *http.Request) {
 	perPage, _ := strconv.Atoi(q.Get("per_page"))
 	p := &models.PaginationParams{Page: page, PerPage: perPage, Search: q.Get("search")}
 
-	users, total, err := h.svc.List(r.Context(), p)
+	ok, federations := h.checkAccess(w, r, "", "users:read", "users:read:own")
+	if !ok {
+		return
+	}
+
+	users, total, err := h.svc.List(r.Context(), p, federations)
 	if err != nil {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not fetch users")
 		return
@@ -46,16 +90,48 @@ func (h *UsersHandler) List(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/admin/users
 func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Email     string `json:"email"`
-		Password  string `json:"password"`
-		FirstName string `json:"first_name"`
-		LastName  string `json:"last_name"`
-		Phone     string `json:"phone"`
+		Email        string `json:"email"`
+		Password     string `json:"password"`
+		FirstName    string `json:"first_name"`
+		LastName     string `json:"last_name"`
+		Phone        string `json:"phone"`
+		FederationID string `json:"federation_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
 		return
 	}
+
+	ok, federations := h.checkAccess(w, r, "", "users:write", "users:write:own")
+	if !ok {
+		return
+	}
+
+	targetFed := req.FederationID
+	if len(federations) > 0 { // Actor is federation scoped
+		if targetFed == "" {
+			if len(federations) == 1 {
+				targetFed = federations[0]
+			} else {
+				response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "federation_id is required since you belong to multiple federations")
+				return
+			}
+		} else {
+			// Verify they belong to targetFed
+			valid := false
+			for _, f := range federations {
+				if f == targetFed {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				response.Err(w, http.StatusForbidden, "FORBIDDEN", "You do not belong to the specified federation")
+				return
+			}
+		}
+	}
+
 	errs := map[string]string{}
 	if req.Email == "" {
 		errs["email"] = "required"
@@ -74,9 +150,11 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	actorID, _ := r.Context().Value(models.CtxUserID).(string)
 	user, err := h.svc.Create(r.Context(), services.CreateUserInput{
 		Email: req.Email, Password: req.Password,
 		FirstName: req.FirstName, LastName: req.LastName, Phone: req.Phone,
+		FederationID: targetFed, ActorID: actorID,
 	})
 	if err != nil {
 		if errors.Is(err, repository.ErrDuplicate) {
@@ -92,6 +170,10 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 // GET /api/v1/admin/users/{id}
 func (h *UsersHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	ok, _ := h.checkAccess(w, r, id, "users:read", "users:read:own")
+	if !ok {
+		return
+	}
 	user, err := h.svc.GetByID(r.Context(), id)
 	if errors.Is(err, repository.ErrNotFound) {
 		response.Err(w, http.StatusNotFound, "NOT_FOUND", "User not found")
@@ -107,6 +189,10 @@ func (h *UsersHandler) Get(w http.ResponseWriter, r *http.Request) {
 // PUT /api/v1/admin/users/{id}
 func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	ok, _ := h.checkAccess(w, r, id, "users:write", "users:write:own")
+	if !ok {
+		return
+	}
 	var req struct {
 		FirstName string `json:"first_name"`
 		LastName  string `json:"last_name"`
@@ -133,6 +219,10 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 // DELETE /api/v1/admin/users/{id}
 func (h *UsersHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	ok, _ := h.checkAccess(w, r, id, "users:delete", "users:write:own")
+	if !ok {
+		return
+	}
 	if err := h.svc.Delete(r.Context(), id); err != nil {
 		if protectedGuard(w, err) {
 			return
@@ -146,6 +236,10 @@ func (h *UsersHandler) Delete(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/admin/users/{id}/activate
 func (h *UsersHandler) Activate(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	ok, _ := h.checkAccess(w, r, id, "users:activate", "users:write:own")
+	if !ok {
+		return
+	}
 	actorID, _ := r.Context().Value(models.CtxUserID).(string)
 	if err := h.svc.ApplyAccountAction(r.Context(), services.AccountActionInput{UserID: id, ActorID: actorID, Action: "REACTIVATE"}); err != nil {
 		if protectedGuard(w, err) {
@@ -160,6 +254,10 @@ func (h *UsersHandler) Activate(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/admin/users/{id}/deactivate
 func (h *UsersHandler) Deactivate(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	ok, _ := h.checkAccess(w, r, id, "users:activate", "users:write:own")
+	if !ok {
+		return
+	}
 	actorID, _ := r.Context().Value(models.CtxUserID).(string)
 	if err := h.svc.ApplyAccountAction(r.Context(), services.AccountActionInput{
 		UserID: id, ActorID: actorID, Action: "SUSPEND", Reason: "Deactivated by administrator",
@@ -195,11 +293,12 @@ func (h *UsersHandler) AssignRole(w http.ResponseWriter, r *http.Request) {
 func (h *UsersHandler) RemoveRole(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "id")
 	roleID := chi.URLParam(r, "roleID")
-	if err := h.svc.RemoveRole(r.Context(), userID, roleID); err != nil {
+	actorID, _ := r.Context().Value(models.CtxUserID).(string)
+	if err := h.svc.RemoveRole(r.Context(), userID, roleID, actorID); err != nil {
 		if protectedGuard(w, err) {
 			return
 		}
-		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not remove role")
+		response.Err(w, http.StatusBadRequest, "REMOVE_ROLE_FAILED", err.Error())
 		return
 	}
 	response.JSONMsg(w, http.StatusOK, "Role removed")
@@ -208,6 +307,10 @@ func (h *UsersHandler) RemoveRole(w http.ResponseWriter, r *http.Request) {
 // POST /api/v1/admin/users/{id}/reset-password
 func (h *UsersHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "id")
+	ok, _ := h.checkAccess(w, r, userID, "users:reset_password", "users:write:own")
+	if !ok {
+		return
+	}
 	actorID, _ := r.Context().Value(models.CtxUserID).(string)
 	if actorID == userID {
 		response.Err(w, http.StatusBadRequest, "USE_CHANGE_PASSWORD", "Use the profile password-change form for your own account")

@@ -24,6 +24,31 @@ func (h *RolesHandler) List(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not fetch roles")
 		return
 	}
+
+	actorID, _ := r.Context().Value(models.CtxUserID).(string)
+	var isGlobal bool
+	isGlobal, _ = h.roles.HasPermission(r.Context(), actorID, "users:roles")
+
+	if !isGlobal {
+		var sportsRegistryRoles = map[string]bool{
+			"club_manager":        true,
+			"coach":               true,
+			"athlete":             true,
+			"technical_official":  true,
+			"medical_officer":     true,
+			"anti_doping_officer": true,
+			"federation_officer":  true,
+		}
+		filtered := []models.Role{}
+		for _, role := range roles {
+			if sportsRegistryRoles[role.Name] {
+				filtered = append(filtered, role)
+			}
+		}
+		response.JSON(w, http.StatusOK, filtered)
+		return
+	}
+
 	response.JSON(w, http.StatusOK, roles)
 }
 

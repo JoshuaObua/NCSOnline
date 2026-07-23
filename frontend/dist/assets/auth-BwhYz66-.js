@@ -1,1 +1,0 @@
-import{a as n}from"./client-jGfRf5C6.js";const e="/assets/main-logo-CumehH0t.png";function a(t){return n.post("/api/v1/auth/register",t)}function u(t){return n.post("/api/v1/auth/login",t)}function i(){return n.get("/api/v1/auth/me")}function o(t){return n.put("/api/v1/auth/me",t)}export{e as _,i as g,u as l,a as r,o as u};

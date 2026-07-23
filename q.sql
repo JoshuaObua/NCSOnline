@@ -1,0 +1,1 @@
+SELECT action, resource, resource_id, left(endpoint,70) AS ep, left(payload_excerpt::text,160) AS payload, created_at FROM audit_logs WHERE payload_excerpt::text ILIKE '%sitemap%' OR endpoint ILIKE '%sitemap%' ORDER BY created_at DESC LIMIT 10;  

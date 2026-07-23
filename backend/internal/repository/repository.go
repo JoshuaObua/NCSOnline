@@ -154,28 +154,52 @@ func (r *UserRepo) LinkGoogleIdentity(ctx context.Context, userID, googleSub, av
 	return err
 }
 
-func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams) ([]*models.User, int64, error) {
-	const countQ = `SELECT COUNT(*) FROM users WHERE deleted_at IS NULL
-	                AND ($1='' OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1)`
-	const q = `SELECT id, email, first_name, last_name, COALESCE(phone,''),
-	                  is_active, account_status, status_reason, fraud_flag, fraud_reason,
-	                  suspended_until, status_changed_at, is_email_verified,
-	                  last_login_at, created_at, updated_at
-	           FROM users WHERE deleted_at IS NULL
-	           AND ($1='' OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1)
-	           ORDER BY created_at DESC LIMIT $2 OFFSET $3`
-
+func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams, federationIDs []string) ([]*models.User, int64, error) {
 	search := ""
 	if p.Search != "" {
 		search = "%" + p.Search + "%"
 	}
 
 	var total int64
-	if err := r.db.QueryRow(ctx, countQ, search).Scan(&total); err != nil {
-		return nil, 0, err
+	var rows pgx.Rows
+	var err error
+
+	if len(federationIDs) > 0 {
+		countQ := `SELECT COUNT(DISTINCT u.id) FROM users u 
+		           JOIN federation_memberships fm ON fm.user_id = u.id
+		           WHERE u.deleted_at IS NULL AND fm.federation_id = ANY($2)
+		           AND ($1='' OR u.first_name ILIKE $1 OR u.last_name ILIKE $1 OR u.email ILIKE $1)`
+		if err = r.db.QueryRow(ctx, countQ, search, federationIDs).Scan(&total); err != nil {
+			return nil, 0, err
+		}
+
+		q := `SELECT DISTINCT u.id, u.email, u.first_name, u.last_name, COALESCE(u.phone,''),
+		                      u.is_active, u.account_status, u.status_reason, u.fraud_flag, u.fraud_reason,
+		                      u.suspended_until, u.status_changed_at, u.is_email_verified,
+		                      u.last_login_at, u.created_at, u.updated_at
+		      FROM users u
+		      JOIN federation_memberships fm ON fm.user_id = u.id
+		      WHERE u.deleted_at IS NULL AND fm.federation_id = ANY($2)
+		      AND ($1='' OR u.first_name ILIKE $1 OR u.last_name ILIKE $1 OR u.email ILIKE $1)
+		      ORDER BY u.created_at DESC LIMIT $3 OFFSET $4`
+		rows, err = r.db.Query(ctx, q, search, federationIDs, p.PerPage, p.Offset())
+	} else {
+		countQ := `SELECT COUNT(*) FROM users WHERE deleted_at IS NULL
+		           AND ($1='' OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1)`
+		if err = r.db.QueryRow(ctx, countQ, search).Scan(&total); err != nil {
+			return nil, 0, err
+		}
+
+		q := `SELECT id, email, first_name, last_name, COALESCE(phone,''),
+		            is_active, account_status, status_reason, fraud_flag, fraud_reason,
+		            suspended_until, status_changed_at, is_email_verified,
+		            last_login_at, created_at, updated_at
+		     FROM users WHERE deleted_at IS NULL
+		     AND ($1='' OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1)
+		     ORDER BY created_at DESC LIMIT $2 OFFSET $3`
+		rows, err = r.db.Query(ctx, q, search, p.PerPage, p.Offset())
 	}
 
-	rows, err := r.db.Query(ctx, q, search, p.PerPage, p.Offset())
 	if err != nil {
 		return nil, 0, err
 	}
@@ -184,7 +208,7 @@ func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mod
 	users := []*models.User{}
 	for rows.Next() {
 		u := &models.User{}
-		if err := rows.Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.Phone,
+		if err = rows.Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.Phone,
 			&u.IsActive, &u.AccountStatus, &u.StatusReason, &u.FraudFlag, &u.FraudReason,
 			&u.SuspendedUntil, &u.StatusChangedAt, &u.IsEmailVerified,
 			&u.LastLoginAt, &u.CreatedAt, &u.UpdatedAt); err != nil {
@@ -193,6 +217,48 @@ func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams) ([]*mod
 		users = append(users, u)
 	}
 	return users, total, rows.Err()
+}
+
+func (r *UserRepo) HasAnyPermission(ctx context.Context, userID string, names ...string) (bool, error) {
+	if len(names) == 0 {
+		return false, nil
+	}
+	var ok bool
+	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM user_roles ur JOIN role_permissions rp ON rp.role_id=ur.role_id JOIN permissions p ON p.id=rp.permission_id WHERE ur.user_id=$1 AND p.name=ANY($2))`, userID, names).Scan(&ok)
+	return ok, err
+}
+
+func (r *UserRepo) GetFederationIDs(ctx context.Context, userID string) ([]string, error) {
+	rows, err := r.db.Query(ctx, `SELECT federation_id FROM federation_memberships WHERE user_id=$1 AND is_active AND (ends_at IS NULL OR ends_at>=CURRENT_DATE)`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+func (r *UserRepo) IsUserInFederations(ctx context.Context, targetUserID string, federationIDs []string) (bool, error) {
+	if len(federationIDs) == 0 {
+		return false, nil
+	}
+	var exists bool
+	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM federation_memberships WHERE user_id=$1 AND federation_id=ANY($2) AND is_active AND (ends_at IS NULL OR ends_at>=CURRENT_DATE))`, targetUserID, federationIDs).Scan(&exists)
+	return exists, err
+}
+
+func (r *UserRepo) CreateFederationMembership(ctx context.Context, userID, federationID, role, assignedBy string) error {
+	const q = `INSERT INTO federation_memberships (federation_id, user_id, membership_role, starts_at, is_active, assigned_by)
+	           VALUES ($1, $2, $3, CURRENT_DATE, TRUE, $4)`
+	_, err := r.db.Exec(ctx, q, federationID, userID, role, assignedBy)
+	return err
 }
 
 func (r *UserRepo) Update(ctx context.Context, u *models.User) error {
@@ -399,6 +465,12 @@ func (r *UserRepo) SetPinChangeRequired(ctx context.Context, userID string, requ
 // ── Role Repository ───────────────────────────────────────────────
 
 type RoleRepo struct{ db *pgxpool.Pool }
+
+func (r *RoleRepo) HasPermission(ctx context.Context, userID, permName string) (bool, error) {
+	var ok bool
+	err := r.db.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM user_roles ur JOIN role_permissions rp ON rp.role_id=ur.role_id JOIN permissions p ON p.id=rp.permission_id WHERE ur.user_id=$1 AND p.name=$2)`, userID, permName).Scan(&ok)
+	return ok, err
+}
 
 func (r *RoleRepo) List(ctx context.Context) ([]models.Role, error) {
 	const q = `SELECT id, name, description, is_system, created_at FROM roles ORDER BY name`

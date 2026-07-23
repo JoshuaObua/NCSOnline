@@ -29,11 +29,13 @@ func NewUserService(users *repository.UserRepo, roles *repository.RoleRepo, toke
 }
 
 type CreateUserInput struct {
-	Email     string
-	Password  string
-	FirstName string
-	LastName  string
-	Phone     string
+	Email        string
+	Password     string
+	FirstName    string
+	LastName     string
+	Phone        string
+	FederationID string
+	ActorID      string
 }
 
 func (s *UserService) Create(ctx context.Context, in CreateUserInput) (*models.User, error) {
@@ -60,6 +62,12 @@ func (s *UserService) Create(ctx context.Context, in CreateUserInput) (*models.U
 		return nil, fmt.Errorf("create user: %w", err)
 	}
 
+	if in.FederationID != "" {
+		if err := s.users.CreateFederationMembership(ctx, u.ID, in.FederationID, "OFFICER", in.ActorID); err != nil {
+			return nil, fmt.Errorf("link federation: %w", err)
+		}
+	}
+
 	u.PasswordHash = ""
 	return u, nil
 }
@@ -78,8 +86,8 @@ func (s *UserService) GetByID(ctx context.Context, id string) (*models.User, err
 	return user, nil
 }
 
-func (s *UserService) List(ctx context.Context, p *models.PaginationParams) ([]*models.User, int64, error) {
-	users, total, err := s.users.List(ctx, p)
+func (s *UserService) List(ctx context.Context, p *models.PaginationParams, federationIDs []string) ([]*models.User, int64, error) {
+	users, total, err := s.users.List(ctx, p, federationIDs)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -89,6 +97,22 @@ func (s *UserService) List(ctx context.Context, p *models.PaginationParams) ([]*
 		u.Roles = roles
 	}
 	return users, total, nil
+}
+
+func (s *UserService) HasPermission(ctx context.Context, userID string, perms ...string) (bool, error) {
+	return s.users.HasAnyPermission(ctx, userID, perms...)
+}
+
+func (s *UserService) GetFederationIDs(ctx context.Context, userID string) ([]string, error) {
+	return s.users.GetFederationIDs(ctx, userID)
+}
+
+func (s *UserService) IsUserInFederations(ctx context.Context, targetUserID string, federationIDs []string) (bool, error) {
+	return s.users.IsUserInFederations(ctx, targetUserID, federationIDs)
+}
+
+func (s *UserService) LinkFederation(ctx context.Context, userID, federationID, actorID string) error {
+	return s.users.CreateFederationMembership(ctx, userID, federationID, "OFFICER", actorID)
 }
 
 type UpdateUserInput struct {
@@ -137,6 +161,20 @@ func (s *UserService) SetActive(ctx context.Context, id string, active bool) err
 	return nil
 }
 
+var sportsRegistryRoles = map[string]bool{
+	"club_manager":        true,
+	"coach":               true,
+	"athlete":             true,
+	"technical_official":  true,
+	"medical_officer":     true,
+	"anti_doping_officer": true,
+	"federation_officer":  true,
+}
+
+func isSportsRegistryRole(roleName string) bool {
+	return sportsRegistryRoles[roleName]
+}
+
 func (s *UserService) AssignRole(ctx context.Context, userID, roleID, assignedBy string) error {
 	if _, err := s.users.GetByID(ctx, userID); err != nil {
 		return repository.ErrNotFound
@@ -145,6 +183,35 @@ func (s *UserService) AssignRole(ctx context.Context, userID, roleID, assignedBy
 	if err != nil {
 		return fmt.Errorf("role not found")
 	}
+
+	// Permission scoping check
+	globalAssign, err := s.users.HasAnyPermission(ctx, assignedBy, "users:roles")
+	if err != nil {
+		return fmt.Errorf("permission check: %w", err)
+	}
+
+	if !globalAssign {
+		scopedAssign, err := s.users.HasAnyPermission(ctx, assignedBy, "users:roles:own")
+		if err != nil || !scopedAssign {
+			return errors.New("unauthorized to assign roles")
+		}
+
+		// Verify target user is in assigner's federation
+		federations, err := s.users.GetFederationIDs(ctx, assignedBy)
+		if err != nil {
+			return fmt.Errorf("get federations: %w", err)
+		}
+		inFed, err := s.users.IsUserInFederations(ctx, userID, federations)
+		if err != nil || !inFed {
+			return errors.New("user does not belong to your federation")
+		}
+
+		// Verify role is a sports registry role
+		if !isSportsRegistryRole(role.Name) {
+			return fmt.Errorf("role %s cannot be assigned by federation profile", role.Name)
+		}
+	}
+
 	// Enforce single super_admin — block a second assignment of the role
 	if role.Name == "super_admin" {
 		count, err := s.users.CountSuperAdmins(ctx)
@@ -158,11 +225,40 @@ func (s *UserService) AssignRole(ctx context.Context, userID, roleID, assignedBy
 	return s.users.AssignRole(ctx, userID, roleID, assignedBy)
 }
 
-func (s *UserService) RemoveRole(ctx context.Context, userID, roleID string) error {
+func (s *UserService) RemoveRole(ctx context.Context, userID, roleID, actorID string) error {
 	role, err := s.roles.GetByID(ctx, roleID)
 	if err != nil {
 		return fmt.Errorf("role not found")
 	}
+
+	// Permission scoping check
+	globalAssign, err := s.users.HasAnyPermission(ctx, actorID, "users:roles")
+	if err != nil {
+		return fmt.Errorf("permission check: %w", err)
+	}
+
+	if !globalAssign {
+		scopedAssign, err := s.users.HasAnyPermission(ctx, actorID, "users:roles:own")
+		if err != nil || !scopedAssign {
+			return errors.New("unauthorized to remove roles")
+		}
+
+		// Verify target user is in assigner's federation
+		federations, err := s.users.GetFederationIDs(ctx, actorID)
+		if err != nil {
+			return fmt.Errorf("get federations: %w", err)
+		}
+		inFed, err := s.users.IsUserInFederations(ctx, userID, federations)
+		if err != nil || !inFed {
+			return errors.New("user does not belong to your federation")
+		}
+
+		// Verify role is a sports registry role
+		if !isSportsRegistryRole(role.Name) {
+			return fmt.Errorf("role %s cannot be managed by federation profile", role.Name)
+		}
+	}
+
 	if role.Name == "super_admin" {
 		return ErrProtectedAccount
 	}

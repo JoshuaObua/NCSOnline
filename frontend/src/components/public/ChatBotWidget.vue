@@ -94,6 +94,10 @@ const open = ref(false)
 const draft = ref('')
 const messages = ref([])
 const messagesEl = ref(null)
+const sending = ref(false)
+const API_ROOT = '/ncsbot/public/api/v1/inboxes/ncs-website-public-inbox-2026'
+const SESSION_KEY = 'ncsbot_website_session'
+let pollTimer
 
 const suggestedPrompts = [
   'How do I register a sports federation?',
@@ -102,21 +106,68 @@ const suggestedPrompts = [
   'How can I submit an investment proposal?',
 ]
 
-// The live AI backend is not wired up yet, so replies are an honest
-// placeholder pointing people at real contact channels rather than
-// pretending to answer.
-const STUB_REPLY = "Thanks for your question! I'm still being connected to my knowledge base, so I can't answer this yet.\n\nIn the meantime, the NCS team can help directly:\n• info@ncs.go.ug\n• +256 414254477\n• The contact form on the Contact Us page"
+function readSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null') }
+  catch { return null }
+}
 
-function sendMessage(text) {
+async function api(path = '', options = {}) {
+  const response = await fetch(`${API_ROOT}${path}`, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+  })
+  if (!response.ok) throw new Error(`NCSBot request failed (${response.status})`)
+  return response.json()
+}
+
+async function ensureSession() {
+  let session = readSession()
+  if (!session?.sourceId) {
+    const contact = await api('/contacts', { method: 'POST', body: JSON.stringify({ name: 'NCS Visitor' }) })
+    session = { sourceId: contact.source_id }
+  }
+  if (!session.conversationId) {
+    const conversation = await api(`/contacts/${session.sourceId}/conversations`, { method: 'POST', body: '{}' })
+    session.conversationId = conversation.id
+  }
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+  return session
+}
+
+async function syncMessages() {
+  const session = readSession()
+  if (!open.value || !session?.conversationId) return
+  try {
+    const remote = await api(`/contacts/${session.sourceId}/conversations/${session.conversationId}/messages`)
+    messages.value = remote.filter(message => message.content).map(message => ({
+      id: message.id,
+      role: Number(message.message_type) === 0 ? 'user' : 'bot',
+      text: message.content,
+    }))
+    scrollToBottom()
+  } catch { /* retry on the next poll */ }
+}
+
+async function sendMessage(text) {
   const value = (text ?? draft.value).trim()
-  if (!value) return
+  if (!value || sending.value) return
   messages.value.push({ role: 'user', text: value })
   draft.value = ''
+  sending.value = true
   scrollToBottom()
-  window.setTimeout(() => {
-    messages.value.push({ role: 'bot', text: STUB_REPLY })
+  try {
+    const session = await ensureSession()
+    await api(`/contacts/${session.sourceId}/conversations/${session.conversationId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content: value, echo_id: crypto.randomUUID?.() || `${Date.now()}` }),
+    })
+    await syncMessages()
+  } catch {
+    messages.value.push({ role: 'bot', text: 'I could not reach NCSBot just now. Please try again in a moment.' })
+  } finally {
+    sending.value = false
     scrollToBottom()
-  }, 450)
+  }
 }
 
 async function scrollToBottom() {
@@ -127,6 +178,12 @@ async function scrollToBottom() {
 function onKeydown(event) {
   if (event.key === 'Escape' && open.value) open.value = false
 }
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  pollTimer = window.setInterval(syncMessages, 4000)
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown)
+  window.clearInterval(pollTimer)
+})
 </script>
