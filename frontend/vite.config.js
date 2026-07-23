@@ -35,7 +35,12 @@ export default defineConfig(({ mode }) => {
       },
       proxy: {
         '/uploads': { target: proxyTarget, changeOrigin: true },
-        '/api': { target: proxyTarget, changeOrigin: true }
+        '/api': { target: proxyTarget, changeOrigin: true },
+        '/portal-api': {
+          target: env.VITE_PORTAL_API_URL || proxyTarget,
+          changeOrigin: true,
+          rewrite: path => path.replace(/^\/portal-api/, '')
+        }
       }
     }
   }

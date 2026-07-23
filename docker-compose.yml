@@ -110,6 +110,10 @@ services:
     env_file: [.env]
     environment:
       NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
+      # Use the project-qualified container name because this gateway also
+      # joins the portal network, where the generic "backend" alias exists.
+      BACKEND_INTERNAL_URL: http://ncswebsite-backend-1:8080
+      FRONTEND_INTERNAL_URL: http://ncswebsite-frontend-1:80
     ports:
       - "${NGINX_HOST_HTTP_PORT}:${NGINX_LISTEN_PORT}"
       - "${NGINX_HOST_HTTPS_PORT}:${NGINX_HTTPS_PORT}"
@@ -125,7 +129,7 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    networks: [ncswebsite_net]
+    networks: [ncswebsite_net, ncsbot_net, ncsportal_net]
 
 volumes:
   website_postgres_data:
@@ -139,3 +143,9 @@ volumes:
 networks:
   ncswebsite_net:
     driver: bridge
+  ncsbot_net:
+    external: true
+    name: ncsbot_default
+  ncsportal_net:
+    external: true
+    name: ncsportal_ncsportal_net

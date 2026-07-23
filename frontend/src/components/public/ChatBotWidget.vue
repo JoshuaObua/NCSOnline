@@ -28,7 +28,7 @@
         </div>
         <div>
           <p class="font-bold leading-tight">NCS Bot</p>
-          <p class="text-xs text-white/70">Online • Ask me anything</p>
+          <p class="text-xs text-white/70">{{ connectionLabel }}</p>
         </div>
       </div>
       <div class="flex items-center gap-1">
@@ -60,6 +60,9 @@
         <div v-for="(message, index) in messages" :key="index" :class="['flex', message.role === 'user' ? 'justify-end' : 'justify-start']">
           <div :class="['max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-line', message.role === 'user' ? 'bg-[#1a365d] text-white rounded-br-md' : 'bg-white border border-gray-200 text-gray-700 rounded-bl-md']">{{ message.text }}</div>
         </div>
+        <div v-if="sending" class="flex justify-start">
+          <div class="bg-white border border-gray-200 text-gray-500 rounded-2xl rounded-bl-md px-3 py-2 text-sm">NCSBot is receiving your message…</div>
+        </div>
       </template>
     </div>
 
@@ -75,25 +78,40 @@
         ></textarea>
         <button
           type="submit"
-          :disabled="!draft.trim()"
+          :disabled="!draft.trim() || sending"
           class="w-10 h-10 rounded-full bg-[#f5a623] hover:bg-[#e09612] disabled:bg-gray-300 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors flex-shrink-0"
           aria-label="Send message"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"></path><path d="m21.854 2.147-10.94 10.939"></path></svg>
         </button>
       </div>
-      <p class="text-[10px] text-gray-400 text-center mt-2">Powered by Claude • Replies may occasionally be inaccurate</p>
+      <p class="text-[10px] text-gray-400 text-center mt-2">Connected securely to NCSBot • Replies may occasionally be inaccurate</p>
     </form>
   </div>
 </template>
 
 <script setup>
-import { nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 
 const open = ref(false)
 const draft = ref('')
 const messages = ref([])
 const messagesEl = ref(null)
+const sending = ref(false)
+const connected = ref(true)
+
+const INBOX_IDENTIFIER = 'ncs-website-public-inbox-2026'
+const ncsbotOrigin = typeof window === 'undefined'
+  ? ''
+  : `${window.location.protocol}//${window.location.hostname}:3100`
+const API_ROOT = `${ncsbotOrigin}/public/api/v1/inboxes/${INBOX_IDENTIFIER}`
+const SESSION_KEY = 'ncsbot_website_session'
+const POLL_INTERVAL = 4000
+let pollTimer
+
+const connectionLabel = computed(() => connected.value
+  ? 'Online • Connected to NCSBot'
+  : 'Reconnecting to NCSBot…')
 
 const suggestedPrompts = [
   'How do I register a sports federation?',
@@ -102,21 +120,87 @@ const suggestedPrompts = [
   'How can I submit an investment proposal?',
 ]
 
-// The live AI backend is not wired up yet, so replies are an honest
-// placeholder pointing people at real contact channels rather than
-// pretending to answer.
-const STUB_REPLY = "Thanks for your question! I'm still being connected to my knowledge base, so I can't answer this yet.\n\nIn the meantime, the NCS team can help directly:\n• info@ncs.go.ug\n• +256 414254477\n• The contact form on the Contact Us page"
+function readSession() {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null') }
+  catch { return null }
+}
 
-function sendMessage(text) {
+function saveSession(session) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+}
+
+async function api(path = '', options = {}) {
+  const response = await fetch(`${API_ROOT}${path}`, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+  })
+  if (!response.ok) throw new Error(`NCSBot request failed (${response.status})`)
+  return response.json()
+}
+
+async function ensureSession() {
+  let session = readSession()
+  if (!session?.sourceId) {
+    const contact = await api('/contacts', {
+      method: 'POST',
+      body: JSON.stringify({ name: 'NCS Website Visitor' }),
+    })
+    session = { sourceId: contact.source_id }
+  }
+  if (!session.conversationId) {
+    const conversation = await api(`/contacts/${session.sourceId}/conversations`, {
+      method: 'POST',
+      body: JSON.stringify({ custom_attributes: { source: 'ncs_website' } }),
+    })
+    session.conversationId = conversation.id
+  }
+  saveSession(session)
+  return session
+}
+
+function normaliseMessage(message) {
+  return {
+    id: message.id,
+    role: Number(message.message_type) === 0 ? 'user' : 'bot',
+    text: message.content || '',
+  }
+}
+
+async function syncMessages() {
+  const session = readSession()
+  if (!session?.conversationId || !open.value) return
+  try {
+    const remote = await api(`/contacts/${session.sourceId}/conversations/${session.conversationId}/messages`)
+    messages.value = remote.filter(message => message.content).map(normaliseMessage)
+    connected.value = true
+    scrollToBottom()
+  } catch {
+    connected.value = false
+  }
+}
+
+async function sendMessage(text) {
   const value = (text ?? draft.value).trim()
-  if (!value) return
+  if (!value || sending.value) return
   messages.value.push({ role: 'user', text: value })
   draft.value = ''
+  sending.value = true
   scrollToBottom()
-  window.setTimeout(() => {
-    messages.value.push({ role: 'bot', text: STUB_REPLY })
+  try {
+    const session = await ensureSession()
+    await api(`/contacts/${session.sourceId}/conversations/${session.conversationId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content: value, echo_id: crypto.randomUUID?.() || `${Date.now()}` }),
+    })
+    connected.value = true
+    await syncMessages()
+  } catch {
+    connected.value = false
+    messages.value.push({ role: 'bot', text: 'I could not reach NCSBot just now. Please try again in a moment.' })
+  } finally {
+    sending.value = false
     scrollToBottom()
-  }, 450)
+  }
 }
 
 async function scrollToBottom() {
@@ -129,13 +213,16 @@ function onKeydown(event) {
 }
 function openChatbot() {
   open.value = true
+  syncMessages()
 }
 onMounted(() => {
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('open-ncs-chatbot', openChatbot)
+  pollTimer = window.setInterval(syncMessages, POLL_INTERVAL)
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('open-ncs-chatbot', openChatbot)
+  window.clearInterval(pollTimer)
 })
 </script>

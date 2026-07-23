@@ -21,11 +21,7 @@ export function portalApiUrl(path = '') {
   )?.replace(/\/$/, '')
   if (base) return `${base}${path}`
 
-  if (typeof window !== 'undefined' && window.location?.hostname) {
-    const port = import.meta.env?.VITE_INTRANET_PORT || '9081'
-    const origin = `${window.location.protocol}//${window.location.hostname}:${port}`
-    return `${origin}${path}`
-  }
-
-  return `http://localhost:9081${path}`
+  // Production uses the website gateway so visitors never need direct access
+  // to the portal's host port. Vite proxies this prefix during development.
+  return `/portal-api${path}`
 }

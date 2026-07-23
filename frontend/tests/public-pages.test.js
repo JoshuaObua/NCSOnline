@@ -49,7 +49,7 @@ test('portal CMS reads use the publicly reachable portal gateway', () => {
   const home = read('../src/views/public/HomeView.vue')
 
   assert.match(portal, /VITE_PORTAL_API_URL \|\| import\.meta\.env\?\.VITE_INTRANET_URL/)
-  assert.match(portal, /VITE_INTRANET_PORT \|\| '9081'/)
+  assert.match(portal, /return `\/portal-api\$\{path\}`/)
   assert.doesNotMatch(portal, /:9200/)
   assert.match(home, /portalApiUrl\('\/api\/v1\/cms\/stats'\)/)
   assert.match(home, /portalApiUrl\('\/api\/v1\/cms\/associations'\)/)
