@@ -448,3 +448,262 @@ body { font-family: 'Poppins', sans-serif; min-width: 320px; }
 /* v-click-once — visual feedback + double-click lock */
 .click-pressed { transform: scale(0.97); transition: transform 120ms ease; }
 .click-locked  { opacity: 0.6; cursor: progress !important; }
+
+/* ── Otika CMS Layout styles ── */
+.otika-cms { min-height: 100vh; background: #f4f6f9; color: #34395e; }
+.otika-cms :deep(.main-navbar) { box-shadow: 0 4px 25px 0 rgba(0,0,0,.1); }
+.otika-cms :deep(.navbar-bg) { background: #6777ef; position: fixed; }
+.otika-cms button { font-family: inherit; }
+.otika-cms .main-sidebar { position: fixed; width: 260px; height: 100vh; overflow: hidden; }
+.otika-cms .sidebar-mini .main-sidebar { width: 65px; }
+.otika-cms #sidebar-wrapper { display: flex; flex-direction: column; height: 100vh; min-height: 0; }
+.otika-cms .main-content { padding-top: 80px; }
+.otika-cms .sidebar-brand { display: flex; align-items: center; justify-content: center; flex: 0 0 70px; height: 70px; }
+.otika-cms .sidebar-brand a { display: flex; align-items: center; justify-content: center; width: 100%; }
+.otika-cms .header-logo { max-width: 84px; max-height: 48px; object-fit: contain; }
+
+.sidebar-user { display: flex; gap: 10px; align-items: center; flex: 0 0 auto; min-width: 0; margin: 8px 14px 12px; padding: 12px; border-radius: 8px; background: #f8f9fa; }
+.sidebar-user img { width: 38px; height: 38px; flex: 0 0 38px; }
+.sidebar-user div { min-width: 0; }
+.sidebar-user strong { display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #34395e; font-size: 13px; }
+.sidebar-user span { display: block; color: #98a6ad; font-size: 11px; }
+
+.sidebar-menu { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-bottom: 18px; scrollbar-width: thin; }
+.sidebar-menu::-webkit-scrollbar { width: 6px; }
+.sidebar-menu::-webkit-scrollbar-thumb { background: #d7dbea; border-radius: 999px; }
+.sidebar-menu button { border: 0; background: transparent; width: 100%; min-width: 0; text-align: left; }
+.sidebar-menu .nav-link { display: flex!important; align-items: center; gap: 10px; width: 100%; height: auto!important; min-height: 38px; padding: 9px 18px!important; line-height: 1.2!important; }
+.sidebar-menu .nav-link i { flex: 0 0 18px; width: 18px; text-align: center; }
+.sidebar-menu .nav-link span, .sidebar-menu .dropdown-menu .nav-link { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.sidebar-menu .dropdown-menu { position: static!important; width: 100%!important; min-width: 0!important; float: none!important; box-shadow: none!important; background: transparent!important; padding: 0 0 6px 32px!important; }
+.sidebar-menu .menu-header { white-space: nowrap; }
+.sidebar-menu li.active>button, .sidebar-menu li.active>a { color: #6777ef!important; font-weight: 600; }
+.sidebar-menu li.active>button i { color: #6777ef!important; }
+
+.main-navbar button.nav-link { border: 0; background: transparent; }
+.cms-top-icon { display: inline-flex!important; align-items: center; justify-content: center; color: #111827!important; }
+.cms-top-icon i { color: #111827!important; font-size: 18px; }
+.search-element .btn i { color: #111827!important; }
+.navbar .dropdown-menu.show { display: block; position: absolute; }
+.navbar .dropdown-item { border: 0; background: transparent; text-align: left; }
+.navbar .dropdown-item.has-icon { width: 100%; text-align: left; border: 0; background: transparent; }
+.link-button { border: 0; background: transparent; color: #6777ef; font: inherit; font-weight: 600; padding: 0; }
+.search-element { display: flex; align-items: center; gap: 8px; }
+.search-element .form-control { border-radius: 30px!important; margin-right: 0; }
+.search-element .btn { border-radius: 30px; -webkit-appearance: none; appearance: none; transition: background-color .15s ease,color .15s ease; }
+.search-element .btn:hover, .search-element .btn:focus-visible { background: #f5a623; }
+.search-element .btn i { color: #111827!important; transition: color .15s ease; }
+.search-element .btn:hover i, .search-element .btn:focus-visible i { color: #10233f!important; }
+.headerBadge1, .headerBadge2 { position: absolute; top: 8px; right: 4px; background: #ffa426; color: #fff; }
+.otika-page-actions { display: flex!important; justify-content: flex-end; gap: 10px; margin: -12px 0 18px; }
+
+.otika-cms .navbar-bg { position: fixed!important; top: 0!important; right: 0!important; left: 260px!important; z-index: 1030!important; height: 70px!important; background: #fff!important; box-shadow: 0 4px 25px rgba(0,0,0,.08)!important; }
+.otika-cms .main-navbar { position: fixed!important; top: 0!important; right: 0!important; left: 260px!important; z-index: 1040!important; min-height: 70px!important; background: #fff!important; color: #111827!important; box-shadow: 0 4px 25px rgba(0,0,0,.08)!important; }
+.otika-cms .main-navbar .nav-link, .otika-cms .main-navbar i, .otika-cms .cms-top-icon, .otika-cms .cms-top-icon i { color: #111827!important; }
+.otika-cms .main-wrapper { min-height: 100vh!important; display: flex!important; flex-direction: column!important; }
+.otika-cms .main-content { flex: 1 0 auto!important; padding-top: 92px!important; }
+.otika-cms .cms-main-footer { flex: 0 0 auto!important; margin-top: auto!important; border-top: 1px solid #e4e6fc!important; background: #fff!important; color: #6c757d!important; }
+.otika-cms .cms-main-footer .footer-left { font-weight: 700; color: #34395e!important; }
+.otika-cms .main-wrapper.sidebar-mini .navbar-bg, .otika-cms .main-wrapper.sidebar-mini .main-navbar { left: 65px!important; }
+.otika-cms .navbar .dropdown-menu.show { z-index: 1060!important; }
+
+/* Dark mode bindings */
+html.dark .otika-cms { background: #0f172a!important; color: #e5e7eb!important; }
+html.dark .otika-cms .main-content, html.dark .otika-cms .section-body { background: #0f172a!important; color: #e5e7eb!important; }
+html.dark .otika-cms .navbar-bg { background: #111827!important; }
+html.dark .otika-cms .main-navbar { background: #111827!important; box-shadow: 0 4px 24px rgba(0,0,0,.35)!important; }
+html.dark .otika-cms .main-navbar .nav-link, html.dark .otika-cms .main-navbar i, html.dark .otika-cms .cms-top-icon, html.dark .otika-cms .cms-top-icon i { color: #f8fafc!important; }
+html.dark .otika-cms .main-sidebar, html.dark .otika-cms #sidebar-wrapper { background: #111827!important; }
+html.dark .otika-cms .sidebar-brand, html.dark .otika-cms .sidebar-user { background: #1f2937!important; }
+html.dark .otika-cms .sidebar-user strong, html.dark .otika-cms .section-header h1, html.dark .otika-cms label { color: #f8fafc!important; }
+html.dark .otika-cms .sidebar-user span, html.dark .otika-cms .section-header-breadcrumb, html.dark .otika-cms .breadcrumb-item { color: #cbd5e1!important; }
+html.dark .otika-cms .dropdown-menu { background: #1f2937!important; border-color: #334155!important; color: #e5e7eb!important; }
+html.dark .otika-cms .dropdown-header, html.dark .otika-cms .dropdown-title, html.dark .otika-cms .dropdown-item, html.dark .otika-cms .dropdown-item span { color: #e5e7eb!important; }
+html.dark .otika-cms .dropdown-item:hover { background: #111827!important; }
+/* Professional Neat Active Tab Indicator */
+.otika-cms .sidebar-menu li.active > button,
+.otika-cms .sidebar-menu li.active > a {
+  background: #f1f5f9 !important;
+  color: #2563eb !important;
+  border-left: 4px solid #2563eb !important;
+  border-radius: 0 8px 8px 0;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.otika-cms .sidebar-menu li.active > button i,
+.otika-cms .sidebar-menu li.active > a i {
+  color: #2563eb !important;
+}
+
+.otika-cms .sidebar-menu button:hover,
+.otika-cms .sidebar-menu a:hover {
+  background: #f8fafc !important;
+  border-radius: 0 8px 8px 0;
+}
+
+/* Dark Mode Professional Active Indicator */
+html.dark .otika-cms .sidebar-menu li.active > button,
+html.dark .otika-cms .sidebar-menu li.active > a {
+  background: rgba(37, 99, 235, 0.1) !important;
+  color: #60a5fa !important;
+  border-left: 4px solid #3b82f6 !important;
+  border-radius: 0 8px 8px 0;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+html.dark .otika-cms .sidebar-menu li.active > button i,
+html.dark .otika-cms .sidebar-menu li.active > a i {
+  color: #60a5fa !important;
+}
+
+html.dark .otika-cms .sidebar-menu button:hover,
+html.dark .otika-cms .sidebar-menu a:hover {
+  background: #1f2937 !important;
+  border-radius: 0 8px 8px 0;
+}
+
+/* Ensure no outlines or box borders on buttons */
+.sidebar-menu button:focus,
+.sidebar-menu button:active,
+.sidebar-menu button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: 0 !important;
+}
+
+/* ==========================================================================
+   Global Print Optimization Rules (Leave & Visitor Clearance Official Forms)
+   ========================================================================== */
+@media print {
+  /* 1. Global Visibility Isolation: Hide sidebars, navbars, footers & UI controls */
+  header,
+  footer,
+  nav,
+  aside,
+  .navbar,
+  .main-navbar,
+  .navbar-bg,
+  .main-sidebar,
+  .sidebar-style-2,
+  .cms-main-footer,
+  .main-footer,
+  .portal-theme-toggle,
+  .form-actions-paper,
+  .no-print,
+  button,
+  .btn,
+  .cms-top-icon,
+  .collapse-btn,
+  .message-toggle,
+  .dropdown-menu,
+  .cms-success,
+  .cms-error {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* 2. Page & Layout Reset */
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Reset outer layout wrappers */
+  .main-layout-portal,
+  .main-wrapper,
+  .main-content,
+  .section,
+  .section-body,
+  .official-form-container {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* 3. Paper Container Clean Sheet */
+  .official-form-paper {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 5mm !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* 4. Transform Form Elements (Inputs, Selects, Textareas) to Pure Printable Text */
+  .official-form-paper input[type="text"],
+  .official-form-paper input[type="number"],
+  .official-form-paper input[type="email"],
+  .official-form-paper input[type="tel"],
+  .official-form-paper input[type="date"],
+  .official-form-paper input[type="datetime-local"],
+  .official-form-paper select,
+  .official-form-paper textarea,
+  .official-form-paper .form-control {
+    border: none !important;
+    border-bottom: 1px dotted #475569 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+    border-radius: 0 !important;
+    padding: 2px 0 !important;
+    font-size: 11pt !important;
+    font-weight: 600 !important;
+    color: #0f172a !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Hide select dropdown arrows explicitly */
+  .official-form-paper select::-ms-expand {
+    display: none !important;
+  }
+
+  /* Structural Fieldsets & Cards */
+  .official-form-paper .form-fieldset,
+  .official-form-paper fieldset {
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px !important;
+    margin-bottom: 12px !important;
+    padding: 10px 14px !important;
+    background: #ffffff !important;
+    page-break-inside: avoid !important;
+  }
+
+  .official-form-paper .form-fieldset legend,
+  .official-form-paper legend {
+    color: #1e3a8a !important;
+    font-weight: 800 !important;
+    font-size: 9pt !important;
+    text-transform: uppercase !important;
+    padding: 0 6px !important;
+  }
+
+  .official-form-paper .official-divider {
+    background: #1e3a8a !important;
+    height: 3px !important;
+    margin-bottom: 12px !important;
+  }
+}
+
+
