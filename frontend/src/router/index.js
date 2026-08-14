@@ -28,6 +28,35 @@ const ApplicantLicensePortalView = () => import('@/views/ApplicantLicensePortalV
 const DynamicPortalFormView = () => import('@/views/DynamicPortalFormView.vue')
 const AcceptOrganisationInviteView = () => import('@/views/AcceptOrganisationInviteView.vue')
 
+// Executive & Departmental Dashboards
+const AGSTechnicalDashboardView = () => import('@/views/executive/AssistantGeneralSecretaryTechnicalDashboard.vue')
+const AGSAdminDashboardView = () => import('@/views/executive/AssistantGeneralSecretaryAdminDashboard.vue')
+const GSAppraisalView = () => import('@/views/executive/GeneralSecretaryAppraisalView.vue')
+const StoresInventoryDashboardView = () => import('@/views/stores/StoresInventoryDashboard.vue')
+const FacilitiesManagementDashboardView = () => import('@/views/facilities/FacilitiesManagementDashboard.vue')
+const LegalComplianceDashboardView = () => import('@/views/legal/LegalComplianceDashboard.vue')
+const SportsMedicalDashboardView = () => import('@/views/medical/SportsMedicalDashboard.vue')
+const FleetTransportDashboardView = () => import('@/views/fleet/FleetTransportDashboard.vue')
+
+// Independent Departmental Report Views
+const EngineeringReportView = () => import('@/views/reports/EngineeringReportView.vue')
+const HumanResourcesReportView = () => import('@/views/reports/HumanResourcesReportView.vue')
+const FinanceAccountsReportView = () => import('@/views/reports/FinanceAccountsReportView.vue')
+const TechnicalSportsReportView = () => import('@/views/reports/TechnicalSportsReportView.vue')
+const MedicalScienceReportView = () => import('@/views/reports/MedicalScienceReportView.vue')
+const LegalLogisticsReportView = () => import('@/views/reports/LegalLogisticsReportView.vue')
+
+// Reception & Front Desk Visitor Management
+const ReceptionistVisitorView = () => import('@/views/reception/ReceptionistVisitorView.vue')
+const VisitorInitiateView = () => import('@/views/reception/VisitorInitiateView.vue')
+const ReceptionistLeaveApplyView = () => import('@/views/reception/ReceptionistLeaveApplyView.vue')
+const ReceptionistLeaveStatusView = () => import('@/views/reception/ReceptionistLeaveStatusView.vue')
+const ReceptionistReportsView = () => import('@/views/reception/ReceptionistReportsView.vue')
+
+// IT Officer PPDA Form 5 Requisitions & Operations
+const ITPPDAInitiateView = () => import('@/views/it/ITPPDAInitiateView.vue')
+const ITPPDAListView = () => import('@/views/it/ITPPDAListView.vue')
+
 const routes = [
   { path: '/', redirect: '/dashboard' },
   { path: '/login', name: 'Login', component: LoginView, meta: { requiresAuth: false } },
@@ -39,6 +68,39 @@ const routes = [
   { path: '/accept-organisation-invite', name: 'AcceptOrganisationInvite', component: AcceptOrganisationInviteView, meta: { requiresAuth: true } },
 
   { path: '/dashboard', name: 'Dashboard', component: DashboardView, meta: { requiresAuth: true } },
+  
+  // Executive Leadership & Governance Routes
+  { path: '/executive/ags-technical', name: 'AGSTechnicalDashboard', component: AGSTechnicalDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'ags_technical', 'general_secretary'] } },
+  { path: '/executive/ags-admin', name: 'AGSAdminDashboard', component: AGSAdminDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'ags_admin', 'general_secretary'] } },
+  { path: '/executive/appraisals', name: 'OnlineAppraisal', component: GSAppraisalView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'general_secretary'] } },
+
+  // Independent Departmental Reports Routes
+  { path: '/executive/reports/engineering', name: 'EngineeringReport', component: EngineeringReportView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'general_secretary', 'senior_engineer', 'ags_technical'] } },
+  { path: '/executive/reports/human-resources', name: 'HumanResourcesReport', component: HumanResourcesReportView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'general_secretary', 'hr_officer', 'ags_admin'] } },
+  { path: '/executive/reports/finance-accounts', name: 'FinanceAccountsReport', component: FinanceAccountsReportView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'general_secretary', 'finance_officer', 'ags_admin'] } },
+  { path: '/executive/reports/technical-sports', name: 'TechnicalSportsReport', component: TechnicalSportsReportView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'general_secretary', 'ags_technical'] } },
+  { path: '/executive/reports/medical-science', name: 'MedicalScienceReport', component: MedicalScienceReportView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'general_secretary', 'medical_officer', 'ags_technical'] } },
+  { path: '/executive/reports/legal-logistics', name: 'LegalLogisticsReport', component: LegalLogisticsReportView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'general_secretary', 'legal_counsel', 'transport_officer'] } },
+
+  // Receptionist Front Desk & Visitor Clearance Desk
+  { path: '/reception/visitors', name: 'ReceptionVisitors', component: ReceptionistVisitorView, meta: { requiresAuth: true } },
+  { path: '/reception/visitors/new', name: 'VisitorInitiate', component: VisitorInitiateView, meta: { requiresAuth: true } },
+  { path: '/reception/leave/apply', name: 'ReceptionistLeaveApply', component: ReceptionistLeaveApplyView, meta: { requiresAuth: true } },
+  { path: '/reception/leave/status', name: 'ReceptionistLeaveStatus', component: ReceptionistLeaveStatusView, meta: { requiresAuth: true } },
+  { path: '/reception/reports', name: 'ReceptionistReports', component: ReceptionistReportsView, meta: { requiresAuth: true } },
+
+  // IT Officer PPDA Form 5 Requisitions & Operations
+  { path: '/it/ppda', redirect: '/it/ppda/status' },
+  { path: '/it/ppda/new', name: 'ITPPDAInitiate', component: ITPPDAInitiateView, meta: { requiresAuth: true } },
+  { path: '/it/ppda/status', name: 'ITPPDAList', component: ITPPDAListView, meta: { requiresAuth: true } },
+
+  // Departmental Routes
+  { path: '/stores/inventory', name: 'StoresInventory', component: StoresInventoryDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'stores_officer', 'general_secretary', 'ags_admin'] } },
+  { path: '/facilities/venues', name: 'FacilitiesManagement', component: FacilitiesManagementDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'facilities_manager', 'general_secretary', 'ags_technical', 'ags_admin'] } },
+  { path: '/legal/compliance', name: 'LegalCompliance', component: LegalComplianceDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'legal_counsel', 'general_secretary'] } },
+  { path: '/medical/sports-science', name: 'SportsMedical', component: SportsMedicalDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'medical_officer', 'physiotherapist', 'general_secretary', 'ags_technical'] } },
+  { path: '/fleet/transport', name: 'FleetTransport', component: FleetTransportDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'transport_officer', 'general_secretary', 'ags_admin'] } },
+
   {
     path: '/nsmis/governance',
     name: 'GovernanceDashboard',
@@ -100,6 +162,13 @@ const pageTitles = {
   ApplicantPortal: 'My Portal',
   NewOrganisationApplication: 'New Organisation Application',
   DynamicForm: 'Application Form',
+  ReceptionVisitors: 'Reception & Visitor Clearance Desk',
+  VisitorInitiate: 'Initiate Visitor Clearance Request',
+  ReceptionistLeaveApply: 'Apply for Leave',
+  ReceptionistLeaveStatus: 'Leave Status & History',
+  ReceptionistReports: 'Front Desk & Application Reports',
+  ITPPDAInitiate: 'PPDA Form 5 Requisition',
+  ITPPDAList: 'PPDA Form 5 Status & Approvals',
   CMS: 'Content Manager',
   PageBuilder: 'Page Builder',
 }
@@ -147,7 +216,11 @@ function readUserRoles() {
   const storedUser = localStorage.getItem('ncsms_user')
   if (!storedUser) return []
   try {
-    return (JSON.parse(storedUser).roles || []).map(r => (typeof r === 'string' ? r : r.name))
+    const parsed = JSON.parse(storedUser)
+    return (parsed.roles || []).map(r => {
+      if (typeof r === 'string') return r
+      return r?.name || r?.role || r?.role_name || r?.slug || ''
+    }).filter(Boolean)
   } catch {
     return []
   }

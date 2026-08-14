@@ -66,6 +66,26 @@
         </div>
       </template>
 
+      <!-- EXECUTIVE COMMAND -->
+      <template v-if="authStore.hasAnyRole('super_admin', 'admin', 'general_secretary', 'ags_technical', 'ags_admin')">
+        <div class="section-label">Executive Command</div>
+        <div class="px-2 space-y-0.5">
+          <NavItem :collapsed="!open" v-if="authStore.hasAnyRole('super_admin', 'admin', 'general_secretary', 'ags_technical')" :to="'/executive/ags-technical'" label="AGS - Technical" icon="icofont-badge" />
+          <NavItem :collapsed="!open" v-if="authStore.hasAnyRole('super_admin', 'admin', 'general_secretary', 'ags_admin')" :to="'/executive/ags-admin'" label="AGS - Administration" icon="icofont-architecture-alt" />
+          <NavItem :collapsed="!open" v-if="authStore.hasAnyRole('super_admin', 'admin', 'general_secretary')" :to="'/executive/appraisals'" label="Master Appraisals" icon="icofont-law-order" />
+        </div>
+      </template>
+
+      <!-- DEPARTMENT OPERATIONS -->
+      <div class="section-label">Department Portals</div>
+      <div class="px-2 space-y-0.5">
+        <NavItem :collapsed="!open" :to="'/stores/inventory'" label="Stores & Inventory" icon="icofont-box" />
+        <NavItem :collapsed="!open" :to="'/facilities/venues'" label="Venues & Facilities" icon="icofont-building" />
+        <NavItem :collapsed="!open" :to="'/legal/compliance'" label="Legal & Compliance" icon="icofont-law-document" />
+        <NavItem :collapsed="!open" :to="'/medical/sports-science'" label="Sports Medicine & WADA" icon="icofont-heart-beat" />
+        <NavItem :collapsed="!open" :to="'/fleet/transport'" label="Fleet & Logistics" icon="icofont-truck" />
+      </div>
+
       <!-- MANAGEMENT -->
       <div v-if="canManage" class="section-label">Management</div>
       <div v-if="canManage" class="px-2 space-y-0.5">

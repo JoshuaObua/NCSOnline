@@ -27,6 +27,16 @@ type Handlers struct {
 	Security      *SecurityHandler
 	Updates       *UpdatesHandler
 	UpdatesSvc    *services.UpdatesService
+	AGST          *AGSTHandler
+	AGSA          *AGSAHandler
+	Appraisal     *AppraisalHandler
+	Stores        *StoresHandler
+	Facilities    *FacilitiesHandler
+	Legal         *LegalHandler
+	Medical       *MedicalHandler
+	Fleet         *FleetHandler
+	Reception     *ReceptionHandler
+	ITOfficer     *ITOfficerHandler
 }
 
 // New constructs all handlers and returns them alongside the repos (needed by main for audit middleware).
@@ -52,7 +62,7 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 		Users:         &UsersHandler{svc: userSvc, audit: repos.Audit},
 		Roles:         &RolesHandler{roles: repos.Roles, audit: repos.Audit},
 		Applications:  &ApplicationsHandler{svc: appSvc, audit: repos.Audit, storage: repos.CMS},
-		Dashboard:     &DashboardHandler{users: repos.Users, apps: repos.Applications},
+		Dashboard:     NewDashboardHandler(repos.Users, repos.Applications, db),
 		Audit:         &AuditHandler{repo: repos.Audit},
 		CMS:           &CMSHandler{repo: repos.CMS},
 		NSMIS:         &NSMISHandler{repo: repos.NSMIS, cfg: cfg},
@@ -65,5 +75,15 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 		Security:      &SecurityHandler{svc: secSvc, users: repos.Users, audit: repos.Audit},
 		Updates:       &UpdatesHandler{svc: updSvc, deployer: deployer},
 		UpdatesSvc:    updSvc,
+		AGST:          NewAGSTHandler(db),
+		AGSA:          NewAGSAHandler(db),
+		Appraisal:     NewAppraisalHandler(db),
+		Stores:        NewStoresHandler(db),
+		Facilities:    NewFacilitiesHandler(db),
+		Legal:         NewLegalHandler(db),
+		Medical:       NewMedicalHandler(db),
+		Fleet:         NewFleetHandler(db),
+		Reception:     NewReceptionHandler(db),
+		ITOfficer:     NewITOfficerHandler(db),
 	}, repos
 }

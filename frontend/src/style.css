@@ -449,129 +449,244 @@ body { font-family: 'Poppins', sans-serif; min-width: 320px; }
 .click-pressed { transform: scale(0.97); transition: transform 120ms ease; }
 .click-locked  { opacity: 0.6; cursor: progress !important; }
 
-/* ── Otika CMS Layout styles ── */
-.otika-cms { min-height: 100vh; background: #f4f6f9; color: #34395e; }
-.otika-cms :deep(.main-navbar) { box-shadow: 0 4px 25px 0 rgba(0,0,0,.1); }
-.otika-cms :deep(.navbar-bg) { background: #6777ef; position: fixed; }
-.otika-cms button { font-family: inherit; }
-.otika-cms .main-sidebar { position: fixed; width: 260px; height: 100vh; overflow: hidden; }
-.otika-cms .sidebar-mini .main-sidebar { width: 65px; }
-.otika-cms #sidebar-wrapper { display: flex; flex-direction: column; height: 100vh; min-height: 0; }
-.otika-cms .main-content { padding-top: 80px; }
-.otika-cms .sidebar-brand { display: flex; align-items: center; justify-content: center; flex: 0 0 70px; height: 70px; }
-.otika-cms .sidebar-brand a { display: flex; align-items: center; justify-content: center; width: 100%; }
-.otika-cms .header-logo { max-width: 84px; max-height: 48px; object-fit: contain; }
+/* ── Comprehensive Otika Admin Template Design System ── */
+.otika-app, .otika-cms { min-height: 100vh; background: #f4f6f9; color: #34395e; font-family: 'Poppins', sans-serif; }
+.otika-app .main-wrapper { min-height: 100vh; display: flex; flex-direction: column; }
+.otika-app .navbar-bg { position: fixed; top: 0; right: 0; left: 260px; z-index: 1030; height: 70px; background: #ffffff; box-shadow: 0 4px 25px rgba(0,0,0,.06); transition: left 0.3s ease; }
+.otika-app .main-navbar { position: fixed; top: 0; right: 0; left: 260px; z-index: 1040; min-height: 70px; height: 70px; background: #ffffff; color: #1e293b; box-shadow: 0 4px 25px rgba(0,0,0,.06); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; transition: left 0.3s ease; }
+.otika-app .main-wrapper.sidebar-mini .navbar-bg,
+.otika-app .main-wrapper.sidebar-mini .main-navbar { left: 70px; }
 
-.sidebar-user { display: flex; gap: 10px; align-items: center; flex: 0 0 auto; min-width: 0; margin: 8px 14px 12px; padding: 12px; border-radius: 8px; background: #f8f9fa; }
-.sidebar-user img { width: 38px; height: 38px; flex: 0 0 38px; }
-.sidebar-user div { min-width: 0; }
-.sidebar-user strong { display: block; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #34395e; font-size: 13px; }
-.sidebar-user span { display: block; color: #98a6ad; font-size: 11px; }
+/* Otika Sidebar */
+.otika-app .main-sidebar { position: fixed; top: 0; left: 0; width: 260px; height: 100vh; background: #ffffff; z-index: 1050; box-shadow: 0 4px 25px rgba(0,0,0,.07); transition: width 0.3s ease; overflow: hidden; }
+.otika-app .sidebar-mini .main-sidebar { width: 70px; }
+.otika-app #sidebar-wrapper { display: flex; flex-direction: column; height: 100vh; min-height: 0; background: #ffffff; }
+.otika-app .sidebar-brand { display: flex; align-items: center; justify-content: center; height: 70px; border-bottom: 1px solid #f1f5f9; padding: 0 16px; }
+.otika-app .sidebar-brand a { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.otika-app .header-logo { max-height: 44px; width: auto; object-fit: contain; }
+.otika-app .sidebar-brand-text { font-size: 16px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.02em; }
 
-.sidebar-menu { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding-bottom: 18px; scrollbar-width: thin; }
-.sidebar-menu::-webkit-scrollbar { width: 6px; }
-.sidebar-menu::-webkit-scrollbar-thumb { background: #d7dbea; border-radius: 999px; }
-.sidebar-menu button { border: 0; background: transparent; width: 100%; min-width: 0; text-align: left; }
-.sidebar-menu .nav-link { display: flex!important; align-items: center; gap: 10px; width: 100%; height: auto!important; min-height: 38px; padding: 9px 18px!important; line-height: 1.2!important; }
-.sidebar-menu .nav-link i { flex: 0 0 18px; width: 18px; text-align: center; }
-.sidebar-menu .nav-link span, .sidebar-menu .dropdown-menu .nav-link { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
-.sidebar-menu .dropdown-menu { position: static!important; width: 100%!important; min-width: 0!important; float: none!important; box-shadow: none!important; background: transparent!important; padding: 0 0 6px 32px!important; }
-.sidebar-menu .menu-header { white-space: nowrap; }
-.sidebar-menu li.active>button, .sidebar-menu li.active>a { color: #6777ef!important; font-weight: 600; }
-.sidebar-menu li.active>button i { color: #6777ef!important; }
+/* User Badge in Sidebar */
+.otika-app .sidebar-user { display: flex; align-items: center; gap: 12px; margin: 12px 14px 8px; padding: 10px 12px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; transition: all 0.2s; }
+.otika-app .sidebar-user img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #2563eb; }
+.otika-app .sidebar-user-info { min-width: 0; flex: 1; }
+.otika-app .sidebar-user-name { font-size: 13px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.otika-app .sidebar-user-role { font-size: 11px; color: #64748b; font-weight: 500; display: block; }
 
-.main-navbar button.nav-link { border: 0; background: transparent; }
-.cms-top-icon { display: inline-flex!important; align-items: center; justify-content: center; color: #111827!important; }
-.cms-top-icon i { color: #111827!important; font-size: 18px; }
-.search-element .btn i { color: #111827!important; }
-.navbar .dropdown-menu.show { display: block; position: absolute; }
-.navbar .dropdown-item { border: 0; background: transparent; text-align: left; }
-.navbar .dropdown-item.has-icon { width: 100%; text-align: left; border: 0; background: transparent; }
-.link-button { border: 0; background: transparent; color: #6777ef; font: inherit; font-weight: 600; padding: 0; }
-.search-element { display: flex; align-items: center; gap: 8px; }
-.search-element .form-control { border-radius: 30px!important; margin-right: 0; }
-.search-element .btn { border-radius: 30px; -webkit-appearance: none; appearance: none; transition: background-color .15s ease,color .15s ease; }
-.search-element .btn:hover, .search-element .btn:focus-visible { background: #f5a623; }
-.search-element .btn i { color: #111827!important; transition: color .15s ease; }
-.search-element .btn:hover i, .search-element .btn:focus-visible i { color: #10233f!important; }
-.headerBadge1, .headerBadge2 { position: absolute; top: 8px; right: 4px; background: #ffa426; color: #fff; }
-.otika-page-actions { display: flex!important; justify-content: flex-end; gap: 10px; margin: -12px 0 18px; }
+/* Sidebar Menu Navigation */
+.otika-app .sidebar-menu { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; padding: 10px 0 30px; list-style: none; margin: 0; }
+.otika-app .sidebar-menu::-webkit-scrollbar { width: 5px; }
+.otika-app .sidebar-menu::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.otika-app .sidebar-menu .menu-header { padding: 16px 20px 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; }
+.otika-app .sidebar-menu li a,
+.otika-app .sidebar-menu li button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 20px; font-size: 13px; font-weight: 500; color: #475569; text-decoration: none; border: 0; background: transparent; transition: all 0.2s; border-left: 3px solid transparent; cursor: pointer; }
+.otika-app .sidebar-menu li a i,
+.otika-app .sidebar-menu li button i { font-size: 17px; width: 20px; text-align: center; color: #64748b; transition: color 0.2s; }
+.otika-app .sidebar-menu li a:hover,
+.otika-app .sidebar-menu li button:hover { color: #2563eb; background: #f8fafc; }
+.otika-app .sidebar-menu li a:hover i,
+.otika-app .sidebar-menu li button:hover i { color: #2563eb; }
+.otika-app .sidebar-menu li.active > a,
+.otika-app .sidebar-menu li.active > button { color: #2563eb !important; font-weight: 600 !important; background: #eff6ff !important; border-left-color: #2563eb !important; }
+.otika-app .sidebar-menu li.active > a i,
+.otika-app .sidebar-menu li.active > button i { color: #2563eb !important; }
 
-.otika-cms .navbar-bg { position: fixed!important; top: 0!important; right: 0!important; left: 260px!important; z-index: 1030!important; height: 70px!important; background: #fff!important; box-shadow: 0 4px 25px rgba(0,0,0,.08)!important; }
-.otika-cms .main-navbar { position: fixed!important; top: 0!important; right: 0!important; left: 260px!important; z-index: 1040!important; min-height: 70px!important; background: #fff!important; color: #111827!important; box-shadow: 0 4px 25px rgba(0,0,0,.08)!important; }
-.otika-cms .main-navbar .nav-link, .otika-cms .main-navbar i, .otika-cms .cms-top-icon, .otika-cms .cms-top-icon i { color: #111827!important; }
-.otika-cms .main-wrapper { min-height: 100vh!important; display: flex!important; flex-direction: column!important; }
-.otika-cms .main-content { flex: 1 0 auto!important; padding-top: 92px!important; }
-.otika-cms .cms-main-footer { flex: 0 0 auto!important; margin-top: auto!important; border-top: 1px solid #e4e6fc!important; background: #fff!important; color: #6c757d!important; }
-.otika-cms .cms-main-footer .footer-left { font-weight: 700; color: #34395e!important; }
-.otika-cms .main-wrapper.sidebar-mini .navbar-bg, .otika-cms .main-wrapper.sidebar-mini .main-navbar { left: 65px!important; }
-.otika-cms .navbar .dropdown-menu.show { z-index: 1060!important; }
+/* Submenu Styling */
+.otika-app .sidebar-menu .dropdown-menu { background: transparent; padding: 4px 0 8px 36px; list-style: none; display: block; border: 0; box-shadow: none; }
+.otika-app .sidebar-menu .dropdown-menu li a { padding: 7px 16px; font-size: 12.5px; border-left: 2px solid transparent; }
+.otika-app .sidebar-menu .dropdown-menu li.active a { color: #2563eb; font-weight: 600; }
 
-/* Dark mode bindings */
-html.dark .otika-cms { background: #0f172a!important; color: #e5e7eb!important; }
-html.dark .otika-cms .main-content, html.dark .otika-cms .section-body { background: #0f172a!important; color: #e5e7eb!important; }
-html.dark .otika-cms .navbar-bg { background: #111827!important; }
-html.dark .otika-cms .main-navbar { background: #111827!important; box-shadow: 0 4px 24px rgba(0,0,0,.35)!important; }
-html.dark .otika-cms .main-navbar .nav-link, html.dark .otika-cms .main-navbar i, html.dark .otika-cms .cms-top-icon, html.dark .otika-cms .cms-top-icon i { color: #f8fafc!important; }
-html.dark .otika-cms .main-sidebar, html.dark .otika-cms #sidebar-wrapper { background: #111827!important; }
-html.dark .otika-cms .sidebar-brand, html.dark .otika-cms .sidebar-user { background: #1f2937!important; }
-html.dark .otika-cms .sidebar-user strong, html.dark .otika-cms .section-header h1, html.dark .otika-cms label { color: #f8fafc!important; }
-html.dark .otika-cms .sidebar-user span, html.dark .otika-cms .section-header-breadcrumb, html.dark .otika-cms .breadcrumb-item { color: #cbd5e1!important; }
-html.dark .otika-cms .dropdown-menu { background: #1f2937!important; border-color: #334155!important; color: #e5e7eb!important; }
-html.dark .otika-cms .dropdown-header, html.dark .otika-cms .dropdown-title, html.dark .otika-cms .dropdown-item, html.dark .otika-cms .dropdown-item span { color: #e5e7eb!important; }
-html.dark .otika-cms .dropdown-item:hover { background: #111827!important; }
-/* Professional Neat Active Tab Indicator */
-.otika-cms .sidebar-menu li.active > button,
-.otika-cms .sidebar-menu li.active > a {
-  background: #f1f5f9 !important;
-  color: #2563eb !important;
-  border-left: 4px solid #2563eb !important;
-  border-radius: 0 8px 8px 0;
+/* Top Navbar Elements */
+.otika-app .cms-top-icon { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 8px; color: #475569; background: transparent; border: 0; cursor: pointer; transition: all 0.2s; position: relative; }
+.otika-app .cms-top-icon:hover { background: #f1f5f9; color: #1e293b; }
+.otika-app .headerBadge1 { position: absolute; top: 4px; right: 4px; background: #ef4444; color: #ffffff; font-size: 9px; font-weight: 700; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.otika-app .headerBadge2 { position: absolute; top: 4px; right: 4px; background: #3b82f6; color: #ffffff; font-size: 9px; font-weight: 700; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+/* Otika Search Bar */
+.search-element { display: flex; align-items: center; position: relative; width: 280px; }
+.search-element .form-control { width: 100%; height: 38px; border-radius: 20px; background: #f1f5f9; border: 1px solid transparent; padding: 0 40px 0 16px; font-size: 13px; color: #1e293b; transition: all 0.2s; }
+.search-element .form-control:focus { background: #ffffff; border-color: #2563eb; outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.12); }
+.search-element .btn { position: absolute; right: 4px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: transparent; color: #64748b; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+/* Otika Main Content & Section Header */
+.otika-app .main-content { flex: 1 0 auto; margin-left: 260px; padding: 90px 24px 30px; transition: margin-left 0.3s ease; }
+.otika-app .main-wrapper.sidebar-mini .main-content { margin-left: 70px; }
+.otika-app .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding: 18px 24px; background: #ffffff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); border: 1px solid #f1f5f9; }
+.otika-app .section-header h1 { font-size: 20px; font-weight: 700; color: #1e293b; margin: 0; }
+.otika-app .section-header-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #64748b; margin: 0; padding: 0; list-style: none; }
+.otika-app .section-header-breadcrumb .breadcrumb-item a { color: #2563eb; text-decoration: none; font-weight: 500; }
+.otika-app .section-header-breadcrumb .breadcrumb-item.active { color: #94a3b8; font-weight: 500; }
+
+/* Otika Cards */
+.card { background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.03); margin-bottom: 24px; transition: box-shadow 0.2s, transform 0.2s; overflow: hidden; }
+.card.card-primary { border-top: 3px solid #2563eb; }
+.card.card-success { border-top: 3px solid #10b981; }
+.card.card-warning { border-top: 3px solid #f59e0b; }
+.card.card-danger { border-top: 3px solid #ef4444; }
+.card-header { padding: 16px 20px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; background: transparent; }
+.card-header h4 { font-size: 15px; font-weight: 700; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 8px; }
+.card-header-action { display: flex; align-items: center; gap: 8px; }
+.card-body { padding: 20px; }
+.card-footer { padding: 14px 20px; border-top: 1px solid #f1f5f9; background: #fafafa; }
+
+/* Otika 4-Statistic KPI Cards */
+.card-statistic-4 { position: relative; overflow: hidden; padding: 20px; border-radius: 12px; }
+.card-statistic-4 .card-content { display: flex; justify-content: space-between; align-items: center; }
+.card-statistic-4 .banner-img { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.card-statistic-4 .banner-img.bg-primary-light { background: #eff6ff; color: #2563eb; }
+.card-statistic-4 .banner-img.bg-success-light { background: #ecfdf5; color: #10b981; }
+.card-statistic-4 .banner-img.bg-warning-light { background: #fffbeb; color: #f59e0b; }
+.card-statistic-4 .banner-img.bg-danger-light  { background: #fef2f2; color: #ef4444; }
+.card-statistic-4 .banner-img.bg-purple-light  { background: #faf5ff; color: #8b5cf6; }
+.card-statistic-4 .banner-img.bg-cyan-light    { background: #ecfeff; color: #06b6d4; }
+.card-statistic-4 h5 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; margin-bottom: 6px; }
+.card-statistic-4 h2 { font-size: 22px; font-weight: 800; color: #1e293b; margin: 0; }
+.card-statistic-4 .badge { margin-top: 8px; font-size: 11px; font-weight: 600; border-radius: 6px; padding: 3px 8px; display: inline-flex; align-items: center; gap: 4px; }
+
+/* Otika Buttons & Badges */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 13px; padding: 8px 16px; border-radius: 8px; border: 1px solid transparent; transition: all 0.2s; cursor: pointer; text-decoration: none; line-height: 1.4; }
+.btn-primary { background: #2563eb; color: #ffffff; border-color: #2563eb; }
+.btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; color: #ffffff; }
+.btn-outline-primary { background: transparent; color: #2563eb; border-color: #2563eb; }
+.btn-outline-primary:hover { background: #2563eb; color: #ffffff; }
+.btn-success { background: #10b981; color: #ffffff; border-color: #10b981; }
+.btn-success:hover { background: #059669; }
+.btn-danger { background: #ef4444; color: #ffffff; border-color: #ef4444; }
+.btn-danger:hover { background: #dc2626; }
+.btn-warning { background: #f59e0b; color: #ffffff; border-color: #f59e0b; }
+.btn-secondary { background: #64748b; color: #ffffff; border-color: #64748b; }
+.btn-sm { font-size: 11.5px; padding: 6px 12px; border-radius: 6px; }
+.btn-xs { font-size: 11px; padding: 3px 8px; border-radius: 4px; }
+
+/* ── Otika Form Controls & Inputs Sizing & Flat Focus ── */
+.form-control,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select.form-control,
+textarea.form-control {
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #1e293b;
   box-shadow: none !important;
   outline: none !important;
+  transition: border-color 0.15s ease-in-out;
 }
 
-.otika-cms .sidebar-menu li.active > button i,
-.otika-cms .sidebar-menu li.active > a i {
-  color: #2563eb !important;
+select.form-control {
+  height: 38px;
+  padding-right: 28px;
 }
 
-.otika-cms .sidebar-menu button:hover,
-.otika-cms .sidebar-menu a:hover {
-  background: #f8fafc !important;
-  border-radius: 0 8px 8px 0;
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
 }
 
-/* Dark Mode Professional Active Indicator */
-html.dark .otika-cms .sidebar-menu li.active > button,
-html.dark .otika-cms .sidebar-menu li.active > a {
-  background: rgba(37, 99, 235, 0.1) !important;
-  color: #60a5fa !important;
-  border-left: 4px solid #3b82f6 !important;
-  border-radius: 0 8px 8px 0;
-  box-shadow: none !important;
-  outline: none !important;
-}
-
-html.dark .otika-cms .sidebar-menu li.active > button i,
-html.dark .otika-cms .sidebar-menu li.active > a i {
-  color: #60a5fa !important;
-}
-
-html.dark .otika-cms .sidebar-menu button:hover,
-html.dark .otika-cms .sidebar-menu a:hover {
-  background: #1f2937 !important;
-  border-radius: 0 8px 8px 0;
-}
-
-/* Ensure no outlines or box borders on buttons */
-.sidebar-menu button:focus,
-.sidebar-menu button:active,
-.sidebar-menu button:focus-visible {
+/* Remove default browser/Tailwind highlight halo on focus */
+.form-control:focus,
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+select.form-control:focus,
+textarea.form-control:focus {
+  border-color: #94a3b8 !important;
   outline: none !important;
   box-shadow: none !important;
-  border: 0 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-opacity: 0 !important;
+  --tw-shadow: 0 0 #0000 !important;
 }
+
+html.dark .form-control,
+html.dark input[type="text"],
+html.dark input[type="email"],
+html.dark input[type="password"],
+html.dark input[type="number"],
+html.dark input[type="date"],
+html.dark select.form-control,
+html.dark textarea.form-control {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+html.dark .form-control:focus,
+html.dark input[type="text"]:focus,
+html.dark input[type="email"]:focus,
+html.dark input[type="password"]:focus,
+html.dark input[type="number"]:focus,
+html.dark input[type="date"]:focus,
+html.dark select.form-control:focus,
+html.dark textarea.form-control:focus {
+  border-color: #64748b !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 6px; }
+.badge-primary { background: #eff6ff; color: #2563eb; }
+.badge-success { background: #ecfdf5; color: #059669; }
+.badge-danger { background: #fef2f2; color: #dc2626; }
+.badge-warning { background: #fffbeb; color: #d97706; }
+.badge-info { background: #ecfeff; color: #0891b2; }
+.badge-dark { background: #1e293b; color: #f8fafc; }
+.badge-light { background: #f1f5f9; color: #475569; }
+
+/* Otika Tables */
+.table-responsive { width: 100%; overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 13px; color: #334155; }
+.table th { padding: 12px 16px; font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em; color: #475569; background: #f8fafc; border-bottom: 1px solid #e2e8f0; text-align: left; }
+.table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.table-striped tbody tr:nth-of-type(odd) { background-color: #fafbfc; }
+.table-hover tbody tr:hover { background-color: #f1f5f9; }
+
+/* Otika Master Footer */
+.otika-app .main-footer { margin-left: 260px; padding: 18px 24px; background: #ffffff; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #64748b; transition: margin-left 0.3s ease; }
+.otika-app .main-wrapper.sidebar-mini .main-footer { margin-left: 70px; }
+
+/* ── Otika Dark Mode Bindings ── */
+html.dark .otika-app, html.dark .otika-cms { background: #0b1120; color: #e2e8f0; }
+html.dark .otika-app .navbar-bg { background: #0f172a; box-shadow: 0 4px 25px rgba(0,0,0,0.3); }
+html.dark .otika-app .main-navbar { background: #0f172a; color: #f8fafc; border-bottom: 1px solid #1e293b; }
+html.dark .otika-app .main-sidebar, html.dark .otika-app #sidebar-wrapper { background: #0f172a; border-right: 1px solid #1e293b; }
+html.dark .otika-app .sidebar-brand { border-bottom: 1px solid #1e293b; }
+html.dark .otika-app .sidebar-brand-text { color: #60a5fa; }
+html.dark .otika-app .sidebar-user { background: #1e293b; border-color: #334155; }
+html.dark .otika-app .sidebar-user-name { color: #f8fafc; }
+html.dark .otika-app .sidebar-user-role { color: #94a3b8; }
+html.dark .otika-app .sidebar-menu .menu-header { color: #64748b; }
+html.dark .otika-app .sidebar-menu li a,
+html.dark .otika-app .sidebar-menu li button { color: #94a3b8; }
+html.dark .otika-app .sidebar-menu li a:hover,
+html.dark .otika-app .sidebar-menu li button:hover { background: #1e293b; color: #60a5fa; }
+html.dark .otika-app .sidebar-menu li.active > a,
+html.dark .otika-app .sidebar-menu li.active > button { background: rgba(37, 99, 235, 0.15) !important; color: #60a5fa !important; border-left-color: #3b82f6 !important; }
+html.dark .otika-app .cms-top-icon { color: #cbd5e1; }
+html.dark .otika-app .cms-top-icon:hover { background: #1e293b; color: #f8fafc; }
+html.dark .search-element .form-control { background: #1e293b; color: #f8fafc; border-color: #334155; }
+html.dark .otika-app .section-header { background: #0f172a; border-color: #1e293b; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+html.dark .otika-app .section-header h1 { color: #f8fafc; }
+html.dark .card { background: #0f172a; border-color: #1e293b; color: #e2e8f0; }
+html.dark .card-header { border-bottom-color: #1e293b; }
+html.dark .card-header h4 { color: #f8fafc; }
+html.dark .card-footer { background: #131d33; border-top-color: #1e293b; }
+html.dark .card-statistic-4 h2 { color: #f8fafc; }
+html.dark .table th { background: #1e293b; color: #cbd5e1; border-bottom-color: #334155; }
+html.dark .table td { border-bottom-color: #1e293b; color: #cbd5e1; }
+html.dark .table-striped tbody tr:nth-of-type(odd) { background-color: #131d33; }
+html.dark .table-hover tbody tr:hover { background-color: #1e293b; }
+html.dark .otika-app .main-footer { background: #0f172a; border-top-color: #1e293b; color: #94a3b8; }
+
 
 /* ==========================================================================
    Global Print Optimization Rules (Leave & Visitor Clearance Official Forms)

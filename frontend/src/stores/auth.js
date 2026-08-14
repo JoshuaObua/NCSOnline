@@ -140,14 +140,12 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     loading.value = true
     try {
-	  await apiClient.post('/api/v1/auth/logout', {})
+      clearAuth()
+      await apiClient.post('/api/v1/auth/logout', {}).catch(() => {})
     } catch {
       // ignore logout errors
     } finally {
-      accessToken.value = null
-      refreshToken.value = null
-      user.value = null
-      persistToStorage()
+      clearAuth()
       loading.value = false
     }
   }

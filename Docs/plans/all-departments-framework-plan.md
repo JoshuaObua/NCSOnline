@@ -128,7 +128,9 @@ Self-service security controls protecting employee accounts from unauthorized ac
 
 | Departmental Dashboard | Specialized Operational Tools | Universal Shared Workplace Modules Included |
 | :--- | :--- | :---: |
-| **General Secretary Dashboard** | Executive Approval Queue, Board Reports, CapEx Approvals | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
+| **General Secretary Dashboard** | Executive Approval Queue, Master Appraisal Center, Board Reports | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
+| **AGS - Technical (AGS-T) Dashboard**| Technical Approvals, 50+ Federations, Work Orders, Facility Readiness | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
+| **AGS - Administration (AGS-A) Dashboard**| Admin Vetting Hub, Payroll Clearance, Budget Vote Tracker, PDU Pipeline | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
 | **Accountant Dashboard** | General Ledger, Fixed Assets (31B), Federation Grants | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
 | **HR Dashboard** | Staff Directory, 360 Profiles, Payroll, Appraisals | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
 | **Internal Auditor Dashboard** | Mobile QR Spot-Checks, Discrepancies, Audit Logs | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
@@ -137,6 +139,11 @@ Self-service security controls protecting employee accounts from unauthorized ac
 | **Procurement Unit (PDU)** | APP Tracker, Form 5 Pipeline, Bidding Evaluation | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
 | **Public Relations (PR)** | Press Release Publisher, Media Accreditation, CMS | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
 | **Engineering (All Roles)** | Work Orders, Facility Inspection Logs, Material Requisitions| ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
+| **Stores & Inventory Unit** | Goods Received Notes (GRN), Bin Cards, Store Issue Vouchers (SIV) | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
+| **Facilities & Venue Operations** | Venue Master Calendar, NTR Billing, Lugogo Hostels, Match Prep | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
+| **Legal & Corporate Affairs** | Contracts Repository, Federation Arbitration Disputes, IP Registry | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
+| **Sports Science & Medical Unit** | Athlete Medical Screenings, Injury Rehab, WADA Anti-Doping | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
+| **Fleet & Transport Unit** | Vehicle Registry, Trip Requisitions, Fuel Logs, Driver Rosters | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
 | **Applicant / External Portal**| License Applications, Status Tracker, Certificate Vault | ✅ Profile, Security Settings, Messages, Notifications |
 
 ---

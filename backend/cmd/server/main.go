@@ -168,6 +168,7 @@ func main() {
 			r.Get("/organisations/{organisationID}", h.Organisations.Get)
 			r.Get("/me/sessions", h.Operator.Sessions)
 			r.Post("/me/sessions/revoke", h.Operator.RevokeSession)
+			r.Get("/dashboard/stats", h.Dashboard.Stats)
 
 			// ── Applicant application routes ─────────────────────────
 			r.Route("/applications", func(r chi.Router) {
@@ -455,6 +456,88 @@ func main() {
 				})
 
 				r.Get("/admin/permissions", h.Roles.ListPermissions)
+			})
+
+			// ── Executive: AGS Technical (AGS-T) ─────────────────────
+			r.Route("/executive/ags-t", func(r chi.Router) {
+				r.Get("/dashboard", h.AGST.DashboardStats)
+				r.Get("/approvals", h.AGST.ListApprovals)
+				r.Post("/approvals/{id}/action", h.AGST.ActionApproval)
+				r.Get("/facilities/readiness", h.AGST.ListFacilityReadiness)
+			})
+
+			// ── Executive: AGS Administration (AGS-A) ────────────────
+			r.Route("/executive/ags-a", func(r chi.Router) {
+				r.Get("/dashboard", h.AGSA.DashboardStats)
+				r.Get("/approvals", h.AGSA.ListApprovals)
+				r.Post("/approvals/{id}/action", h.AGSA.ActionApproval)
+				r.Get("/directives", h.AGSA.ListDirectives)
+			})
+
+			// ── Executive: General Secretary Online Appraisal ─────────
+			r.Route("/executive/appraisal", func(r chi.Router) {
+				r.Get("/summary", h.Appraisal.Summary)
+				r.Get("/assets/ledger", h.Appraisal.ListAssetValuations)
+				r.Post("/assets/signoff", h.Appraisal.SignoffAssetValuation)
+				r.Get("/performance/financial", h.Appraisal.ListFinancialEfficiency)
+				r.Get("/reports/departmental", h.Appraisal.DepartmentalReports)
+			})
+
+			// ── Stores & Inventory Management ────────────────────────
+			r.Route("/stores", func(r chi.Router) {
+				r.Get("/inventory", h.Stores.ListInventory)
+				r.Post("/inventory", h.Stores.CreateItem)
+				r.Get("/grn", h.Stores.ListGRNs)
+			})
+
+			// ── Facilities Booking & Venue Operations ─────────────────
+			r.Route("/facilities", func(r chi.Router) {
+				r.Get("/bookings", h.Facilities.ListBookings)
+				r.Post("/bookings", h.Facilities.CreateBooking)
+				r.Get("/hostels", h.Facilities.ListHostels)
+			})
+
+			// ── Legal & Corporate Governance ──────────────────────────
+			r.Route("/legal", func(r chi.Router) {
+				r.Get("/contracts", h.Legal.ListContracts)
+				r.Post("/contracts", h.Legal.CreateContract)
+				r.Get("/disputes", h.Legal.ListDisputes)
+			})
+
+			// ── Sports Science & Medical Unit ─────────────────────────
+			r.Route("/medical", func(r chi.Router) {
+				r.Get("/screenings", h.Medical.ListScreenings)
+				r.Get("/injuries", h.Medical.ListInjuries)
+				r.Get("/antidoping", h.Medical.ListAntiDoping)
+			})
+
+			// ── Fleet, Logistics & Transport ──────────────────────────
+			r.Route("/fleet", func(r chi.Router) {
+				r.Get("/vehicles", h.Fleet.ListVehicles)
+				r.Get("/trips", h.Fleet.ListTrips)
+				r.Post("/trips", h.Fleet.CreateTrip)
+			})
+
+			// ── Reception & Visitor Clearance Desk ────────────────────
+			r.Route("/reception", func(r chi.Router) {
+				r.Get("/visitors", h.Reception.ListVisitors)
+				r.Post("/visitors", h.Reception.CreateVisitor)
+				r.Get("/visitors/{id}", h.Reception.GetVisitorPass)
+				r.Put("/visitors/{id}/approve", h.Reception.ApproveVisitor)
+				r.Put("/visitors/{id}/checkin", h.Reception.CheckInVisitor)
+				r.Put("/visitors/{id}/checkout", h.Reception.CheckOutVisitor)
+				r.Post("/leave/apply", h.Reception.ApplyLeave)
+				r.Get("/leave/status", h.Reception.ListLeaveApplications)
+				r.Get("/reports", h.Reception.GetReceptionReports)
+			})
+
+			// ── IT & Engineering Department PPDA Form 5 & Operations ──────────
+			r.Route("/it", func(r chi.Router) {
+				r.Get("/ppda", h.ITOfficer.ListPPDAForm5)
+				r.Post("/ppda", h.ITOfficer.CreatePPDAForm5)
+				r.Get("/ppda/{id}", h.ITOfficer.GetPPDAForm5)
+				r.Post("/ppda/{id}/action", h.ITOfficer.AdvancePPDAWorkflow)
+				r.Get("/dashboard/stats", h.ITOfficer.GetITDashboardStats)
 			})
 		})
 	})

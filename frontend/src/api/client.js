@@ -96,8 +96,8 @@ apiClient.interceptors.response.use(
       isRefreshing = true
 
       try {
-		const response = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true })
-		const { access_token } = response.data.data
+        const response = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh`, {}, { withCredentials: true })
+        const { access_token } = response.data.data
 
         localStorage.setItem('ncsms_access_token', access_token)
 
@@ -130,3 +130,9 @@ function clearAuthAndRedirect() {
 }
 
 export default apiClient
+
+// Named convenience helpers used by departmental dashboards
+export const apiGet = (url, params = {}) => apiClient.get(`/api/v1${url}`, { params })
+export const apiPost = (url, data = {}) => apiClient.post(`/api/v1${url}`, data)
+export const apiPut = (url, data = {}) => apiClient.put(`/api/v1${url}`, data)
+export const apiDelete = (url) => apiClient.delete(`/api/v1${url}`)

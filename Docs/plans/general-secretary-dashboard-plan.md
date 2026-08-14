@@ -3,7 +3,8 @@
 > **Target File:** `/home/fidi/Projects/NCS_Intranet/Docs/plans/general-secretary-dashboard-plan.md`  
 > **Role:** General Secretary (GS) / Accounting Officer - National Council of Sports (NCS)  
 > **Authority Level:** Organization-Wide Executive Control & Final Statutory Approval Authority  
-> **Target Access Scope:** Unrestricted, real-time read, report query, and statutory approval access across ALL NCS departments (Engineering, Finance, HR, IT, Technical/Sports, Procurement, Public Relations, Internal Audit)  
+> **Direct Executive Subordinates:** Assistant General Secretary - Technical (AGS-T), Assistant General Secretary - Administration (AGS-A), Head of Internal Audit, Legal Counsel  
+> **Target Access Scope:** Unrestricted, real-time read, report query, statutory approval, and appraisal evaluation access across ALL NCS departments (Engineering, Finance, HR, IT, Technical/Sports, Procurement, Public Relations, Internal Audit, Legal, Stores, Facilities, Medical, Transport)  
 
 ---
 
@@ -11,31 +12,38 @@
 
 The **General Secretary (GS)** is the Chief Executive Officer and statutory Accounting Officer of the National Council of Sports (NCS). Under the National Sports Act (2023) and Public Finance Management Act (PFMA 2015), the General Secretary carries total organizational accountability for financial disbursements, asset management, human resources, sports federation governance, procurement approvals, infrastructure projects, and public communications.
 
-This plan details the **General Secretary Executive Master Dashboard** inside `NCS_Intranet`. It functions as an **Interconnected Executive Control Center** where all departmental reports, category analytics, submittals, and employee 360° profiles stream directly into the GS portal in real time.
+The GS portal functions as an **Interconnected Executive Control & Statutory Appraisal Center** supported by two executive arms:
+- **Assistant General Secretary - Technical (AGS-T):** Oversees all technical branches (Sports Federations, NSMIS, Athletes/Teams, Engineering, Infrastructure & Venues).
+- **Assistant General Secretary - Administration (AGS-A):** Oversees all administrative branches (HR, Finance, PDU Procurement, PR, and IT Infrastructure).
 
 ```
 +---------------------------------------------------------------------------------------------------+
 |               GENERAL SECRETARY (GS) MASTER INTERCONNECTED DATA ENGINE                            |
 +---------------------------------------------------------------------------------------------------+
-       |                  |                |               |               |                |
-       v                  v                v               v               v                v
-+--------------+  +---------------+  +-----------+  +------------+  +--------------+  +---------------+
-| Engineering  |  | Finance & Acc |  |   IT/ICT  |  | HR & Admin |  | Technical    |  | Procurement   |
-| Field Orders |  | Asset Register|  | Backups   |  | Employee   |  | Federations  |  | Form 5s &     |
-| Asset Health |  | Ledger & Grants| | Health    |  | Profiles   |  | Athletes     |  | APP Tracker   |
-+--------------+  +---------------+  +-----------+  +------------+  +--------------+  +---------------+
-       |                  |                |               |               |                |
-       +------------------+----------------+---------------+---------------+----------------+
-                                                   |
-                                                   v
-                     +-----------------------------------------------------------+
-                     | GS EXECUTIVE DASHBOARD & STATUTORY APPROVAL QUEUE         |
-                     | - PPDA Form 5 Final Approvals (Accounting Officer)        |
-                     | - Organization-Wide Departmental Reports & Analytics      |
-                     | - Employee 360° Profile Inspector (All Departments)        |
-                     | - CapEx Escalations > UGX 5M & Asset Write-Offs          |
-                     | - Executive PDF Board & Ministry Report Generator         |
-                     +-----------------------------------------------------------+
+                               |                                                 |
+         +---------------------+---------------------+     +---------------------+---------------------+
+         |                                           |     |                                           |
+         v                                           v     v                                           v
++-----------------------------+ +-----------------------------+ +-----------------------------+ +-----------------------------+
+| AGS - TECHNICAL (AGS-T)     | | AGS - ADMINISTRATION (AGS-A)| | INTERNAL AUDIT & LEGAL      | | FINANCE & FIXED ASSETS      |
+| - 50+ Sports Federations    | | - Human Resources (128 Staff| | - Independent Risk Audits   | | - Fixed Asset Ledger (31.02B|
+| - NSMIS & Athlete Licensing | | - PDU Form 5 Procurement    | | - Discrepancy & Fraud Flags | | - 11 Excel Category Classes |
+| - Engineering Work Orders   | | - Budget Vote Execution     | | - Federation Arbitrations   | | - Revaluation Adjustments   |
+| - Facility Match Readiness  | | - PR Releases & Media Pass  | | - Statutory Compliance Pack | | - Cash Flows & NTR Inflows  |
++-----------------------------+ +-----------------------------+ +-----------------------------+ +-----------------------------+
+         |                                           |     |                                           |
+         +-------------------------------------------+-----+-------------------------------------------+
+                                                     |
+                                                     v
+                         +-------------------------------------------------------+
+                         | GS EXECUTIVE DASHBOARD & STATUTORY CONTROL CENTER     |
+                         | - Statutory PPDA Form 5 Final Approvals               |
+                         | - CapEx Escalations > UGX 5M & Asset Write-Offs       |
+                         | - Organization-Wide Master Reports & Analytics        |
+                         | - Employee 360° Profile Inspector (All Departments)   |
+                         | - Master Appraisal Center (Property, HR, Fin, Assets) |
+                         | - Executive PDF Board & Ministry Report Generator     |
+                         +-------------------------------------------------------+
 ```
 
 ---
@@ -49,7 +57,7 @@ This plan details the **General Secretary Executive Master Dashboard** inside `N
 The General Secretary can query, view, filter, and export general reports across any department or functional category:
 
 1. **Departmental Filter Query:**
-   - Filter reports by: `Engineering`, `Finance & Accounts`, `Human Resources`, `IT / ICT`, `Technical & Sports`, `Procurement (PDU)`, `Public Relations`, `Internal Audit`.
+   - Filter reports by: `Technical & Sports`, `Engineering`, `Finance & Accounts`, `Human Resources`, `Procurement (PDU)`, `IT / ICT`, `Public Relations`, `Internal Audit`, `Legal`, `Stores & Inventory`, `Facilities & Venues`, `Medical & Anti-Doping`, `Transport & Fleet`.
 2. **Category Filter Query:**
    - **Financial Category:** Subvention execution, federation grant disbursements, NTR collection, budget vote-head commitments.
    - **Fixed Assets Category:** Live asset valuation (297 records / UGX 31.02B), revaluation requests, depreciation impact, condition state.
@@ -80,10 +88,10 @@ The General Secretary has unrestricted authority to inspect the 360° master pro
 
 Centralized approval hub where the General Secretary exercises statutory sign-offs:
 
-1. **PPDA Procurement Form 5 Approvals:** Final Accounting Officer statutory approval for departmental procurement requisitions.
-2. **CapEx & Infrastructure Escalations (> UGX 5M):** Senior Engineer CapEx requisitions for venue repairs, floodlight overhauls, or civil works.
-3. **Fixed Asset Write-Offs & Disposals:** Authorizing statutory write-offs for damaged equipment or property revaluations.
-4. **Federation Grant Disbursements:** Executive release sign-off for quarter funding to national sports associations.
+1. **PPDA Procurement Form 5 Approvals:** Final Accounting Officer statutory approval for departmental procurement requisitions (endorsed by AGS-A).
+2. **CapEx & Infrastructure Escalations (> UGX 5M):** Major civil works and venue repair approvals (endorsed by Senior Engineer & AGS-T).
+3. **Fixed Asset Write-Offs & Disposals:** Authorizing statutory write-offs for damaged equipment, obsolete IT items, or property revaluations.
+4. **Federation Grant Disbursements:** Executive release sign-off for quarterly funding to national sports associations.
 5. **Monthly Payroll Authorization:** Final Accounting Officer approval of generated monthly payroll and bank EFT transfer files.
 
 ---
@@ -100,6 +108,28 @@ Centralized approval hub where the General Secretary exercises statutory sign-of
 
 ---
 
+### 2.5 Master Executive Appraisal & Valuation Center (`GeneralSecretaryAppraisalView.vue`)
+
+The General Secretary conducts comprehensive evaluations through a dedicated, four-pillar appraisal dashboard (detailed in `Docs/plans/general-secretary-appraisal-valuation-plan.md`):
+
+1. **Property & Inventory Appraisal:**
+   - Physical Condition & Structural Safety Index of all NCS properties (Lugogo Indoor Arena, Stadium, Tennis Complex, Hostels, Regional Land Plots 2-10 Coronation Avenue).
+   - Stores inventory stock valuation, turnover velocity, and obsolescence / shrinkage grading.
+2. **Staff & Departmental Performance Appraisal:**
+   - Review and final authorization of staff annual/semi-annual appraisal scorecards (128 employees) and departmental target delivery indices.
+3. **Comprehensive Financial Performance Appraisal:**
+   - Subvention budget vote-head execution rate (target > 90%).
+   - Non-Tax Revenue (NTR) actuals vs targets for venue rentals and licensing.
+   - National Sports Federation grant accountability compliance clearance percentage.
+   - Unit cost efficiency per sporting competition and infrastructure project.
+   - Audit query resolution rate and fiscal risk exposure rating.
+4. **Asset Appraisal & Accounting Ledger Verification (UGX 31.02B Portfolio):**
+   - Executive review and statutory sign-off on the **Fixed Asset Register** across all 11 Excel classes entered by Accounting (Land, Non-Residential Buildings, Residential Buildings, Vehicles, Light ICT, Office Equipment, Electrical Machinery, Furniture & Fittings, Cycles, Other ICT, Pivot Matrix).
+   - Evaluation of Net Book Value (NBV), Historical Cost (`FB_COST`), Adjusted Revaluations, and Accumulated Depreciation.
+   - Statutory authorization of asset write-offs, disposals, and revaluation surplus additions.
+
+---
+
 ## 3. General Secretary Dashboard User Interface (`GeneralSecretaryDashboard.vue`)
 
 ```
@@ -109,47 +139,49 @@ Centralized approval hub where the General Secretary exercises statutory sign-of
 | [EXECUTIVE MACRO KPI SUMMARY CARDS]                                               |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
 | | Annual Budget Spend| | Fixed Asset NBV    | | Active Staff      | | Form 5 Queue      | |
-| | UGX 18.0B / 25.0B  | | UGX 31.02 Billion  | | 128 Employees     | | 8 Pending Sign-off| |
+| | UGX 18.0B / 25.0B  | | UGX 30.38B / 31.02B| | 128 Employees     | | 8 Pending Sign-off| |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
 +-----------------------------------------------------------------------------------+
-| [GS WORKSPACE: (1) Statutory Approvals | (2) Master Reports | (3) Employee 360 | (4) Activity Feed] |
+| [GS WORKSPACE: (1) Statutory Approvals | (2) Master Reports | (3) Appraisal Center | (4) Employee 360] |
 | +-------------------------------------------------------------------------------+ |
-| | [ORGANIZATION-WIDE MASTER REPORT GENERATOR]                                   | |
-| | Filter Dept: [ All Depts v ] Category: [ Financial & Fixed Assets v ] Date: [ Jul 2026 ]| |
-| | ----------------------------------------------------------------------------- | |
-| | Report Title                    | Origin Dept  | Submitted By     | Action        | |
-| | Fixed Asset Register Revaluation| Finance      | CFO (Akello S)   | [ View PDF ]  | |
-| | Lugogo Floodlight Site Inspection| Engineering | Senior Engineer  | [ View Log ]  | |
-| | Q1 Federation Grant Accountabil.| Technical    | Tech Director    | [ Inspect ]   | |
-| | [ Download Executive Board Package ] [ Export Ministry PDF ] [ Send to MoFPED ]| |
+| | [MASTER EXECUTIVE APPRAISAL & STATUTORY VALUATION RADAR]                     | |
+| | Appraisal Stream        | Focus Portfolio / Target       | Score / Value  | Action   |
+| | Fixed Asset Ledger      | 297 Items (11 Classes)         | UGX 31.02B NBV | [Signoff]|
+| | Property & Arena Health | Lugogo Sports Complex          | 94.5% Structural[Inspect]|
+| | Financial Efficiency    | FY 2025/26 Subventions & NTR   | 94.2% Execution| [Review] |
+| | Staff Performance Roster| 128 Employees / 8 Departments  | 88.4% Average  | [Approve]|
 | +-------------------------------------------------------------------------------+ |
 | +-----------------------------------------------+ +-------------------------------+ |
-| | Employee 360° Profile Quick Inspector         | | Live Cross-Dept Activity Feed | |
-| | Search Staff: [ Okello John - Senior Engineer ]| | - HR: Payroll generated (342.5M)|
-| | Dept: Engineering | Status: Active Permanent  | | - PDU: Form 5 Submitted (45M) | |
-| | Leave: 14 Days Left | Appraisal: 92% Exceeds  | | - IT: DB Backup Success (42MB) | |
-| | [ Inspect Full 360° Profile ] [ View Audit Log]| | - PR: Press Statement Live   | |
+| | Employee 360° Profile Quick Inspector         | | Live Executive Submissions    | |
+| | Search Staff: [ Okello John - Senior Engineer ]| | - AGS-T: Cleared UAF Team Pass| |
+| | Dept: Engineering | Status: Active Permanent  | | - AGS-A: Endorsed PDU Form 5  | |
+| | Leave: 14 Days Left | Appraisal: 92% Exceeds  | | - CFO: Submitted Asset Reval  | |
+| | [ Inspect Full 360° Profile ] [ View Audit Log]| | - Audit: 0 High-Risk Queries  | |
 | +-----------------------------------------------+ +-------------------------------+ |
 +-----------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 4. Go REST API Mapping (`backend/internal/executive/gs_handler.go`)
+## 4. Go REST API Mapping (`backend/internal/executive/gs_handler.go` & `appraisal_handler.go`)
 
 | Endpoint | Method | Scope | Description |
 | :--- | :--- | :--- | :--- |
-| `/api/v1/executive/gs/dashboard` | GET | General Secretary | Macro KPIs across all departments |
+| `/api/v1/executive/gs/dashboard` | GET | General Secretary | Macro KPIs across all departments and executive arms |
 | `/api/v1/executive/gs/reports/master` | POST | General Secretary | Master report query filtered by Dept, Category, and Date |
 | `/api/v1/executive/gs/employees` | GET | General Secretary | Query 360° employee master profiles for any staff member |
 | `/api/v1/executive/gs/employees/:id` | GET | General Secretary | View complete 360° staff profile, payroll, and activity log |
 | `/api/v1/executive/gs/approvals` | GET/PUT | General Secretary | Statutory sign-offs (Form 5, CapEx > 5M, Write-offs, Payroll) |
+| `/api/v1/executive/appraisal/summary` | GET | General Secretary | Master appraisal evaluation overview across all 4 pillars |
+| `/api/v1/executive/appraisal/assets/signoff` | POST | General Secretary | Statutory sign-off on Fixed Asset Register revaluations & write-offs |
+| `/api/v1/executive/appraisal/performance/financial` | GET | General Secretary | Financial performance & vote-head efficiency scoring |
 | `/api/v1/executive/gs/export/board-pdf` | POST | General Secretary | Generate formatted Board & Ministry executive PDF brief |
 
 ---
 
 ## 5. Implementation Roadmap
 
-- [ ] **Backend Executive Handlers:** Create `backend/internal/executive/gs_handler.go` with cross-departmental data aggregation queries.
-- [ ] **Frontend View Construction:** Build `frontend/src/views/executive/GeneralSecretaryDashboard.vue` with executive KPI cards, master report query engine, employee 360 inspector, and statutory approval queues.
+- [ ] **Backend Executive Handlers:** Build `backend/internal/executive/gs_handler.go` and `appraisal_handler.go` supporting cross-departmental aggregation and statutory appraisal sign-offs.
+- [ ] **Frontend View Construction:** Build `frontend/src/views/executive/GeneralSecretaryDashboard.vue` and `GeneralSecretaryAppraisalView.vue` with executive KPI cards, master report query engine, employee 360 inspector, appraisal center, and statutory approval queues.
 - [ ] **Interconnection Verification:** Verify that every departmental report, Form 5 submission, leave decision, asset adjustment, and employee profile streams cleanly to the General Secretary workspace.
+
