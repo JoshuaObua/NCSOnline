@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"ncsintranet/internal/models"
@@ -83,6 +85,11 @@ func (h *FixedAssetHandler) CreateFixedAsset(w http.ResponseWriter, r *http.Requ
 		response.Error(w, http.StatusBadRequest, "Asset number and description are required")
 		return
 	}
+	if strings.TrimSpace(asset.TagNumber) == "" {
+		response.Error(w, http.StatusBadRequest, "Tag number is required")
+		return
+	}
+	applyFixedAssetDefaults(&asset)
 
 	if asset.AdjustedCost == 0 && asset.FBCost > 0 {
 		asset.AdjustedCost = asset.FBCost
@@ -109,12 +116,7 @@ func (h *FixedAssetHandler) RevalueFixedAsset(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	userID := ""
-	if claims, ok := r.Context().Value("user_claims").(map[string]interface{}); ok {
-		if sub, ok := claims["sub"].(string); ok {
-			userID = sub
-		}
-	}
+	userID := currentUserID(r)
 
 	err := h.repo.RevalueFixedAsset(r.Context(), req.AssetID, req.NewCost, req.Notes, userID)
 	if err != nil {
@@ -131,12 +133,7 @@ func (h *FixedAssetHandler) RunDepreciation(w http.ResponseWriter, r *http.Reque
 	var req models.AssetDepreciationRequest
 	_ = json.NewDecoder(r.Body).Decode(&req)
 
-	userID := ""
-	if claims, ok := r.Context().Value("user_claims").(map[string]interface{}); ok {
-		if sub, ok := claims["sub"].(string); ok {
-			userID = sub
-		}
-	}
+	userID := currentUserID(r)
 
 	count, totalAmount, err := h.repo.RunDepreciation(r.Context(), req.Period, userID)
 	if err != nil {
@@ -158,11 +155,9 @@ func (h *FixedAssetHandler) VerifyFixedAsset(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	userID := ""
-	if claims, ok := r.Context().Value("user_claims").(map[string]interface{}); ok {
-		if sub, ok := claims["sub"].(string); ok {
-			userID = sub
-		}
+	userID := currentUserID(r)
+	if req.Status == "" {
+		req.Status = "VERIFIED"
 	}
 
 	err := h.repo.VerifyFixedAsset(r.Context(), req.AssetID, req.Status, req.Notes, userID)
@@ -174,4 +169,64 @@ func (h *FixedAssetHandler) VerifyFixedAsset(w http.ResponseWriter, r *http.Requ
 	response.JSON(w, http.StatusOK, map[string]string{
 		"message": "Asset verification recorded successfully",
 	})
+}
+
+func currentUserID(r *http.Request) string {
+	if userID, ok := r.Context().Value(models.CtxUserID).(string); ok {
+		return userID
+	}
+	if claims, ok := r.Context().Value("user_claims").(map[string]interface{}); ok {
+		if sub, ok := claims["sub"].(string); ok {
+			return sub
+		}
+	}
+	return ""
+}
+
+func applyFixedAssetDefaults(asset *models.FixedAsset) {
+	asset.AssetNumber = strings.TrimSpace(asset.AssetNumber)
+	asset.TagNumber = strings.TrimSpace(asset.TagNumber)
+	asset.AssetDescription = strings.TrimSpace(asset.AssetDescription)
+	if strings.TrimSpace(asset.InterfaceLineNumber) == "" {
+		asset.InterfaceLineNumber = "MANUAL-" + strings.ToUpper(asset.AssetNumber)
+	}
+	if strings.TrimSpace(asset.AssetBook) == "" {
+		asset.AssetBook = "NCS FA BOOK"
+	}
+	if strings.TrimSpace(asset.CategorySegment1) == "" {
+		asset.CategorySegment1 = "MACHINERY AND EQUIPMENT"
+	}
+	if strings.TrimSpace(asset.CategorySegment3) == "" {
+		asset.CategorySegment3 = "LIGHT ICT HARDWARE"
+	}
+	if strings.TrimSpace(asset.CategorySegment4) == "" {
+		asset.CategorySegment4 = "General Asset"
+	}
+	if asset.AssetUnits <= 0 {
+		asset.AssetUnits = 1
+	}
+	if strings.TrimSpace(asset.DatePlacedInService) == "" {
+		asset.DatePlacedInService = time.Now().Format("2006-01-02")
+	}
+	if strings.TrimSpace(asset.CustodianDepartment) == "" {
+		asset.CustodianDepartment = "General Administration"
+	}
+	if strings.TrimSpace(asset.LocationBuilding) == "" {
+		asset.LocationBuilding = "NCS Lugogo Head Office"
+	}
+	if strings.TrimSpace(asset.LocationRoom) == "" {
+		asset.LocationRoom = "Main Facility"
+	}
+	if strings.TrimSpace(asset.DepreciationMethod) == "" {
+		asset.DepreciationMethod = "STRAIGHT_LINE"
+	}
+	if asset.UsefulLifeYears <= 0 {
+		asset.UsefulLifeYears = 5
+	}
+	if strings.TrimSpace(asset.Status) == "" {
+		asset.Status = "ACTIVE"
+	}
+	if strings.TrimSpace(asset.WorksheetSource) == "" {
+		asset.WorksheetSource = asset.CategorySegment3
+	}
 }

@@ -98,6 +98,9 @@ func (r *postgresFixedAssetRepository) ListFixedAssets(ctx context.Context, cate
 		a.NetBookValue = a.AdjustedCost - a.AccumulatedDepreciation
 		assets = append(assets, a)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
 
 	return assets, total, nil
 }
@@ -219,9 +222,12 @@ func (r *postgresFixedAssetRepository) RevalueFixedAsset(ctx context.Context, as
 		return err
 	}
 
-	_, err = tx.Exec(ctx, "UPDATE fixed_assets SET adjusted_cost = $1, updated_at = NOW() WHERE id::text = $2 OR asset_number = $2", newCost, assetID)
+	tag, err := tx.Exec(ctx, "UPDATE fixed_assets SET adjusted_cost = $1, updated_at = NOW() WHERE id::text = $2 OR asset_number = $2", newCost, assetID)
 	if err != nil {
 		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
 	}
 
 	var uid *string
@@ -242,6 +248,13 @@ func (r *postgresFixedAssetRepository) RevalueFixedAsset(ctx context.Context, as
 }
 
 func (r *postgresFixedAssetRepository) RunDepreciation(ctx context.Context, period string, userID string) (int, float64, error) {
+	var totalDeprecRun float64
+	_ = r.db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(LEAST(adjusted_cost - accumulated_depreciation, adjusted_cost / NULLIF(useful_life_years * 12, 0))), 0)
+		FROM fixed_assets
+		WHERE status = 'ACTIVE' AND useful_life_years > 0 AND adjusted_cost > accumulated_depreciation
+	`).Scan(&totalDeprecRun)
+
 	query := `
 		UPDATE fixed_assets
 		SET accumulated_depreciation = LEAST(adjusted_cost, accumulated_depreciation + (adjusted_cost / NULLIF(useful_life_years * 12, 0))),
@@ -252,9 +265,6 @@ func (r *postgresFixedAssetRepository) RunDepreciation(ctx context.Context, peri
 	if err != nil {
 		return 0, 0, err
 	}
-
-	var totalDeprecRun float64
-	_ = r.db.QueryRow(ctx, "SELECT COALESCE(SUM(adjusted_cost / NULLIF(useful_life_years * 12, 0)), 0) FROM fixed_assets WHERE status = 'ACTIVE' AND useful_life_years > 0").Scan(&totalDeprecRun)
 
 	return int(tag.RowsAffected()), totalDeprecRun, nil
 }
@@ -270,9 +280,12 @@ func (r *postgresFixedAssetRepository) VerifyFixedAsset(ctx context.Context, ass
 		SET verification_status = $1, last_verified_at = NOW(), last_verified_by = $2, updated_at = NOW()
 		WHERE id::text = $3 OR asset_number = $3 OR tag_number = $3
 	`
-	_, err := r.db.Exec(ctx, query, status, uid, assetID)
+	tag, err := r.db.Exec(ctx, query, status, uid, assetID)
 	if err != nil {
 		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
 	}
 
 	logQuery := `
