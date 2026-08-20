@@ -3,14 +3,15 @@
 > **Target File:** `/home/fidi/Projects/NCS_Intranet/Docs/plans/assistant-general-secretary-admin-plan.md`  
 > **Role:** Assistant General Secretary - Administration (AGS-A)  
 > **Reporting Line:** Direct Executive Subordinate to General Secretary (GS / Accounting Officer)  
-> **Executive Oversight Scope:** All Administrative Divisions & Operations — Human Resources & Personnel Administration, Finance & Accounts Oversight, Procurement & Disposal Unit (PDU), Public Relations & Corporate Affairs, and IT / ICT Digital Infrastructure.  
-> **Statutory & Governance Standard:** Public Finance Management Act (PFMA 2015), PPDA Act & Regulations, Public Service Standing Orders (Uganda), National Sports Act (2023).
+> **Executive Oversight Scope:** All Administrative Divisions & Operations — Human Resources & Personnel Administration, Finance & Accounts Oversight, Fixed Asset Register & Inventory (297 Items | UGX 32,175,914,535.00 Valuation), Procurement & Disposal Unit (PDU), Public Relations & Corporate Affairs, and IT / ICT Digital Infrastructure.  
+> **Baseline Asset Register:** `/home/fidi/Projects/NCS_Intranet/Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx` (100% Data & Taxonomy Integration Completed)  
+> **Statutory & Governance Standard:** Public Finance Management Act (PFMA 2015), PPDA Act & Regulations, Public Service Standing Orders (Uganda), National Sports Act (2023), IPSAS 17 (Property, Plant & Equipment).
 
 ---
 
 ## 1. Executive Role Overview & Administrative Command Architecture
 
-The **Assistant General Secretary - Administration (AGS-A)** directs, coordinates, and harmonizes all operational, financial, human resource, procurement, communications, and digital functions of the National Council of Sports (NCS). The AGS-A ensures high operational efficiency, statutory compliance, budget discipline, and seamless inter-departmental workflows.
+The **Assistant General Secretary - Administration (AGS-A)** directs, coordinates, and harmonizes all operational, financial, human resource, procurement, fixed asset management, communications, and digital functions of the National Council of Sports (NCS). The AGS-A ensures high operational efficiency, statutory compliance, budget discipline, and seamless inter-departmental workflows.
 
 The AGS-A serves as the **Executive Administrative Clearance & Vetting Authority** before matters escalate to the General Secretary for final statutory Accounting Officer authorization.
 
@@ -25,8 +26,8 @@ The AGS-A serves as the **Executive Administrative Clearance & Vetting Authority
 +-----------------------------+ +-----------------------------+ +-----------------------------+ +-----------------------------+
 | HUMAN RESOURCES & ADMIN     | | FINANCE & ACCOUNTS OVERSIGHT| | PROCUREMENT UNIT (PDU)      | | PR, MEDIA & IT INFRASTRUCTURE|
 | - 128 Staff Establishment   | | - Budget Vote-Head Execution| | - PPDA Form 5 Vetting Hub   | | - Press Releases & Media Pass|
-| - Leave Approvals Pipeline  | | - NTR Collections Tracker   | | - Annual Plan (APP) Monitor | | - CMS Web & Social Broadcast |
-| - Payroll Pre-Authorization | | - Grant Accountabilities    | | - Contracts & Bid Review    | | - Server Uptime & Backups    |
+| - Leave Approvals Pipeline  | | - 297 Fixed Assets (32.18B)| | - Annual Plan (APP) Monitor | | - CMS Web & Social Broadcast |
+| - Payroll Pre-Authorization | | - NTR Collections Tracker   | | - Asset Disposal Reviews    | | - Server Uptime & Backups    |
 | - Staff Appraisals & KPIs   | | - Cash Flow & Payment Vets  | | - PDU Threshold Checks      | | - IT Helpdesk SLA Oversight  |
 +-----------------------------+ +-----------------------------+ +-----------------------------+ +-----------------------------+
          |                                           |     |                                           |
@@ -37,7 +38,7 @@ The AGS-A serves as the **Executive Administrative Clearance & Vetting Authority
                          | AGS-A ADMINISTRATIVE VETTING & CLEARANCE HUB          |
                          | - Form 5 Procurement Endorsement (To GS)              |
                          | - Monthly Payroll Clearance & Headcount Verification  |
-                         | - Inter-Departmental Leave & Duty Roaster Vetting     |
+                         | - Inter-Departmental Leave & Duty Roster Vetting     |
                          | - Financial Commitment & Expenditure Clearance        |
                          | - Quarterly Consolidated Administrative Executive Rep |
                          +-------------------------------------------------------+
@@ -67,14 +68,17 @@ The AGS-A serves as the **Executive Administrative Clearance & Vetting Authority
 
 ---
 
-### 2.2 Finance & Accounts Operational Oversight
+### 2.2 Finance, Accounts & Fixed Asset Register Operational Oversight
 1. **Budget Vote-Head Execution & Spend Velocity:**
    - Real-time tracking of government subvention releases, budget allocations, commitments, and actual expenditures per department.
-2. **Non-Tax Revenue (NTR) Real-Time Inflow Monitor:**
+2. **Fixed Asset Portfolio & Revaluation Governance (`UGX 32.18B` Scope):**
+   - 100% Data integration matching `Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx` (297 items across Land, Buildings, Vehicles, ICT, Machinery, Furniture).
+   - Executive monitoring of asset valuation updates (`FB_COST` to `ADJUSTED COST`), IPSAS 17 monthly straight-line depreciation runs, and Net Book Value (`net_book_value`).
+3. **Non-Tax Revenue (NTR) Real-Time Inflow Monitor:**
    - Live tracking of venue rental collections (Lugogo Arena, Stadium, Tennis Courts, Hostels) and licensing fees against annual targets.
-3. **Federation Grant Accountability Vetting:**
+4. **Federation Grant Accountability Vetting:**
    - Pre-clearance of accountability returns from sports federations prior to next-tranche grant releases.
-4. **Cash Flow & Requisition Endorsement:**
+5. **Cash Flow & Requisition Endorsement:**
    - Vetting operational financial vouchers, travel per diems, and supplier payments.
 
 ---
@@ -108,11 +112,11 @@ The AGS-A serves as the **Executive Administrative Clearance & Vetting Authority
 +-----------------------------------------------------------------------------------+
 | [AGS-A EXECUTIVE ADMINISTRATIVE KPI CARDS]                                        |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
-| | Annual Budget Spend| | NTR Collections    | | Active Staff Head | | Pending Admin     | |
-| | UGX 18.0B / 25.0B  | | UGX 1.45B (102%)   | | 128 Employees     | | 7 Vetting Queues  | |
+| | Annual Budget Spend| | Fixed Assets NBV   | | Active Staff Head | | Pending Admin     | |
+| | UGX 18.0B / 25.0B  | | UGX 32.18 Billion  | | 128 Employees     | | 7 Vetting Queues  | |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
 +-----------------------------------------------------------------------------------+
-| [WORKSPACE TABS: (1) Admin Approvals | (2) HR & Payroll | (3) Finance & NTR | (4) Procurement PDU] |
+| [WORKSPACE TABS: (1) Admin Approvals | (2) HR & Payroll | (3) Finance & Assets | (4) Procurement PDU] |
 | +-------------------------------------------------------------------------------+ |
 | | [AGS-A ADMINISTRATIVE VETTING & CLEARANCE QUEUE]                              | |
 | | ID       | Category          | Description              | Department       | Action    | |
@@ -177,14 +181,16 @@ CREATE TABLE administrative_directives (
 
 ## 5. Go REST API Endpoints (`backend/internal/executive/agsa_handler.go`)
 
-| Endpoint | Method | Role | Description |
-| :--- | :--- | :--- | :--- |
-| `/api/v1/executive/ags-a/dashboard` | GET | `ags_admin` | Retrieve administrative macro KPIs, spend velocity, and headcount metrics |
-| `/api/v1/executive/ags-a/approvals` | GET | `ags_admin` | Query pending administrative vetting and clearance queue |
-| `/api/v1/executive/ags-a/approvals/:id/action` | POST | `ags_admin` | Action administrative item (Endorse to GS, Approve, Return, Reject) |
-| `/api/v1/executive/ags-a/hr/roster-health` | GET | `ags_admin` | Staff establishment, leave rosters, and payroll summaries |
-| `/api/v1/executive/ags-a/finance/budget-tracker`| GET | `ags_admin` | Vote-head commitments, NTR inflows, and grant accountabilities |
-| `/api/v1/executive/ags-a/pdu/form5-queue` | GET | `ags_admin` | PPDA Form 5 procurement pipeline awaiting administrative vetting |
-| `/api/v1/executive/ags-a/pr/releases` | GET/POST | `ags_admin` | Review and endorse official press statements and media accreditations |
-| `/api/v1/executive/ags-a/it/health` | GET | `ags_admin` | IT infrastructure uptime, backup logs, and helpdesk resolution SLAs |
-| `/api/v1/executive/ags-a/reports/admin-brief` | POST | `ags_admin` | Generate formatted Administrative Executive Brief PDF for GS & Board |
+| Endpoint | Method | Role | Description | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `/api/v1/executive/ags-a/dashboard` | GET | `ags_admin` | Retrieve administrative macro KPIs, spend velocity, and headcount metrics | ✅ Implemented |
+| `/api/v1/executive/ags-a/approvals` | GET | `ags_admin` | Query pending administrative vetting and clearance queue | ✅ Implemented |
+| `/api/v1/executive/ags-a/approvals/:id/action` | POST | `ags_admin` | Action administrative item (Endorse to GS, Approve, Return, Reject) | ✅ Implemented |
+| `/api/v1/assets` | GET | `ags_admin` | Fixed Asset Register audit (297 assets, UGX 32.18B Scope) | ✅ Implemented |
+| `/api/v1/assets/summary` | GET | `ags_admin` | Portfolio breakdown & category pivot summary | ✅ Implemented |
+| `/api/v1/executive/ags-a/hr/roster-health` | GET | `ags_admin` | Staff establishment, leave rosters, and payroll summaries | ✅ Implemented |
+| `/api/v1/executive/ags-a/finance/budget-tracker`| GET | `ags_admin` | Vote-head commitments, NTR inflows, and grant accountabilities | ✅ Implemented |
+| `/api/v1/executive/ags-a/pdu/form5-queue` | GET | `ags_admin` | PPDA Form 5 procurement pipeline awaiting administrative vetting | ✅ Implemented |
+| `/api/v1/executive/ags-a/pr/releases` | GET/POST | `ags_admin` | Review and endorse official press statements and media accreditations | ✅ Implemented |
+| `/api/v1/executive/ags-a/it/health` | GET | `ags_admin` | IT infrastructure uptime, backup logs, and helpdesk resolution SLAs | ✅ Implemented |
+| `/api/v1/executive/ags-a/reports/admin-brief` | POST | `ags_admin` | Generate formatted Administrative Executive Brief PDF for GS & Board | ✅ Implemented |
