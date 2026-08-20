@@ -57,11 +57,14 @@ const ReceptionistReportsView = () => import('@/views/reception/ReceptionistRepo
 const ITPPDAInitiateView = () => import('@/views/it/ITPPDAInitiateView.vue')
 const ITPPDAListView = () => import('@/views/it/ITPPDAListView.vue')
 
+const FixedAssetsView = () => import('@/views/FixedAssetsView.vue')
+
 const routes = [
   { path: '/', redirect: '/dashboard' },
   { path: '/login', name: 'Login', component: LoginView, meta: { requiresAuth: false } },
   { path: '/register', name: 'Register', component: RegisterView, meta: { requiresAuth: false } },
 
+  { path: '/fixed-assets', name: 'FixedAssets', component: FixedAssetsView, meta: { requiresAuth: true } },
   { path: '/my-portal', name: 'ApplicantPortal', component: ApplicantPortalView, meta: { requiresAuth: true } },
   { path: '/my-portal/applications/new', name: 'NewOrganisationApplication', component: ApplicantLicensePortalView, meta: { requiresAuth: true } },
   { path: '/my-portal/forms/:slug', name: 'DynamicForm', component: DynamicPortalFormView, meta: { requiresAuth: true } },

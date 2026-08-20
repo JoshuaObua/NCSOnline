@@ -87,8 +87,9 @@
       </div>
 
       <!-- MANAGEMENT -->
-      <div v-if="canManage" class="section-label">Management</div>
+      <div v-if="canManage" class="section-label">Management & Finance</div>
       <div v-if="canManage" class="px-2 space-y-0.5">
+        <NavItem :collapsed="!open" :to="'/fixed-assets'" label="Fixed Assets (31B)" icon="icofont-building" />
         <NavItem :collapsed="!open" :to="'/applications'" label="Applications" icon="icofont-files-stack" />
         <NavItem :collapsed="!open" :to="'/admin/forms'" label="Form Builder" icon="icofont-edit" />
         <NavItem :collapsed="!open" :to="'/admin/forms/submissions'" label="Form Submissions" icon="icofont-inbox" />

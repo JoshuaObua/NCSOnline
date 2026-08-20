@@ -31,6 +31,7 @@ type Repos struct {
 	Forms         *FormRepo
 	Departments   *DepartmentRepo
 	Security      *SecurityRepo
+	FixedAssets   FixedAssetRepository
 }
 
 func New(db *pgxpool.Pool) *Repos {
@@ -50,6 +51,7 @@ func New(db *pgxpool.Pool) *Repos {
 		Forms:         &FormRepo{db: db},
 		Departments:   &DepartmentRepo{db: db},
 		Security:      &SecurityRepo{db: db},
+		FixedAssets:   NewFixedAssetRepository(db),
 	}
 }
 

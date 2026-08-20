@@ -37,6 +37,7 @@ type Handlers struct {
 	Fleet         *FleetHandler
 	Reception     *ReceptionHandler
 	ITOfficer     *ITOfficerHandler
+	FixedAssets   *FixedAssetHandler
 }
 
 // New constructs all handlers and returns them alongside the repos (needed by main for audit middleware).
@@ -85,5 +86,6 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 		Fleet:         NewFleetHandler(db),
 		Reception:     NewReceptionHandler(db),
 		ITOfficer:     NewITOfficerHandler(db),
+		FixedAssets:   NewFixedAssetHandler(repos.FixedAssets),
 	}, repos
 }

@@ -255,6 +255,17 @@ func main() {
 				})
 			})
 
+			// ── Fixed Assets & Inventory Master Management ───────────
+			r.Route("/assets", func(r chi.Router) {
+				r.Get("/", h.FixedAssets.ListFixedAssets)
+				r.Get("/summary", h.FixedAssets.GetFixedAssetSummary)
+				r.Get("/{id}", h.FixedAssets.GetFixedAssetByID)
+				r.Post("/", h.FixedAssets.CreateFixedAsset)
+				r.Post("/revalue", h.FixedAssets.RevalueFixedAsset)
+				r.Post("/depreciate", h.FixedAssets.RunDepreciation)
+				r.Post("/verify", h.FixedAssets.VerifyFixedAsset)
+			})
+
 			// ── Admin: dashboard + users + audit ─────────────────────
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RequireRoles("super_admin", "admin"))
