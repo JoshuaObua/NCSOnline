@@ -54,6 +54,18 @@
                   <i class="icofont-dashboard"></i><span>Dashboard Overview</span>
                 </button>
               </li>
+              <li class="menu-header">Universal Applications</li>
+              <li>
+                <router-link to="/reception/leave/apply" class="nav-link">
+                  <i class="icofont-calendar"></i><span>Leave Application</span>
+                </router-link>
+              </li>
+              <li>
+                <router-link to="/it/ppda/new" class="nav-link">
+                  <i class="icofont-document-folder"></i><span>PPDA Application</span>
+                </router-link>
+              </li>
+              <li class="menu-header">HR Workspace</li>
               <li :class="{ active: activeTab === 'registry' }">
                 <button type="button" class="nav-link" @click="activeTab = 'registry'">
                   <i class="icofont-users-alt-5"></i><span>Staff Registry</span>
@@ -83,6 +95,7 @@
         <div class="main-content">
           <section class="section">
             <div class="section-body">
+              <UniversalDashboardApplications class="mb-4" />
               
               <!-- Tab 1: Dashboard Overview -->
               <div v-if="activeTab === 'overview'" class="space-y-6">
@@ -335,6 +348,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storedPortalUser } from '@/utils/portalAuth.js'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
+import UniversalDashboardApplications from '@/components/layout/UniversalDashboardApplications.vue'
 import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 
 ensureOtikaStyles()

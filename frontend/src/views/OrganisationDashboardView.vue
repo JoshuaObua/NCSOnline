@@ -1,7 +1,69 @@
-<template><div class="min-h-screen bg-[#F8F9FC] p-6 md:p-10"><div class="max-w-5xl mx-auto space-y-6"><div class="flex items-center justify-between gap-4"><div><p class="text-xs font-bold uppercase tracking-widest text-[#F48C06]">Organisation workspace</p><h1 class="text-3xl font-bold text-[#112b4e] mt-1">{{ organisation?.display_name }}</h1><p class="text-sm text-gray-500 mt-1">{{ organisation?.profile_reference }} · {{ organisation?.role }}</p></div><router-link to="/my-portal" class="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#112b4e]">Switch profile</router-link></div><div v-if="loading" class="h-48 rounded-2xl bg-white animate-pulse"/><template v-else><div class="grid md:grid-cols-3 gap-4"><div v-for="item in summary" :key="item.label" class="rounded-2xl bg-white border border-gray-100 p-5"><span class="text-xs text-gray-400">{{ item.label }}</span><p class="font-bold text-[#112b4e] mt-2 break-all">{{ item.value }}</p></div></div><div class="rounded-2xl bg-white border border-gray-100 p-6"><h2 class="font-bold text-[#112b4e]">Organisation profile</h2><p class="text-sm text-gray-500 mt-2">This protected workspace is separate from your individual account. Its profile was created from the approved registration application.</p></div></template></div></div></template>
+<template>
+  <div class="min-h-screen bg-[#F8F9FC] p-6 md:p-10">
+    <div class="max-w-5xl mx-auto space-y-6">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-widest text-[#F48C06]">Organisation workspace</p>
+          <h1 class="text-3xl font-bold text-[#112b4e] mt-1">{{ organisation?.display_name }}</h1>
+          <p class="text-sm text-gray-500 mt-1">{{ organisation?.profile_reference }} · {{ organisation?.role }}</p>
+        </div>
+        <router-link to="/my-portal" class="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#112b4e]">Switch profile</router-link>
+      </div>
+
+      <UniversalDashboardApplications />
+
+      <div v-if="loading" class="h-48 rounded-2xl bg-white animate-pulse" />
+      <template v-else>
+        <div class="grid md:grid-cols-3 gap-4">
+          <div v-for="item in summary" :key="item.label" class="rounded-2xl bg-white border border-gray-100 p-5">
+            <span class="text-xs text-gray-400">{{ item.label }}</span>
+            <p class="font-bold text-[#112b4e] mt-2 break-all">{{ item.value }}</p>
+          </div>
+        </div>
+        <div class="rounded-2xl bg-white border border-gray-100 p-6">
+          <h2 class="font-bold text-[#112b4e]">Organisation profile</h2>
+          <p class="text-sm text-gray-500 mt-2">This protected workspace is separate from your individual account. Its profile was created from the approved registration application.</p>
+        </div>
+      </template>
+    </div>
+  </div>
+</template>
+
 <script setup>
-import { computed, onMounted, ref } from 'vue'; import { useRouter } from 'vue-router'; import apiClient from '@/api/client.js'
-const router=useRouter(), organisation=ref(null), profile=ref({}), loading=ref(true)
-const summary=computed(()=>[{label:'Profile type',value:profile.value.organisation_type},{label:'Status',value:profile.value.status},{label:'Official email',value:profile.value.official_email}])
-onMounted(async()=>{try{organisation.value=JSON.parse(localStorage.getItem('ncsms_active_organisation')||'null')}catch{organisation.value=null} if(!organisation.value?.id){router.replace('/my-portal');return} try{const r=await apiClient.get(`/api/v1/organisations/${organisation.value.id}`);profile.value=r.data.data||{}}catch{localStorage.removeItem('ncsms_active_organisation');router.replace('/my-portal')}finally{loading.value=false}})
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import apiClient from '@/api/client.js'
+import UniversalDashboardApplications from '@/components/layout/UniversalDashboardApplications.vue'
+
+const router = useRouter()
+const organisation = ref(null)
+const profile = ref({})
+const loading = ref(true)
+
+const summary = computed(() => [
+  { label: 'Profile type', value: profile.value.organisation_type },
+  { label: 'Status', value: profile.value.status },
+  { label: 'Official email', value: profile.value.official_email },
+])
+
+onMounted(async () => {
+  try {
+    organisation.value = JSON.parse(localStorage.getItem('ncsms_active_organisation') || 'null')
+  } catch {
+    organisation.value = null
+  }
+  if (!organisation.value?.id) {
+    router.replace('/my-portal')
+    return
+  }
+  try {
+    const r = await apiClient.get(`/api/v1/organisations/${organisation.value.id}`)
+    profile.value = r.data.data || {}
+  } catch {
+    localStorage.removeItem('ncsms_active_organisation')
+    router.replace('/my-portal')
+  } finally {
+    loading.value = false
+  }
+})
 </script>

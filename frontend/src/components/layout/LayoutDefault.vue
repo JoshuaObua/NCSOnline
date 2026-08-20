@@ -180,6 +180,21 @@
               </router-link>
             </li>
 
+            <!-- UNIVERSAL APPLICATION MODULES: visible across all dashboards -->
+            <li class="menu-header">Universal Applications</li>
+            <li :class="{ active: currentPath === '/reception/leave/apply' }">
+              <router-link to="/reception/leave/apply" title="Apply for Leave">
+                <i class="icofont-calendar"></i>
+                <span v-if="!sidebarCollapsed">Leave Application</span>
+              </router-link>
+            </li>
+            <li :class="{ active: currentPath === '/it/ppda/new' }">
+              <router-link to="/it/ppda/new" title="New PPDA Form 5 Application">
+                <i class="icofont-document-folder"></i>
+                <span v-if="!sidebarCollapsed">PPDA Application</span>
+              </router-link>
+            </li>
+
             <!-- RECEPTIONIST SPECIFIC DESK MENU -->
             <template v-if="isReceptionistOnly">
               <li class="menu-header">Front Desk & Visitor Control</li>
@@ -451,6 +466,7 @@
 
           <!-- Section Body Default Slot -->
           <div class="section-body">
+            <UniversalDashboardApplications class="mb-6" />
             <slot></slot>
           </div>
         </section>
@@ -476,6 +492,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
+import UniversalDashboardApplications from '@/components/layout/UniversalDashboardApplications.vue'
 
 const props = defineProps({
   title: { type: String, default: '' }
