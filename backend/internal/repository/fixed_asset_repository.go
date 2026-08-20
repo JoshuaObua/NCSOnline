@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"ncsintranet/internal/models"
 )
 
 type FixedAssetRepository interface {

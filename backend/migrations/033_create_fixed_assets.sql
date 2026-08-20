@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS fixed_assets (
     status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
     verification_status VARCHAR(32) DEFAULT 'UNVERIFIED',
     last_verified_at TIMESTAMP WITH TIME ZONE,
-    last_verified_by UUID REFERENCES users(id),
+    last_verified_by TEXT REFERENCES users(id),
     worksheet_source VARCHAR(64) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS asset_transaction_logs (
     previous_val NUMERIC(18,2),
     new_val NUMERIC(18,2),
     notes TEXT,
-    performed_by UUID REFERENCES users(id),
-    approved_by UUID REFERENCES users(id),
+    performed_by TEXT REFERENCES users(id),
+    approved_by TEXT REFERENCES users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

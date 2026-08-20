@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
+	"github.com/atenimedia-llc/ncs-online/backend/internal/repository"
+	"github.com/atenimedia-llc/ncs-online/backend/internal/response"
 	"github.com/go-chi/chi/v5"
-	"ncsintranet/internal/models"
-	"ncsintranet/internal/repository"
-	"ncsintranet/internal/response"
 )
 
 type FixedAssetHandler struct {
@@ -39,7 +39,7 @@ func (h *FixedAssetHandler) ListFixedAssets(w http.ResponseWriter, r *http.Reque
 
 	assets, total, err := h.repo.ListFixedAssets(r.Context(), category, search, limit, offset)
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, "Failed to fetch fixed assets: "+err.Error())
+		fixedAssetError(w, http.StatusInternalServerError, "Failed to fetch fixed assets: "+err.Error())
 		return
 	}
 
@@ -54,7 +54,7 @@ func (h *FixedAssetHandler) ListFixedAssets(w http.ResponseWriter, r *http.Reque
 func (h *FixedAssetHandler) GetFixedAssetSummary(w http.ResponseWriter, r *http.Request) {
 	summary, err := h.repo.GetFixedAssetSummary(r.Context())
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, "Failed to fetch asset summary: "+err.Error())
+		fixedAssetError(w, http.StatusInternalServerError, "Failed to fetch asset summary: "+err.Error())
 		return
 	}
 	response.JSON(w, http.StatusOK, summary)
@@ -64,7 +64,7 @@ func (h *FixedAssetHandler) GetFixedAssetByID(w http.ResponseWriter, r *http.Req
 	id := chi.URLParam(r, "id")
 	asset, err := h.repo.GetFixedAssetByID(r.Context(), id)
 	if err != nil {
-		response.Error(w, http.StatusNotFound, "Asset not found")
+		fixedAssetError(w, http.StatusNotFound, "Asset not found")
 		return
 	}
 	logs, _ := h.repo.GetTransactionLogs(r.Context(), asset.ID)
@@ -77,16 +77,16 @@ func (h *FixedAssetHandler) GetFixedAssetByID(w http.ResponseWriter, r *http.Req
 func (h *FixedAssetHandler) CreateFixedAsset(w http.ResponseWriter, r *http.Request) {
 	var asset models.FixedAsset
 	if err := json.NewDecoder(r.Body).Decode(&asset); err != nil {
-		response.Error(w, http.StatusBadRequest, "Invalid request body")
+		fixedAssetError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
 	if asset.AssetNumber == "" || asset.AssetDescription == "" {
-		response.Error(w, http.StatusBadRequest, "Asset number and description are required")
+		fixedAssetError(w, http.StatusBadRequest, "Asset number and description are required")
 		return
 	}
 	if strings.TrimSpace(asset.TagNumber) == "" {
-		response.Error(w, http.StatusBadRequest, "Tag number is required")
+		fixedAssetError(w, http.StatusBadRequest, "Tag number is required")
 		return
 	}
 	applyFixedAssetDefaults(&asset)
@@ -97,7 +97,7 @@ func (h *FixedAssetHandler) CreateFixedAsset(w http.ResponseWriter, r *http.Requ
 
 	err := h.repo.CreateFixedAsset(r.Context(), &asset)
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, "Failed to create fixed asset: "+err.Error())
+		fixedAssetError(w, http.StatusInternalServerError, "Failed to create fixed asset: "+err.Error())
 		return
 	}
 
@@ -107,12 +107,12 @@ func (h *FixedAssetHandler) CreateFixedAsset(w http.ResponseWriter, r *http.Requ
 func (h *FixedAssetHandler) RevalueFixedAsset(w http.ResponseWriter, r *http.Request) {
 	var req models.AssetRevaluationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, http.StatusBadRequest, "Invalid request body")
+		fixedAssetError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
 	if req.AssetID == "" || req.NewCost < 0 {
-		response.Error(w, http.StatusBadRequest, "Asset ID and valid new cost are required")
+		fixedAssetError(w, http.StatusBadRequest, "Asset ID and valid new cost are required")
 		return
 	}
 
@@ -120,7 +120,7 @@ func (h *FixedAssetHandler) RevalueFixedAsset(w http.ResponseWriter, r *http.Req
 
 	err := h.repo.RevalueFixedAsset(r.Context(), req.AssetID, req.NewCost, req.Notes, userID)
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, "Failed to revalue asset: "+err.Error())
+		fixedAssetError(w, http.StatusInternalServerError, "Failed to revalue asset: "+err.Error())
 		return
 	}
 
@@ -137,7 +137,7 @@ func (h *FixedAssetHandler) RunDepreciation(w http.ResponseWriter, r *http.Reque
 
 	count, totalAmount, err := h.repo.RunDepreciation(r.Context(), req.Period, userID)
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, "Failed to run depreciation: "+err.Error())
+		fixedAssetError(w, http.StatusInternalServerError, "Failed to run depreciation: "+err.Error())
 		return
 	}
 
@@ -151,7 +151,7 @@ func (h *FixedAssetHandler) RunDepreciation(w http.ResponseWriter, r *http.Reque
 func (h *FixedAssetHandler) VerifyFixedAsset(w http.ResponseWriter, r *http.Request) {
 	var req models.AssetVerificationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		response.Error(w, http.StatusBadRequest, "Invalid request body")
+		fixedAssetError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
 
@@ -162,13 +162,17 @@ func (h *FixedAssetHandler) VerifyFixedAsset(w http.ResponseWriter, r *http.Requ
 
 	err := h.repo.VerifyFixedAsset(r.Context(), req.AssetID, req.Status, req.Notes, userID)
 	if err != nil {
-		response.Error(w, http.StatusInternalServerError, "Failed to verify asset: "+err.Error())
+		fixedAssetError(w, http.StatusInternalServerError, "Failed to verify asset: "+err.Error())
 		return
 	}
 
 	response.JSON(w, http.StatusOK, map[string]string{
 		"message": "Asset verification recorded successfully",
 	})
+}
+
+func fixedAssetError(w http.ResponseWriter, status int, message string) {
+	response.Err(w, status, "FIXED_ASSET_ERROR", message)
 }
 
 func currentUserID(r *http.Request) string {
