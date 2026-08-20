@@ -144,6 +144,7 @@ Self-service security controls protecting employee accounts from unauthorized ac
 | **Legal & Corporate Affairs** | Contracts Repository, Federation Arbitration Disputes, IP Registry | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
 | **Sports Science & Medical Unit** | Athlete Medical Screenings, Injury Rehab, WADA Anti-Doping | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
 | **Fleet & Transport Unit** | Vehicle Registry, Trip Requisitions, Fuel Logs, Driver Rosters | ✅ Leave, Activities, Messages, Notifications, Profile, Settings |
+| **Receptionist / Front Desk Dashboard** | Visitor Clearance Desk, Host Approval Queue, Gate Pass Check-In/Out, Front Desk Reports | ✅ Leave, Activities, Notifications, Profile, Settings |
 | **Applicant / External Portal**| License Applications, Status Tracker, Certificate Vault | ✅ Profile, Security Settings, Messages, Notifications |
 
 ---
