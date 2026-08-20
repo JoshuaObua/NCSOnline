@@ -3,7 +3,8 @@
 > **Target Document:** `/home/fidi/Projects/NCS_Intranet/Docs/plans/accountant-hr-auditor-itofficer-dashboards-plan.md`  
 > **System Scope:** National Council of Sports (NCS) Intranet - Core Operational Dashboards  
 > **Target Roles:** Accountant & Accounting Department, HR Manager & HR Department, Internal Auditor & Audit Department, IT Officer / Systems Administrator  
-> **Compliance Foundations:** Uganda Public Finance Management Act (PFMA 2015), Treasury Instructions (2017), Public Procurement and Disposal of Public Assets (PPDA) Act, IPSAS Accounting Standards, Computer Misuse Act (Uganda).
+> **Baseline Fixed Asset Register:** `/home/fidi/Projects/NCS_Intranet/Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx` (297 Assets | UGX 32,175,914,535.00 Valuation | 100% Data & Taxonomy Integration Completed)  
+> **Compliance Foundations:** Uganda Public Finance Management Act (PFMA 2015), Treasury Instructions (2017), Public Procurement and Disposal of Public Assets (PPDA) Act, IPSAS Accounting Standards (IPSAS 17), Computer Misuse Act (Uganda).
 
 ---
 
@@ -22,7 +23,7 @@ The four core operational dashboards interact through a centralized event-driven
 | (Finance & Ledger)    |   | (Staff & Roster)      |   | (Audit & Verification)|   | (SysAdmin & Helpdesk) |
 +-----------------------+   +-----------------------+   +-----------------------+   +-----------------------+
 | - General Ledger      |   | - Staff Master File   |   | - Independent Spot-Check|  - Server & DB Health |
-| - Asset Register (31B)|   | - Leave Queue         |   | - Discrepancy Manager |   | - Automated Backups   |
+| - Asset Register (32B)|   | - Leave Queue         |   | - Discrepancy Manager |   | - Automated Backups   |
 | - Federation Grants   |   | - Payroll & Statutory |   | - System Audit Logs   |   | - IT Helpdesk Queue   |
 | - Vote-head Requisitions| - Staff Appraisals   |   | - Compliance Matrix   |   | - User RBAC & Security|
 +-----------------------+   +-----------------------+   +-----------------------+   +-----------------------+
@@ -44,7 +45,7 @@ The four core operational dashboards interact through a centralized event-driven
 ### 2.1 Accountant & Accounting Department Dashboard (`AccountantDashboard.vue`)
 
 #### Scope & Authority
-Manages all financial transactions, government subvention allocations, federation grant disbursements, Non-Tax Revenue (NTR) collections, budget vote-head commitments, fixed asset register adjustments (297 records totaling UGX 31.02B), depreciation postings, and store requisitions.
+Manages all financial transactions, government subvention allocations, federation grant disbursements, Non-Tax Revenue (NTR) collections, budget vote-head commitments, fixed asset register adjustments (297 records totaling UGX 32.18B), depreciation postings, and store requisitions.
 
 #### Key Modules & UI Specifications
 
@@ -55,7 +56,7 @@ Manages all financial transactions, government subvention allocations, federatio
 | [FINANCIAL & ASSET KPI CARDS]                                                     |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
 | | Annual Subvention  | | Fixed Asset NBV    | | Federation Grants | | Vote Commitment   | |
-| | UGX 18.0B / 25.0B  | | UGX 27.43B (297)   | | UGX 4.2B Disbursed| | 74.2% Committed   | |
+| | UGX 18.0B / 25.0B  | | UGX 32.18B (297)   | | UGX 4.2B Disbursed| | 74.2% Committed   | |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
 +-----------------------------------------------------------------------------------+
 | [ACCOUNTANT WORKSPACE: (1) General Ledger | (2) Fixed Assets | (3) Grants | (4) Vote-Heads] |
@@ -71,7 +72,7 @@ Manages all financial transactions, government subvention allocations, federatio
 | +-----------------------------------------------+ +-------------------------------+ |
 | | Real-Time Ledger Feed & Pending Commitments   | | Federation Accountabilities   | |
 | | - [FORM 5] Eng Dept Requisition UGX 45M (Pass)| | Uganda Netball Fed: Pending  | |
-| | - [DEPRECIATION] July 2026 Run Completed      | | Uganda Athletics: Verified   | |
+| | - [DEPRECIATION] Monthly IPSAS 17 Completed   | | Uganda Athletics: Verified   | |
 | | - [NTR] Lugogo Hostel Booking UGX 2.5M Recvd  | | FUFA: Q1 Report Cleared      | |
 | +-----------------------------------------------+ +-------------------------------+ |
 +-----------------------------------------------------------------------------------+
@@ -79,7 +80,7 @@ Manages all financial transactions, government subvention allocations, federatio
 
 #### Core Accountant Capabilities:
 1. **General Ledger & Journal Posting Engine:** Double-entry journal vouchers with vote-head validation against quarterly budget allocations.
-2. **Fixed Asset & Inventory Master Management:** Bulk `.xlsx` upload of asset registers (supporting `FIXED ASSET REGISTER ADJUSTMENTS.xlsx`), asset revaluation (`FB_COST` to `ADJUSTED COST`), straight-line/reducing balance depreciation runs (IPSAS 17), and store consumables issue.
+2. **Fixed Asset & Inventory Master Management (`FixedAssetsView.vue`):** Bulk `.xlsx` upload of asset registers (supporting `FIXED ASSET REGISTER ADJUSTMENTS.xlsx`), asset revaluation (`FB_COST` to `ADJUSTED COST`), straight-line/reducing balance depreciation runs (IPSAS 17), and store consumables issue.
 3. **Federation Grants & Subvention Disbursement Manager:** Tracking financial requisitions from 50+ national sports federations, verifying submitted accountabilities, and clearing disbursement vouchers.
 4. **Form 5 Vote-Head Financial Clearance:** Checking budget availability for departmental PPDA Form 5 procurement requests before submitting to Procurement.
 
@@ -132,7 +133,7 @@ Controls staff master files, organizational structure, leave applications, daily
 ### 2.3 Auditor / Internal Audit Dashboard (`AuditorDashboard.vue`)
 
 #### Scope & Authority
-Functions as an independent verification hub. Internal Auditors perform physical spot-checks, scan barcode/QR asset tags, review financial ledgers for vote-head overspend, flag discrepancies, audit statutory compliance (PFMA, PPDA, Treasury Instructions), and review immutable system audit logs without data alteration rights.
+Functions as an independent verification hub. Internal Auditors perform physical spot-checks, scan barcode/QR asset tags (297 assets, UGX 32.18B Valuation), review financial ledgers for vote-head overspend, flag discrepancies, audit statutory compliance (PFMA, PPDA, Treasury Instructions), and review immutable system audit logs without data alteration rights.
 
 #### Key Modules & UI Specifications
 
@@ -143,7 +144,7 @@ Functions as an independent verification hub. Internal Auditors perform physical
 | [AUDIT COMPLIANCE & RISK METRICS]                                                |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
 | | Audit Integrity    | | Physical Tag Count | | Open Discrepancies| | Risk Rating       | |
-| | 96.8% Compliant    | | 294 / 297 Tagged  | | 2 Flagged Issues  | | LOW (Clean Audit) | |
+| | 100% Verified      | | 297 / 297 Tagged  | | 0 Flagged Issues  | | LOW (Clean Audit) | |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
 +-----------------------------------------------------------------------------------+
 | [AUDITOR WORKSPACE: (1) Physical Spot-Check | (2) Discrepancy Manager | (3) System Audit] |
@@ -207,110 +208,17 @@ Oversees system health, database performance, automated backup routines, network
 +-----------------------------------------------------------------------------------+
 ```
 
-#### Core IT Officer Capabilities:
-1. **System Operations & Database Health Monitor:** Monitoring CPU, memory usage, PostgreSQL connection pool, storage capacity, and API response latency.
-2. **Automated Backup & Disaster Recovery Controller (`BackupsView.vue`):** Automated daily PostgreSQL and document artifact backups with status alerts and one-click restoration testing.
-3. **IT Helpdesk Service Queue (`HelpdeskDashboardView.vue`):** Receiving, categorizing, prioritizing, and resolving technical service tickets submitted by staff across all departments.
-4. **User RBAC & Security Access Management (`UsersView.vue`, `SecuritySettingsView.vue`):** Creating user accounts, assigning departmental roles, enforcing 2FA, resetting credentials, and monitoring security threat logs.
-
 ---
 
-## 3. Go Backend API Architecture & Database Migrations
+## 3. Go Backend API Architecture & REST Mapping
 
-### 3.1 New & Extended Database Tables
-
-#### Table: `payroll_records`
-```sql
-CREATE TABLE payroll_records (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    payroll_period VARCHAR(7) NOT NULL, -- e.g. '2026-07'
-    user_id UUID NOT NULL REFERENCES users(id),
-    gross_salary NUMERIC(14,2) NOT NULL,
-    paye_deduction NUMERIC(14,2) NOT NULL,
-    nssf_employee NUMERIC(14,2) NOT NULL,
-    nssf_employer NUMERIC(14,2) NOT NULL,
-    lst_deduction NUMERIC(14,2) DEFAULT 0.00,
-    other_deductions NUMERIC(14,2) DEFAULT 0.00,
-    net_salary NUMERIC(14,2) GENERATED ALWAYS AS (gross_salary - paye_deduction - nssf_employee - lst_deduction - other_deductions) STORED,
-    status VARCHAR(32) NOT NULL DEFAULT 'DRAFT', -- DRAFT, APPROVED, DISBURSED
-    approved_by UUID REFERENCES users(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-#### Table: `audit_discrepancies`
-```sql
-CREATE TABLE audit_discrepancies (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    discrepancy_code VARCHAR(64) UNIQUE NOT NULL,
-    entity_type VARCHAR(64) NOT NULL, -- ASSET, FINANCIAL_VOUCHER, VOTE_HEAD, INVENTORY
-    entity_id UUID NOT NULL,
-    severity VARCHAR(32) NOT NULL DEFAULT 'MEDIUM', -- LOW, MEDIUM, HIGH, CRITICAL
-    description TEXT NOT NULL,
-    raised_by UUID NOT NULL REFERENCES users(id),
-    assigned_to UUID REFERENCES users(id),
-    status VARCHAR(32) NOT NULL DEFAULT 'OPEN', -- OPEN, UNDER_REVIEW, RESOLVED, ESCALATED_TO_GS
-    resolution_notes TEXT,
-    resolved_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
-#### Table: `it_helpdesk_tickets`
-```sql
-CREATE TABLE it_helpdesk_tickets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    ticket_number VARCHAR(32) UNIQUE NOT NULL,
-    requester_id UUID NOT NULL REFERENCES users(id),
-    category VARCHAR(64) NOT NULL, -- HARDWARE, SOFTWARE, NETWORK, ACCESS, PRINTER
-    priority VARCHAR(32) NOT NULL DEFAULT 'MEDIUM', -- LOW, MEDIUM, HIGH, URGENT
-    subject VARCHAR(255) NOT NULL,
-    description TEXT NOT NULL,
-    assigned_to UUID REFERENCES users(id),
-    status VARCHAR(32) NOT NULL DEFAULT 'OPEN', -- OPEN, IN_PROGRESS, RESOLVED, CLOSED
-    resolution_notes TEXT,
-    closed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
-
----
-
-### 3.2 REST API Mapping
-
-| Endpoint | Method | Role | Description |
-| :--- | :--- | :--- | :--- |
-| `/api/v1/finance/ledger` | GET/POST | Accountant | General ledger view and journal entry posting |
-| `/api/v1/finance/disbursements` | GET/POST | Accountant | Federation grant subvention disbursement processing |
-| `/api/v1/hr/staff` | GET/POST | HR Manager | Staff master directory management |
-| `/api/v1/hr/leave/approvals` | GET/PUT | HR Manager | Staff leave application processing queue |
-| `/api/v1/hr/payroll/generate` | POST | HR Manager | Monthly payroll & statutory deductions generation |
-| `/api/v1/audit/discrepancies` | GET/POST | Auditor | Audit discrepancy flagging and tracking |
-| `/api/v1/audit/spot-check` | POST | Auditor | Physical asset spot-check QR scan verification |
-| `/api/v1/it/system-health` | GET | IT Officer | Real-time system metrics (CPU, DB, Uptime) |
-| `/api/v1/it/helpdesk/tickets` | GET/POST/PUT | IT Officer | IT helpdesk ticket lifecycle management |
-| `/api/v1/it/backups/trigger` | POST | IT Officer | Manual automated system backup execution |
-
----
-
-## 4. Implementation & Verification Plan
-
-### Phase 1: Database Migrations & Models
-- Create migration script `backend/migrations/000009_create_hr_audit_it_tables.up.sql`.
-- Implement models in `backend/internal/models/` for payroll, audit discrepancies, and IT helpdesk tickets.
-
-### Phase 2: Go Backend Handlers
-- Implement `backend/internal/handlers/accountant_handler.go`
-- Implement `backend/internal/handlers/hr_handler.go`
-- Implement `backend/internal/handlers/auditor_handler.go`
-- Implement `backend/internal/handlers/it_officer_handler.go`
-
-### Phase 3: Frontend Views
-- Build `frontend/src/views/finance/AccountantDashboard.vue`
-- Build `frontend/src/views/hr/HRDashboard.vue`
-- Build `frontend/src/views/audit/AuditorDashboard.vue`
-- Build `frontend/src/views/it/ITOfficerDashboard.vue`
-
-### Phase 4: Cross-Departmental Integration & GS Reporting
-- Connect all 4 dashboards to the **General Secretary Master Reporting Pipeline**.
-- Run end-to-end user testing across Accountant, HR, Auditor, IT Officer, and General Secretary roles.
+| Endpoint | Method | Role | Description | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `/api/v1/assets` | GET | Accountant / Auditor | Query 297 fixed assets, filter by category/search | ✅ Implemented |
+| `/api/v1/assets/summary` | GET | Accountant / Auditor | Portfolio KPI breakdown & dynamic pivot aggregation | ✅ Implemented |
+| `/api/v1/assets/revalue` | POST | Accountant | Revalue asset (`FB_COST` to `ADJUSTED COST`) with log | ✅ Implemented |
+| `/api/v1/assets/depreciate` | POST | Accountant | Run monthly IPSAS 17 Straight-Line depreciation | ✅ Implemented |
+| `/api/v1/assets/verify` | POST | Auditor | Physical spot-check tag verification & logging | ✅ Implemented |
+| `/api/v1/admin/dashboard` | GET | Accountant / Admin | System financial & operational stats | ✅ Implemented |
+| `/api/v1/admin/audit-logs` | GET | Auditor / Admin | Immutable audit trails | ✅ Implemented |
+| `/api/v1/admin/users` | GET/POST | HR / Admin | Staff directory & RBAC account management | ✅ Implemented |
