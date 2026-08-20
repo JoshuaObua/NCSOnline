@@ -4,8 +4,9 @@
 > **Role:** Internal Auditor / Senior Internal Auditor / Audit Manager  
 > **Department:** Internal Audit Department - National Council of Sports (NCS)  
 > **Authority Scope:** Independent Audit Verification, Physical Tag Scanning, Financial & Asset Discrepancy Flagging, Compliance Audit, Immutable System Audit Logs  
+> **Baseline Register:** `/home/fidi/Projects/NCS_Intranet/Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx` (297 Assets | UGX 32,175,914,535.00 Valuation)  
 > **Universal Scope:** My Activities, Direct Messages, Real-Time Notifications, Profile, Security Settings, and Personal Leave Application & Approval Portal  
-> **Compliance Standards:** Public Finance Management Act (PFMA 2015), Treasury Instructions (2017), PPDA Act, Auditor General Uganda Standards  
+> **Compliance Standards:** Public Finance Management Act (PFMA 2015), Treasury Instructions (2017), PPDA Act, Auditor General Uganda Standards, IPSAS 17 (Property, Plant & Equipment)  
 
 ---
 
@@ -26,7 +27,7 @@ This plan details the **Internal Audit Command Portal** inside `NCS_Intranet`. A
 | [AUDIT COMPLIANCE & RISK METRICS]                                                |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
 | | Audit Integrity    | | Physical Tag Count | | Open Discrepancies| | Risk Rating       | |
-| | 96.8% Compliant    | | 294 / 297 Tagged  | | 2 Flagged Issues  | | LOW (Clean Audit) | |
+| | 100% Verified      | | 297 / 297 Tagged  | | 0 Flagged Issues  | | LOW (Clean Audit) | |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
 +-----------------------------------------------------------------------------------+
 | [AUDITOR WORKSPACE: (1) Physical Spot-Check | (2) Discrepancy Manager | (3) System Audit] |
@@ -69,7 +70,11 @@ In addition to specialized audit and spot-checking tools, every user in the Inte
 
 ---
 
-## 4. Database Schema & Technical Architecture
+## 4. Fixed Asset Register Verification & Audit Discrepancy Architecture
+
+The audit system verifies the 297 baseline fixed asset records seeded from `Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx` (UGX 32.18B Scope).
+
+### Database Schema
 
 ```sql
 CREATE TABLE audit_discrepancies (
@@ -90,19 +95,23 @@ CREATE TABLE audit_discrepancies (
 
 ---
 
-## 5. REST API Mapping (`backend/internal/handlers/auditor_handler.go`)
+## 5. REST API Mapping
 
-| Endpoint | Method | Description |
-| :--- | :--- | :--- |
-| `/api/v1/audit/spot-check` | POST | Verify physical asset tag via QR barcode scan |
-| `/api/v1/audit/discrepancies` | GET/POST | Query and flag audit discrepancies |
-| `/api/v1/user/leave/apply` | POST | Auditor personal leave application submittal |
-| `/api/v1/user/activities` | GET | Personal audit activity log query |
+| Endpoint | Method | Description | Status |
+| :--- | :--- | :--- | :--- |
+| `/api/v1/assets` | GET | Audit query for all 297 fixed assets & category breakdown | ✅ Implemented |
+| `/api/v1/assets/summary` | GET | Portfolio summary & category pivot table aggregation | ✅ Implemented |
+| `/api/v1/assets/verify` | POST | Physical spot-check tag scan & audit verification logging | ✅ Implemented |
+| `/api/v1/assets/revalue` | POST | Revaluation audit log (`FB_COST` to `ADJUSTED COST`) | ✅ Implemented |
+| `/api/v1/audit/discrepancies` | GET/POST | Query and flag audit discrepancies | ✅ Implemented |
+| `/api/v1/user/leave/apply` | POST | Auditor personal leave application submittal | ✅ Implemented |
+| `/api/v1/user/activities` | GET | Personal audit activity log query | ✅ Implemented |
 
 ---
 
 ## 6. Implementation Verification Roadmap
 
-- [ ] Create Go backend handler `backend/internal/handlers/auditor_handler.go`.
-- [ ] Build Vue frontend view `frontend/src/views/audit/AuditorDashboard.vue`.
-- [ ] Verify personal leave application and universal workplace modules for all audit staff.
+- [x] Integrate 297 real fixed asset records from `Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx`.
+- [x] Create Go backend handlers for fixed asset audit verification (`/api/v1/assets/verify`, `/api/v1/assets/revalue`).
+- [x] Build Vue frontend view `frontend/src/views/FixedAssetsView.vue` with 4 tabs (Asset Register, Revaluation Audit Log, IPSAS 17 Depreciation Runner, Dynamic Pivot Engine).
+- [x] Verify personal leave application and universal workplace modules for all audit staff.
