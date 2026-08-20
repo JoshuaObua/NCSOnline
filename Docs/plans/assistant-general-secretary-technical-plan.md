@@ -3,8 +3,9 @@
 > **Target File:** `/home/fidi/Projects/NCS_Intranet/Docs/plans/assistant-general-secretary-technical-plan.md`  
 > **Role:** Assistant General Secretary - Technical (AGS-T)  
 > **Reporting Line:** Direct Executive Subordinate to General Secretary (GS / Accounting Officer)  
-> **Executive Oversight Scope:** All Technical Branches & Operations — Technical & Sports Administration Department, 50+ National Sports Associations/Federations, NSMIS, Athlete & Coach Licensing, National Delegations, Engineering & Infrastructure Department, Regional Sports Facilities & Stadia, Field Work Orders, Infrastructure Projects, Sports Equipment Inventory, and Venue Readiness Certification.  
-> **Statutory & Governance Standard:** Uganda National Sports Act (2023), NCS Technical Operations Guidelines, IOC/World Athletics/FIFA Venue Standards, PPDA Guidelines.
+> **Executive Oversight Scope:** All Technical Branches & Operations — Technical & Sports Administration Department, 50+ National Sports Associations/Federations, NSMIS, Athlete & Coach Licensing, National Delegations, Engineering & Infrastructure Department, Regional Sports Facilities & Stadia, Field Work Orders, Infrastructure Projects, Sports Equipment & Fixed Assets Inventory (297 Items | UGX 32,175,914,535.00 Valuation), and Venue Readiness Certification.  
+> **Baseline Asset Register:** `/home/fidi/Projects/NCS_Intranet/Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx` (100% Data & Taxonomy Integration Completed)  
+> **Statutory & Governance Standard:** Uganda National Sports Act (2023), NCS Technical Operations Guidelines, IOC/World Athletics/FIFA Venue Standards, PPDA Guidelines, IPSAS 17 (Property, Plant & Equipment).
 
 ---
 
@@ -24,10 +25,10 @@ The AGS-T functions as the **First-Line Executive Vetting and Technical Clearanc
          v                                           v     v                                           v
 +-----------------------------+ +-----------------------------+ +-----------------------------+ +-----------------------------+
 | TECHNICAL & SPORTS ADMIN    | | ENGINEERING & INFRASTRUCTURE| | FACILITIES & VENUE READINESS| | SPORTS ASSETS & EQUIPMENT   |
-| - 50+ National Federations  | | - Senior & Assistant Engrs  | | - Lugogo Complex & Arena    | | - High-Performance Gear     |
+| - 50+ National Federations  | | - Senior & Assistant Engrs  | | - Lugogo Complex & Arena    | | - 297 Fixed Assets (32.18B)|
 | - NSMIS & Athlete Licensing | | - Civil & Electrical Works  | | - Regional Grounds & Hostels| | - Federation Equipment Pool |
 | - National Teams & Abroad   | | - Active Work Order Pipeline| | - Match Readiness & Safety  | | - Maintenance Spares Pool   |
-| - Safeguarding & Anti-Doping| | - Infrastructure CapEx Plans| | - Venue Certification Stamp | | - Stock Inspections         |
+| - Safeguarding & Anti-Doping| | - Infrastructure CapEx Plans| | - Venue Certification Stamp | | - Stock Inspections & QR   |
 +-----------------------------+ +-----------------------------+ +-----------------------------+ +-----------------------------+
          |                                           |     |                                           |
          +-------------------------------------------+-----+-------------------------------------------+
@@ -88,11 +89,12 @@ The AGS-T functions as the **First-Line Executive Vetting and Technical Clearanc
 
 ---
 
-### 2.3 Sports Asset, Gear & Equipment Oversight
-1. **High-Performance Sports Gear Inventory:**
-   - Live audit tracking of NCS-owned high-performance equipment (gym apparatus, electronic timing gates, pole vault mats, boxing rings, synthetic track equipment).
+### 2.3 Sports Asset, Gear & Fixed Asset Register Oversight
+1. **Complete Fixed Asset & Gear Inventory (`UGX 32,175,914,535.00` Scope):**
+   - 100% Data parity with `Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx` (297 assets across Land, Buildings, Vehicles, ICT, Electrical Machinery, Furniture).
+   - Executive monitoring of asset valuation, revaluations (`FB_COST` to `ADJUSTED COST`), and IPSAS 17 accumulated depreciation & Net Book Value.
 2. **Federation Equipment Pool & Loan Register:**
-   - Tracks equipment loaned to federations for international qualifiers or national championships with return condition inspections.
+   - Tracks high-performance equipment loaned to federations for international qualifiers or national championships with return condition inspections.
 3. **Maintenance Spare Parts & Consumables Inspection:**
    - Oversees plumbing, electrical, and turf maintenance inventory to prevent facility downtime.
 
@@ -118,11 +120,11 @@ A unified workflow queue where AGS-T acts upon items submitted from Technical an
 +-----------------------------------------------------------------------------------+
 | [AGS-T EXECUTIVE TECHNICAL KPI CARDS]                                             |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
-| | Active Federations | | Licensed Athletes  | | Facility Readiness| | Pending Technical| |
-| | 52 / 52 Tracked    | | 14,850 Athletes    | | 94.2% Lugogo Hub  | | 6 Approvals Queue | |
+| | Active Federations | | Licensed Athletes  | | Facility Readiness| | Fixed Assets Portfolio|
+| | 52 / 52 Tracked    | | 14,850 Athletes    | | 94.2% Lugogo Hub  | | UGX 32.18 Billion | |
 | +--------------------+ +--------------------+ +-------------------+ +-------------------+ |
 +-----------------------------------------------------------------------------------+
-| [WORKSPACE TABS: (1) Technical Approvals | (2) Federations & NSMIS | (3) Engineering & Works | (4) Delegations] |
+| [WORKSPACE TABS: (1) Technical Approvals | (2) Federations & NSMIS | (3) Engineering & Assets | (4) Delegations] |
 | +-------------------------------------------------------------------------------+ |
 | | [AGS-T TECHNICAL ENDORSEMENT & CLEARANCE QUEUE]                               | |
 | | ID       | Category          | Request Item             | Submitting Officer | Action    | |
@@ -191,14 +193,15 @@ CREATE TABLE facility_readiness_certifications (
 
 ## 5. Go REST API Endpoints (`backend/internal/executive/agst_handler.go`)
 
-| Endpoint | Method | Role | Description |
-| :--- | :--- | :--- | :--- |
-| `/api/v1/executive/ags-t/dashboard` | GET | `ags_technical` | Retrieve real-time technical macro KPIs across all technical branches |
-| `/api/v1/executive/ags-t/approvals` | GET | `ags_technical` | List pending technical approval and endorsement items |
-| `/api/v1/executive/ags-t/approvals/:id/action` | POST | `ags_technical` | Action approval (Endorse to GS, Approve, Return, Reject) |
-| `/api/v1/executive/ags-t/federations/compliance` | GET | `ags_technical` | Aggregated 50+ federations governance, compliance & grant status |
-| `/api/v1/executive/ags-t/engineering/work-orders` | GET | `ags_technical` | Engineering active work order monitoring and CapEx pipeline |
-| `/api/v1/executive/ags-t/facilities/readiness` | GET | `ags_technical` | Live facility health metrics and inspection logs |
-| `/api/v1/executive/ags-t/facilities/certify` | POST | `ags_technical` | Issue formal event venue readiness certificate |
-| `/api/v1/executive/ags-t/delegations` | GET/POST | `ags_technical` | Review and endorse national sports delegations travelling abroad |
-| `/api/v1/executive/ags-t/reports/technical-brief` | POST | `ags_technical` | Generate consolidated technical executive brief PDF for GS & Board |
+| Endpoint | Method | Role | Description | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `/api/v1/executive/ags-t/dashboard` | GET | `ags_technical` | Retrieve real-time technical macro KPIs across all technical branches | ✅ Implemented |
+| `/api/v1/executive/ags-t/approvals` | GET | `ags_technical` | List pending technical approval and endorsement items | ✅ Implemented |
+| `/api/v1/executive/ags-t/approvals/:id/action` | POST | `ags_technical` | Action approval (Endorse to GS, Approve, Return, Reject) | ✅ Implemented |
+| `/api/v1/executive/ags-t/federations/compliance` | GET | `ags_technical` | Aggregated 50+ federations governance, compliance & grant status | ✅ Implemented |
+| `/api/v1/assets` | GET | `ags_technical` | Fixed Asset Register audit (297 assets, UGX 32.18B Scope) | ✅ Implemented |
+| `/api/v1/assets/summary` | GET | `ags_technical` | Portfolio breakdown & category pivot summary | ✅ Implemented |
+| `/api/v1/executive/ags-t/facilities/readiness` | GET | `ags_technical` | Live facility health metrics and inspection logs | ✅ Implemented |
+| `/api/v1/executive/ags-t/facilities/certify` | POST | `ags_technical` | Issue formal event venue readiness certificate | ✅ Implemented |
+| `/api/v1/executive/ags-t/delegations` | GET/POST | `ags_technical` | Review and endorse national sports delegations travelling abroad | ✅ Implemented |
+| `/api/v1/executive/ags-t/reports/technical-brief` | POST | `ags_technical` | Generate consolidated technical executive brief PDF for GS & Board | ✅ Implemented |
