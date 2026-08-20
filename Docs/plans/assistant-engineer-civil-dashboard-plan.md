@@ -2,14 +2,16 @@
 
 > **Target File:** `/home/fidi/Projects/NCS_Intranet/Docs/plans/assistant-engineer-civil-dashboard-plan.md`  
 > **Role:** Assistant Engineer Civil (Operational Field Supervisor)  
-> **Reports To:** Engineering Officer Civil  
+> **Reports To:** Engineering Officer Civil / Senior Engineer  
 > **Oversees:** Plumbers, Masons, Carpenters, Grounds Technicians  
+> **Baseline Civil Assets:** `/home/fidi/Projects/NCS_Intranet/Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx` (`LAND`, `NON RESIDENTIAL BUILDINGS`, `RESIDENTIAL BUILDINGS` Worksheets, 26 Assets | UGX 30,199,635,769.00 Valuation + Civil Infrastructure Scope)  
+> **Statutory & Technical Standards:** Uganda National Building Code, PPDA Act, IPSAS 17 (Property, Plant & Equipment).
 
 ---
 
 ## 1. Role Overview & Objectives
 
-The **Assistant Engineer Civil** serves as the primary operational supervisor for civil maintenance, plumbing systems, building structures, and sports ground maintenance across NCS facilities.
+The **Assistant Engineer Civil** serves as the primary operational supervisor for civil maintenance, plumbing systems, building structural inspections, sports grounds (Lugogo Hockey Pitch, Cricket Oval, Tennis Courts, Volleyball Courts), and civil fixed asset tag verification (`LAND`, `NON RESIDENTIAL BUILDINGS`, and `RESIDENTIAL BUILDINGS` categories in `Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx`).
 
 ---
 
@@ -23,9 +25,9 @@ Inherits the unified **NCS Intranet Navigation Framework**:
 +-----------------------------------------------------------------------------------+
 | [SIDEBAR MENU]  | [MAIN CONTENT DASHBOARD]                                        |
 | 1. Dashboard    | +-------------------------------------------------------------+ |
-| 2. Work Orders  | | STATS: Unassigned: 5 | Active Plumbers: 4 | Verifications: 7  | |
+| 2. Work Orders  | | STATS: Civil Assets: 26 | Active Plumbers: 4 | Verifications: 7  | |
 | 3. Plumbers     | +-------------------------------------------------------------+ |
-| 4. Field Reports| | [Overview] [Create WO] [My Activities] [Leave] [Profile]     | |
+| 4. Fixed Assets | | [Overview] [Create WO] [My Activities] [Leave] [Profile]     | |
 | 5. My Activities| +-------------------------------------------------------------+ |
 | 6. Leave        | | Active Civil & Plumbing Work Orders (12)                        | |
 | 7. Messages     | | WO-0880 | Arena Washroom Leak | Plumber Kato | [Assign]         | |
@@ -35,26 +37,32 @@ Inherits the unified **NCS Intranet Navigation Framework**:
 ```
 
 ### Functional Features
-- **My Activities Menu Item:** Routes to `/intranet/my-activities`. Displays personal activity logs (work orders created, plumber task assignments, material requisitions drafted, site verifications cleared).
+- **Fixed Assets Register Integration (`FixedAssetsView.vue`):** Direct oversight of civil assets (Lugogo Indoor Arena, Coronation Ave & Hesketh Bell Rd Land Plots, Hockey Pitch, Cricket Oval, Tennis Courts, NCS Hostel Block).
+- **My Activities Menu Item:** Routes to `/me/activities`. Displays personal activity logs (work orders created, plumber task assignments, material requisitions drafted, site verifications cleared).
 - **Navbar Controls:** Theme switcher, global search, refresh, notifications drawer, and messages drawer.
 
 ---
 
-## 3. "My Activities" Personal Audit Log for Assistant Engineer Civil
+## 3. Fixed Asset Register & Personal Audit Log
 
 ```json
-// GET /api/v1/intranet/my-activities?category=WORK_ORDER
+// GET /api/v1/assets?category=LAND
 {
   "status": "success",
-  "data": [
-    {
-      "id": "act-120",
-      "action_type": "WORK_ORDER_ASSIGNED",
-      "description": "Assigned Plumbing Work Order WO-0880 to Plumber John Kato.",
-      "target_resource_id": "WO-0880",
-      "created_at": "2026-07-29T08:15:00Z"
-    }
-  ]
+  "data": {
+    "assets": [
+      {
+        "asset_number": "M1007155",
+        "tag_number": "VOLUME 505",
+        "asset_description": "PLOT 2-10 CORONATION AVENUE IN KAMPALA DISTRICT-Volume-505 (Land)",
+        "category_segment3": "LAND",
+        "fb_cost": 12825000000.00,
+        "adjusted_cost": 12825000000.00,
+        "useful_life_years": 0
+      }
+    ],
+    "total": 8
+  }
 }
 ```
 
@@ -62,10 +70,13 @@ Inherits the unified **NCS Intranet Navigation Framework**:
 
 ## 4. Go REST API & Checklist
 
-| Endpoint | Method | Scope | Description |
-| :--- | :--- | :--- | :--- |
-| `/api/v1/engineering/work-orders` | POST, GET | Asst Eng Civil | Work order management |
-| `/api/v1/intranet/my-activities` | GET | Self Only | Query personal account audit log |
+| Endpoint | Method | Scope | Description | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `/api/v1/assets` | GET | Civil | Query 26 civil assets (Land, Buildings, Hostels) | ✅ Implemented |
+| `/api/v1/assets/verify` | POST | Civil | Field structural spot-check tag verification | ✅ Implemented |
+| `/api/v1/engineering/work-orders` | POST, GET | Asst Eng Civil | Civil & plumbing work order management | ✅ Implemented |
+| `/api/v1/me/activities` | GET | Self Only | Query personal account audit log | ✅ Implemented |
 
-- [ ] **Step 1:** Add **"My Activities"** link to `AssistantEngineerCivilDashboard.vue` sidebar.
-- [ ] **Step 2:** Test personal activity audit query for Assistant Engineer Civil account.
+- [x] Integrate 26 civil land and building records from `Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx`.
+- [x] Add **"My Activities"** and **"Fixed Assets"** links to `AssistantEngineerCivilDashboard.vue` sidebar.
+- [x] Test personal activity audit query for Assistant Engineer Civil account.
