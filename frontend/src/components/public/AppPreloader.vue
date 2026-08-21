@@ -27,7 +27,14 @@ const props = defineProps({
   maxDuration: { type: Number, default: 800 },
 })
 
-const { isDark } = useTheme()
+let isDark = ref(false)
+try {
+  const themeState = useTheme()
+  if (themeState?.isDark) isDark = themeState.isDark
+} catch {
+  // Safe fallback
+}
+
 const visible = ref(true)
 const siteLogo = ref('')
 const logoSrc = computed(() => siteLogo.value ? mediaUrl(siteLogo.value) : '/main-logo.png')
