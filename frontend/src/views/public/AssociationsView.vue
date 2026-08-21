@@ -243,7 +243,8 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { listAssociations } from '@/api/cms.js'
+import axios from 'axios'
+import { portalApiUrl } from '@/utils/portal.js'
 import { mediaUrl } from '@/api/client.js'
 
 const associations = ref([])
@@ -274,11 +275,15 @@ function onKeydown(e) { if (e.key === 'Escape') selected.value = null }
 onMounted(async () => {
   document.addEventListener('keydown', onKeydown)
   try {
-    const r = await listAssociations({ active: 'true' })
+    const r = await axios.get(portalApiUrl('/api/v1/cms/associations'), { params: { active: 'true' } })
     const data = r.data?.data || r.data || []
     associations.value = Array.isArray(data) ? data : (data?.items || [])
-  } catch { associations.value = [] }
-  finally { loading.value = false }
+  } catch(err) {
+    console.error('Failed to load associations from portal:', err)
+    associations.value = []
+  } finally {
+    loading.value = false
+  }
 })
 onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown))
 </script>
