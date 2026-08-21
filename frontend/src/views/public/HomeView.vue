@@ -578,7 +578,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { getSettings, getSlideshow, listAssociations, listCouncil, listEvents, listFAQs, listFunFacts, listPosts } from '@/api/cms.js'
+import { mediaUrl, portalApiUrl } from '@/api/client.js'
+import axios from 'axios'
 
 const modalAssociation = ref(null)
 function openAssociationModal(item) {
@@ -588,12 +591,6 @@ function closeAssociationModal() {
   modalAssociation.value = null
 }
 
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { getSettings, getSlideshow, listAssociations, listCouncil, listEvents, listFAQs, listFunFacts, listPosts } from '@/api/cms.js'
-import { mediaUrl } from '@/api/client.js'
-import axios from 'axios'
-import { portalApiUrl } from '@/utils/portal.js'
-import PublicSlideshow from '@/components/public/PublicSlideshow.vue'
 
 const defaultSections = ['hero','about','stats','news','find_sport','get_involved','events','cta','faq_facts'].map(id => ({ id, visible:true }))
 const home = reactive({

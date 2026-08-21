@@ -38,6 +38,13 @@ export function mediaUrl(path) {
   return `${API_BASE_URL}${normalized}`
 }
 
+export function portalApiUrl(path) {
+  const base = import.meta.env?.VITE_PORTAL_API_URL || 'https://ncsportal.atenimedia.com'
+  const normalized = path.startsWith('/') ? path : `/${path}`
+  return `${base}${normalized}`
+}
+
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
