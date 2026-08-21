@@ -21,7 +21,7 @@
           <div>
             <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5" for="email">Email Address</label>
             <div class="relative group">
-              <div class="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-[#f5a623] transition-colors">
+              <div class="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-[#f5a623] transition-colors z-10">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
               </div>
               <input
@@ -29,7 +29,7 @@
                 v-model="email"
                 type="email"
                 autocomplete="email"
-                class="w-full h-11 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 pl-11 pr-4 py-2.5 text-slate-900 dark:text-white text-sm font-medium shadow-sm transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#f5a623]/30 focus:border-[#f5a623]"
+                class="w-full h-11 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 pr-4 py-2.5 text-slate-900 dark:text-white text-sm font-medium shadow-sm transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#f5a623]/30 focus:border-[#f5a623]"
                 placeholder="Enter your official email address"
                 required
                 autofocus
@@ -41,7 +41,7 @@
           <div>
             <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5" for="password">Password</label>
             <div class="relative group">
-              <div class="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-[#f5a623] transition-colors">
+              <div class="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-[#f5a623] transition-colors z-10">
                 <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               </div>
               <input
@@ -49,13 +49,13 @@
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 autocomplete="current-password"
-                class="w-full h-11 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 pl-11 pr-11 py-2.5 text-slate-900 dark:text-white text-sm font-medium shadow-sm transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#f5a623]/30 focus:border-[#f5a623]"
+                class="w-full h-11 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 pr-11 py-2.5 text-slate-900 dark:text-white text-sm font-medium shadow-sm transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#f5a623]/30 focus:border-[#f5a623]"
                 placeholder="Enter your password"
                 required
               />
               <button
                 type="button"
-                class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 flex items-center justify-center rounded-md transition-colors"
+                class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 flex items-center justify-center rounded-md transition-colors z-10"
                 :aria-label="showPassword ? 'Hide password' : 'Show password'"
                 @click="showPassword = !showPassword"
               >
@@ -160,8 +160,15 @@ async function handleLogin() {
 </script>
 
 <style scoped>
+#email, #password {
+  padding-left: 2.75rem !important;
+}
 input::placeholder {
   color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+.dark input::placeholder {
+  color: #64748b !important;
   opacity: 1 !important;
 }
 </style>
