@@ -578,6 +578,16 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+
+const modalAssociation = ref(null)
+function openAssociationModal(item) {
+  modalAssociation.value = item
+}
+function closeAssociationModal() {
+  modalAssociation.value = null
+}
+
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { getSettings, getSlideshow, listAssociations, listCouncil, listEvents, listFAQs, listFunFacts, listPosts } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
