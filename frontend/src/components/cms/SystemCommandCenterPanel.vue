@@ -1,81 +1,187 @@
 <template>
-  <section class="ops-panel">
-    <div class="cms-panel-head">
-      <h2>System Command Center</h2>
-      <label class="ops-live-toggle"><input v-model="liveResources" type="checkbox" /> Live refresh</label>
-    </div>
-
-    <div class="ops-grid">
-      <article class="cms-card metric">
-        <span>CPU</span>
-        <strong>{{ round(resources?.cpu?.overall_percent) }}%</strong>
-        <div class="ops-bar"><span :style="{ width: round(resources?.cpu?.overall_percent) + '%' }"></span></div>
-      </article>
-      <article class="cms-card metric">
-        <span>Memory</span>
-        <strong>{{ round(resources?.memory_detail?.used_percent) }}%</strong>
-        <div class="ops-bar"><span :style="{ width: round(resources?.memory_detail?.used_percent) + '%' }"></span></div>
-        <small>{{ formatBytes(resources?.memory_detail?.used_bytes) }} / {{ formatBytes(resources?.memory_detail?.total_bytes) }}</small>
-      </article>
-      <article class="cms-card metric">
-        <span>Disk</span>
-        <strong>{{ round(resources?.disk?.used_percent) }}%</strong>
-        <div class="ops-bar"><span :style="{ width: round(resources?.disk?.used_percent) + '%' }"></span></div>
-        <small>{{ formatBytes(resources?.disk?.used_bytes) }} / {{ formatBytes(resources?.disk?.total_bytes) }}</small>
-      </article>
-      <article class="cms-card metric">
-        <span>Network</span>
-        <strong>{{ (resources?.network?.ingress_mbps || 0).toFixed(2) }} Mbps</strong>
-        <small>in · {{ (resources?.network?.egress_mbps || 0).toFixed(2) }} Mbps out</small>
-      </article>
-    </div>
-
-    <article class="cms-panel">
-      <div class="cms-panel-head"><h3>Services</h3></div>
-      <table class="ops-table">
-        <thead><tr><th>Service</th><th>Status</th><th>Health</th><th></th></tr></thead>
-        <tbody>
-          <tr v-for="svc in resources?.services || []" :key="svc.name">
-            <td>{{ svc.display_name }}</td>
-            <td><span class="ops-badge" :class="serviceStatusClass(svc)">{{ displayServiceStatus(svc) }}</span></td>
-            <td>{{ displayServiceHealth(svc) }}</td>
-            <td class="ops-actions">
-              <button type="button" :disabled="!canRunServiceAction(svc, 'start')" @click="serviceAction(svc, 'start')">Start</button>
-              <button type="button" :disabled="!canRunServiceAction(svc, 'restart')" @click="serviceAction(svc, 'restart')">Restart</button>
-              <button type="button" class="ops-danger" :disabled="!canRunServiceAction(svc, 'stop')" @click="serviceAction(svc, 'stop')">Stop</button>
-              <button type="button" :disabled="!canRunServiceAction(svc, 'logs')" @click="loadLogs(svc.name)">Logs</button>
-            </td>
-          </tr>
-          <tr v-if="!resources?.services?.length"><td colspan="4" class="cms-empty">No service telemetry yet.</td></tr>
-        </tbody>
-      </table>
-      <p v-if="dockerUnavailable" class="ops-hint">Docker socket is not mounted into this container, so start/stop/restart and log streaming are unavailable — metrics above still work.</p>
-    </article>
-
-    <article class="cms-panel">
-      <div class="cms-panel-head">
-        <h3>Service Logs {{ activeLogService ? `— ${activeLogService}` : '' }}</h3>
-        <label class="ops-live-toggle"><input v-model="liveLogs" type="checkbox" :disabled="!activeLogService" /> Live tail</label>
+  <section class="ops-panel space-y-6">
+    <div class="cms-panel-head border-b border-slate-200 dark:border-slate-800 pb-4 flex items-center justify-between flex-wrap gap-4">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="icofont-layers text-blue-600 dark:text-blue-400"></i> System Command Center
+        </h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Real-time Docker container telemetry, system resource utilization, and service controls.</p>
       </div>
-      <pre class="ops-terminal">{{ logLines.join('\n') || 'Select a service above and click "Logs" to view recent output.' }}</pre>
+      <div class="flex items-center gap-3">
+        <button type="button" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold rounded text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1" @click="loadResources">
+          <i class="icofont-refresh"></i> Refresh
+        </button>
+        <label class="ops-live-toggle flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <input v-model="liveResources" type="checkbox" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" /> Live refresh (4s)
+        </label>
+      </div>
+    </div>
+
+    <!-- 4 Metrics Grid -->
+    <div class="ops-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <article class="cms-card metric bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">CPU Utilization</span>
+        <strong class="text-2xl font-bold text-slate-900 dark:text-white block my-1">{{ round(resources?.cpu?.overall_percent) }}%</strong>
+        <div class="ops-bar h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <span class="block h-full bg-blue-600 rounded-full transition-all duration-300" :style="{ width: round(resources?.cpu?.overall_percent) + '%' }"></span>
+        </div>
+      </article>
+
+      <article class="cms-card metric bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Memory Usage</span>
+        <strong class="text-2xl font-bold text-slate-900 dark:text-white block my-1">{{ round(resources?.memory_detail?.used_percent) }}%</strong>
+        <div class="ops-bar h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <span class="block h-full bg-emerald-500 rounded-full transition-all duration-300" :style="{ width: round(resources?.memory_detail?.used_percent) + '%' }"></span>
+        </div>
+        <small class="text-[11px] text-slate-400 mt-1 block">{{ formatBytes(resources?.memory_detail?.used_bytes) }} / {{ formatBytes(resources?.memory_detail?.total_bytes) }}</small>
+      </article>
+
+      <article class="cms-card metric bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Disk Space</span>
+        <strong class="text-2xl font-bold text-slate-900 dark:text-white block my-1">{{ round(resources?.disk?.used_percent) }}%</strong>
+        <div class="ops-bar h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+          <span class="block h-full bg-purple-500 rounded-full transition-all duration-300" :style="{ width: round(resources?.disk?.used_percent) + '%' }"></span>
+        </div>
+        <small class="text-[11px] text-slate-400 mt-1 block">{{ formatBytes(resources?.disk?.used_bytes) }} / {{ formatBytes(resources?.disk?.total_bytes) }}</small>
+      </article>
+
+      <article class="cms-card metric bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+        <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Network Bandwidth</span>
+        <strong class="text-2xl font-bold text-slate-900 dark:text-white block my-1">{{ (resources?.network?.ingress_mbps || 0).toFixed(2) }} Mbps</strong>
+        <small class="text-[11px] text-slate-400 mt-1 block">in · {{ (resources?.network?.egress_mbps || 0).toFixed(2) }} Mbps out</small>
+      </article>
+    </div>
+
+    <!-- Services & Containers Table -->
+    <article class="cms-panel bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm space-y-4">
+      <div class="cms-panel-head border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <h3 class="text-base font-bold text-slate-800 dark:text-white">Services & Containers</h3>
+          <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+            {{ resources?.services?.length || 0 }} Services
+          </span>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="ops-table w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <th class="py-2.5 px-3">Service Name</th>
+              <th class="py-2.5 px-3">Container ID / Name</th>
+              <th class="py-2.5 px-3">Status</th>
+              <th class="py-2.5 px-3">Health</th>
+              <th class="py-2.5 px-3">Ports</th>
+              <th class="py-2.5 px-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-700 dark:text-slate-300">
+            <tr v-for="svc in resources?.services || []" :key="svc.name" class="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+              <td class="py-3 px-3">
+                <div class="flex flex-col">
+                  <span class="font-bold text-slate-900 dark:text-white text-sm">{{ svc.display_name }}</span>
+                  <small class="text-xs text-slate-400 font-mono">{{ svc.name }}</small>
+                </div>
+              </td>
+              <td class="py-3 px-3">
+                <span v-if="svc.container" class="font-mono text-xs text-slate-600 dark:text-slate-400">{{ svc.container }}</span>
+                <span v-else class="text-xs italic text-slate-400">Not created</span>
+              </td>
+              <td class="py-3 px-3">
+                <span class="ops-badge px-2.5 py-1 rounded-full text-[11px] font-bold inline-block capitalize" :class="displayServiceStatus(svc)">{{ svc.status || 'idle' }}</span>
+              </td>
+              <td class="py-3 px-3">
+                <span class="ops-health-badge px-2.5 py-1 rounded-full text-[11px] font-bold inline-block capitalize" :class="displayServiceHealth(svc)">{{ svc.health || 'unknown' }}</span>
+              </td>
+              <td class="py-3 px-3">
+                <small v-if="svc.published_ports" class="font-mono text-xs text-slate-500 dark:text-slate-400">{{ formatPorts(svc.published_ports) }}</small>
+                <small v-else class="text-xs text-slate-400">—</small>
+              </td>
+              <td class="py-3 px-3 ops-actions flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  class="ops-btn ops-btn-success"
+                  :disabled="busyService === svc.name || svc.status === 'running'"
+                  @click="serviceAction(svc.name, 'start')"
+                >
+                  <i class="icofont-play"></i> Start
+                </button>
+                <button
+                  type="button"
+                  class="ops-btn ops-btn-primary"
+                  :disabled="busyService === svc.name"
+                  @click="serviceAction(svc.name, 'restart')"
+                >
+                  <i class="icofont-refresh"></i> Restart
+                </button>
+                <button
+                  type="button"
+                  class="ops-btn ops-danger"
+                  :disabled="busyService === svc.name || svc.status === 'stopped'"
+                  @click="serviceAction(svc.name, 'stop')"
+                >
+                  <i class="icofont-stop"></i> Stop
+                </button>
+                <button
+                  type="button"
+                  class="ops-btn ops-btn-secondary"
+                  :class="{ 'ops-btn-active': activeLogService === svc.name }"
+                  @click="loadLogs(svc.name)"
+                >
+                  <i class="icofont-terminal"></i> Logs
+                </button>
+              </td>
+            </tr>
+            <tr v-if="!resources?.services?.length"><td colspan="6" class="cms-empty text-center py-6 text-slate-400 italic">No service telemetry available.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p v-if="dockerUnavailable" class="ops-hint text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+        <i class="icofont-warning-alt text-amber-500"></i> Docker socket is not mounted into this container. Control operations and log streaming are currently limited.
+      </p>
     </article>
 
-    <article class="cms-panel">
-      <div class="cms-panel-head"><h3>Recent Events</h3></div>
-      <ul class="ops-events">
-        <li v-for="(evt, idx) in resources?.events || []" :key="idx" :class="evt.severity">
-          <span class="ops-event-dot"></span>
-          <span>{{ evt.message }}</span>
-          <small>{{ formatDateTime(evt.timestamp) }}</small>
+    <!-- Service Logs Terminal -->
+    <article class="cms-panel bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm space-y-4">
+      <div class="cms-panel-head border-b border-slate-100 dark:border-slate-800 pb-3 flex items-center justify-between flex-wrap gap-3">
+        <div class="flex items-center gap-2">
+          <h3 class="text-base font-bold text-slate-800 dark:text-white">Service Logs {{ activeLogService ? `— ${activeLogService}` : '' }}</h3>
+          <span v-if="activeLogService" class="text-xs text-slate-400 font-mono">({{ logLines.length }} lines)</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <input
+            v-model="logFilter"
+            type="text"
+            placeholder="Filter logs..."
+            class="px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+          <label class="ops-live-toggle flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <input v-model="liveLogs" type="checkbox" :disabled="!activeLogService" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500" /> Live tail (4s)
+          </label>
+        </div>
+      </div>
+      <pre class="ops-terminal bg-slate-950 text-sky-400 rounded-xl p-4 font-mono text-xs leading-relaxed max-h-96 overflow-y-auto border border-slate-800 whitespace-pre-wrap word-break-break-word" ref="terminalRef">{{ filteredLogLines.join('
+') || 'Select a service above and click "Logs" to inspect live container logs.' }}</pre>
+    </article>
+
+    <!-- System Events -->
+    <article class="cms-panel bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm space-y-4">
+      <div class="cms-panel-head border-b border-slate-100 dark:border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-slate-800 dark:text-white">Recent System Events</h3>
+      </div>
+      <ul class="ops-events divide-y divide-slate-100 dark:divide-slate-800">
+        <li v-for="(evt, idx) in resources?.events || []" :key="idx" class="py-2.5 flex items-center gap-3 text-xs text-slate-700 dark:text-slate-300" :class="evt.severity">
+          <span class="ops-event-dot w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></span>
+          <span class="font-medium flex-grow">{{ evt.message }}</span>
+          <small class="font-mono text-slate-400 ml-auto">{{ formatDateTime(evt.timestamp) }}</small>
         </li>
-        <li v-if="!resources?.events?.length" class="cms-empty">No recent events.</li>
+        <li v-if="!resources?.events?.length" class="cms-empty text-center py-4 text-slate-400 italic">No recent system events.</li>
       </ul>
     </article>
   </section>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import Swal from 'sweetalert2'
 import { getSystemResources, getServiceLogs, runServiceAction } from '@/api/operator.js'
 
@@ -87,9 +193,17 @@ const liveResources = ref(true)
 const busyService = ref('')
 const activeLogService = ref('')
 const logLines = ref([])
+const logFilter = ref('')
 const liveLogs = ref(false)
+const terminalRef = ref(null)
 let resourcesTimer = null
 let logsTimer = null
+
+const filteredLogLines = computed(() => {
+  if (!logFilter.value) return logLines.value
+  const query = logFilter.value.toLowerCase()
+  return logLines.value.filter(line => line.toLowerCase().includes(query))
+})
 
 function round(v) { return Math.round(Number(v) || 0) }
 function formatBytes(bytes) {
@@ -102,33 +216,35 @@ function formatBytes(bytes) {
 function formatDateTime(value) {
   return value ? new Date(value).toLocaleString() : ''
 }
+function formatPorts(published) {
+  if (typeof published === 'string') return published
+  if (Array.isArray(published)) {
+    return published.map(p => typeof p === 'object' ? `${p.PublishedPort || p.TargetPort}->${p.TargetPort}` : String(p)).join(', ')
+  }
+  return String(published || '—')
+}
 function displayServiceStatus(service = {}) {
-  return String(service.status || 'unavailable').trim().toLowerCase()
+  const st = String(service.status || '').toLowerCase()
+  if (st === 'running' || st === 'up') return 'running'
+  if (st === 'stopped' || st === 'exited' || st === 'dead') return 'stopped'
+  if (st === 'restarting') return 'restarting'
+  return 'idle'
 }
 function displayServiceHealth(service = {}) {
-  const health = String(service.health || '').trim().toLowerCase()
-  if (!health || health === 'unknown') return displayServiceStatus(service)
-  return health
-}
-function serviceStatusClass(service = {}) {
-  const status = displayServiceStatus(service)
-  if (status === 'running') return 'running'
-  if (['restarting', 'created', 'paused'].includes(status)) return 'pending'
-  if (status === 'stopped') return 'stopped'
-  return 'unavailable'
-}
-function serviceActions(service = {}) {
-  return Array.isArray(service.actions) ? service.actions : []
-}
-function canRunServiceAction(service = {}, action) {
-  return !dockerUnavailable.value && busyService.value !== service.name && serviceActions(service).includes(action)
+  const health = String(service.health || '').toLowerCase()
+  if (health === 'healthy') return 'healthy'
+  if (health === 'unhealthy') return 'unhealthy'
+  if (health === 'starting') return 'starting'
+  return 'unknown'
 }
 
 async function loadResources() {
   try {
     resources.value = await getSystemResources()
     dockerUnavailable.value = resources.value?.docker_available === false
-  } catch (err) { emit('error', err) }
+  } catch (err) {
+    emit('error', err?.response?.data?.message || err?.message || 'Failed to load system resources')
+  }
 }
 
 async function loadLogs(service) {
@@ -136,32 +252,34 @@ async function loadLogs(service) {
   try {
     const data = await getServiceLogs(service, 150)
     logLines.value = data.lines || []
-  } catch (err) { emit('error', err) }
+    await nextTick()
+    if (terminalRef.value) terminalRef.value.scrollTop = terminalRef.value.scrollHeight
+  } catch (err) {
+    emit('error', err?.response?.data?.message || err?.message || `Failed to fetch logs for ${service}`)
+  }
 }
 
 async function serviceAction(service, action) {
-  const serviceName = typeof service === 'string' ? service : service?.name
-  if (!serviceName || !canRunServiceAction(typeof service === 'string' ? { name: serviceName, actions: [action] } : service, action)) return
-  const expected = `${action.toUpperCase()} ${serviceName.toUpperCase()}`
+  const expected = `${action.toUpperCase()} ${service.toUpperCase()}`
   const result = await Swal.fire({
-    title: `${action[0].toUpperCase()}${action.slice(1)} ${serviceName}?`,
-    text: `Type ${expected} to confirm.`,
+    title: `${action[0].toUpperCase()}${action.slice(1)} ${service}?`,
+    text: `Type ${expected} to confirm operation.`,
     input: 'text',
     inputPlaceholder: expected,
     showCancelButton: true,
-    confirmButtonText: 'Confirm',
+    confirmButtonText: 'Confirm Action',
     confirmButtonColor: action === 'stop' ? '#fc544b' : '#6777ef',
     cancelButtonColor: '#94a3b8',
     inputValidator: value => value !== expected ? `Type exactly: ${expected}` : undefined,
   })
   if (!result.isConfirmed) return
-  busyService.value = serviceName
+  busyService.value = service
   try {
-    await runServiceAction(serviceName, action, expected)
-    emit('message', `${serviceName} ${action} requested`)
+    await runServiceAction(service, action, expected)
+    emit('message', `Service ${service} ${action} command submitted successfully`)
     await loadResources()
   } catch (err) {
-    emit('error', err)
+    emit('error', err?.response?.data?.message || err?.message || `Failed to ${action} ${service}`)
   } finally {
     busyService.value = ''
   }
@@ -187,53 +305,28 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/*
- * This component is rendered as a child of WebsiteContentManagerView, whose
- * <style scoped> only reaches this component's root element (Vue scoped CSS
- * does not cascade into child templates) — so shared classes are redefined
- * here rather than assumed to be inherited.
- */
-.ops-panel { display: grid; gap: 20px; min-width: 0; }
-.cms-panel-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid #f9f9f9; padding-bottom: 15px; }
-.cms-panel-head h2, .cms-panel-head h3 { margin: 0; font-size: 16px; font-weight: 700; color: #34395e; }
-.cms-panel { background: white; border-radius: 3px; box-shadow: 0 4px 25px rgba(0,0,0,.1); padding: 25px; display: grid; gap: 16px; min-width: 0; }
-.cms-card.metric { background: white; box-shadow: 0 4px 25px rgba(0,0,0,.1); border-radius: 3px; padding: 20px; display: grid; gap: 6px; }
-.cms-card.metric span { color: #98a6ad; font-size: 12px; font-weight: 600; }
-.cms-card.metric strong { font-size: 24px; color: #34395e; }
-.cms-card.metric small { color: #98a6ad; font-size: 11px; }
-.cms-empty { color: #98a6ad; font-style: italic; text-align: center; padding: 16px; }
+.ops-badge { border-radius: 30px; padding: 3px 10px; font-size: 11px; font-weight: 700; text-transform: capitalize; background: #f1f5f9; color: #64748b; }
+.ops-badge.running { background: #dcfce7; color: #15803d; }
+.ops-badge.stopped { background: #fee2e2; color: #b91c1c; }
+.ops-badge.restarting { background: #fef3c7; color: #b45309; }
 
-.ops-live-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #34395e; }
-.ops-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 16px; }
-.ops-bar { height: 6px; border-radius: 30px; background: #f4f6f9; overflow: hidden; }
-.ops-bar span { display: block; height: 100%; background: #6777ef; border-radius: 30px; }
+.ops-health-badge { border-radius: 30px; padding: 3px 10px; font-size: 11px; font-weight: 700; text-transform: capitalize; background: #f1f5f9; color: #64748b; }
+.ops-health-badge.healthy { background: #dcfce7; color: #15803d; }
+.ops-health-badge.unhealthy { background: #fee2e2; color: #b91c1c; }
+.ops-health-badge.starting { background: #fef3c7; color: #b45309; }
 
-.ops-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.ops-table th { text-align: left; color: #94a3b8; font-size: 11px; text-transform: uppercase; padding: 8px 10px; border-bottom: 1px solid #f1f2fb; }
-.ops-table td { padding: 10px; border-bottom: 1px solid #f1f2fb; color: #34395e; vertical-align: middle; }
-.ops-badge { border-radius: 30px; padding: 3px 10px; font-size: 11px; font-weight: 700; text-transform: capitalize; background: #eef0fd; color: #6777ef; }
-.ops-badge.running { background: #e8f7f0; color: #47c363; }
-.ops-badge.pending { background: #fff4e6; color: #ffa426; }
-.ops-badge.stopped { background: #fdeaea; color: #fc544b; }
-.ops-badge.unavailable { background: #f1f5f9; color: #64748b; }
-.ops-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-.ops-actions button { border: 0; border-radius: 30px; background: #6777ef; color: #fff; padding: 6px 12px; font-size: 11px; font-weight: 700; }
-.ops-actions button:disabled { opacity: .5; }
-.ops-actions .ops-danger { background: #fc544b; }
-.ops-hint { color: #98a6ad; font-size: 12px; margin: 0; }
+.ops-btn { border: 0; border-radius: 6px; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all 150ms ease; display: inline-flex; align-items: center; gap: 4px; }
+.ops-btn:disabled { opacity: .45; cursor: not-allowed; }
+.ops-btn-primary { background: #3b82f6; color: #fff; }
+.ops-btn-primary:hover:not(:disabled) { background: #2563eb; }
+.ops-btn-success { background: #22c55e; color: #fff; }
+.ops-btn-success:hover:not(:disabled) { background: #16a34a; }
+.ops-btn-secondary { background: #e2e8f0; color: #334155; }
+.ops-btn-secondary:hover:not(:disabled) { background: #cbd5e1; }
+.ops-btn-active { background: #0f172a !important; color: #fff !important; }
+.ops-danger { background: #ef4444; color: #fff; }
+.ops-danger:hover:not(:disabled) { background: #dc2626; }
 
-.ops-terminal { background: #0f172a; color: #d1e7ff; border-radius: 6px; padding: 16px; font-family: 'Fira Code', monospace; font-size: 12px; max-height: 22rem; overflow: auto; white-space: pre-wrap; word-break: break-word; }
-
-.ops-events { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.ops-events li { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #34395e; }
-.ops-events li small { margin-left: auto; color: #98a6ad; font-size: 11px; }
-.ops-event-dot { width: 8px; height: 8px; border-radius: 50%; background: #6777ef; flex-shrink: 0; }
-.ops-events li.warning .ops-event-dot { background: #ffa426; }
-.ops-events li.critical .ops-event-dot { background: #fc544b; }
-
-:global(.dark .cms-panel-head h2), :global(.dark .cms-panel-head h3) { color: #f8fafc; }
-:global(.dark .cms-panel), :global(.dark .cms-card.metric) { background: #111827; border-color: #334155; }
-:global(.dark .cms-card.metric strong), :global(.dark .ops-table td), :global(.dark .ops-events li), :global(.dark .ops-live-toggle) { color: #f8fafc; }
-:global(.dark .ops-table th) { color: #64748b; }
-:global(.dark .ops-table td) { border-color: #1e293b; }
+:global(.dark .ops-btn-secondary) { background: #334155; color: #f8fafc; }
+:global(.dark .ops-btn-secondary:hover:not(:disabled)) { background: #475569; }
 </style>
