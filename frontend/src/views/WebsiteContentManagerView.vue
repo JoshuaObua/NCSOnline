@@ -2609,7 +2609,7 @@ async function loadAll() {
       return
     }
     if (!(await canReachApi())) {
-      error.value = 'Backend API is not reachable on port 9080. Start the native Go API to load live CMS data.'
+      error.value = 'Backend API is not reachable . Start the native Go API to load live CMS data.'
       snapshotMenus()
       return
     }
@@ -2941,7 +2941,7 @@ async function removeEntity(item, fn) {
 async function saveRole() {
   try {
     if (!(await canReachApi())) {
-      error.value = 'Backend API is not reachable on port 9080. Start the native Go API to create or update live roles.'
+      error.value = 'Backend API is not reachable . Start the native Go API to create or update live roles.'
       return
     }
     const payload = { name: roleForm.name.trim(), description: roleForm.description.trim() }
@@ -2962,7 +2962,7 @@ async function loadRoles() {
       { id:'role_content_manager', name:'content_manager', description:'Preview content manager role. Start the native Go API to manage live roles.', is_system:false, permissions:previewPerms.filter(permission => !['users','roles','audit','storage'].includes(permission.resource)) },
     ]
     permissions.value = permissions.value.length ? permissions.value : previewPerms
-    error.value = 'Backend API is not reachable on port 9080. Role management is showing preview data.'
+    error.value = 'Backend API is not reachable . Role management is showing preview data.'
     return
   }
   const [roleRes, permRes] = await Promise.all([cms.adminListRoles(), cms.adminListPermissions()])
@@ -2999,7 +2999,7 @@ async function selectRole(role) {
       })
       selectedPermissionIds.value = new Set((role.permissions || []).map(permission => permission.id))
       active.value = 'manage-roles'
-      error.value = 'Backend API is not reachable on port 9080. Start the native Go API to customize live permissions.'
+      error.value = 'Backend API is not reachable . Start the native Go API to customize live permissions.'
       return
     }
     const res = await cms.adminGetRole(role.id)
@@ -3040,7 +3040,7 @@ async function removeRole(role) {
   if (!(await confirmAction('Delete this custom role?', 'Content managers assigned to this role may lose access.'))) return
   try {
     if (!(await canReachApi())) {
-      error.value = 'Backend API is not reachable on port 9080. Start the native Go API to delete live roles.'
+      error.value = 'Backend API is not reachable . Start the native Go API to delete live roles.'
       return
     }
     await cms.adminDeleteRole(role.id)
@@ -3072,7 +3072,7 @@ async function loadContactMessages() {
   try {
     if (!(await canReachApi())) {
       contactMessages.value = sampleContactMessages()
-      error.value = 'Backend API is not reachable on port 9080. Messages is showing preview data.'
+      error.value = 'Backend API is not reachable . Messages is showing preview data.'
       return
     }
     const res = await cms.listMessages({ status:messageStatus.value, per_page:100 })
@@ -3231,7 +3231,7 @@ async function loadNotifications() {
   try {
     if (!(await canReachApi())) {
       cmsNotifications.value = sampleNotificationsList()
-      error.value = 'Backend API is not reachable on port 9080. Notifications is showing preview data.'
+      error.value = 'Backend API is not reachable . Notifications is showing preview data.'
       return
     }
     const res = await cms.listNotifications({ status:notificationStatus.value, per_page:100 })
@@ -3316,7 +3316,7 @@ async function loadUsers() {
     if (!(await canReachApi())) {
       users.value = sampleUsers()
       selectedUser.value = null
-      error.value = 'Backend API is not reachable on port 9080. Users is showing preview data.'
+      error.value = 'Backend API is not reachable . Users is showing preview data.'
       return
     }
     const res = await cms.adminListUsers({ page:1, per_page:100, search:userSearch.value })
@@ -3471,7 +3471,7 @@ async function loadAuditLogs() {
       auditLogs.value = filtered.slice(start, start + auditPerPage.value)
       auditMeta.value = { page:auditPage.value, per_page:auditPerPage.value, total:filtered.length }
       selectedAuditLog.value = null
-      error.value = 'Backend API is not reachable on port 9080. Audit Logs is showing preview data.'
+      error.value = 'Backend API is not reachable . Audit Logs is showing preview data.'
       return
     }
     const res = await cms.adminListAuditLogs({ page:auditPage.value, per_page:auditPerPage.value, search:auditSearch.value })
@@ -3519,7 +3519,7 @@ async function loadNewsletterSubscribers() {
   try {
     if (!(await canReachApi())) {
       newsletterSubscribers.value = sampleNewsletterSubscribers()
-      error.value = 'Backend API is not reachable on port 9080. Newsletter is showing preview subscribers.'
+      error.value = 'Backend API is not reachable . Newsletter is showing preview subscribers.'
       return
     }
     const res = await cms.adminListNewsletterSubscribers({ per_page:200 })
@@ -3732,7 +3732,7 @@ function resetFactForm() {
 async function loadComments() {
   try {
     if (!(await canReachApi())) {
-      error.value = 'Backend API is not reachable on port 9080. Start the native Go API to load comments.'
+      error.value = 'Backend API is not reachable . Start the native Go API to load comments.'
       return
     }
     const res = await cms.adminListComments({ status: commentStatus.value, per_page:50 })
