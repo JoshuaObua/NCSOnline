@@ -29,20 +29,17 @@ import { mediaUrl } from '@/api/client.js'
 import { useTheme } from '@/composables/useTheme.js'
 
 const props = defineProps({
-  loading: { type: Boolean, default: undefined },
-  minDuration: { type: Number, default: 450 },
+  loading: { type: Boolean, default: false },
+  minDuration: { type: Number, default: 300 },
 })
 
 const themeState = useTheme()
 const isDark = computed(() => themeState?.isDark?.value ?? false)
 
-const initialVisible = ref(true)
-const propVisible = ref(props.loading ?? false)
-const logoLoaded = ref(false)
-
-function onLogoLoaded() {
-  logoLoaded.value = true
-}
+// Prevent preloader overlay from re-triggering on theme switches or layout updates
+const alreadyLoaded = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('ncs_preloaded') === 'true'
+const initialVisible = ref(!alreadyLoaded)
+const propVisible = ref(!!props.loading)
 
 watch(() => props.loading, (val) => {
   propVisible.value = !!val
@@ -52,6 +49,11 @@ const visible = computed(() => initialVisible.value || propVisible.value)
 
 const siteLogo = ref('')
 const logoSrc = computed(() => siteLogo.value ? mediaUrl(siteLogo.value) : '/main-logo.png')
+const logoLoaded = ref(false)
+
+function onLogoLoaded() {
+  logoLoaded.value = true
+}
 
 onMounted(() => {
   try {
@@ -60,9 +62,12 @@ onMounted(() => {
     }).catch(() => {})
   } catch {}
 
-  setTimeout(() => {
-    initialVisible.value = false
-  }, props.minDuration)
+  if (initialVisible.value) {
+    setTimeout(() => {
+      initialVisible.value = false
+      try { sessionStorage.setItem('ncs_preloaded', 'true') } catch {}
+    }, props.minDuration)
+  }
 })
 </script>
 
@@ -76,7 +81,7 @@ onMounted(() => {
   justify-content: center;
   background: #ffffff;
   pointer-events: none;
-  transition: opacity 0.3s ease, background-color 0.2s ease;
+  transition: opacity 0.25s ease, background-color 0.2s ease;
 }
 
 .app-preloader.is-dark,
@@ -128,7 +133,7 @@ onMounted(() => {
 }
 
 .preloader-enter-active, .preloader-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 .preloader-enter-from, .preloader-leave-to {
   opacity: 0;
