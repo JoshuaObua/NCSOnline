@@ -6,10 +6,12 @@ function resolveApiBase() {
   const envBase = import.meta.env?.VITE_API_BASE_URL
   if (envBase) return envBase.replace(/\/$/, '')
   if (typeof window !== 'undefined' && window.location?.hostname) {
+    const isLocal = ['localhost', '127.0.0.1', '0.0.0.0'].includes(window.location.hostname)
     const port = import.meta.env?.VITE_API_PORT
-    return port
-      ? `${window.location.protocol}//${window.location.hostname}:${port}`
-      : window.location.origin
+    if (isLocal && port) {
+      return `${window.location.protocol}//${window.location.hostname}:${port}`
+    }
+    return window.location.origin
   }
   return ''
 }
