@@ -23,8 +23,8 @@ import { mediaUrl } from '@/api/client.js'
 import { useTheme } from '@/composables/useTheme.js'
 
 const props = defineProps({
-  minDuration: { type: Number, default: 350 },
-  maxDuration: { type: Number, default: 1800 },
+  minDuration: { type: Number, default: 300 },
+  maxDuration: { type: Number, default: 800 },
 })
 
 const { isDark } = useTheme()
@@ -32,26 +32,16 @@ const visible = ref(true)
 const siteLogo = ref('')
 const logoSrc = computed(() => siteLogo.value ? mediaUrl(siteLogo.value) : '/main-logo.png')
 
-onMounted(async () => {
-  const start = performance.now()
-  let pageReady = document.readyState === 'complete'
-  if (!pageReady) {
-    await new Promise(resolve => {
-      const done = () => { window.removeEventListener('load', done); resolve() }
-      window.addEventListener('load', done, { once: true })
-      setTimeout(resolve, props.maxDuration)
-    })
-  }
+onMounted(() => {
   try {
-    const r = await Promise.race([
-      getSettings('site'),
-      new Promise(resolve => setTimeout(() => resolve(null), props.maxDuration - (performance.now() - start))),
-    ])
-    if (r?.data?.data?.value?.logoUrl) siteLogo.value = r.data.data.value.logoUrl
-  } catch { /* defaults fine */ }
-  const elapsed = performance.now() - start
-  if (elapsed < props.minDuration) await new Promise(r => setTimeout(r, props.minDuration - elapsed))
-  visible.value = false
+    getSettings('site').then(r => {
+      if (r?.data?.data?.value?.logoUrl) siteLogo.value = r.data.data.value.logoUrl
+    }).catch(() => {})
+  } catch {}
+
+  setTimeout(() => {
+    visible.value = false
+  }, props.minDuration)
 })
 </script>
 
@@ -64,7 +54,7 @@ onMounted(async () => {
   align-items: center;
   justify-content: center;
   background: #ffffff;
-  transition: background-color 0.2s ease;
+  pointer-events: none;
 }
 
 .app-preloader.is-dark,
@@ -84,7 +74,6 @@ onMounted(async () => {
   max-width: 85vw;
   height: auto;
   object-fit: contain;
-  transition: filter 0.2s ease;
 }
 
 .app-preloader.is-dark .preloader-logo,
@@ -94,7 +83,7 @@ onMounted(async () => {
 }
 
 .preloader-enter-active, .preloader-leave-active {
-  transition: opacity 0.35s ease;
+  transition: opacity 0.3s ease;
 }
 .preloader-enter-from, .preloader-leave-to {
   opacity: 0;
