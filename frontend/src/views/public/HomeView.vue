@@ -449,15 +449,16 @@ async function loadPortalAssociations({ updateDirectory = false } = {}) {
     const params={ active:'true' }
     if(sportQuery.value.trim()) params.search=sportQuery.value.trim()
     if(activeCategory.value!=='All Sports') params.category=activeCategory.value
-    const response=await axios.get(portalApiUrl('/api/v1/cms/associations'), { params })
+    const response=await listAssociations(params)
     const data=response.data?.data || response.data
-    associations.value=Array.isArray(data) ? data : []
-    if(updateDirectory){
-      totalAssociationCount.value=associations.value.length
-      associationCategories.value=[...new Set(associations.value.map(item=>item.category).filter(Boolean))]
+    const items=Array.isArray(data) ? data : (data?.items || [])
+    associations.value=items
+    if(updateDirectory || !totalAssociationCount.value){
+      totalAssociationCount.value=items.length
+      associationCategories.value=[...new Set(items.map(item=>item.category).filter(Boolean))]
     }
   } catch(error) {
-    console.warn('Failed to load portal associations, using website data:', error)
+    console.warn('Failed to load associations:', error)
   } finally {
     associationsLoading.value=false
   }
