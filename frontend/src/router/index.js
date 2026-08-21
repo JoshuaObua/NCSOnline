@@ -60,7 +60,7 @@ const ITPPDAListView = () => import('@/views/it/ITPPDAListView.vue')
 const FixedAssetsView = () => import('@/views/FixedAssetsView.vue')
 
 const routes = [
-  { path: '/', redirect: '/dashboard' },
+  { path: '/', redirect: to => (localStorage.getItem('ncsms_access_token') ? '/dashboard' : '/login') },
   { path: '/login', name: 'Login', component: LoginView, meta: { requiresAuth: false } },
   { path: '/register', name: 'Register', component: RegisterView, meta: { requiresAuth: false } },
 
