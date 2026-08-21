@@ -153,8 +153,9 @@ function normalizeButtons(slide) {
 }
 
 function transitionClass(index) {
-  if (index === current.value) return `active ${slideDirection.value}`
-  if (index === previousIndex.value) return `outgoing ${slideDirection.value}`
+  const mode = effect.value
+  if (index === current.value) return `active mode-${mode} ${slideDirection.value}`
+  if (index === previousIndex.value) return `outgoing mode-${mode} ${slideDirection.value}`
   return 'hidden-slide'
 }
 
@@ -177,7 +178,7 @@ function go(index) {
   clearTimeout(transitionTimer)
   transitionTimer = setTimeout(() => {
     previousIndex.value = null
-  }, duration.value + 50)
+  }, duration.value + 60)
 }
 
 function pauseIfEnabled() { if (pauseOnHover.value) pause() }
@@ -218,10 +219,10 @@ function animationMode(value) {
   opacity: 0;
   z-index: 0;
   pointer-events: none;
-  transition: opacity var(--slide-duration, 750ms) cubic-bezier(0.4, 0, 0.2, 1),
-              transform var(--slide-duration, 750ms) cubic-bezier(0.4, 0, 0.2, 1),
+  transition: opacity var(--slide-duration, 750ms) ease-in-out,
+              transform var(--slide-duration, 750ms) ease-in-out,
               filter var(--slide-duration, 750ms) ease;
-  will-change: opacity, transform;
+  will-change: opacity, transform, filter;
 }
 
 .carousel-slide.hidden-slide {
@@ -230,7 +231,10 @@ function animationMode(value) {
   z-index: 0;
 }
 
-/* Outgoing Slide: Stays underneath at z-index 1, fully opaque, so no dark gaps ever show */
+/*
+ * OUTGOING SLIDE: Stays 100% visible at z-index 1 underneath until cross-fade finishes.
+ * This guarantees zero dark flash or blank background gap!
+ */
 .carousel-slide.outgoing {
   z-index: 1;
   opacity: 1;
@@ -238,15 +242,15 @@ function animationMode(value) {
   transform: translate3d(0, 0, 0) scale(1);
 }
 
-.carousel-slide.outgoing.next {
-  animation: slideOutLeft var(--slide-duration, 750ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
+/* OUTGOING Slide Transitions */
+.carousel-slide.outgoing.mode-slide.next { animation: fadeOutSlightly var(--slide-duration, 750ms) ease-in-out forwards; }
+.carousel-slide.outgoing.mode-slide.prev { animation: fadeOutSlightly var(--slide-duration, 750ms) ease-in-out forwards; }
+.carousel-slide.outgoing.mode-vertical.next { animation: fadeOutSlightly var(--slide-duration, 750ms) ease-in-out forwards; }
+.carousel-slide.outgoing.mode-vertical.prev { animation: fadeOutSlightly var(--slide-duration, 750ms) ease-in-out forwards; }
 
-.carousel-slide.outgoing.prev {
-  animation: slideOutRight var(--slide-duration, 750ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-/* Incoming Active Slide: Renders on top at z-index 2, smoothly cross-fading or sliding */
+/*
+ * INCOMING ACTIVE SLIDE: Renders on top at z-index 2 with rich transition modes (fade, slide, vertical, zoom).
+ */
 .carousel-slide.active {
   z-index: 2;
   opacity: 1;
@@ -256,12 +260,27 @@ function animationMode(value) {
   filter: none;
 }
 
-.carousel-slide.active.next {
-  animation: slideInRight var(--slide-duration, 750ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+/* Mode-Specific Transitions for Incoming Active Slide */
+.carousel-slide.active.mode-fade {
+  animation: crossFadeIn var(--slide-duration, 750ms) ease-in-out forwards;
 }
 
-.carousel-slide.active.prev {
-  animation: slideInLeft var(--slide-duration, 750ms) cubic-bezier(0.4, 0, 0.2, 1) forwards;
+.carousel-slide.active.mode-slide.next {
+  animation: slideInRight var(--slide-duration, 750ms) cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+.carousel-slide.active.mode-slide.prev {
+  animation: slideInLeft var(--slide-duration, 750ms) cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.carousel-slide.active.mode-vertical.next {
+  animation: slideInDown var(--slide-duration, 750ms) cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+.carousel-slide.active.mode-vertical.prev {
+  animation: slideInUp var(--slide-duration, 750ms) cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.carousel-slide.active.mode-zoom {
+  animation: zoomFadeIn var(--slide-duration, 750ms) cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
 /* Media & Overlay Styling */
@@ -318,7 +337,9 @@ function animationMode(value) {
 }
 @media (min-width: 768px) { .carousel-content p { font-size: 1.25rem; } }
 
-/* Typography & Content Animations */
+/*
+ * RICH PER-SLIDE CONTENT ANIMATIONS (fade-in, slide-up, slide-left, slide-right, zoom-in, zoom-out, flip-in, blur-in, bounce-in, ken-burns)
+ */
 .carousel-slide.active.fade-in .carousel-content > div { animation: fadeIn .72s ease both; }
 .carousel-slide.active.slide-up .carousel-content > div { animation: slideUp .72s ease both; }
 .carousel-slide.active.slide-left .carousel-content > div { animation: slideLeft .72s ease both; }
@@ -331,7 +352,7 @@ function animationMode(value) {
 .carousel-slide.active.ken-burns .carousel-media,
 .carousel-slide.active.ken-burns .carousel-fallback { animation: kenBurns 7s ease both; }
 
-/* Buttons & Navigation */
+/* Buttons & Navigation Styling */
 .carousel-actions { display: flex; flex-wrap: wrap; gap: 1rem; }
 .carousel-btn {
   display: inline-flex;
@@ -415,27 +436,43 @@ function animationMode(value) {
   pointer-events: none;
 }
 
-/* Keyframes for Seamless Slide Transitions */
-@keyframes slideInRight {
-  0% { transform: translate3d(100%, 0, 0); opacity: 1; }
-  100% { transform: translate3d(0, 0, 0); opacity: 1; }
+/* Keyframes for Slide Cross-Fading & Motion Transitions */
+@keyframes crossFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-@keyframes slideOutLeft {
-  0% { transform: translate3d(0, 0, 0); opacity: 1; }
-  100% { transform: translate3d(-25%, 0, 0); opacity: 0.85; }
+@keyframes fadeOutSlightly {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0.9; transform: scale(0.98); }
+}
+
+@keyframes slideInRight {
+  from { transform: translate3d(100%, 0, 0); opacity: 1; }
+  to { transform: translate3d(0, 0, 0); opacity: 1; }
 }
 
 @keyframes slideInLeft {
-  0% { transform: translate3d(-100%, 0, 0); opacity: 1; }
-  100% { transform: translate3d(0, 0, 0); opacity: 1; }
+  from { transform: translate3d(-100%, 0, 0); opacity: 1; }
+  to { transform: translate3d(0, 0, 0); opacity: 1; }
 }
 
-@keyframes slideOutRight {
-  0% { transform: translate3d(0, 0, 0); opacity: 1; }
-  100% { transform: translate3d(25%, 0, 0); opacity: 0.85; }
+@keyframes slideInDown {
+  from { transform: translate3d(0, 100%, 0); opacity: 1; }
+  to { transform: translate3d(0, 0, 0); opacity: 1; }
 }
 
+@keyframes slideInUp {
+  from { transform: translate3d(0, -100%, 0); opacity: 1; }
+  to { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+
+@keyframes zoomFadeIn {
+  from { opacity: 0; transform: scale(1.08); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Keyframes for Typography Content Animations */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { opacity: 0; transform: translate3d(0, 24px, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
 @keyframes slideLeft { from { opacity: 0; transform: translate3d(36px, 0, 0); } to { opacity: 1; transform: translate3d(0, 0, 0); } }
