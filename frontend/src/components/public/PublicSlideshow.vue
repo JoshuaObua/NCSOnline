@@ -429,10 +429,10 @@ function animationMode(value) {
   position: absolute;
   z-index: 3;
   right: 0;
-  bottom: 0;
+  bottom: -1px;
   left: 0;
-  height: 6rem;
-  background: linear-gradient(to top, rgba(15, 23, 42, 0.15), transparent);
+  height: 7.5rem;
+  background: linear-gradient(to top, #ffffff 0%, rgba(255, 255, 255, 0.88) 35%, rgba(255, 255, 255, 0.35) 70%, transparent 100%);
   pointer-events: none;
 }
 
