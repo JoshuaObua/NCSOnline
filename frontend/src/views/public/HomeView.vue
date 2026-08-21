@@ -414,7 +414,81 @@
         </div>
       </section>
 
-      <section v-else-if="section.id === 'cta'" id="section-cta" class="home-cta"><div class="home-shell"><div><span>National Council of Sports Uganda</span><h2>In Case You Need Instant Help</h2></div><div class="home-cta-actions"><button type="button" class="home-btn home-btn-outline-light" aria-label="Open NCS chatbot" @click="openChatbot"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Chat With Us Live</button><router-link to="/contact-us" class="home-btn home-btn-gold">Contact NCS</router-link></div></div></section>
+            <section v-else-if="section.id === 'cta'" id="section-cta" class="relative py-20 md:py-28 overflow-hidden" data-testid="homepage-cta-section">
+        <!-- Background Fixed Image -->
+        <div class="absolute inset-0 bg-cover bg-center bg-fixed" style="background-image: url('https://images.unsplash.com/photo-1461896836934-11cbb8b20d58?w=1920&h=800&fit=crop'); pointer-events: none;"></div>
+
+        <!-- Gradient Overlay -->
+        <div class="absolute inset-0 bg-gradient-to-r from-[#1a365d]/95 via-[#1a365d]/85 to-[#1a365d]/95 pointer-events-none"></div>
+
+        <!-- Ambient Blur Blobs -->
+        <div class="absolute top-0 left-0 w-72 h-72 bg-[#f5a623]/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-[#f5a623]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <!-- Content Container -->
+        <div class="relative max-w-7xl mx-auto px-4">
+          <div class="grid lg:grid-cols-2 gap-12 items-center">
+            <!-- Left Column: Heading & Buttons -->
+            <div>
+              <span class="inline-block px-4 py-1.5 bg-[#f5a623] text-white text-sm font-semibold rounded-full mb-6">Get Involved</span>
+              <h2 class="text-3xl md:text-5xl font-bold text-white mb-6 leading-tight">Be Part of Uganda's Sports Excellence</h2>
+              <p class="text-white/80 text-lg mb-8 leading-relaxed">Whether you're an athlete, coach, sports association, or enthusiast, the National Council of Sports welcomes you to join us in developing and promoting sports across Uganda.</p>
+              <div class="flex flex-wrap gap-4">
+                <router-link to="/register-federation">
+                  <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 h-9 bg-[#f5a623] hover:bg-[#e09612] text-white px-8 py-6 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1" data-testid="homepage-cta-primary-button">
+                    Register Association
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 ml-2"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                  </button>
+                </router-link>
+                <router-link to="/contact-us">
+                  <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 shadow-sm h-9 border-2 border-white text-white hover:bg-white hover:text-[#1a365d] px-8 py-6 text-lg font-semibold rounded-lg transition-all duration-300 hover:-translate-y-1 bg-transparent" data-testid="homepage-cta-secondary-button">Contact Us</button>
+                </router-link>
+              </div>
+            </div>
+
+            <!-- Right Column: Quick Contact Card -->
+            <div class="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+              <h3 class="text-2xl font-bold text-white mb-6">Quick Contact</h3>
+              <div class="space-y-6">
+                <!-- Visit Us -->
+                <div class="flex items-start gap-4">
+                  <div class="w-12 h-12 rounded-full bg-[#f5a623]/20 flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#f5a623]"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  </div>
+                  <div>
+                    <h4 class="text-white font-semibold mb-1">Visit Us</h4>
+                    <p class="text-white/70 text-sm">{{ contact.address || 'Plot 2-10, Coronation Avenue' }}</p>
+                    <p class="text-white/70 text-sm">P.O. Box 20077, Lugogo, Kampala - UGANDA</p>
+                  </div>
+                </div>
+
+                <!-- Call Us -->
+                <div class="flex items-start gap-4">
+                  <div class="w-12 h-12 rounded-full bg-[#f5a623]/20 flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#f5a623]"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                  </div>
+                  <div>
+                    <h4 class="text-white font-semibold mb-1">Call Us</h4>
+                    <p class="text-white/70 text-sm">{{ contact.phone || '+256 414254477 / 343688' }}</p>
+                    <p class="text-white/70 text-sm">Fax: +256 414 258350</p>
+                  </div>
+                </div>
+
+                <!-- Email Us -->
+                <div class="flex items-start gap-4">
+                  <div class="w-12 h-12 rounded-full bg-[#f5a623]/20 flex items-center justify-center flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-[#f5a623]"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"></path><rect x="2" y="4" width="20" height="16" rx="2"></rect></svg>
+                  </div>
+                  <div>
+                    <h4 class="text-white font-semibold mb-1">Email Us</h4>
+                    <a :href="`mailto:${contact.email || 'info@ncs.go.ug'}`" class="text-[#f5a623] hover:underline text-sm">{{ contact.email || 'info@ncs.go.ug' }}</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section v-else-if="section.id === 'faq_facts'" id="section-faq" class="home-section bg-soft">
         <div class="home-shell faq-facts-grid"><div><span class="section-kicker">{{ home.faq_eyebrow }}</span><h2>{{ home.faq_title }}</h2><div class="space-y-4 mt-6">
