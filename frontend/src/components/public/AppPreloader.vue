@@ -59,9 +59,15 @@ onMounted(() => {
   transition: opacity 0.25s ease, background-color 0.2s ease;
 }
 
-.app-preloader.is-dark,
-:global(.dark) .app-preloader,
-:global([data-theme="dark"]) .app-preloader {
+.app-preloader.is-dark {
+  background: #0f172a !important;
+}
+
+:global(.dark .app-preloader) {
+  background: #0f172a !important;
+}
+
+:global([data-theme="dark"] .app-preloader) {
   background: #0f172a !important;
 }
 
@@ -92,9 +98,15 @@ onMounted(() => {
   animation: preloader-spin 0.8s linear infinite;
 }
 
-.app-preloader.is-dark .preloader-logo,
-:global(.dark) .preloader-logo,
-:global([data-theme="dark"]) .preloader-logo {
+.app-preloader.is-dark .preloader-logo {
+  filter: brightness(0) invert(1) !important;
+}
+
+:global(.dark .app-preloader .preloader-logo) {
+  filter: brightness(0) invert(1) !important;
+}
+
+:global([data-theme="dark"] .app-preloader .preloader-logo) {
   filter: brightness(0) invert(1) !important;
 }
 
