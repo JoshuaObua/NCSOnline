@@ -445,8 +445,136 @@
             <p v-if="!displayFAQs.length" class="empty-state">FAQs will appear here when published.</p>
           </div><router-link to="/faqs" class="text-link mt-6 inline-block">View All FAQs →</router-link></div><div><span class="section-kicker">{{ home.facts_eyebrow }}</span><h2>{{ home.facts_title }}</h2><div class="relative bg-gradient-to-br from-[#1a365d] to-[#2d4a6f] rounded-2xl p-8 md:p-10 text-white overflow-hidden mt-2" @mouseenter="pauseFacts" @mouseleave="resumeFacts"><div class="absolute inset-0 opacity-10"><div class="absolute top-0 right-0 w-64 h-64 rounded-full bg-[#f5a623] blur-3xl"></div><div class="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-[#f5a623] blur-3xl"></div></div><div class="relative z-10"><div class="flex items-center gap-3 mb-6"><div class="w-12 h-12 rounded-full bg-[#f5a623]/20 flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-[#f5a623]" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"></path><path d="M9 18h6"></path><path d="M10 22h4"></path></svg></div><span class="text-[#f5a623] font-semibold">Sports History</span></div><div class="min-h-[120px] relative"><p v-for="(fact, index) in cmsFacts" :key="fact.id || index" class="text-lg md:text-xl leading-relaxed transition-all duration-500" :class="index === factIndex ? 'opacity-100 translate-y-0 relative' : 'opacity-0 translate-y-4 absolute top-0 left-0 right-0'">&quot;{{ fact.value }}&quot;</p><p v-if="!cmsFacts.length" class="text-lg md:text-xl leading-relaxed opacity-100">Fun facts will appear here when published.</p></div><div class="flex gap-2 mt-8"><button v-for="(fact, index) in cmsFacts" :key="'dot-' + (fact.id || index)" type="button" class="rounded-full transition-all duration-300" :class="index === factIndex ? 'w-8 h-2 bg-[#f5a623]' : 'w-2 h-2 bg-white/30 hover:bg-white/50'" :aria-label="`Go to fact ${index + 1}`" @click="goToFact(index)"></button></div></div></div></div></div>
       </section>
-    </template>
+    
+    <!-- Association Detail Modal -->
+    <div v-if="modalAssociation" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn" @click.self="closeAssociationModal">
+      <div class="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <!-- Header -->
+        <div class="p-6 bg-gradient-to-r from-[#1a365d] to-[#0f1f3d] text-white relative">
+          <button type="button" class="absolute top-4 right-4 text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors" @click="closeAssociationModal">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-xl bg-white/10 p-2 backdrop-blur flex items-center justify-center flex-shrink-0 border border-white/20">
+              <img v-if="modalAssociation.logo_url" :src="mediaUrl(modalAssociation.logo_url)" :alt="modalAssociation.name" class="w-full h-full object-contain" />
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-[#f5a623]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526"/><circle cx="12" cy="8" r="6"/></svg>
+            </div>
+            <div>
+              <span class="inline-block px-2.5 py-0.5 rounded-md bg-[#f5a623] text-[#1a365d] text-xs font-bold mb-1">{{ modalAssociation.abbreviation || modalAssociation.code || modalAssociation.category || 'NCS Recognized' }}</span>
+              <h3 class="text-lg font-bold text-white leading-snug">{{ modalAssociation.name }}</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Body Details -->
+        <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto text-slate-700 dark:text-slate-300 text-sm">
+          <p v-if="modalAssociation.description" class="text-slate-600 dark:text-slate-400 leading-relaxed">{{ modalAssociation.description }}</p>
+
+          <div class="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div v-if="modalAssociation.president" class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="icofont-user text-base"></i></div>
+              <div><span class="text-xs font-semibold text-slate-400 block">President / General Secretary</span><strong class="text-slate-900 dark:text-white font-semibold">{{ modalAssociation.president }}</strong></div>
+            </div>
+
+            <div v-if="modalAssociation.secretary" class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="icofont-id-card text-base"></i></div>
+              <div><span class="text-xs font-semibold text-slate-400 block">Secretary General</span><strong class="text-slate-900 dark:text-white font-semibold">{{ modalAssociation.secretary }}</strong></div>
+            </div>
+
+            <div v-if="modalAssociation.address" class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="icofont-location-pin text-base"></i></div>
+              <div><span class="text-xs font-semibold text-slate-400 block">Office Address</span><span class="text-slate-800 dark:text-slate-200">{{ modalAssociation.address }}</span></div>
+            </div>
+
+            <div v-if="modalAssociation.phone" class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="icofont-phone text-base"></i></div>
+              <div><span class="text-xs font-semibold text-slate-400 block">Telephone</span><a :href="`tel:${modalAssociation.phone}`" class="text-blue-600 hover:underline font-medium">{{ modalAssociation.phone }}</a></div>
+            </div>
+
+            <div v-if="modalAssociation.email" class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="icofont-email text-base"></i></div>
+              <div><span class="text-xs font-semibold text-slate-400 block">Official Email</span><a :href="`mailto:${modalAssociation.email}`" class="text-blue-600 hover:underline font-medium">{{ modalAssociation.email }}</a></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <a v-if="modalAssociation.website_url" :href="modalAssociation.website_url" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-4 py-2 bg-[#f5a623] hover:bg-[#e09612] text-[#172b4d] text-xs font-extrabold rounded-lg shadow transition-colors">
+            Visit Official Website <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+          </a>
+          <span v-else class="text-xs text-slate-400">NCS Recognised Federation</span>
+          <button type="button" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg transition-colors" @click="closeAssociationModal">Close</button>
+        </div>
+      </div>
+    </div>
+
+</template>
   </div>
+
+    <!-- Association Detail Modal -->
+    <div v-if="modalAssociation" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fadeIn" @click.self="closeAssociationModal">
+      <div class="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+        <!-- Header -->
+        <div class="p-6 bg-gradient-to-r from-[#1a365d] to-[#0f1f3d] text-white relative">
+          <button type="button" class="absolute top-4 right-4 text-white/70 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors" @click="closeAssociationModal">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-xl bg-white/10 p-2 backdrop-blur flex items-center justify-center flex-shrink-0 border border-white/20">
+              <img v-if="modalAssociation.logo_url" :src="mediaUrl(modalAssociation.logo_url)" :alt="modalAssociation.name" class="w-full h-full object-contain" />
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-[#f5a623]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526"/><circle cx="12" cy="8" r="6"/></svg>
+            </div>
+            <div>
+              <span class="inline-block px-2.5 py-0.5 rounded-md bg-[#f5a623] text-[#1a365d] text-xs font-bold mb-1">{{ modalAssociation.abbreviation || modalAssociation.code || modalAssociation.category || 'NCS Recognized' }}</span>
+              <h3 class="text-lg font-bold text-white leading-snug">{{ modalAssociation.name }}</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Body Details -->
+        <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto text-slate-700 dark:text-slate-300 text-sm">
+          <p v-if="modalAssociation.description" class="text-slate-600 dark:text-slate-400 leading-relaxed">{{ modalAssociation.description }}</p>
+
+          <div class="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <div v-if="modalAssociation.president" class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="icofont-user text-base"></i></div>
+              <div><span class="text-xs font-semibold text-slate-400 block">President / General Secretary</span><strong class="text-slate-900 dark:text-white font-semibold">{{ modalAssociation.president }}</strong></div>
+            </div>
+
+            <div v-if="modalAssociation.secretary" class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="icofont-id-card text-base"></i></div>
+              <div><span class="text-xs font-semibold text-slate-400 block">Secretary General</span><strong class="text-slate-900 dark:text-white font-semibold">{{ modalAssociation.secretary }}</strong></div>
+            </div>
+
+            <div v-if="modalAssociation.address" class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="icofont-location-pin text-base"></i></div>
+              <div><span class="text-xs font-semibold text-slate-400 block">Office Address</span><span class="text-slate-800 dark:text-slate-200">{{ modalAssociation.address }}</span></div>
+            </div>
+
+            <div v-if="modalAssociation.phone" class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="icofont-phone text-base"></i></div>
+              <div><span class="text-xs font-semibold text-slate-400 block">Telephone</span><a :href="`tel:${modalAssociation.phone}`" class="text-blue-600 hover:underline font-medium">{{ modalAssociation.phone }}</a></div>
+            </div>
+
+            <div v-if="modalAssociation.email" class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 mt-0.5"><i class="icofont-email text-base"></i></div>
+              <div><span class="text-xs font-semibold text-slate-400 block">Official Email</span><a :href="`mailto:${modalAssociation.email}`" class="text-blue-600 hover:underline font-medium">{{ modalAssociation.email }}</a></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 bg-slate-50 dark:bg-slate-900/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <a v-if="modalAssociation.website_url" :href="modalAssociation.website_url" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-4 py-2 bg-[#f5a623] hover:bg-[#e09612] text-[#172b4d] text-xs font-extrabold rounded-lg shadow transition-colors">
+            Visit Official Website <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/></svg>
+          </a>
+          <span v-else class="text-xs text-slate-400">NCS Recognised Federation</span>
+          <button type="button" class="px-4 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-lg transition-colors" @click="closeAssociationModal">Close</button>
+        </div>
+      </div>
+    </div>
+
 </template>
 
 <script setup>
