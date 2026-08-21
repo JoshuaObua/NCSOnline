@@ -27,13 +27,8 @@ const props = defineProps({
   maxDuration: { type: Number, default: 800 },
 })
 
-let isDark = ref(false)
-try {
-  const themeState = useTheme()
-  if (themeState?.isDark) isDark = themeState.isDark
-} catch {
-  // Safe fallback
-}
+const themeState = useTheme()
+const isDark = computed(() => themeState?.isDark?.value ?? false)
 
 const visible = ref(true)
 const siteLogo = ref('')
@@ -62,6 +57,7 @@ onMounted(() => {
   justify-content: center;
   background: #ffffff;
   pointer-events: none;
+  transition: opacity 0.3s ease, background-color 0.2s ease;
 }
 
 .app-preloader.is-dark,
@@ -81,6 +77,7 @@ onMounted(() => {
   max-width: 85vw;
   height: auto;
   object-fit: contain;
+  transition: filter 0.2s ease;
 }
 
 .app-preloader.is-dark .preloader-logo,
