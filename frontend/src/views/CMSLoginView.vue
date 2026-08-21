@@ -3,24 +3,24 @@
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
         <router-link class="inline-block" to="/">
-          <img alt="NCS" class="h-16 mx-auto mb-4" src="/main-logo.png" />
+          <img alt="NCS" class="h-16 mx-auto mb-4 object-contain" src="/main-logo.png" />
         </router-link>
         <h1 class="text-2xl font-bold text-[#1a365d]">Welcome Back</h1>
-        <p class="text-gray-600 mt-1">Sign in to your NCS account</p>
+        <p class="text-black font-medium mt-1">Sign in to your NCS account</p>
       </div>
 
-      <div class="bg-white rounded-2xl shadow-lg p-8">
+      <div class="bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
         <form class="space-y-5" novalidate @submit.prevent="login">
           <div>
-            <label class="text-sm font-medium leading-none text-[#1a365d]" for="cms-email">Email Address</label>
-            <div class="relative mt-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+            <label class="block text-sm font-semibold text-[#1a365d] mb-1.5" for="cms-email">Email Address</label>
+            <div class="relative">
+              <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
               <input
                 id="cms-email"
                 v-model="email"
                 type="email"
                 autocomplete="email"
-                class="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#f5a623] focus:border-[#f5a623] md:text-sm pl-10"
+                class="w-full h-11 rounded-lg border border-gray-300 bg-white pl-11 pr-4 py-2 text-black text-sm shadow-sm transition-colors placeholder:text-black focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:border-[#f5a623]"
                 placeholder="Enter your email"
                 required
                 autofocus
@@ -29,21 +29,21 @@
           </div>
 
           <div>
-            <label class="text-sm font-medium leading-none text-[#1a365d]" for="cms-password">Password</label>
-            <div class="relative mt-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <label class="block text-sm font-semibold text-[#1a365d] mb-1.5" for="cms-password">Password</label>
+            <div class="relative">
+              <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600 pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               <input
                 id="cms-password"
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 autocomplete="current-password"
-                class="flex h-9 w-full rounded-md border border-gray-200 bg-transparent px-3 py-1 text-base shadow-sm transition-colors placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#f5a623] focus:border-[#f5a623] md:text-sm pl-10 pr-10"
+                class="w-full h-11 rounded-lg border border-gray-300 bg-white pl-11 pr-11 py-2 text-black text-sm shadow-sm transition-colors placeholder:text-black focus:outline-none focus:ring-2 focus:ring-[#f5a623] focus:border-[#f5a623]"
                 placeholder="Enter your password"
                 required
               />
               <button
                 type="button"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-black p-1 flex items-center justify-center"
                 :aria-label="showPassword ? 'Hide password' : 'Show password'"
                 @click="showPassword = !showPassword"
               >
@@ -55,18 +55,18 @@
 
           <div class="flex items-center justify-between gap-4">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input id="remember-me" v-model="remember" type="checkbox" class="rounded border-gray-300 text-[#f5a623] focus:ring-[#f5a623]" />
-              <span class="text-sm text-gray-600">Remember me</span>
+              <input id="remember-me" v-model="remember" type="checkbox" class="rounded border-gray-400 text-[#f5a623] focus:ring-[#f5a623]" />
+              <span class="text-sm text-black font-medium">Remember me</span>
             </label>
-            <a href="#" class="text-sm text-[#f5a623] hover:underline" @click.prevent>Forgot password?</a>
+            <a href="#" class="text-sm text-[#f5a623] font-semibold hover:underline" @click.prevent>Forgot password?</a>
           </div>
 
-          <p v-if="error" class="rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{{ error }}</p>
+          <p v-if="error" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{{ error }}</p>
 
           <button
             type="submit"
             :disabled="loading"
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f5a623] shadow h-12 px-4 w-full bg-[#f5a623] hover:bg-[#e09612] text-white text-lg font-semibold disabled:cursor-not-allowed disabled:opacity-70"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f5a623] shadow-md h-12 px-4 w-full bg-[#f5a623] hover:bg-[#e09612] text-white text-base font-bold disabled:cursor-not-allowed disabled:opacity-70"
           >
             <span class="flex items-center justify-center gap-2">
               <svg v-if="!loading" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
@@ -77,12 +77,12 @@
         </form>
 
         <div class="mt-6 text-center">
-          <p class="text-gray-600">Don't have an account? <a class="text-[#f5a623] font-semibold hover:underline" href="https://portal.ncs.go.ug/register">Create Account</a></p>
+          <p class="text-black font-medium">Don't have an account? <a class="text-[#f5a623] font-bold hover:underline" href="https://portal.ncs.go.ug/register">Create Account</a></p>
         </div>
       </div>
 
       <div class="text-center mt-6">
-        <router-link class="text-gray-500 hover:text-[#1a365d] text-sm flex items-center justify-center gap-1" to="/">
+        <router-link class="text-black font-semibold hover:text-[#1a365d] text-sm flex items-center justify-center gap-1" to="/">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
           Back to Home
         </router-link>
@@ -152,3 +152,10 @@ async function canReachApi() {
   }
 }
 </script>
+
+<style scoped>
+input::placeholder {
+  color: #000000 !important;
+  opacity: 1 !important;
+}
+</style>
