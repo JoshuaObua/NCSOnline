@@ -367,7 +367,6 @@
     </footer>
     <PublicAccessibilityMenu />
     <ChatBotWidget />
-    <AppPreloader />
   </div>
 </template>
 
@@ -381,7 +380,6 @@ import { mediaUrl } from '@/api/client.js'
 import { installAnalyticsTracker, trackPageView, uninstallAnalyticsTracker } from '@/utils/analyticsTracker.js'
 import { installGoogleAnalytics, trackGoogleAnalyticsPageView, uninstallGoogleAnalytics } from '@/utils/googleAnalytics.js'
 import PublicAccessibilityMenu from '@/components/public/PublicAccessibilityMenu.vue'
-import AppPreloader from '@/components/public/AppPreloader.vue'
 import ChatBotWidget from '@/components/public/ChatBotWidget.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import { useTheme } from '@/composables/useTheme.js'
