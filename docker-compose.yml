@@ -35,6 +35,7 @@ services:
       PUBLIC_APP_URL: ${PUBLIC_APP_URL:-https://ncsintranet.atenimedia.com}
       COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-ncsintranet}
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - intranet_uploads_data:/app/uploads
       - intranet_private_data:/app/private-data
       - intranet_app_logs:/var/log/app
