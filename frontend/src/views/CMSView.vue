@@ -1098,6 +1098,7 @@
 </template>
 
 <script setup>
+import SystemCommandCenterPanel from '@/components/cms/SystemCommandCenterPanel.vue'
 import { ref, reactive, computed, onMounted, defineComponent, h } from 'vue'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
 import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
