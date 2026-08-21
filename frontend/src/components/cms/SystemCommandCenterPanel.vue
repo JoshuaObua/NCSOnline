@@ -128,7 +128,7 @@
     <article class="cms-panel">
       <div class="cms-panel-head">
         <div class="flex items-center gap-2">
-          <h3>Service Logs {{ activeLogService ? `— ${activeLogService}` : '' }}</h3>
+          <h3>Service Logs {{ activeLogService ? ` - ${activeLogService}` : '' }}</h3>
           <span v-if="activeLogService" class="text-xs text-slate-400 font-mono">({{ logLines.length }} lines)</span>
         </div>
         <div class="flex items-center gap-3">

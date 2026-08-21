@@ -530,32 +530,26 @@ func perCorePayload(values []float64) []map[string]any {
 }
 
 func serviceStatuses(dockerReady bool) []map[string]any {
-	services := []string{"nginx", "frontend", "backend", "postgres", "worker", "location-service", "certbot"}
+	services := opsServiceCatalog()
 	out := make([]map[string]any, 0, len(services))
 	composeProject := strings.TrimSpace(os.Getenv("COMPOSE_PROJECT_NAME"))
 	if composeProject == "" {
-		composeProject = "ncswebsite"
+		composeProject = "ncsportal"
 	}
 	for _, svc := range services {
-		out = append(out, map[string]any{
-			"name":         svc,
-			"display_name": serviceDisplayName(svc),
-			"status":       "idle",
-			"health":       "unknown",
-			"actions":      []string{"start", "restart", "stop", "logs"},
-		})
+		out = append(out, map[string]any{"name": svc, "display_name": serviceDisplayName(svc), "status": "unavailable", "health": "unavailable", "actions": []string{}})
 	}
 	if !dockerReady {
 		return out
 	}
-	ctx, cancel := contextWithTimeout(5 * time.Second)
+	ctx, cancel := contextWithTimeout(4 * time.Second)
 	defer cancel()
-
 	cmd := exec.CommandContext(ctx, "docker", "compose", "-p", composeProject, "ps", "--format", "json")
 	raw, err := cmd.Output()
 	byName := map[string]map[string]any{}
-	if err == nil && len(raw) > 0 {
-		rows := strings.Split(strings.TrimSpace(string(raw)), "\n")
+	if err == nil {
+		rows := strings.Split(strings.TrimSpace(string(raw)), "
+")
 		for _, row := range rows {
 			var item map[string]any
 			if json.Unmarshal([]byte(row), &item) == nil {
@@ -565,58 +559,37 @@ func serviceStatuses(dockerReady bool) []map[string]any {
 			}
 		}
 	}
-
-	if len(byName) == 0 {
-		cmdPs := exec.CommandContext(ctx, "docker", "ps", "-a", "--filter", "name="+composeProject, "--format", "{{json .}}")
-		rawPs, errPs := cmdPs.Output()
-		if errPs == nil && len(rawPs) > 0 {
-			rows := strings.Split(strings.TrimSpace(string(rawPs)), "\n")
-			for _, row := range rows {
-				var item map[string]any
-				if json.Unmarshal([]byte(row), &item) == nil {
-					if name, _ := item["Names"].(string); name != "" {
-						for _, svc := range services {
-							if strings.Contains(name, svc) {
-								item["Service"] = svc
-								byName[svc] = item
-								break
-							}
-						}
-					}
+	// Fallback for nginx container if not in compose project
+	if byName["nginx"] == nil {
+		ngCmd := exec.CommandContext(ctx, "docker", "ps", "--filter", "name=nginx", "--format", "json")
+		if ngRaw, ngErr := ngCmd.Output(); ngErr == nil && len(ngRaw) > 0 {
+			var ngItem map[string]any
+			firstLine := strings.Split(strings.TrimSpace(string(ngRaw)), "
+")[0]
+			if json.Unmarshal([]byte(firstLine), &ngItem) == nil {
+				byName["nginx"] = map[string]any{
+					"State": ngItem["State"],
+					"Health": ngItem["HealthStatus"],
+					"Name": ngItem["Names"],
+					"Image": ngItem["Image"],
+					"Publishers": ngItem["Ports"],
+					"Status": ngItem["Status"],
 				}
 			}
 		}
 	}
-
 	for _, item := range out {
 		name, _ := item["name"].(string)
 		if row := byName[name]; row != nil {
 			state, _ := row["State"].(string)
-			if state == "" {
-				state, _ = row["Status"].(string)
-			}
 			health, _ := row["Health"].(string)
-			if health == "" {
-				statusStr, _ := row["Status"].(string)
-				if strings.Contains(strings.ToLower(statusStr), "healthy") {
-					health = "healthy"
-				} else if strings.Contains(strings.ToLower(statusStr), "unhealthy") {
-					health = "unhealthy"
-				} else if strings.Contains(strings.ToLower(statusStr), "starting") {
-					health = "starting"
-				}
-			}
 			item["status"] = normalizeServiceState(state, health)
 			item["health"] = normalizeServiceHealth(state, health)
 			item["container"] = row["Name"]
-			if item["container"] == nil {
-				item["container"] = row["Names"]
-			}
 			item["image"] = row["Image"]
 			item["published_ports"] = row["Publishers"]
-			if item["published_ports"] == nil {
-				item["published_ports"] = row["Ports"]
-			}
+			item["raw_status"] = row["Status"]
+			item["actions"] = []string{"start", "restart", "stop", "logs"}
 		}
 	}
 	return out

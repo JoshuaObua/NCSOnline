@@ -3236,6 +3236,7 @@ async function loadNotifications() {
     }
     const res = await cms.listNotifications({ status:notificationStatus.value, per_page:100 })
     cmsNotifications.value = listData(res)
+    error.value = ''
   } catch (err) { setErr(err) }
 }
 
