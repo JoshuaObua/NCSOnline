@@ -582,6 +582,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { getSettings, getSlideshow, listAssociations, listCouncil, listEvents, listFAQs, listFunFacts, listPosts } from '@/api/cms.js'
 import { mediaUrl, portalApiUrl } from '@/api/client.js'
 import axios from 'axios'
+import PublicSlideshow from '@/components/public/PublicSlideshow.vue'
 
 const modalAssociation = ref(null)
 function openAssociationModal(item) {
