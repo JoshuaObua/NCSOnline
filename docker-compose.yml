@@ -121,6 +121,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
       - ./nginx/conf.d/proxy_params.conf:/etc/nginx/templates/proxy_params.conf.template:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot_certs:/etc/letsencrypt:ro
       - website_nginx_logs:/var/log/nginx
       - website_uploads_data:/app/uploads:ro
     healthcheck:
@@ -139,6 +140,9 @@ volumes:
   website_geoip_data:
   website_app_logs:
   website_backups_data:
+  certbot_certs:
+    name: ncswebsite_certbot_certs
+    external: true
 
 networks:
   ncswebsite_net:
