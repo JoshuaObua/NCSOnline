@@ -1,4 +1,5 @@
 <template>
+  <AppPreloader />
   <main class="otika-cms">
     <div class="otika-app">
       <div class="main-wrapper main-wrapper-1" :class="{ 'sidebar-mini': sidebarCollapsed }">
@@ -1595,6 +1596,7 @@ import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
 import { API_BASE_URL, mediaUrl } from '@/api/client.js'
 import * as cms from '@/api/cms.js'
+import AppPreloader from '@/components/public/AppPreloader.vue'
 import BlogPostEditor from '@/components/cms/BlogPostEditor.vue'
 import CmsRichTextEditor from '@/components/cms/CmsRichTextEditor.vue'
 import DropzoneUpload from '@/components/cms/DropzoneUpload.vue'

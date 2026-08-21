@@ -1,15 +1,10 @@
 <template>
-  <AppPreloader />
   <router-view v-slot="{ Component }">
     <Transition name="page-fade" mode="out-in">
       <component :is="Component" />
     </Transition>
   </router-view>
 </template>
-
-<script setup>
-import AppPreloader from '@/components/public/AppPreloader.vue'
-</script>
 
 <style>
 .page-fade-enter-active, .page-fade-leave-active { transition: opacity 0.18s ease; }

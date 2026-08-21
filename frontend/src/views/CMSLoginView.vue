@@ -1,4 +1,5 @@
 <template>
+  <AppPreloader />
   <main class="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-10">
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
@@ -95,6 +96,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import apiClient, { API_BASE_URL } from '@/api/client.js'
+import AppPreloader from '@/components/public/AppPreloader.vue'
 
 const router = useRouter()
 const email = ref('')
