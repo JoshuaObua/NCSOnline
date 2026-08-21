@@ -1,130 +1,115 @@
 <template>
-  <div class="min-h-screen bg-slate-100 dark:bg-slate-950 flex flex-col justify-between p-4 sm:p-6 font-poppins transition-colors duration-300">
-    
-    <!-- Top Bar with Theme Toggle -->
-    <div class="w-full max-w-5xl mx-auto flex justify-end items-center py-2 px-2">
-      <ThemeToggle />
-    </div>
-
-    <!-- Center Login Card -->
-    <div class="w-full max-w-md mx-auto my-auto py-6">
-      
+  <main class="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center px-4 py-12 transition-colors duration-200">
+    <div class="w-full max-w-md">
       <!-- Brand Crest & Header -->
-      <div class="text-center mb-6">
+      <div class="text-center mb-8">
         <router-link to="/" class="inline-block transition-transform hover:scale-105">
           <img
             src="/main-logo.png"
             alt="National Council of Sports"
-            class="h-20 mx-auto mb-3 object-contain drop-shadow"
+            class="h-16 mx-auto mb-4 object-contain drop-shadow"
           />
         </router-link>
-        <h1 class="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">NCS Intranet Portal</h1>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-widest font-semibold">
-          National Council of Sports · Uganda
-        </p>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-[#1a365d] dark:text-white tracking-tight">NCS Intranet Portal</h1>
+        <p class="text-slate-600 dark:text-slate-400 font-medium text-sm mt-1.5">Sign in to your staff workspace</p>
       </div>
 
-      <!-- Otika Card Primary -->
-      <div class="card card-primary bg-white dark:bg-slate-900 shadow-xl border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden transition-colors duration-300">
-        <div class="card-header border-b border-slate-100 dark:border-slate-800 py-4 px-6 bg-slate-50/50 dark:bg-slate-800/30">
-          <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide flex items-center gap-2">
-            <i class="icofont-key text-blue-600 dark:text-blue-400"></i> Secure Sign In
-          </h4>
-        </div>
-
-        <div class="card-body p-6 sm:p-8">
-          <!-- Error Alert -->
-          <div v-if="errorMessage" class="mb-5 flex items-start gap-3 p-3.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/50 rounded-xl text-red-700 dark:text-red-400 text-xs">
-            <i class="icofont-warning-alt text-base flex-shrink-0 mt-0.5"></i>
-            <p class="font-medium">{{ errorMessage }}</p>
-          </div>
-
-          <form @submit.prevent="handleLogin" class="space-y-4">
-            <!-- Email -->
-            <div class="form-group">
-              <label for="email" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-wider">
-                Official Email Address
-              </label>
+      <!-- Login Card -->
+      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-8 border border-slate-200/80 dark:border-slate-800 backdrop-blur-sm">
+        <form class="space-y-5" novalidate @submit.prevent="handleLogin">
+          <!-- Email Address -->
+          <div>
+            <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5" for="email">Email Address</label>
+            <div class="relative group">
+              <div class="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-[#f5a623] transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+              </div>
               <input
                 id="email"
                 v-model="email"
                 type="email"
-                required
                 autocomplete="email"
-                placeholder="e.g. admin@ncs.go.ug"
-                class="form-control w-full px-3.5 h-10 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-500 transition"
+                class="w-full h-11 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 pl-11 pr-4 py-2.5 text-slate-900 dark:text-white text-sm font-medium shadow-sm transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#f5a623]/30 focus:border-[#f5a623]"
+                placeholder="Enter your official email address"
+                required
+                autofocus
               />
             </div>
+          </div>
 
-            <!-- Password -->
-            <div class="form-group">
-              <div class="flex items-center justify-between mb-1.5">
-                <label for="password" class="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                  Password
-                </label>
+          <!-- Password -->
+          <div>
+            <label class="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1.5" for="password">Password</label>
+            <div class="relative group">
+              <div class="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none text-slate-400 dark:text-slate-500 group-focus-within:text-[#f5a623] transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               </div>
-              <div class="relative flex items-center">
-                <input
-                  id="password"
-                  v-model="password"
-                  :type="showPassword ? 'text' : 'password'"
-                  required
-                  autocomplete="current-password"
-                  placeholder="••••••••••••"
-                  class="form-control w-full pl-3.5 pr-10 h-10 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-blue-600 dark:focus:border-blue-500 transition"
-                />
-                <button
-                  type="button"
-                  @click="showPassword = !showPassword"
-                  class="absolute right-0 inset-y-0 w-10 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 focus:outline-none"
-                  :title="showPassword ? 'Hide Password' : 'Show Password'"
-                >
-                  <i :class="showPassword ? 'icofont-eye-blocked' : 'icofont-eye'" class="text-sm leading-none"></i>
-                </button>
-              </div>
-            </div>
-
-            <!-- Remember & Forgot -->
-            <div class="flex items-center justify-between text-xs pt-1">
-              <label class="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  v-model="rememberMe"
-                  type="checkbox"
-                  class="w-4 h-4 rounded text-blue-600 border-slate-300 dark:border-slate-700 focus:ring-blue-500"
-                />
-                <span class="text-slate-600 dark:text-slate-400 font-medium">Keep me signed in</span>
-              </label>
-            </div>
-
-            <!-- Submit Button -->
-            <div class="pt-2">
+              <input
+                id="password"
+                v-model="password"
+                :type="showPassword ? 'text' : 'password'"
+                autocomplete="current-password"
+                class="w-full h-11 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 pl-11 pr-11 py-2.5 text-slate-900 dark:text-white text-sm font-medium shadow-sm transition-all duration-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-[#f5a623]/30 focus:border-[#f5a623]"
+                placeholder="Enter your password"
+                required
+              />
               <button
-                type="submit"
-                :disabled="loading"
-                class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2"
+                type="button"
+                class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 flex items-center justify-center rounded-md transition-colors"
+                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                @click="showPassword = !showPassword"
               >
-                <i v-if="loading" class="icofont-spinner icofont-spin"></i>
-                <i v-else class="icofont-login"></i>
-                <span>{{ loading ? 'Authenticating...' : 'Sign In to Portal' }}</span>
+                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 2 20 20"/><path d="M6.71 6.71C4.87 7.93 3.31 9.73 2.06 12a1 1 0 0 0 0 .7 10.75 10.75 0 0 0 15.23 4.59"/><path d="M10.58 10.58a2 2 0 0 0 2.83 2.83"/><path d="M14.12 5.22A10.65 10.65 0 0 1 21.94 12a1 1 0 0 1 0 .7 10.8 10.8 0 0 1-2.1 3.13"/></svg>
               </button>
             </div>
-          </form>
+          </div>
+
+          <!-- Remember Me & Forgot Password -->
+          <div class="flex items-center justify-between gap-4">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input id="remember-me" v-model="rememberMe" type="checkbox" class="rounded border-slate-300 text-[#f5a623] focus:ring-[#f5a623] w-4 h-4" />
+              <span class="text-sm text-slate-700 dark:text-slate-300 font-medium">Keep me signed in</span>
+            </label>
+            <a href="#" class="text-sm text-[#d88700] hover:text-[#f5a623] font-semibold hover:underline transition-colors" @click.prevent>Forgot password?</a>
+          </div>
+
+          <!-- Error Alert -->
+          <p v-if="errorMessage" class="rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 px-3.5 py-2.5 text-sm font-medium text-red-700 dark:text-red-300 leading-snug">{{ errorMessage }}</p>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            :disabled="loading"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f5a623] shadow-md hover:shadow-lg h-11 px-4 w-full bg-[#f5a623] hover:bg-[#e09612] text-[#172b4d] text-base font-extrabold disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <svg v-if="!loading" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8v4a4 4 0 0 0-4 4H4z"/></svg>
+              {{ loading ? 'Authenticating...' : 'Sign In to Intranet' }}
+            </span>
+          </button>
+        </form>
+
+        <div class="mt-6 text-center">
+          <p class="text-slate-600 dark:text-slate-400 font-medium text-sm">Need staff access? <a class="text-[#d88700] hover:text-[#f5a623] font-bold hover:underline transition-colors" href="mailto:info@ncs.go.ug">Contact IT Support</a></p>
         </div>
       </div>
-    </div>
 
-    <!-- Footer -->
-    <div class="text-center text-xs text-slate-400 dark:text-slate-500 py-3">
-      &copy; {{ new Date().getFullYear() }} National Council of Sports, Uganda. All rights reserved.
+      <div class="text-center mt-6">
+        <router-link class="text-slate-600 dark:text-slate-400 hover:text-[#1a365d] dark:hover:text-white font-semibold text-sm inline-flex items-center justify-center gap-1.5 transition-colors" to="/">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          Back to Main Site
+        </router-link>
+      </div>
     </div>
-  </div>
+  </main>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
-import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -140,9 +125,8 @@ async function handleLogin() {
   loading.value = true
   errorMessage.value = ''
   try {
-    const success = await authStore.login(email.value, password.value)
-    if (success) {
-      // Direct user to appropriate primary dashboard
+    const res = await authStore.login(email.value, password.value)
+    if (res && res.success) {
       const rawRoles = authStore.user?.roles || []
       const roles = rawRoles.map(r => (typeof r === 'string' ? r : (r?.name || r?.role || ''))).filter(Boolean)
       if (roles.includes('general_secretary')) {
@@ -165,7 +149,7 @@ async function handleLogin() {
         router.push('/dashboard')
       }
     } else {
-      errorMessage.value = authStore.error || 'Invalid credentials or inactive account.'
+      errorMessage.value = res?.message || authStore.error || 'Invalid credentials or inactive account.'
     }
   } catch (err) {
     errorMessage.value = err?.response?.data?.error?.message || err.message || 'Login failed. Please check your credentials.'
@@ -174,3 +158,10 @@ async function handleLogin() {
   }
 }
 </script>
+
+<style scoped>
+input::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+</style>

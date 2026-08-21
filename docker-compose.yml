@@ -12,7 +12,7 @@ services:
       - intranet_postgres_data:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d:ro
     ports:
-      - "5436:5432"
+      - "127.0.0.1:5437:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ncsintranet_user} -d ${POSTGRES_DB:-ncsintranet}"]
       interval: 10s
@@ -32,13 +32,12 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-ncsintranet_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ncsintranet}?sslmode=disable
       PORT: 8080
-      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:9081}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-https://ncsintranet.atenimedia.com}
       COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-ncsintranet}
     volumes:
       - intranet_uploads_data:/app/uploads
       - intranet_private_data:/app/private-data
       - intranet_app_logs:/var/log/app
-      - /var/run/docker.sock:/var/run/docker.sock
     expose: ["8080"]
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/healthz || exit 1"]
@@ -46,7 +45,7 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    networks: [ncsintranet_net]
+    networks: [ncsintranet_net, ncs_gateway_net]
 
   location-service:
     build:
@@ -82,105 +81,25 @@ services:
       - intranet_app_logs:/var/log/app
     networks: [ncsintranet_net]
 
-  backup:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    entrypoint: ["/ncs-ops-agent"]
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    env_file: [.env]
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER:-ncsintranet_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ncsintranet}?sslmode=disable
-      BACKUP_DIR: /var/backups/ncs
-      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
-      RCLONE_REMOTE: ${RCLONE_REMOTE:-}
-    volumes:
-      - intranet_backups_data:/var/backups/ncs
-      - intranet_app_logs:/var/log/app
-      - ${RCLONE_CONFIG_PATH:-./ops/backup/rclone.empty.conf}:/root/.config/rclone/rclone.conf:ro
-    networks: [ncsintranet_net]
-
-  prometheus:
-    image: prom/prometheus:v3.4.1
-    restart: unless-stopped
-    profiles: ["observability"]
-    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=14d"]
-    volumes:
-      - ./ops/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - intranet_prometheus_data:/prometheus
-    expose: ["9090"]
-    networks: [ncsintranet_net]
-
-  grafana:
-    image: grafana/grafana:12.0.1
-    restart: unless-stopped
-    profiles: ["observability"]
-    depends_on: [prometheus]
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-}
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    volumes:
-      - intranet_grafana_data:/var/lib/grafana
-    expose: ["3000"]
-    networks: [ncsintranet_net]
-
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:9081}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
     restart: unless-stopped
     expose: ["80"]
-    networks: [ncsintranet_net]
-
-  nginx:
-    image: nginx:1.25-alpine
-    restart: unless-stopped
-    depends_on: [backend, frontend, location-service]
-    ports:
-      - "9081:80"
-      - "9444:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - intranet_nginx_logs:/var/log/nginx
-      - intranet_uploads_data:/app/uploads:ro
-    networks: [ncsintranet_net]
-
-  pgadmin:
-    image: dpage/pgadmin4:8
-    restart: unless-stopped
-    profiles: ["admin-tools"]
-    depends_on: [postgres]
-    environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-pgadmin@ncs.go.ug}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
-      PGADMIN_CONFIG_SERVER_MODE: "False"
-      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
-    ports:
-      - "5052:80"
-    volumes:
-      - intranet_pgadmin_data:/var/lib/pgadmin
-      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
-    networks: [ncsintranet_net]
+    networks: [ncsintranet_net, ncs_gateway_net]
 
 volumes:
   intranet_postgres_data:
-  intranet_nginx_logs:
-  intranet_pgadmin_data:
   intranet_uploads_data:
   intranet_private_data:
   intranet_geoip_data:
   intranet_app_logs:
-  intranet_backups_data:
-  intranet_prometheus_data:
-  intranet_grafana_data:
 
 networks:
   ncsintranet_net:
     driver: bridge
+  ncs_gateway_net:
+    external: true
