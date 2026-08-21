@@ -1,7 +1,7 @@
 <template>
   <div class="home-redesign">
     <template v-for="section in visibleSections" :key="section.id">
-      <section v-if="section.id === 'hero'" id="section-hero">
+      <section v-if="section.id === 'hero'" id="section-hero" class="relative w-full h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden" data-testid="homepage-section-hero">
         <PublicSlideshow :slideshow="slideshow" :slides="displaySlides" />
       </section>
 

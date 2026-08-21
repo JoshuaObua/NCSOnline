@@ -1,7 +1,6 @@
 <template>
-  <div id="section-hero" data-testid="homepage-section-hero">
-    <section
-      class="relative h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden"
+  <div class="relative w-full h-full overflow-hidden" data-testid="homepage-hero-slider-wrapper">
+    <div class="relative w-full h-full overflow-hidden"
       data-testid="homepage-hero-slider"
       role="region"
       aria-roledescription="carousel"
@@ -143,7 +142,7 @@
 
       <!-- Bottom Gradient Overlay -->
       <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white dark:from-slate-950 to-transparent z-20 pointer-events-none"></div>
-    </section>
+    </div>
   </div>
 </template>
 
