@@ -1,7 +1,7 @@
 <template>
   <Transition name="preloader">
     <div
-      v-if="visible"
+      v-if="loading"
       class="app-preloader"
       :class="{ 'is-dark': isDark }"
       role="status"
@@ -13,9 +13,8 @@
           :src="logoSrc"
           alt="NCS Logo"
           class="preloader-logo"
-          @load="onLogoLoaded"
         />
-        <div v-if="!logoLoaded" class="preloader-spinner"></div>
+        <div class="preloader-spinner"></div>
       </div>
       <span class="sr-only">Loading…</span>
     </div>
@@ -23,37 +22,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { getSettings } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 import { useTheme } from '@/composables/useTheme.js'
 
 const props = defineProps({
   loading: { type: Boolean, default: false },
-  minDuration: { type: Number, default: 300 },
 })
 
 const themeState = useTheme()
 const isDark = computed(() => themeState?.isDark?.value ?? false)
 
-// Prevent preloader overlay from re-triggering on theme switches or layout updates
-const alreadyLoaded = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('ncs_preloaded') === 'true'
-const initialVisible = ref(!alreadyLoaded)
-const propVisible = ref(!!props.loading)
-
-watch(() => props.loading, (val) => {
-  propVisible.value = !!val
-})
-
-const visible = computed(() => initialVisible.value || propVisible.value)
-
 const siteLogo = ref('')
 const logoSrc = computed(() => siteLogo.value ? mediaUrl(siteLogo.value) : '/main-logo.png')
-const logoLoaded = ref(false)
-
-function onLogoLoaded() {
-  logoLoaded.value = true
-}
 
 onMounted(() => {
   try {
@@ -61,13 +43,6 @@ onMounted(() => {
       if (r?.data?.data?.value?.logoUrl) siteLogo.value = r.data.data.value.logoUrl
     }).catch(() => {})
   } catch {}
-
-  if (initialVisible.value) {
-    setTimeout(() => {
-      initialVisible.value = false
-      try { sessionStorage.setItem('ncs_preloaded', 'true') } catch {}
-    }, props.minDuration)
-  }
 })
 </script>
 
