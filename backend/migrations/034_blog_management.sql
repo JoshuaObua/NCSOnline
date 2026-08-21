@@ -61,6 +61,7 @@ VALUES
 	('blog-cat-news', 'News', 'news', 'Latest council updates and public notices.', 1, TRUE),
 	('blog-cat-blog', 'Blog', 'blog', 'Editorial features and insight articles.', 2, TRUE),
 	('blog-cat-announcement', 'Announcements', 'announcement', 'Official announcements from the National Council of Sports.', 3, TRUE)
-ON CONFLICT (slug) DO NOTHING;
+ON CONFLICT (id) DO NOTHING;
 
 COMMIT;
+
