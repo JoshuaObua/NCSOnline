@@ -33,11 +33,13 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       PORT: ${PORT}
       PUBLIC_APP_URL: ${PUBLIC_APP_URL}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-ncswebsite}
     volumes:
       - website_uploads_data:/app/uploads
       - website_private_data:/app/private-data
       - website_app_logs:/var/log/app
       - website_backups_data:/var/backups/ncs
+      - /var/run/docker.sock:/var/run/docker.sock
     expose: ["${PORT}"]
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:${PORT}/healthz || exit 1"]
