@@ -13,8 +13,22 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [vue()],
     build: {
+      target: 'esnext',
+      cssCodeSplit: true,
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
         output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('vue') || id.includes('vue-router') || id.includes('pinia')) {
+                return 'vendor-vue'
+              }
+              if (id.includes('sweetalert2') || id.includes('gsap') || id.includes('tippy')) {
+                return 'vendor-ui'
+              }
+              return 'vendor-deps'
+            }
+          },
           assetFileNames: assetInfo => assetInfo.names?.includes('icofont.woff2')
             ? 'assets/icofont.woff2'
             : assetInfo.names?.includes('icofont.woff')

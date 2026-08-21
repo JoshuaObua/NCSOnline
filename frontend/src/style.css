@@ -132,40 +132,90 @@ html.dark .public-site .border-gray-200 {
    surfaces here. Brand accents (amber) and already-dark navy sections/footer
    are intentionally left unchanged. Scoped to .public-site so the admin CMS
    (which has its own :global(.dark) rules) is unaffected. */
+html.dark body { background-color: #0f172a; color: #f8fafc; }
+
 .dark .public-site {
   --skilline-cream: #0f172a;
-  --skilline-heading: #f1f5f9;
-  --skilline-copy: #9aa7b8;
-  background-color: #0b1120;
-  color: var(--skilline-copy);
+  --skilline-heading: #f8fafc;
+  --skilline-copy: #cbd5e1;
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
 }
+
+.dark .public-site header,
+.dark .public-site nav,
+.dark .public-site main,
+.dark .public-site section,
+.dark .public-site article,
 .dark .public-site .bg-white,
 .dark .public-site .bg-cream,
 .dark .public-site .bg-gray-50,
 .dark .public-site .bg-gray-100,
-.dark .public-site .bg-\[\#FEF9F2\] { background-color: #111827 !important; }
+.dark .public-site .bg-soft,
+.dark .public-site .bg-\[\#FEF9F2\],
+.dark .public-site .skilline-card {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+}
+
 .dark .public-site .bg-gray-200,
-.dark .public-site .bg-gray-300 { background-color: #1f2937 !important; }
+.dark .public-site .bg-gray-300 { background-color: #334155 !important; }
+
+.dark .public-site h1,
+.dark .public-site h2,
+.dark .public-site h3,
+.dark .public-site h4,
+.dark .public-site h5,
+.dark .public-site h6,
+.dark .public-site .text-\[\#2F327D\],
 .dark .public-site .text-\[\#1a365d\],
 .dark .public-site .text-\[\#112b4e\],
+.dark .public-site .text-\[\#10233f\],
+.dark .public-site .text-darken,
 .dark .public-site .text-gray-900,
 .dark .public-site .text-gray-800,
-.dark .public-site .text-gray-700 { color: #e5e7eb !important; }
+.dark .public-site .text-gray-700,
+.dark .public-site .prose :where(h1,h2,h3,h4) {
+  color: #f8fafc !important;
+}
+
+.dark .public-site p,
+.dark .public-site span:not(.bg-accent):not(.bg-\[\#F48C06\]):not(.badge),
+.dark .public-site li,
 .dark .public-site .text-gray-600,
 .dark .public-site .text-gray-500,
-.dark .public-site .text-gray-400 { color: #9aa7b8 !important; }
+.dark .public-site .text-gray-400,
+.dark .public-site .prose :where(p,li) {
+  color: #cbd5e1 !important;
+}
+
+.dark .public-site a:not(.btn):not(.bg-accent):not(.bg-\[\#F48C06\]) {
+  color: #f5a623 !important;
+}
+
+.dark .public-site .border,
 .dark .public-site .border-gray-100,
 .dark .public-site .border-gray-200,
-.dark .public-site .border-gray-300 { border-color: #334155 !important; }
+.dark .public-site .border-gray-300 {
+  border-color: #334155 !important;
+}
+
 .dark .public-site input:not([type=checkbox]):not([type=radio]),
 .dark .public-site textarea,
-.dark .public-site select { background-color: #111827 !important; color: #e5e7eb !important; border-color: #334155 !important; }
+.dark .public-site select {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
 .dark .public-site .shadow-sm,
 .dark .public-site .shadow,
 .dark .public-site .shadow-md,
 .dark .public-site .shadow-lg,
 .dark .public-site .shadow-xl,
-.dark .public-site .shadow-2xl { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45) !important; }
+.dark .public-site .shadow-2xl {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45) !important;
+}
 
 .public-site main h1,
 .public-site main h2,
