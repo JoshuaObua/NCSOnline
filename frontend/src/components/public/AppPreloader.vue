@@ -17,20 +17,28 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { getSettings } from '@/api/cms.js'
 import { mediaUrl } from '@/api/client.js'
 import { useTheme } from '@/composables/useTheme.js'
 
 const props = defineProps({
-  minDuration: { type: Number, default: 300 },
-  maxDuration: { type: Number, default: 800 },
+  loading: { type: Boolean, default: undefined },
+  minDuration: { type: Number, default: 350 },
 })
 
 const themeState = useTheme()
 const isDark = computed(() => themeState?.isDark?.value ?? false)
 
-const visible = ref(true)
+const initialVisible = ref(true)
+const propVisible = ref(props.loading ?? false)
+
+watch(() => props.loading, (val) => {
+  propVisible.value = !!val
+})
+
+const visible = computed(() => initialVisible.value || propVisible.value)
+
 const siteLogo = ref('')
 const logoSrc = computed(() => siteLogo.value ? mediaUrl(siteLogo.value) : '/main-logo.png')
 
@@ -42,7 +50,7 @@ onMounted(() => {
   } catch {}
 
   setTimeout(() => {
-    visible.value = false
+    initialVisible.value = false
   }, props.minDuration)
 })
 </script>

@@ -1,5 +1,5 @@
 <template>
-  <AppPreloader />
+  <AppPreloader :loading="cmsLoading" />
   <main class="otika-cms">
     <div class="otika-app">
       <div class="main-wrapper main-wrapper-1" :class="{ 'sidebar-mini': sidebarCollapsed }">
@@ -1617,6 +1617,7 @@ import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 import { normalizeMenuTree, toCmsMenuItems } from '@/utils/menuTree.js'
 
 const router = useRouter()
+const cmsLoading = ref(true)
 const active = ref('overview')
 const message = ref('')
 const error = ref('')
@@ -2463,6 +2464,8 @@ function selectSection(id) {
     setErr(new Error('You do not have permission to access that CMS section.'))
     return
   }
+  cmsLoading.value = true
+  setTimeout(() => { cmsLoading.value = false }, 350)
   active.value = id
   messagesOpen.value = false
   notificationsOpen.value = false
@@ -2598,6 +2601,7 @@ function thirdPartySavePayload() {
 
 async function loadAll() {
   try {
+    cmsLoading.value = true
     apiAvailable.value = null
     if (isLocalPreviewSession()) {
       error.value = 'CMS preview mode: backend API is offline, so live content is paused.'
@@ -2687,7 +2691,7 @@ async function loadAll() {
     speechCategories.value = listData(results[51].value)
     councilMembers.value = listData(results[52].value)
     facilityRegions.value = listData(results[53].value)
-  } catch (err) { setErr(err) }
+  } catch (err) { setErr(err) } finally { setTimeout(() => { cmsLoading.value = false }, 350) }
 }
 
 async function loadAnalytics() {
