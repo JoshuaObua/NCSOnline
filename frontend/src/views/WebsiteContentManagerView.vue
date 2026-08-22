@@ -2771,6 +2771,7 @@ async function loadAll() {
     auditPerPage.value = auditMeta.value.per_page || auditPerPage.value
     applyThirdPartySettings(data(results[5].value)?.value || {})
     if (active.value === 'manage-users' || active.value === 'users') await loadUsers()
+    loadFederationOfficials()
   } catch (err) { setErr(err) }
 }
 
@@ -3016,8 +3017,8 @@ async function loadFederationOfficials() {
   loadingFederationOfficials.value = true
   try {
     const res = await listNsmisDomain('federation-officers', { per_page: 200 })
-    const items = listData(res)
-    federationOfficials.value = Array.isArray(items) ? items : (res?.data?.data || [])
+    const items = res?.data?.data?.items || listData(res)
+    federationOfficials.value = Array.isArray(items) ? items : []
   } catch (err) {
     console.warn('Could not load federation officials:', err)
   } finally {
