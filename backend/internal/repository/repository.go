@@ -311,10 +311,10 @@ func (r *UserRepo) SetActive(ctx context.Context, userID string, active bool) er
 
 func (r *UserRepo) SetAccountManagement(ctx context.Context, userID, actorID, status, reason string, fraud bool, fraudReason string, suspendedUntil *time.Time) error {
 	const q = `UPDATE users
-	           SET account_status=$3, is_active=($3='ACTIVE'), status_reason=$4,
+	           SET account_status=$3::text, is_active=($3::text='ACTIVE'), status_reason=$4,
 	               fraud_flag=$5, fraud_reason=$6, suspended_until=$7,
 	               status_changed_by=$2, status_changed_at=NOW(),
-	               auth_invalid_before=CASE WHEN $3<>'ACTIVE' THEN date_trunc('second', NOW()) ELSE auth_invalid_before END,
+	               auth_invalid_before=CASE WHEN $3::text<>'ACTIVE' THEN date_trunc('second', NOW()) ELSE auth_invalid_before END,
 	               updated_at=NOW()
 	           WHERE id=$1 AND deleted_at IS NULL`
 	result, err := r.db.Exec(ctx, q, userID, actorID, status, reason, fraud, fraudReason, suspendedUntil)
