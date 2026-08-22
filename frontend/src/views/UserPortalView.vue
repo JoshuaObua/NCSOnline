@@ -72,51 +72,18 @@
             </div>
             <ul class="sidebar-menu" aria-label="Applicant navigation">
               <li class="menu-header">{{ userProfileLabel }}</li>
-              
-              <template v-for="item in navigation" :key="item.id">
-                <!-- DROPDOWN ITEM: SPORTS FEDERATIONS -->
-                <li v-if="item.id === 'federations'" :class="{ active: ['federations', 'federation-categories'].includes(section) }" class="dropdown">
-                  <a href="#" class="nav-link has-dropdown text-dark d-flex align-items-center justify-content-between" @click.prevent="isFederationMenuExpanded = !isFederationMenuExpanded">
-                    <span class="d-flex align-items-center gap-2"><i :class="item.icon"></i> <span>Federations</span></span>
-                    <i class="icofont-simple-down" :style="{ transform: isFederationMenuExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"></i>
-                  </a>
-                  <ul v-if="isFederationMenuExpanded" class="dropdown-menu d-block bg-light border-0 shadow-none ps-3 py-1 my-1 rounded" style="list-style: none;">
-                    <li>
-                      <button type="button" class="nav-link py-2 px-3 text-start w-100 btn border-0 bg-transparent text-small" :class="{ 'font-weight-bold text-primary': section === 'federations' }" @click="select('federations')">
-                        <i class="icofont-list me-2"></i> Federations
-                      </button>
-                    </li>
-                    <li>
-                      <button type="button" class="nav-link py-2 px-3 text-start w-100 btn border-0 bg-transparent text-small" @click="openAddFederationModal">
-                        <i class="icofont-plus me-2 text-success"></i> Add Federation
-                      </button>
-                    </li>
-                    <li>
-                      <button type="button" class="nav-link py-2 px-3 text-start w-100 btn border-0 bg-transparent text-small" :class="{ 'font-weight-bold text-primary': section === 'federation-categories' }" @click="select('federation-categories')">
-                        <i class="icofont-tags me-2 text-warning"></i> Manage Categories
-                      </button>
-                    </li>
-                    <li>
-                      <button type="button" class="nav-link py-2 px-3 text-start w-100 btn border-0 bg-transparent text-small" @click="openAddCategoryModal">
-                        <i class="icofont-plus-circle me-2 text-info"></i> Add Category
-                      </button>
-                    </li>
-                  </ul>
-                </li>
-                <!-- STANDARD ITEM -->
-                <li v-else :class="{ active: section === item.id }">
-                  <button type="button" class="nav-link" :title="item.label" @click="select(item.id)">
-                    <i :class="item.icon"></i>
-                    <span>{{ item.label }}</span>
-                    <b v-if="item.badge" class="portal-nav-badge">{{ item.badge }}</b>
-                  </button>
-                </li>
-              </template>
+              <li v-for="item in navigation" :key="item.id" :class="{ active: section === item.id }">
+                <button type="button" class="nav-link" :title="item.label" @click="select(item.id)">
+                  <i :class="item.icon"></i>
+                  <span>{{ item.label }}</span>
+                  <b v-if="item.badge" class="portal-nav-badge">{{ item.badge }}</b>
+                </button>
+              </li>
               <li class="menu-header">Account</li>
               <li>
                 <button type="button" class="nav-link" title="Sign out" @click="logout">
                   <i class="icofont-logout"></i>
-                  <span>Logout</span>
+                  <span>Sign out</span>
                 </button>
               </li>
             </ul>
@@ -125,7 +92,7 @@
         <div v-if="mobileSidebarOpen" class="sidebar-scrim" @click="mobileSidebarOpen = false"></div>
 
         <div class="main-content">
-          <div class="section">
+          <section class="section">
             <div class="section-body">
               <div class="section-header">
                 <h1>{{ sectionTitle }}</h1>
@@ -135,15 +102,8 @@
                 </div>
               </div>
               <div class="cms-actions otika-page-actions">
-                <template v-if="isAdminOrGenSec">
-                  <button type="button" class="btn btn-icon icon-left btn-primary me-2" @click="openCreateFormModal"><i class="icofont-plus"></i> Create Application Form</button>
-                  <button type="button" class="btn btn-icon icon-left btn-success me-2" @click="openAddFederationModal"><i class="icofont-badge"></i> Add Federation</button>
-                  <button type="button" class="btn btn-icon icon-left btn-info" :disabled="loading" @click="loadPortal"><i class="icofont-refresh"></i> Refresh</button>
-                </template>
-                <template v-else>
-                  <button type="button" class="btn btn-icon icon-left btn-primary me-2" @click="select('apply')"><i class="icofont-plus"></i> Apply Now</button>
-                  <button type="button" class="btn btn-icon icon-left btn-info" :disabled="loading" @click="loadPortal"><i class="icofont-refresh"></i> Refresh</button>
-                </template>
+                <button type="button" class="btn btn-icon icon-left btn-primary" @click="select('apply')"><i class="fas fa-plus"></i> Apply Now</button>
+                <button type="button" class="btn btn-icon icon-left btn-info" :disabled="loading" @click="loadPortal"><i class="fas fa-sync"></i> Refresh</button>
               </div>
 
               <p v-if="success" class="portal-success cms-message">{{ success }}</p>
@@ -499,411 +459,801 @@
                 </div>
               </template>
             </div>
-          
-
-            <!-- SECTION: USERS & RBAC DESK -->
-            <div v-if="section === 'users'" class="section-body">
-              <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body p-4">
-                  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-                    <div>
-                      <h4 class="text-dark font-weight-bold mb-1">User & RBAC Accounts Directory</h4>
-                      <p class="text-muted text-small mb-0">System role assignments, credential administration, and user status controls.</p>
-                    </div>
-                    <div class="d-flex gap-2">
-                      <input v-model="adminUsersSearch" type="text" class="form-control form-control-sm" placeholder="Search by name or email..." style="max-width: 240px;" />
-                      <select v-model="adminUsersRoleFilter" class="form-select form-select-sm" style="max-width: 180px;">
-                        <option value="all">All Roles</option>
-                        <option value="super_admin">Super Admin</option>
-                        <option value="general_secretary">General Secretary</option>
-                        <option value="hr">Human Resources</option>
-                        <option value="accountant">Accounting</option>
-                        <option value="procurement_officer">Procurement</option>
-                        <option value="federation_president">Federation Officers</option>
-                        <option value="athlete">Athletes</option>
-                        <option value="coach">Coaches</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div class="table-responsive">
-                    <table class="table table-hover table-striped mb-0">
-                      <thead class="bg-light">
-                        <tr>
-                          <th>User ID & Name</th>
-                          <th>Email Address</th>
-                          <th>Assigned RBAC Designation</th>
-                          <th>Account Status</th>
-                          <th>Created Date</th>
-                          <th class="text-end">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="userItem in filteredAdminUsers" :key="userItem.id">
-                          <td>
-                            <strong>{{ userItem.name }}</strong>
-                            <br><small class="text-muted">{{ userItem.id }}</small>
-                          </td>
-                          <td><code>{{ userItem.email }}</code></td>
-                          <td><span class="badge bg-primary text-white">{{ userItem.roleLabel }}</span></td>
-                          <td><span class="badge bg-success">{{ userItem.status }}</span></td>
-                          <td>{{ userItem.created }}</td>
-                          <td class="text-end">
-                            <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Edit Role"><i class="icofont-edit"></i> Edit</button>
-                            <button type="button" class="btn btn-sm btn-outline-warning" title="Reset Password"><i class="icofont-key"></i> Reset</button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              
-              <!-- SYSTEM MAINTENANCE & BACKUP MANAGEMENT -->
-              <div class="row g-4 mt-2">
-                <div class="col-md-6">
-                  <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body p-4">
-                      <h5 class="text-dark font-weight-bold mb-3"><i class="icofont-tools-alt me-2 text-primary"></i> System Maintenance & Operations</h5>
-                      <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center p-3" @click="flushSystemCacheAction">
-                          <div>
-                            <strong>Flush Cache & Clear Buffer</strong>
-                            <div class="text-muted text-small">Purges Redis session caches and transient query buffers</div>
-                          </div>
-                          <i class="icofont-refresh fs-5"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-info text-start d-flex justify-content-between align-items-center p-3" @click="success = 'Database migrations verified and synchronized!'; setTimeout(() => success = '', 4000)">
-                          <div>
-                            <strong>Synchronize Database Migrations</strong>
-                            <div class="text-muted text-small">Executes outstanding schema migrations across PostgreSQL</div>
-                          </div>
-                          <i class="icofont-database fs-5"></i>
-                        </button>
-                        <button type="button" class="btn btn-outline-warning text-start d-flex justify-content-between align-items-center p-3" @click="success = 'Search registry re-indexed successfully!'; setTimeout(() => success = '', 4000)">
-                          <div>
-                            <strong>Re-index Search Registry</strong>
-                            <div class="text-muted text-small">Re-indexes athlete, federation, and application search indices</div>
-                          </div>
-                          <i class="icofont-search-job fs-5"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-md-6">
-                  <div class="card shadow-sm border-0 h-100">
-                    <div class="card-body p-4">
-                      <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="text-dark font-weight-bold mb-0"><i class="icofont-save me-2 text-success"></i> Database Backups & Snapshots</h5>
-                        <button type="button" class="btn btn-sm btn-success" @click="createBackupNow"><i class="icofont-plus"></i> Backup Now</button>
-                      </div>
-                      <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                          <thead class="bg-light">
-                            <tr>
-                              <th>Backup File</th>
-                              <th>Date</th>
-                              <th>Size</th>
-                              <th class="text-end">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr v-for="b in adminBackupList" :key="b.id">
-                              <td><small class="font-monospace text-dark">{{ b.id }}</small></td>
-                              <td><small class="text-muted">{{ b.date }}</small></td>
-                              <td><span class="badge bg-secondary text-white">{{ b.size }}</span></td>
-                              <td class="text-end">
-                                <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 me-1" title="Download"><i class="icofont-download"></i></button>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-</div>
-            </div>
-
-            <!-- SECTION: SPORTS FEDERATIONS -->
-            <!-- SECTION: FEDERATIONS -->
-            <div v-if="section === 'federations'" class="section-body">
-              <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body p-4">
-                  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-                    <div>
-                      <h4 class="text-dark font-weight-bold mb-1">National Sports Federations & Associations</h4>
-                      <p class="text-muted text-small mb-0">Statutory index of all recognized national governing bodies under the National Council of Sports.</p>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                      <input v-model="adminFederationSearch" type="text" class="form-control form-control-sm" placeholder="Search federations..." style="max-width: 240px;" @input="fedPage = 1" />
-                      <button type="button" class="btn btn-sm btn-primary text-nowrap" @click="openAddFederationModal"><i class="icofont-plus"></i> Add Federation</button>
-                    </div>
-                  </div>
-
-                  <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                      <thead class="bg-light">
-                        <tr>
-                          <th>Federation Name</th>
-                          <th>Category</th>
-                          <th>President</th>
-                          <th>General Secretary</th>
-                          <th>Status</th>
-                          <th class="text-end">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="fed in paginatedAdminFederations" :key="fed.id">
-                          <td>
-                            <strong>{{ fed.name }}</strong>
-                            <br><span class="badge bg-dark text-white text-uppercase me-2">{{ fed.acronym }}</span>
-                            <small class="text-muted" v-if="fed.certificate_no">{{ fed.certificate_no }}</small>
-                          </td>
-                          <td><span class="badge bg-primary text-white">{{ fed.category }}</span></td>
-                          <td><small class="font-weight-bold text-dark">{{ fed.president }}</small></td>
-                          <td><small class="text-muted">{{ fed.secretary }}</small></td>
-                          <td><span class="badge" :class="fed.status === 'Fully Recognized' ? 'bg-success' : 'bg-warning text-dark'">{{ fed.status }}</span></td>
-                          <td class="text-end">
-                            <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Edit Federation" @click="editFederationItem(fed)"><i class="icofont-edit"></i> Edit</button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" title="Delete Federation" @click="deleteFederationItem(fed)"><i class="icofont-trash"></i> Delete</button>
-                          </td>
-                        </tr>
-                        <tr v-if="paginatedAdminFederations.length === 0">
-                          <td colspan="6" class="text-center py-4 text-muted">No federations found matching search criteria.</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <!-- PAGINATION CONTROLS -->
-                  <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-3 pt-3 border-top gap-2">
-                    <div class="text-small text-muted">
-                      Showing {{ (fedPage - 1) * fedPerPage + 1 }} to {{ Math.min(fedPage * fedPerPage, filteredAdminFederations.length) }} of {{ filteredAdminFederations.length }} Federations
-                    </div>
-                    <div class="d-flex align-items-center gap-1">
-                      <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="fedPage <= 1" @click="fedPage--"><i class="icofont-simple-left"></i> Previous</button>
-                      <span class="px-2 text-small font-weight-bold text-dark">Page {{ fedPage }} of {{ totalFedPages }}</span>
-                      <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="fedPage >= totalFedPages" @click="fedPage++">Next <i class="icofont-simple-right"></i></button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION: FEDERATION CATEGORIES -->
-            <div v-if="section === 'federation-categories'" class="section-body">
-              <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body p-4">
-                  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-                    <div>
-                      <h4 class="text-dark font-weight-bold mb-1">Statutory Federation Category Classifications</h4>
-                      <p class="text-muted text-small mb-0">Configure funding allocation caps, priority tiers, and governance criteria for recognized National Sports Associations & Federations.</p>
-                    </div>
-                    <button type="button" class="btn btn-sm btn-warning text-dark font-weight-bold" @click="openAddCategoryModal"><i class="icofont-plus-circle me-1"></i> Add Federation Category</button>
-                  </div>
-                  <div class="row g-3">
-                    <div v-for="cat in systemCategoriesList" :key="cat.id" class="col-md-6">
-                      <div class="card border border-slate-200 h-100 rounded-12 shadow-none">
-                        <div class="card-body p-4">
-                          <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                              <span class="badge bg-dark text-white me-2">{{ cat.code }}</span>
-                              <h5 class="text-dark font-weight-bold d-inline">{{ cat.name }}</h5>
-                            </div>
-                            <span class="badge bg-success text-white" v-if="cat.grant_cap">{{ cat.grant_cap }} Cap</span>
-                          </div>
-                          <p class="text-muted text-small mb-3">{{ cat.description }}</p>
-                          <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-                            <span class="text-muted text-small font-weight-bold"><i class="icofont-badge text-primary me-1"></i> {{ cat.count }} Active Federations</span>
-                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" @click="Object.assign(editingCategory, cat); showAddCategoryModal = true;"><i class="icofont-edit"></i> Edit</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION: FEDERATION LICENSING -->
-            <div v-if="section === 'federations-license'" class="section-body">
-              <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body p-4">
-                  <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="text-dark font-weight-bold mb-0">National Federation Recognition & Licensing Desk</h4>
-                    <button type="button" class="btn btn-sm btn-primary" @click="openAddFederationModal"><i class="icofont-plus"></i> Issue New License</button>
-                  </div>
-                  <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                      <thead class="bg-light">
-                        <tr>
-                          <th>Federation / Association</th>
-                          <th>Category</th>
-                          <th>Certificate Serial #</th>
-                          <th>Status</th>
-                          <th class="text-end">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="fed in filteredAdminFederations" :key="'lic_'+fed.id">
-                          <td><strong>{{ fed.name }}</strong> ({{ fed.acronym }})</td>
-                          <td><span class="badge bg-info text-dark">{{ fed.category }}</span></td>
-                          <td><code>{{ fed.certificate_no }}</code></td>
-                          <td><span class="badge bg-success">Active & Verified</span></td>
-                          <td class="text-end">
-                            <button type="button" class="btn btn-sm btn-outline-primary me-1" @click="editFederationItem(fed)"><i class="icofont-edit"></i> Renew</button>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- SECTION: COMMAND CENTER & BACKUPS -->
-            <div v-if="section === 'command-center'" class="section-body">
-              <div class="card shadow-sm border-0 mb-4">
-                <div class="card-body p-4">
-                  <h4 class="text-dark font-weight-bold mb-3"><i class="icofont-server me-2 text-primary"></i> System Infrastructure & Backups Manager</h4>
-                  <div class="row g-3">
-                    <div class="col-md-6">
-                      <div class="border rounded p-3 bg-light">
-                        <h6 class="font-weight-bold">System Maintenance Operations</h6>
-                        <button type="button" class="btn btn-sm btn-outline-primary me-2 mt-2" @click="flushSystemCacheAction"><i class="icofont-refresh"></i> Flush Cache</button>
-                        <button type="button" class="btn btn-sm btn-outline-info me-2 mt-2" @click="success = 'Migrations synced!'; setTimeout(()=>success='',3000)"><i class="icofont-database"></i> DB Migration Sync</button>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="border rounded p-3 bg-light">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                          <h6 class="font-weight-bold mb-0">Database Backups</h6>
-                          <button type="button" class="btn btn-sm btn-success" @click="createBackupNow"><i class="icofont-plus"></i> Backup Now</button>
-                        </div>
-                        <ul class="list-unstyled text-small mb-0">
-                          <li v-for="b in adminBackupList" :key="b.id" class="d-flex justify-content-between border-bottom py-1">
-                            <span><code>{{ b.id }}</code></span>
-                            <span class="badge bg-secondary">{{ b.size }}</span>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div><!-- .section-body -->
-        </div><!-- .main-content -->
-
+          </section>
+        </div>
         <footer class="main-footer cms-main-footer">
           <div class="footer-left">
-            DESIGN BY: ATENI MEDIA TECHNOLOGIES LLC
+            Design By: Ateni Media Technologies LLC
           </div>
           <div class="footer-right">
-            NATIONAL COUNCIL OF SPORTS PORTAL
+            National Council of Sports Portal
           </div>
         </footer>
-      </div><!-- .main-wrapper -->
-    </div><!-- .otika-app -->
-
-    <!-- MODAL: ADD / EDIT FEDERATION -->
-    <div v-if="showAddFederationModal" class="form-backdrop" style="position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 1050; display: grid; place-items: center; padding: 20px;">
-      <div class="card shadow-lg border-0" style="max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; border-radius: 16px;">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center p-3">
-          <h5 class="mb-0 font-weight-bold"><i class="icofont-badge me-2"></i> {{ editingFederation.name ? 'Edit Sports Federation' : 'Add New Sports Federation' }}</h5>
-          <button type="button" class="btn-close btn-close-white" @click="showAddFederationModal = false"></button>
-        </div>
-        <div class="card-body p-4">
-          <form @submit.prevent="saveFederation">
-            <div class="row g-3">
-              <div class="col-md-8">
-                <label class="form-label font-weight-bold">Federation / Association Name</label>
-                <input v-model="editingFederation.name" type="text" class="form-control" placeholder="e.g. Uganda Athletics Federation" required />
-              </div>
-              <div class="col-md-4">
-                <label class="form-label font-weight-bold">Acronym</label>
-                <input v-model="editingFederation.acronym" type="text" class="form-control" placeholder="e.g. UAF" required />
-              </div>
-              <div class="col-md-6">
-                <label class="form-label font-weight-bold">Category Classification</label>
-                <select v-model="editingFederation.category" class="form-select">
-                  <option value="Category A (Priority)">Category A (Priority - High Impact)</option>
-                  <option value="Category B (Established)">Category B (Established)</option>
-                  <option value="Category C (Developing)">Category C (Developing)</option>
-                  <option value="Category D (Recognized Bodies)">Category D (Recognized Bodies)</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label font-weight-bold">Recognition Status</label>
-                <select v-model="editingFederation.status" class="form-select">
-                  <option value="Fully Recognized">Fully Recognized</option>
-                  <option value="Provisional Recognition">Provisional Recognition</option>
-                  <option value="Under Statutory Audit">Under Statutory Audit</option>
-                  <option value="Suspended">Suspended</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label font-weight-bold">President Name</label>
-                <input v-model="editingFederation.president" type="text" class="form-control" placeholder="President full name" />
-              </div>
-              <div class="col-md-6">
-                <label class="form-label font-weight-bold">General Secretary Name</label>
-                <input v-model="editingFederation.secretary" type="text" class="form-control" placeholder="General Secretary full name" />
-              </div>
-              <div class="col-md-6">
-                <label class="form-label font-weight-bold">Official Email</label>
-                <input v-model="editingFederation.email" type="email" class="form-control" placeholder="info@federation.go.ug" />
-              </div>
-              <div class="col-12">
-                <label class="form-label font-weight-bold">Recognition Certificate Serial #</label>
-                <input v-model="editingFederation.certificate_no" type="text" class="form-control" readonly />
-              </div>
-            </div>
-            <div class="d-flex justify-content-end gap-2 mt-4">
-              <button type="button" class="btn btn-light" @click="showAddFederationModal = false">Cancel</button>
-              <button type="submit" class="btn btn-primary px-4"><i class="icofont-save me-1"></i> Save Federation</button>
-            </div>
-          </form>
-        </div>
       </div>
     </div>
 
-    <!-- MODAL: ADD / EDIT FEDERATION CATEGORY -->
-    <div v-if="showAddCategoryModal" class="form-backdrop" style="position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 1050; display: grid; place-items: center; padding: 20px;">
-      <div class="card shadow-lg border-0" style="max-width: 580px; width: 100%; border-radius: 16px;">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center p-3">
-          <h5 class="mb-0 font-weight-bold"><i class="icofont-tags me-2"></i> {{ editingCategory.name ? 'Edit Category Classification' : 'Add New Federation Category' }}</h5>
-          <button type="button" class="btn-close btn-close-white" @click="showAddCategoryModal = false"></button>
-        </div>
-        <div class="card-body p-4">
-          <form @submit.prevent="saveFederationCategory">
-            <div class="row g-3">
-              <div class="col-md-4">
-                <label class="form-label font-weight-bold">Category Code</label>
-                <input v-model="editingCategory.code" type="text" class="form-control" placeholder="CAT_E" required />
-              </div>
-              <div class="col-md-8">
-                <label class="form-label font-weight-bold">Category Name</label>
-                <input v-model="editingCategory.name" type="text" class="form-control" placeholder="Category Name" required />
-              </div>
-              <div class="col-12">
-                <label class="form-label font-weight-bold">Description & Criteria</label>
-                <textarea v-model="editingCategory.description" class="form-control" rows="3" placeholder="Category definition, medal targets, grassroots criteria..."></textarea>
-              </div>
-            </div>
-            <div class="d-flex justify-content-end gap-2 mt-4">
-              <button type="button" class="btn btn-light" @click="showAddCategoryModal = false">Cancel</button>
-              <button type="submit" class="btn btn-primary px-4"><i class="icofont-save me-1"></i> Save Category</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
   </main>
 </template>
+
+<script setup>
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { getCurrentUser, updateMyProfile, uploadProfileAvatar } from '@/api/auth.js'
+import { listMyAuditLogs } from '@/api/account.js'
+import { listMyLegacyApplications, listMyTransactions } from '@/api/applications.js'
+import { getMySecurity, enroll2FA, verify2FA, disable2FA, changePassword } from '@/api/security.js'
+import * as cms from '@/api/cms.js'
+import { portalListOpenForms, portalListSubmissions } from '@/api/forms.js'
+import { listNsmisDomain } from '@/api/nsmis.js'
+import { mediaUrl } from '@/api/client.js'
+import OpenFormsPanel from '@/components/portal/OpenFormsPanel.vue'
+import ThemeToggle from '@/components/theme/ThemeToggle.vue'
+import { downloadApplicationForm } from '@/utils/applicationDownload.js'
+import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
+import { recordMenuNavigation } from '@/services/activityAudit.js'
+
+const router = useRouter()
+const portalSectionIds = ['dashboard', 'apply', 'applications', 'my-files', 'activities', 'notifications', 'messages', 'transactions', 'profile']
+const section = ref('dashboard')
+const sidebarCollapsed = ref(localStorage.getItem('ncsms_sidebar_collapsed') === 'true')
+const mobileSidebarOpen = ref(false)
+const profileOpen = ref(false)
+const loading = ref(true)
+const error = ref('')
+const success = ref('')
+const openForms = ref([])
+const dynamicSubmissions = ref([])
+const legacyApplications = ref([])
+const legacyTransactions = ref([])
+const activities = ref([])
+const activityPage = ref(1)
+const activityPerPage = ref(10)
+const activityTotal = ref(0)
+const activityTotalPages = computed(() => Math.ceil(activityTotal.value / activityPerPage.value))
+const notifications = ref([])
+const profile = reactive(JSON.parse(localStorage.getItem('ncsms_user') || '{}'))
+const applicationSearch = ref('')
+const applicationStatus = ref('')
+const savingProfile = ref(false)
+const uploadingAvatar = ref(false)
+const passwordCurrent = ref('')
+const passwordNew = ref('')
+const passwordConfirm = ref('')
+const changingPassword = ref(false)
+const twofaEnabled = ref(false)
+const toggling2FA = ref(false)
+const showTwoFAVerify = ref(false)
+const twofaVerifyCode = ref('')
+const verifying2FA = ref(false)
+
+const isAthlete = ref(false)
+const athleteData = ref(null)
+const athleteMedical = ref(null)
+const athleteSafeguarding = ref(null)
+const athleteAntiDoping = ref(null)
+const athleteNationalTeam = ref(null)
+const athleteResults = ref([])
+const athleteMedals = ref([])
+
+const isCoach = ref(false)
+const coachData = ref(null)
+const isOfficial = ref(false)
+const officialData = ref(null)
+
+ensureOtikaStyles()
+
+const userRoles = computed(() => {
+  const roles = profile.roles || profile.role || []
+  const roleList = Array.isArray(roles) ? roles : [roles]
+  return roleList.map(r => typeof r === 'string' ? r : r?.name).filter(Boolean)
+})
+const isAdminOrGenSec = computed(() => {
+  return userRoles.value.some(r => ['admin', 'super_admin', 'general_secretary'].includes(r))
+})
+
+const userProfileLabel = computed(() => {
+  const roles = userRoles.value
+  if (roles.includes('athlete') || roles.includes('role_athlete')) return 'Athlete Portal'
+  if (roles.includes('coach') || roles.includes('role_coach')) return 'Coach Portal'
+  if (roles.includes('technical_official') || roles.includes('role_technical_official')) return 'Official Portal'
+  return 'Ordinary User'
+})
+
+const userWorkspaceLabel = computed(() => {
+  const roles = userRoles.value
+  if (roles.includes('athlete') || roles.includes('role_athlete')) return 'Athlete workspace'
+  if (roles.includes('coach') || roles.includes('role_coach')) return 'Coach workspace'
+  if (roles.includes('technical_official') || roles.includes('role_technical_official')) return 'Official workspace'
+  return 'Applicant workspace'
+})
+
+const navigation = computed(() => {
+  const items = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'icofont-dashboard-web' },
+    { id: 'apply', label: 'Apply Now', icon: 'icofont-plus-circle', badge: openForms.value.length || '' },
+    { id: 'applications', label: 'My Applications', icon: 'icofont-file-document' },
+  ]
+  if (!isAdminOrGenSec.value) {
+    items.push({ id: 'my-files', label: 'My Files', icon: 'icofont-folder-open' })
+  }
+  items.push(
+    { id: 'activities', label: 'My Activities', icon: 'icofont-history' },
+    { id: 'notifications', label: 'Notifications', icon: 'icofont-notification', badge: unreadNotifications.value || '' },
+    { id: 'messages', label: 'Messages', icon: 'icofont-envelope', badge: messageCount.value || '' },
+    { id: 'transactions', label: 'My Transactions', icon: 'icofont-money' },
+    { id: 'profile', label: 'My Profile', icon: 'icofont-user-alt-3' }
+  )
+  return items
+})
+const sectionTitle = computed(() => navigation.value.find(item => item.id === section.value)?.label || 'Dashboard')
+const firstName = computed(() => profile.first_name || String(profile.email || 'User').split('@')[0])
+const fullName = computed(() => `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email || 'Portal user')
+const initials = computed(() => `${profile.first_name?.[0] || ''}${profile.last_name?.[0] || ''}`.toUpperCase() || 'U')
+const profileAvatar = computed(() => profile.avatar_url ? mediaUrl(profile.avatar_url) : '')
+const sidebarUserName = computed(() => {
+  const value = fullName.value || firstName.value || 'Portal user'
+  return value.length > 18 ? `${value.slice(0, 15)}...` : value
+})
+const greeting = computed(() => {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 18) return 'Good afternoon'
+  return 'Good evening'
+})
+const allApplications = computed(() => [
+  ...dynamicSubmissions.value.map(item => ({ ...item, source: 'custom', title: item.template_title || 'Custom application', reference: item.submission_reference })),
+  ...legacyApplications.value.map(item => ({ ...item, source: 'standard', title: titleize(item.application_type || item.form_type), reference: item.application_reference })),
+].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)))
+const filteredApplications = computed(() => allApplications.value.filter(item => {
+  if (applicationStatus.value && item.status !== applicationStatus.value) return false
+  const needle = applicationSearch.value.trim().toLowerCase()
+  return !needle || [item.title, item.reference, item.status].some(value => String(value || '').toLowerCase().includes(needle))
+}))
+const applicationStatuses = computed(() => [...new Set(allApplications.value.map(item => item.status).filter(Boolean))].sort())
+const userKpis = computed(() => {
+  const apps = allApplications.value
+  const inReview = apps.filter(item => ['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW'].includes(item.status)).length
+  const approved = apps.filter(item => item.status === 'APPROVED').length
+  return [
+    { label: 'Applications', value: apps.length, note: 'Total started', icon: 'icofont-file-document', tone: 'blue' },
+    { label: 'In Review', value: inReview, note: 'With NCS reviewers', icon: 'icofont-clock-time', tone: 'amber' },
+    { label: 'Approved', value: approved, note: 'Successful applications', icon: 'icofont-check-circled', tone: 'green' },
+    { label: 'Transactions', value: transactions.value.length, note: 'Payment records', icon: 'icofont-money', tone: 'cyan' },
+  ]
+})
+const unreadNotifications = computed(() => notifications.value.filter(item => item.status === 'unread').length)
+const userMessages = computed(() => allApplications.value.filter(item => item.review_notes).map(item => ({
+  id: `review-${item.id}`, title: `${item.title}: ${titleize(item.status)}`, message: item.review_notes, created_at: item.updated_at,
+})))
+const messageCount = computed(() => userMessages.value.length)
+const transactions = computed(() => [
+  ...dynamicSubmissions.value.filter(item => item.payment_status && item.payment_status !== 'UNPAID').map(item => ({
+    ...item, source: 'custom', title: item.template_title || 'Custom application',
+    amount: item.payment_amount_ugx || 0,
+  })),
+  ...legacyTransactions.value.map(item => ({ ...item, source: 'standard', title: titleize(item.form_type), amount: item.payment_amount_ugx || 0 })),
+])
+const transactionTotal = computed(() => transactions.value.reduce((sum, item) => sum + Number(item.amount || 0), 0))
+
+const userFiles = computed(() => {
+  const filesList = []
+  
+  if (isAthlete.value && athleteData.value) {
+    filesList.push({
+      id: 'cert_athlete_license',
+      title: 'National Athlete License Certificate',
+      type: 'License / Certificate',
+      number: athleteData.value.athlete_number,
+      issueDate: athleteData.value.created_at || new Date().toISOString(),
+      expiryDate: 'N/A (Active)',
+      status: athleteData.value.status || 'Active',
+      description: `Official NCS verification for athlete classification under ${athleteData.value.discipline || 'sports registry'}.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_Athlete_License_${athleteData.value.athlete_number || 'Cert'}.txt`,
+      category: 'Athlete Registry'
+    })
+  }
+
+  if (isCoach.value && coachData.value) {
+    filesList.push({
+      id: 'cert_coach_license',
+      title: `NCS Coach License - Level ${coachData.value.certification_level || 'Certified'}`,
+      type: 'License / Certificate',
+      number: coachData.value.license_number || 'NCS-COACH-TEMP',
+      issueDate: coachData.value.created_at || new Date().toISOString(),
+      expiryDate: coachData.value.expiry_date || 'N/A',
+      status: coachData.value.status || 'Active',
+      description: `NCS recognized coaching qualifications and certification credentials.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_Coach_License_${coachData.value.license_number || 'Cert'}.txt`,
+      category: 'Coaches Registry'
+    })
+  }
+
+  if (isOfficial.value && officialData.value) {
+    filesList.push({
+      id: 'cert_official_license',
+      title: `Technical Official Certification - ${officialData.value.official_type || 'Official'}`,
+      type: 'Official Credentials',
+      number: `NCS-TO-${officialData.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
+      issueDate: officialData.value.created_at || new Date().toISOString(),
+      expiryDate: officialData.value.valid_until || 'N/A',
+      status: officialData.value.status || 'Active',
+      description: `Official registration for NCS Technical Officials and Referees.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_Official_Credentials_${officialData.value.id || 'Cert'}.txt`,
+      category: 'Technical Officials'
+    })
+  }
+
+  if (athleteMedical.value) {
+    filesList.push({
+      id: 'cert_medical_clearance',
+      title: 'Athlete Medical Clearance File',
+      type: 'Medical Records',
+      number: `NCS-MED-${athleteMedical.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
+      issueDate: athleteMedical.value.created_at || new Date().toISOString(),
+      expiryDate: 'N/A',
+      status: athleteMedical.value.current_injury_status || 'Fit to Compete',
+      description: `NCS Medical Department validation and clearance logs.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_Medical_Clearance_${athleteMedical.value.id || 'Record'}.txt`,
+      category: 'Medical Files'
+    })
+  }
+
+  if (athleteAntiDoping.value) {
+    filesList.push({
+      id: 'cert_antidoping_clearance',
+      title: 'WADA Anti-Doping Compliance Certificate',
+      type: 'Compliance Record',
+      number: `NCS-WADA-${athleteAntiDoping.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
+      issueDate: athleteAntiDoping.value.last_tested_on || new Date().toISOString(),
+      expiryDate: 'N/A',
+      status: athleteAntiDoping.value.last_test_result || 'Compliant',
+      description: `Verification certificate for completion of WADA Anti-Doping education and compliance test logs.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_AntiDoping_Certificate_${athleteAntiDoping.value.id || 'Record'}.txt`,
+      category: 'Anti-Doping Compliance'
+    })
+  }
+
+  if (athleteNationalTeam.value) {
+    filesList.push({
+      id: 'cert_national_team_cap',
+      title: `National Team Appearance Certificate (${athleteNationalTeam.value.team_name || 'Uganda National Team'})`,
+      type: 'National Representation',
+      number: `NCS-NT-${athleteNationalTeam.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
+      issueDate: athleteNationalTeam.value.first_call_up_on || new Date().toISOString(),
+      expiryDate: 'N/A',
+      status: 'Verified',
+      description: `Official NCS certification recognizing sports representation at national squad tier: ${athleteNationalTeam.value.category || 'National'}.`,
+      fileType: 'TXT Document',
+      downloadName: `NCS_National_Duty_Certificate_${athleteNationalTeam.value.id || 'Record'}.txt`,
+      category: 'National Squads'
+    })
+  }
+
+  return filesList
+})
+
+function getFileIcon(category) {
+  switch (category) {
+    case 'Athlete Registry': return 'icofont-runner-alt-1'
+    case 'Coaches Registry': return 'icofont-whistle'
+    case 'Technical Officials': return 'icofont-referee'
+    case 'Medical Files': return 'icofont-first-aid'
+    case 'Anti-Doping Compliance': return 'icofont-test-bulb'
+    case 'National Squads': return 'icofont-flag'
+    default: return 'icofont-document-folder'
+  }
+}
+
+function getFileIconClass(category) {
+  switch (category) {
+    case 'Athlete Registry': return 'bg-primary text-white'
+    case 'Coaches Registry': return 'bg-warning text-dark'
+    case 'Technical Officials': return 'bg-info text-white'
+    case 'Medical Files': return 'bg-danger text-white'
+    case 'Anti-Doping Compliance': return 'bg-success text-white'
+    case 'National Squads': return 'bg-dark text-white'
+    default: return 'bg-secondary text-white'
+  }
+}
+
+function getStatusBadgeClass(status) {
+  const s = String(status).toUpperCase()
+  if (['ACTIVE', 'COMPLIANT', 'VERIFIED', 'FIT TO COMPETE', 'NEGATIVE'].includes(s)) {
+    return 'badge-success'
+  }
+  if (['PENDING', 'PENDING CONSENT'].includes(s)) {
+    return 'badge-warning'
+  }
+  return 'badge-danger'
+}
+
+function getMedalBadgeClass(type) {
+  const t = String(type).toUpperCase()
+  if (t.includes('GOLD')) return 'badge badge-warning text-dark text-uppercase'
+  if (t.includes('SILVER')) return 'badge bg-secondary text-white text-uppercase'
+  return 'badge bg-bronze text-white text-uppercase'
+}
+
+function downloadFile(file) {
+  const content = `========================================================================
+                      NATIONAL COUNCIL OF SPORTS (NCS) UGANDA
+                                OFFICIAL CERTIFICATE
+========================================================================
+
+CERTIFICATE TITLE : ${file.title}
+DOCUMENT TYPE     : ${file.type}
+LICENSE/REF NO.   : ${file.number}
+CATEGORY          : ${file.category}
+STATUS            : ${file.status}
+
+ISSUED TO         : ${fullName.value}
+EMAIL ADDRESS     : ${profile.email}
+DATE OF ISSUE     : ${formatDate(file.issueDate)}
+EXPIRY DATE       : ${formatDate(file.expiryDate)}
+
+------------------------------------------------------------------------
+DESCRIPTION:
+${file.description}
+------------------------------------------------------------------------
+
+VERIFICATION STATUS: VERIFIED BY NATIONAL COUNCIL OF SPORTS (NCS)
+This document serves as the official digital credential issued by the National
+Council of Sports (NCS) Uganda portal. To verify, contact ncs@ncs.go.ug.
+
+Generated on      : ${new Date().toLocaleString()}
+========================================================================`
+
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = file.downloadName
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  
+  setMsg(`Successfully downloaded ${file.title}`)
+}
+
+watch(section, id => {
+  const query = id === 'dashboard' ? {} : { section: id }
+  router.replace({ path: '/dashboard', query }).catch(() => {})
+})
+
+onMounted(async () => {
+  if (!localStorage.getItem('ncsms_access_token')) return router.replace('/login')
+  const requested = router.currentRoute.value.query.section
+  if (requested && portalSectionIds.includes(requested)) section.value = requested
+  await loadPortal()
+})
+
+async function loadPortal() {
+  loading.value = true
+  error.value = ''
+  const results = await Promise.allSettled([
+    getCurrentUser(), portalListOpenForms(), portalListSubmissions({ page: 1, per_page: 200 }),
+    listMyLegacyApplications({ page: 1, per_page: 200 }), listMyTransactions({ page: 1, per_page: 200 }),
+    listMyAuditLogs({ page: 1, per_page: activityPerPage.value }), cms.listNotifications({ page: 1, per_page: 100 }),
+  ])
+  if (results[0].status === 'fulfilled') {
+    Object.assign(profile, unwrap(results[0].value))
+    localStorage.setItem('ncsms_user', JSON.stringify(profile))
+  }
+  openForms.value = results[1].status === 'fulfilled' ? asList(results[1].value) : []
+  dynamicSubmissions.value = results[2].status === 'fulfilled' ? asList(results[2].value) : []
+  legacyApplications.value = results[3].status === 'fulfilled' ? asList(results[3].value) : []
+  legacyTransactions.value = results[4].status === 'fulfilled' ? asList(results[4].value) : []
+  if (results[5].status === 'fulfilled') {
+    const unwrapped = results[5].value?.data ?? results[5].value ?? {}
+    activities.value = Array.isArray(unwrapped.data) ? unwrapped.data : []
+    activityTotal.value = unwrapped.meta?.total ?? activities.value.length
+  } else {
+    activities.value = []
+    activityTotal.value = 0
+  }
+  notifications.value = results[6].status === 'fulfilled' ? asList(results[6].value) : []
+  isAthlete.value = false
+  athleteData.value = null
+  athleteMedical.value = null
+  athleteSafeguarding.value = null
+  athleteAntiDoping.value = null
+  athleteNationalTeam.value = null
+  athleteResults.value = []
+  athleteMedals.value = []
+  isCoach.value = false
+  coachData.value = null
+  isOfficial.value = false
+  officialData.value = null
+
+  if (results.some(item => item.status === 'rejected')) error.value = 'Some dashboard information could not be loaded. Refresh to try again.'
+  
+  try {
+    const sec = await getMySecurity()
+    twofaEnabled.value = sec?.twofa?.enabled ?? false
+  } catch (e) {}
+
+  if (profile && profile.email) {
+    try {
+      const athletesRes = await listNsmisDomain('athletes', { search: profile.email })
+      const athletesList = asList(athletesRes)
+      const match = athletesList.find(ath => String(ath.email_address || '').toLowerCase() === String(profile.email || '').toLowerCase())
+      if (match) {
+        isAthlete.value = true
+        athleteData.value = match
+        
+        const athleteId = match.id
+        const [medicalRes, safeguardingRes, antidopingRes, nationalTeamRes, resultsRes, medalsRes] = await Promise.allSettled([
+          listNsmisDomain('medical-records', { search: athleteId }),
+          listNsmisDomain('safeguarding-records', { search: athleteId }),
+          listNsmisDomain('anti-doping', { search: athleteId }),
+          listNsmisDomain('national-team', { search: athleteId }),
+          listNsmisDomain('competition-results', { search: athleteId }),
+          listNsmisDomain('medals', { search: athleteId })
+        ])
+        
+        if (medicalRes.status === 'fulfilled') {
+          const medItems = asList(medicalRes.value)
+          athleteMedical.value = medItems.find(r => r.athlete_id === athleteId) || null
+        }
+        if (safeguardingRes.status === 'fulfilled') {
+          const sgItems = asList(safeguardingRes.value)
+          athleteSafeguarding.value = sgItems.find(r => r.athlete_id === athleteId) || null
+        }
+        if (antidopingRes.status === 'fulfilled') {
+          const adItems = asList(antidopingRes.value)
+          athleteAntiDoping.value = adItems.find(r => r.athlete_id === athleteId) || null
+        }
+        if (nationalTeamRes.status === 'fulfilled') {
+          const ntItems = asList(nationalTeamRes.value)
+          athleteNationalTeam.value = ntItems.find(r => r.athlete_id === athleteId) || null
+        }
+        if (resultsRes.status === 'fulfilled') {
+          const resItems = asList(resultsRes.value)
+          athleteResults.value = resItems.filter(r => r.athlete_id === athleteId)
+        }
+        if (medalsRes.status === 'fulfilled') {
+          const medItems = asList(medalsRes.value)
+          athleteMedals.value = medItems.filter(r => r.athlete_id === athleteId)
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load athlete context details:', e)
+    }
+
+    try {
+      const coachesRes = await listNsmisDomain('coaches', { search: profile.email })
+      const coachesList = asList(coachesRes)
+      const matchCoach = coachesList.find(c => String(c.email || '').toLowerCase() === String(profile.email || '').toLowerCase())
+      if (matchCoach) {
+        isCoach.value = true
+        coachData.value = matchCoach
+      }
+    } catch (e) {
+      console.warn('Failed to load coach context details:', e)
+    }
+
+    try {
+      const officialsRes = await listNsmisDomain('technical-officials', { search: profile.email })
+      const officialsList = asList(officialsRes)
+      const nameKey = fullName.value.toLowerCase().trim()
+      const matchOfficial = officialsList.find(o => String(o.full_name || '').toLowerCase().trim() === nameKey)
+      if (matchOfficial) {
+        isOfficial.value = true
+        officialData.value = matchOfficial
+      }
+    } catch (e) {
+      console.warn('Failed to load official context details:', e)
+    }
+  }
+
+  loading.value = false
+}
+
+async function loadActivities(page = 1) {
+  activityPage.value = page
+  try {
+    const res = await listMyAuditLogs({ page: activityPage.value, per_page: activityPerPage.value })
+    const unwrapped = res?.data ?? res ?? {}
+    activities.value = Array.isArray(unwrapped.data) ? unwrapped.data : []
+    activityTotal.value = unwrapped.meta?.total ?? activities.value.length
+  } catch (err) {
+    error.value = 'Could not load activity logs.'
+  }
+}
+
+async function select(id) {
+  const previous = section.value
+  const next = navigation.value.find(item => item.id === id)
+  recordMenuNavigation({
+    portal: 'Applicant Portal',
+    fromSection: previous,
+    toSection: id,
+    label: next?.label || id,
+    basePath: '/dashboard',
+    routeName: 'UserDashboard',
+  })
+  section.value = id
+  profileOpen.value = false
+  mobileSidebarOpen.value = false
+  success.value = ''
+  error.value = ''
+  if (id === 'activities') {
+    loadActivities(1)
+  }
+  if (id === 'profile') {
+    try {
+      const sec = await getMySecurity()
+      twofaEnabled.value = sec?.twofa?.enabled ?? false
+    } catch (e) {}
+  }
+}
+
+function onMenuToggle() {
+  if (window.innerWidth <= 991) {
+    mobileSidebarOpen.value = !mobileSidebarOpen.value
+  } else {
+    sidebarCollapsed.value = !sidebarCollapsed.value
+    localStorage.setItem('ncsms_sidebar_collapsed', String(sidebarCollapsed.value))
+  }
+}
+
+async function startApplication(form) {
+  if (!form?.slug) {
+    error.value = 'This application form is not available.'
+    return
+  }
+  const pending = dynamicSubmissions.value.find(item => item.template_id === form.id && isPendingSubmission(item))
+  if (pending) {
+    error.value = `You already have a pending application for ${form.title}.`
+    select('applications')
+    return
+  }
+  router.push({ name: 'ApplicationWizard', params: { slug: form.slug } })
+}
+async function continueApplication(item) {
+  const form = openForms.value.find(entry => entry.id === item.template_id)
+  if (form) startApplication(form)
+  else error.value = 'This application form is no longer open.'
+}
+function viewApplication(item) {
+  router.push({ name: 'UserApplicationDetail', params: { id: item.id }, query: { source: item.source } })
+}
+function downloadApplication(item) {
+  downloadApplicationForm(item)
+}
+async function refreshSubmissions() {
+  const result = await portalListSubmissions({ page: 1, per_page: 200 })
+  dynamicSubmissions.value = asList(result)
+}
+async function markNotificationRead(item) {
+  try {
+    await cms.updateNotification(item.id, { status: 'read' })
+    item.status = 'read'
+  } catch (err) { error.value = apiError(err, 'Could not update notification.') }
+}
+async function markAllNotificationsRead() {
+  try {
+    await cms.markAllNotificationsRead()
+    notifications.value.forEach(item => { item.status = 'read' })
+  } catch (err) { error.value = apiError(err, 'Could not update notifications.') }
+}
+async function saveProfile() {
+  savingProfile.value = true
+  try {
+    const res = await updateMyProfile({ first_name: profile.first_name, last_name: profile.last_name, avatar_url: profile.avatar_url || '' })
+    Object.assign(profile, unwrap(res))
+    localStorage.setItem('ncsms_user', JSON.stringify(profile))
+    success.value = 'Your profile was updated.'
+  } catch (err) { error.value = apiError(err, 'Could not update your profile.') }
+  finally { savingProfile.value = false }
+}
+function logout() { localStorage.removeItem('ncsms_access_token'); localStorage.removeItem('ncsms_user'); router.push('/login') }
+function unwrap(value) { return value?.data?.data ?? value?.data ?? value ?? {} }
+function asList(value) {
+  const data = unwrap(value)
+  if (Array.isArray(data)) return data
+  if (data && Array.isArray(data.items)) return data.items
+  return []
+}
+function apiError(err, fallback) { return err.response?.data?.error?.message || fallback }
+function titleize(value) { return String(value || '').toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, char => char.toUpperCase()) }
+function formatDate(value) { return value ? new Intl.DateTimeFormat('en-UG', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value)) : '-' }
+function formatMoney(value) { return new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(Number(value || 0)) }
+function statusClass(status) { if (status === 'APPROVED' || status === 'COMPLETE') return 'green'; if (status === 'REJECTED') return 'red'; if (['NEEDS_INFORMATION', 'PENDING_PAYMENT'].includes(status)) return 'amber'; return 'blue' }
+function paymentClass(status) { return status === 'PAID' || status === 'VERIFIED' ? 'green' : ['REJECTED', 'VERIFICATION_FAILED'].includes(status) ? 'red' : 'amber' }
+function notificationIcon(item) { return item.icon_key ? `icofont-${item.icon_key}` : 'icofont-notification' }
+function activityTitle(item) {
+  const method = String(item.method || '').toUpperCase()
+  const endpoint = String(item.endpoint || '').toLowerCase()
+  const eventType = String(item.event_type || '').toUpperCase()
+  if (eventType === 'AUTH_LOGIN' || endpoint.includes('/auth/login')) return 'Logged In'
+  if (eventType === 'AUTH_LOGOUT' || endpoint.includes('/auth/logout')) return 'Logged Out'
+  if (endpoint.includes('/auth/register')) return 'Registered Account'
+  if (endpoint.includes('/auth/password/reset')) return 'Requested Password Reset'
+  if (endpoint.includes('/portal/forms/open')) return 'Viewed Services'
+  if (endpoint.includes('/portal/forms/')) return 'Started Application Draft'
+  if (endpoint.includes('/portal/submissions')) {
+    if (method === 'POST') return 'Created Application Draft'
+    return 'Listed Applications'
+  }
+  if (endpoint.includes('/applications')) {
+    if (method === 'POST') return 'Submitted Application'
+    return 'Viewed Applications List'
+  }
+  if (endpoint.includes('/transactions')) {
+    if (method === 'POST') return 'Uploaded Payment Proof'
+    return 'Viewed Payments List'
+  }
+  if (endpoint.includes('/notifications')) {
+    if (method === 'PUT' || method === 'POST') return 'Updated Notifications'
+    return 'Viewed Notifications'
+  }
+  if (endpoint.includes('/audit-logs')) return 'Viewed Security Audit Logs'
+  if (endpoint.includes('/account/profile') || endpoint.includes('/users/me')) {
+    if (method === 'PUT' || method === 'POST' || method === 'PATCH') return 'Updated Profile'
+    return 'Viewed Profile Page'
+  }
+  if (item.event_type) return titleize(item.event_type)
+  return 'Portal Interaction'
+}
+function activityDescription(item) {
+  const endpoint = String(item.endpoint || '').toLowerCase()
+  let pageName = 'Dashboard'
+  if (endpoint.includes('/profile') || endpoint.includes('/users/me')) pageName = 'Profile page'
+  else if (endpoint.includes('/forms/open')) pageName = 'Apply page'
+  else if (endpoint.includes('/submissions') || endpoint.includes('/applications')) pageName = 'Applications page'
+  else if (endpoint.includes('/transactions')) pageName = 'Transactions page'
+  else if (endpoint.includes('/audit-logs')) pageName = 'Security page'
+  else if (endpoint.includes('/notifications')) pageName = 'Notifications center'
+  else if (endpoint.includes('/messages')) pageName = 'Messages center'
+
+  let location = ''
+  const city = String(item.geo_city || '').trim()
+  const country = String(item.geo_country || '').trim()
+  if (city && country) {
+    const displayCity = city.toLowerCase() === 'internal' ? 'Local network' : city
+    location = `${displayCity}, ${country}`
+  } else if (country) {
+    location = country
+  } else {
+    location = 'Unknown location'
+  }
+
+  let device = ''
+  const browser = String(item.browser || '').trim()
+  const os = String(item.os_name || '').trim()
+  if (browser && os) {
+    device = `on ${os} ${browser} browser`
+  } else if (browser) {
+    device = `on ${browser} browser`
+  } else if (os) {
+    device = `on ${os} system`
+  } else {
+    device = 'on web browser'
+  }
+
+  const ip = item.ip_address ? ` (IP: ${item.ip_address})` : ''
+  return `${pageName}, ${location}, ${device}${ip}`
+}
+function isEditableSubmission(item) { return ['DRAFT', 'NEEDS_INFORMATION'].includes(item?.status) }
+function isPendingSubmission(item) { return item?.status && !['DRAFT', 'NEEDS_INFORMATION', 'APPROVED', 'REJECTED'].includes(item.status) }
+
+async function onAvatarFileSelected(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  uploadingAvatar.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await uploadProfileAvatar(formData)
+    profile.avatar_url = unwrap(res).avatar_url || ''
+    success.value = 'Profile photo updated successfully!'
+    
+    const stored = localStorage.getItem('ncsms_user')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      parsed.avatar_url = profile.avatar_url
+      localStorage.setItem('ncsms_user', JSON.stringify(parsed))
+    }
+  } catch (err) {
+    error.value = err.response?.data?.error?.message || 'Could not upload avatar image.'
+  } finally {
+    uploadingAvatar.value = false
+  }
+}
+
+async function updatePassword() {
+  if (passwordNew.value.length < 8) {
+    error.value = 'New password must be at least 8 characters long.'
+    return
+  }
+  if (passwordNew.value !== passwordConfirm.value) {
+    error.value = 'Confirm password does not match.'
+    return
+  }
+  changingPassword.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await changePassword(passwordCurrent.value, passwordNew.value)
+    success.value = 'Password changed successfully.'
+    passwordCurrent.value = ''
+    passwordNew.value = ''
+    passwordConfirm.value = ''
+  } catch (err) {
+    error.value = err.response?.data?.error?.message || 'Could not change password. Check your current password.'
+  } finally {
+    changingPassword.value = false
+  }
+}
+
+async function toggle2FA(e) {
+  const checked = e.target.checked
+  if (checked) {
+    toggling2FA.value = true
+    error.value = ''
+    success.value = ''
+    try {
+      await enroll2FA()
+      showTwoFAVerify.value = true
+      twofaVerifyCode.value = ''
+      success.value = 'Verification code sent to your email.'
+    } catch (err) {
+      error.value = err.response?.data?.error?.message || 'Could not enroll 2FA.'
+    } finally {
+      toggling2FA.value = false
+    }
+  } else {
+    toggling2FA.value = true
+    error.value = ''
+    success.value = ''
+    try {
+      await disable2FA()
+      twofaEnabled.value = false
+      showTwoFAVerify.value = false
+      success.value = 'Two-factor authentication disabled.'
+    } catch (err) {
+      error.value = err.response?.data?.error?.message || 'Could not disable 2FA.'
+    } finally {
+      toggling2FA.value = false
+    }
+  }
+}
+
+async function confirm2FA() {
+  if (twofaVerifyCode.value.length < 6) {
+    error.value = 'Enter a valid 6-digit code.'
+    return
+  }
+  verifying2FA.value = true
+  error.value = ''
+  success.value = ''
+  try {
+    await verify2FA(twofaVerifyCode.value)
+    twofaEnabled.value = true
+    showTwoFAVerify.value = false
+    success.value = 'Two-factor authentication successfully enabled!'
+  } catch (err) {
+    error.value = err.response?.data?.error?.message || 'Verification failed. Incorrect code.'
+  } finally {
+    verifying2FA.value = false
+  }
+}
+
+function cancel2FAEnrollment() {
+  showTwoFAVerify.value = false
+  twofaVerifyCode.value = ''
+  disable2FA().catch(() => {})
+}
+</script>
 
 <style scoped>
 /* =====================================================================
@@ -1329,3 +1679,4 @@ footer.main-footer, .main-footer {
 .p-4 { padding: 16px; }
 .fw-bold { font-weight: 700; }
 </style>
+
