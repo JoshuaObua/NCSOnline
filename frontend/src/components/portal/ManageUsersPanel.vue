@@ -343,12 +343,10 @@ const router = useRouter()
 
 function handleCreateUser() {
   emit('create-user')
-  emit('navigate', 'users')
 }
 
 function handleEditUser(user) {
   emit('edit-user', user)
-  emit('navigate', 'users')
 }
 
 const users = ref([])
