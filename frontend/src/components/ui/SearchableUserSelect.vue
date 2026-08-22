@@ -256,9 +256,9 @@ async function loadUsersFromApi() {
   if (props.users && props.users.length > 0) return
   loading.value = true
   try {
-    const res = await cms.adminListUsers({ per_page: 200 })
-    const items = res?.data?.items || res?.data?.users || res?.data || []
-    internalUsers.value = Array.isArray(items) ? items : []
+    const res = await cms.adminListUsers({ page: 1, per_page: 200 })
+    const list = res?.data?.data || res?.data?.items || res?.data?.users || res?.data || []
+    internalUsers.value = Array.isArray(list) ? list : []
   } catch (err) {
     console.warn('[SearchableUserSelect] Could not fetch users from API:', err)
   } finally {
@@ -279,6 +279,9 @@ function openDropdown() {
   isOpen.value = true
   highlightedIndex.value = -1
   searchQuery.value = ''
+  if (internalUsers.value.length === 0 && (!props.users || props.users.length === 0)) {
+    loadUsersFromApi()
+  }
   nextTick(() => {
     searchInputRef.value?.focus()
   })
