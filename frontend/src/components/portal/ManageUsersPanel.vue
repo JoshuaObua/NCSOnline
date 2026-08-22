@@ -112,6 +112,9 @@
                       {{ user.first_name }} {{ user.last_name }}
                       <span v-if="user.id === currentUserId" class="badge-self">You</span>
                     </strong>
+                    <span v-if="user.nin" class="user-nin-badge">
+                      <i class="icofont-id-card"></i> {{ user.nin }}
+                    </span>
                     <span class="user-email"><i class="icofont-ui-email"></i> {{ user.email }}</span>
                     <span v-if="user.phone" class="user-phone"><i class="icofont-ui-touch-phone"></i> {{ user.phone }}</span>
                   </div>
@@ -256,9 +259,15 @@
             <small class="field-hint">Email address cannot be changed directly.</small>
           </div>
 
-          <div class="form-group">
-            <label>Phone Number</label>
-            <input v-model.trim="editForm.phone" placeholder="+256 700 000 000" />
+          <div class="form-row">
+            <div class="form-group flex-1">
+              <label>Phone Number</label>
+              <input v-model.trim="editForm.phone" placeholder="+256 700 000 000" />
+            </div>
+            <div class="form-group flex-1">
+              <label>National ID Number (NIN)</label>
+              <input v-model.trim="editForm.nin" class="font-monospace" placeholder="e.g. CM92018104NCS2" />
+            </div>
           </div>
 
           <footer class="modal-footer">
@@ -425,6 +434,7 @@ const editForm = reactive({
   first_name: '',
   last_name: '',
   phone: '',
+  nin: '',
 })
 
 const currentUserId = computed(() => {
@@ -487,7 +497,8 @@ function filterUsers() {
       const name = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase()
       const email = (user.email || '').toLowerCase()
       const phone = (user.phone || '').toLowerCase()
-      if (!name.includes(query) && !email.includes(query) && !phone.includes(query)) {
+      const nin = (user.nin || '').toLowerCase()
+      if (!name.includes(query) && !email.includes(query) && !phone.includes(query) && !nin.includes(query)) {
         return false
       }
     }
@@ -577,6 +588,7 @@ function openEditModal(user) {
     first_name: user.first_name || '',
     last_name: user.last_name || '',
     phone: user.phone || '',
+    nin: user.nin || '',
   })
   showEditModal.value = true
 }
@@ -589,6 +601,7 @@ async function submitEditUser() {
       first_name: editForm.first_name,
       last_name: editForm.last_name,
       phone: editForm.phone,
+      nin: editForm.nin,
     })
     showEditModal.value = false
     notifySuccess(`User ${activeUser.value?.email} updated successfully.`)
@@ -1766,5 +1779,28 @@ function formatDate(isoStr) {
   .form-row { grid-template-columns: 1fr; }
   .filter-toolbar { flex-direction: column; align-items: stretch; }
   .filter-dropdowns { flex-direction: column; }
+}
+</style>
+
+<style scoped>
+.user-nin-badge {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: monospace;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin: 2px 0;
+  width: fit-content;
+}
+:global(body.dark-theme) .user-nin-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
 }
 </style>
