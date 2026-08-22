@@ -11,7 +11,7 @@
         <button type="button" class="btn btn-outline" :disabled="loading" @click="loadUsers">
           <i class="icofont-refresh" :class="{ 'icofont-spin': loading }"></i> Refresh
         </button>
-        <button type="button" class="btn btn-primary" @click="openCreateModal">
+        <button type="button" class="btn btn-primary" @click="$emit('navigate', 'users')">
           <i class="icofont-plus-circle"></i> Add New User
         </button>
       </div>
@@ -230,74 +230,6 @@
     </section>
 
     <!-- =====================================================================
-         MODAL 1: CREATE USER MODAL
-         ===================================================================== -->
-    <div v-if="showCreateModal" class="modal-backdrop" @click.self="showCreateModal = false">
-      <div class="modal-dialog">
-        <header class="modal-header">
-          <h3><i class="icofont-user-alt-3"></i> Add New User</h3>
-          <button type="button" class="modal-close" @click="showCreateModal = false">&times;</button>
-        </header>
-        <form class="modal-form" @submit.prevent="submitCreateUser">
-          <div class="form-row">
-            <div class="form-group">
-              <label>First Name <strong>*</strong></label>
-              <input v-model.trim="createForm.first_name" required placeholder="e.g. Sarah" />
-            </div>
-            <div class="form-group">
-              <label>Last Name <strong>*</strong></label>
-              <input v-model.trim="createForm.last_name" required placeholder="e.g. Namukasa" />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Email Address <strong>*</strong></label>
-            <input v-model.trim="createForm.email" type="email" required placeholder="user@ncs.go.ug" />
-          </div>
-
-          <div class="form-group">
-            <label>Phone Number</label>
-            <input v-model.trim="createForm.phone" placeholder="+256 700 000 000" />
-          </div>
-
-          <div class="form-group">
-            <label>Initial Password <strong>*</strong> <small>(minimum 12 characters)</small></label>
-            <div class="password-input-wrap">
-              <input
-                v-model="createForm.password"
-                :type="showCreatePassword ? 'text' : 'password'"
-                required
-                minlength="12"
-                placeholder="Secure password (min 12 chars)"
-              />
-              <button type="button" class="toggle-pwd-btn" @click="showCreatePassword = !showCreatePassword">
-                <i :class="showCreatePassword ? 'icofont-eye-blocked' : 'icofont-eye'"></i>
-              </button>
-              <button type="button" class="btn-generate" @click="generateCreatePassword">
-                Generate
-              </button>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Assign Initial Role</label>
-            <select v-model="createForm.role_id">
-              <option value="">No Initial Role (Default User)</option>
-              <option v-for="role in roles" :key="role.id" :value="role.id">{{ role.name }} - {{ role.description || (role.is_system ? 'System Role' : 'Custom Role') }}</option>
-            </select>
-          </div>
-
-          <footer class="modal-footer">
-            <button type="button" class="btn btn-outline" @click="showCreateModal = false">Cancel</button>
-            <button type="submit" class="btn btn-primary" :disabled="saving">
-              <i class="icofont-save"></i> {{ saving ? 'Creating...' : 'Create User' }}
-            </button>
-          </footer>
-        </form>
-      </div>
-    </div>
-
-    <!-- =====================================================================
          MODAL 2: EDIT USER MODAL
          ===================================================================== -->
     <div v-if="showEditModal" class="modal-backdrop" @click.self="showEditModal = false">
@@ -444,7 +376,7 @@ import Swal from 'sweetalert2'
 import * as cms from '@/api/cms.js'
 import apiClient from '@/api/client.js'
 
-const emit = defineEmits(['message', 'error'])
+const emit = defineEmits(['message', 'error', 'navigate'])
 
 const users = ref([])
 const roles = ref([])

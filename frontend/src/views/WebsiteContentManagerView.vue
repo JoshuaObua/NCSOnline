@@ -1267,25 +1267,17 @@
           <ContentTable :items="teamDepartments" title-key="name" subtitle-key="slug" @edit="editTeamDepartment" @delete="removeTeamDepartment" />
         </section>
 
-        <section v-else-if="active === 'users'" class="cms-panel">
-          <div class="cms-panel-head"><h2>Create New User</h2><button type="button" @click="resetUserForm">Clear</button></div>
-          <form class="cms-editor" @submit.prevent="saveUser">
-            <div class="cms-two">
-              <label>First name<input v-model="userForm.first_name" required /></label>
-              <label>Last name<input v-model="userForm.last_name" required /></label>
-              <label>Email<input v-model="userForm.email" type="email" required :disabled="!!userForm.id" /></label>
-              <label>Phone<input v-model="userForm.phone" /></label>
-              <label v-if="!userForm.id">Password<input v-model="userForm.password" type="password" required minlength="8" autocomplete="new-password" /></label>
-            </div>
-            <div class="cms-actions-inline">
-              <button type="submit">{{ userForm.id ? 'Update user' : 'Create user' }}</button>
-              <button type="button" @click="active = 'manage-users'; loadUsers()">Manage users</button>
-            </div>
-          </form>
-        </section>
+        <CreateUserPanel
+          v-else-if="active === 'users'"
+          @saved="selectSection('manage-users')"
+          @cancel="selectSection('manage-users')"
+          @message="setMsg"
+          @error="setErr"
+        />
 
         <ManageUsersPanel
           v-else-if="active === 'manage-users'"
+          @navigate="selectSection"
           @message="setMsg"
           @error="setErr"
         />
@@ -1639,6 +1631,7 @@ import FormBuilderPanel from '@/components/cms/FormBuilderPanel.vue'
 import AdminApplicationsPanel from '@/components/portal/AdminApplicationsPanel.vue'
 import AdminDashboardPanel from '@/components/portal/AdminDashboardPanel.vue'
 import ManageUsersPanel from '@/components/portal/ManageUsersPanel.vue'
+import CreateUserPanel from '@/components/portal/CreateUserPanel.vue'
 import NamisManagerPanel from '@/components/portal/NamisManagerPanel.vue'
 import NamisRegistryEntryView from '@/views/NamisRegistryEntryView.vue'
 import SportsRegistryReportsPanel from '@/components/portal/SportsRegistryReportsPanel.vue'

@@ -1395,3 +1395,113 @@ body.dark .manage-users-panel .reset-target-info,
 [data-theme="dark"] .manage-users-panel .reset-target-info {
   color: #f8fafc !important;
 }
+
+/* ==========================================================================
+   Create User Page - Dark Mode Overrides
+   ========================================================================== */
+html.dark .create-user-page,
+body.dark .create-user-page,
+[data-theme="dark"] .create-user-page {
+  color: #e2e8f0 !important;
+}
+
+html.dark .create-user-page .page-title,
+body.dark .create-user-page .page-title,
+[data-theme="dark"] .create-user-page .page-title {
+  color: #f8fafc !important;
+}
+
+html.dark .create-user-page .section-title,
+body.dark .create-user-page .section-title,
+[data-theme="dark"] .create-user-page .section-title {
+  color: #f8fafc !important;
+}
+
+html.dark .create-user-page .back-link-btn,
+body.dark .create-user-page .back-link-btn,
+[data-theme="dark"] .create-user-page .back-link-btn {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .create-user-page .back-link-btn:hover,
+body.dark .create-user-page .back-link-btn:hover,
+[data-theme="dark"] .create-user-page .back-link-btn:hover {
+  background-color: #6777ef !important;
+  color: #ffffff !important;
+}
+
+html.dark .create-user-page .form-card,
+body.dark .create-user-page .form-card,
+[data-theme="dark"] .create-user-page .form-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .create-user-page .form-divider,
+html.dark .create-user-page .form-footer,
+body.dark .create-user-page .form-divider,
+body.dark .create-user-page .form-footer,
+[data-theme="dark"] .create-user-page .form-divider,
+[data-theme="dark"] .create-user-page .form-footer {
+  border-color: #334155 !important;
+}
+
+html.dark .create-user-page .form-group label,
+body.dark .create-user-page .form-group label,
+[data-theme="dark"] .create-user-page .form-group label {
+  color: #cbd5e1 !important;
+}
+
+html.dark .create-user-page .form-input,
+body.dark .create-user-page .form-input,
+[data-theme="dark"] .create-user-page .form-input {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .create-user-page .role-card-label,
+body.dark .create-user-page .role-card-label,
+[data-theme="dark"] .create-user-page .role-card-label {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html.dark .create-user-page .role-card-label:hover,
+body.dark .create-user-page .role-card-label:hover,
+[data-theme="dark"] .create-user-page .role-card-label:hover {
+  background-color: #1e293b !important;
+  border-color: #475569 !important;
+}
+
+html.dark .create-user-page .role-card-label.is-selected,
+body.dark .create-user-page .role-card-label.is-selected,
+[data-theme="dark"] .create-user-page .role-card-label.is-selected {
+  background-color: #1e1b4b !important;
+  border-color: #8b5cf6 !important;
+}
+
+html.dark .create-user-page .role-card-title,
+body.dark .create-user-page .role-card-title,
+[data-theme="dark"] .create-user-page .role-card-title {
+  color: #f8fafc !important;
+}
+
+html.dark .create-user-page .btn-outline,
+body.dark .create-user-page .btn-outline,
+[data-theme="dark"] .create-user-page .btn-outline {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .create-user-page .btn-secondary,
+body.dark .create-user-page .btn-secondary,
+[data-theme="dark"] .create-user-page .btn-secondary {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #93c5fd !important;
+}
