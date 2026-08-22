@@ -56,8 +56,9 @@
 
           <div class="form-grid-2">
             <div class="form-group">
-              <label>First Name <span class="req">*</span></label>
+              <label for="user-first-name">First Name <span class="req">*</span></label>
               <input
+                id="user-first-name"
                 v-model.trim="form.first_name"
                 type="text"
                 required
@@ -66,8 +67,9 @@
               />
             </div>
             <div class="form-group">
-              <label>Last Name <span class="req">*</span></label>
+              <label for="user-last-name">Last Name <span class="req">*</span></label>
               <input
+                id="user-last-name"
                 v-model.trim="form.last_name"
                 type="text"
                 required
@@ -79,10 +81,11 @@
 
           <div class="form-grid-2">
             <div class="form-group">
-              <label>Email Address <span class="req">*</span></label>
+              <label for="user-email">Email Address <span class="req">*</span></label>
               <div class="input-with-icon">
                 <i class="icofont-ui-email input-icon"></i>
                 <input
+                  id="user-email"
                   v-model.trim="form.email"
                   type="email"
                   required
@@ -94,10 +97,11 @@
             </div>
 
             <div class="form-group">
-              <label>Phone Number</label>
+              <label for="user-phone">Phone Number</label>
               <div class="input-with-icon">
                 <i class="icofont-ui-touch-phone input-icon"></i>
                 <input
+                  id="user-phone"
                   v-model.trim="form.phone"
                   type="tel"
                   placeholder="+256 700 000 000"
@@ -107,10 +111,11 @@
             </div>
 
             <div class="form-group form-grid-full">
-              <label>National Identification Number (NIN)</label>
+              <label for="user-nin">National Identification Number (NIN)</label>
               <div class="input-with-icon">
                 <i class="icofont-id-card input-icon"></i>
                 <input
+                  id="user-nin"
                   v-model.trim="form.nin"
                   type="text"
                   placeholder="e.g. CM92018104NCS2"
@@ -142,18 +147,19 @@
           <!-- Edit Mode Toggle for Changing Password -->
           <div v-if="isEditing" class="change-password-toggle">
             <label class="toggle-checkbox-label">
-              <input v-model="changePassword" type="checkbox" />
+              <input id="chk-change-password" v-model="changePassword" type="checkbox" />
               <span>Change User Password</span>
             </label>
             <small class="text-muted d-block mt-1">Leave unchecked to keep the user's current password unchanged.</small>
           </div>
 
           <div v-if="!isEditing || changePassword" class="form-group mt-3">
-            <label>{{ isEditing ? 'New Password' : 'Initial Password' }} <span class="req">*</span></label>
+            <label for="user-password">{{ isEditing ? 'New Password' : 'Initial Password' }} <span class="req">*</span></label>
             <div class="password-group">
               <div class="input-with-icon flex-1">
                 <i class="icofont-lock input-icon"></i>
                 <input
+                  id="user-password"
                   v-model="form.password"
                   :type="showPassword ? 'text' : 'password'"
                   :required="!isEditing || changePassword"
@@ -170,7 +176,7 @@
                   <i :class="showPassword ? 'icofont-eye-blocked' : 'icofont-eye'"></i>
                 </button>
               </div>
-              <button type="button" class="btn btn-secondary btn-generate" @click="generatePassword">
+              <button id="btn-generate-password" type="button" class="btn btn-secondary btn-generate" @click="generatePassword">
                 <i class="icofont-magic"></i> Generate Strong Password
               </button>
             </div>
