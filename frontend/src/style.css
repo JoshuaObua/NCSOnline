@@ -1240,3 +1240,158 @@ body.dark .checkbox-field,
   border-color: #334155 !important;
   color: #f8fafc !important;
 }
+
+/* ==========================================================================
+   Manage Users Panel - Dark Mode Overrides
+   ========================================================================== */
+html.dark .manage-users-panel,
+body.dark .manage-users-panel,
+[data-theme="dark"] .manage-users-panel {
+  color: #e2e8f0 !important;
+}
+
+html.dark .manage-users-panel .panel-title,
+body.dark .manage-users-panel .panel-title,
+[data-theme="dark"] .manage-users-panel .panel-title {
+  color: #f8fafc !important;
+}
+
+html.dark .manage-users-panel .panel-header,
+body.dark .manage-users-panel .panel-header,
+[data-theme="dark"] .manage-users-panel .panel-header {
+  border-bottom-color: #334155 !important;
+}
+
+html.dark .manage-users-panel .kpi-card,
+body.dark .manage-users-panel .kpi-card,
+[data-theme="dark"] .manage-users-panel .kpi-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+}
+
+html.dark .manage-users-panel .kpi-value,
+body.dark .manage-users-panel .kpi-value,
+[data-theme="dark"] .manage-users-panel .kpi-value {
+  color: #f8fafc !important;
+}
+
+html.dark .manage-users-panel .search-box input,
+html.dark .manage-users-panel .filter-select,
+body.dark .manage-users-panel .search-box input,
+body.dark .manage-users-panel .filter-select,
+[data-theme="dark"] .manage-users-panel .search-box input,
+[data-theme="dark"] .manage-users-panel .filter-select {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .manage-users-panel .table-card,
+body.dark .manage-users-panel .table-card,
+[data-theme="dark"] .manage-users-panel .table-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .manage-users-panel .users-table th,
+body.dark .manage-users-panel .users-table th,
+[data-theme="dark"] .manage-users-panel .users-table th {
+  background-color: #0f172a !important;
+  border-bottom-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+html.dark .manage-users-panel .users-table td,
+body.dark .manage-users-panel .users-table td,
+[data-theme="dark"] .manage-users-panel .users-table td {
+  border-bottom-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .manage-users-panel .user-row:hover,
+body.dark .manage-users-panel .user-row:hover,
+[data-theme="dark"] .manage-users-panel .user-row:hover {
+  background-color: #0f172a !important;
+}
+
+html.dark .manage-users-panel .user-full-name,
+body.dark .manage-users-panel .user-full-name,
+[data-theme="dark"] .manage-users-panel .user-full-name {
+  color: #f8fafc !important;
+}
+
+html.dark .manage-users-panel .modal-dialog,
+body.dark .manage-users-panel .modal-dialog,
+[data-theme="dark"] .manage-users-panel .modal-dialog {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+html.dark .manage-users-panel .modal-header,
+html.dark .manage-users-panel .modal-footer,
+body.dark .manage-users-panel .modal-header,
+body.dark .manage-users-panel .modal-footer,
+[data-theme="dark"] .manage-users-panel .modal-header,
+[data-theme="dark"] .manage-users-panel .modal-footer {
+  border-color: #334155 !important;
+}
+
+html.dark .manage-users-panel .modal-header h3,
+body.dark .manage-users-panel .modal-header h3,
+[data-theme="dark"] .manage-users-panel .modal-header h3 {
+  color: #f8fafc !important;
+}
+
+html.dark .manage-users-panel .form-group label,
+body.dark .manage-users-panel .form-group label,
+[data-theme="dark"] .manage-users-panel .form-group label {
+  color: #cbd5e1 !important;
+}
+
+html.dark .manage-users-panel .form-group input:not(.input-disabled),
+html.dark .manage-users-panel .form-group select,
+body.dark .manage-users-panel .form-group input:not(.input-disabled),
+body.dark .manage-users-panel .form-group select,
+[data-theme="dark"] .manage-users-panel .form-group input:not(.input-disabled),
+[data-theme="dark"] .manage-users-panel .form-group select {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .manage-users-panel .role-option-card,
+body.dark .manage-users-panel .role-option-card,
+[data-theme="dark"] .manage-users-panel .role-option-card {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html.dark .manage-users-panel .role-name,
+body.dark .manage-users-panel .role-name,
+[data-theme="dark"] .manage-users-panel .role-name {
+  color: #f8fafc !important;
+}
+
+html.dark .manage-users-panel .btn-outline,
+body.dark .manage-users-panel .btn-outline,
+[data-theme="dark"] .manage-users-panel .btn-outline {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .manage-users-panel .btn-generate,
+body.dark .manage-users-panel .btn-generate,
+[data-theme="dark"] .manage-users-panel .btn-generate {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .manage-users-panel .reset-target-info,
+body.dark .manage-users-panel .reset-target-info,
+[data-theme="dark"] .manage-users-panel .reset-target-info {
+  color: #f8fafc !important;
+}
