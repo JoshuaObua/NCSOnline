@@ -470,34 +470,39 @@ const filteredItems = computed(() => {
 }
 
 .btn-action-profile {
-  background: #eff6ff;
-  border-color: #bfdbfe;
-  color: #2563eb;
+  background: #eff6ff !important;
+  border: 1px solid #93c5fd !important;
+  color: #1d4ed8 !important;
+  font-weight: 700 !important;
 }
 
 .btn-action-profile:hover {
-  background: #2563eb;
-  color: #ffffff;
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #1d4ed8 !important;
 }
 
 .btn-action-edit {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #334155;
+  background: #f8fafc !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #334155 !important;
+  font-weight: 700 !important;
 }
 
 .btn-action-edit:hover {
-  background: #e2e8f0;
+  background: #e2e8f0 !important;
+  color: #0f172a !important;
 }
 
 .btn-action-delete {
-  background: #fff1f2;
-  border-color: #fecdd3;
-  color: #e11d48;
+  background: #fff1f2 !important;
+  border: 1px solid #fecdd3 !important;
+  color: #e11d48 !important;
+  font-weight: 700 !important;
 }
 
 .btn-action-delete:hover {
-  background: #e11d48;
-  color: #ffffff;
+  background: #e11d48 !important;
+  color: #ffffff !important;
 }
 </style>

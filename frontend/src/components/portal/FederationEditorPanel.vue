@@ -285,7 +285,7 @@ function syncFromProps() {
       name: props.initialModel.name || '',
       slug: props.initialModel.slug || '',
       abbreviation: props.initialModel.abbreviation || props.initialModel.acronym || '',
-      category: props.initialModel.category || 'Other',
+      category: (typeof props.initialModel.category === 'object' ? props.initialModel.category?.name : props.initialModel.category) || 'Other',
       president: props.initialModel.president || '',
       secretary: props.initialModel.secretary || '',
       phone: props.initialModel.phone || '',
