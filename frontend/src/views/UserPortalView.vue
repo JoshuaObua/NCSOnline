@@ -836,28 +836,35 @@ onMounted(async () => {
 async function loadPortal() {
   loading.value = true
   error.value = ''
-  const results = await Promise.allSettled([
-    getCurrentUser(), portalListOpenForms(), portalListSubmissions({ page: 1, per_page: 200 }),
-    listMyLegacyApplications({ page: 1, per_page: 200 }), listMyTransactions({ page: 1, per_page: 200 }),
-    listMyAuditLogs({ page: 1, per_page: activityPerPage.value }), cms.listNotifications({ page: 1, per_page: 100 }),
-  ])
-  if (results[0].status === 'fulfilled') {
-    Object.assign(profile, unwrap(results[0].value))
-    localStorage.setItem('ncsms_user', JSON.stringify(profile))
+  try {
+    const results = await Promise.allSettled([
+      getCurrentUser(), portalListOpenForms(), portalListSubmissions({ page: 1, per_page: 200 }),
+      listMyLegacyApplications({ page: 1, per_page: 200 }), listMyTransactions({ page: 1, per_page: 200 }),
+      listMyAuditLogs({ page: 1, per_page: activityPerPage.value }), cms.listNotifications({ page: 1, per_page: 100 }),
+    ])
+    if (results[0].status === 'fulfilled') {
+      Object.assign(profile, unwrap(results[0].value))
+      localStorage.setItem('ncsms_user', JSON.stringify(profile))
+    }
+    openForms.value = results[1].status === 'fulfilled' ? asList(results[1].value) : []
+    dynamicSubmissions.value = results[2].status === 'fulfilled' ? asList(results[2].value) : []
+    legacyApplications.value = results[3].status === 'fulfilled' ? asList(results[3].value) : []
+    legacyTransactions.value = results[4].status === 'fulfilled' ? asList(results[4].value) : []
+    if (results[5].status === 'fulfilled') {
+      const unwrapped = results[5].value?.data ?? results[5].value ?? {}
+      activities.value = Array.isArray(unwrapped.data) ? unwrapped.data : []
+      activityTotal.value = unwrapped.meta?.total ?? activities.value.length
+    } else {
+      activities.value = []
+      activityTotal.value = 0
+    }
+    notifications.value = results[6].status === 'fulfilled' ? asList(results[6].value) : []
+  } catch (err) {
+    console.warn('Initial dashboard load warning:', err)
+  } finally {
+    loading.value = false
   }
-  openForms.value = results[1].status === 'fulfilled' ? asList(results[1].value) : []
-  dynamicSubmissions.value = results[2].status === 'fulfilled' ? asList(results[2].value) : []
-  legacyApplications.value = results[3].status === 'fulfilled' ? asList(results[3].value) : []
-  legacyTransactions.value = results[4].status === 'fulfilled' ? asList(results[4].value) : []
-  if (results[5].status === 'fulfilled') {
-    const unwrapped = results[5].value?.data ?? results[5].value ?? {}
-    activities.value = Array.isArray(unwrapped.data) ? unwrapped.data : []
-    activityTotal.value = unwrapped.meta?.total ?? activities.value.length
-  } else {
-    activities.value = []
-    activityTotal.value = 0
-  }
-  notifications.value = results[6].status === 'fulfilled' ? asList(results[6].value) : []
+
   isAthlete.value = false
   athleteData.value = null
   athleteMedical.value = null
@@ -871,88 +878,89 @@ async function loadPortal() {
   isOfficial.value = false
   officialData.value = null
 
-  if (results.some(item => item.status === 'rejected')) error.value = 'Some dashboard information could not be loaded. Refresh to try again.'
-  
   try {
     const sec = await getMySecurity()
     twofaEnabled.value = sec?.twofa?.enabled ?? false
   } catch (e) {}
 
-  if (profile && profile.email) {
-    try {
-      const athletesRes = await listNsmisDomain('athletes', { search: profile.email })
-      const athletesList = asList(athletesRes)
-      const match = athletesList.find(ath => String(ath.email_address || '').toLowerCase() === String(profile.email || '').toLowerCase())
-      if (match) {
-        isAthlete.value = true
-        athleteData.value = match
-        
-        const athleteId = match.id
-        const [medicalRes, safeguardingRes, antidopingRes, nationalTeamRes, resultsRes, medalsRes] = await Promise.allSettled([
-          listNsmisDomain('medical-records', { search: athleteId }),
-          listNsmisDomain('safeguarding-records', { search: athleteId }),
-          listNsmisDomain('anti-doping', { search: athleteId }),
-          listNsmisDomain('national-team', { search: athleteId }),
-          listNsmisDomain('competition-results', { search: athleteId }),
-          listNsmisDomain('medals', { search: athleteId })
-        ])
-        
-        if (medicalRes.status === 'fulfilled') {
-          const medItems = asList(medicalRes.value)
-          athleteMedical.value = medItems.find(r => r.athlete_id === athleteId) || null
-        }
-        if (safeguardingRes.status === 'fulfilled') {
-          const sgItems = asList(safeguardingRes.value)
-          athleteSafeguarding.value = sgItems.find(r => r.athlete_id === athleteId) || null
-        }
-        if (antidopingRes.status === 'fulfilled') {
-          const adItems = asList(antidopingRes.value)
-          athleteAntiDoping.value = adItems.find(r => r.athlete_id === athleteId) || null
-        }
-        if (nationalTeamRes.status === 'fulfilled') {
-          const ntItems = asList(nationalTeamRes.value)
-          athleteNationalTeam.value = ntItems.find(r => r.athlete_id === athleteId) || null
-        }
-        if (resultsRes.status === 'fulfilled') {
-          const resItems = asList(resultsRes.value)
-          athleteResults.value = resItems.filter(r => r.athlete_id === athleteId)
-        }
-        if (medalsRes.status === 'fulfilled') {
-          const medItems = asList(medalsRes.value)
-          athleteMedals.value = medItems.filter(r => r.athlete_id === athleteId)
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to load athlete context details:', e)
-    }
+  // Run sports registry lookups asynchronously in the background
+  loadSportsRegistryContext()
+}
 
-    try {
-      const coachesRes = await listNsmisDomain('coaches', { search: profile.email })
-      const coachesList = asList(coachesRes)
-      const matchCoach = coachesList.find(c => String(c.email || '').toLowerCase() === String(profile.email || '').toLowerCase())
-      if (matchCoach) {
-        isCoach.value = true
-        coachData.value = matchCoach
-      }
-    } catch (e) {
-      console.warn('Failed to load coach context details:', e)
-    }
+async function loadSportsRegistryContext() {
+  if (!profile || !profile.email) return
 
-    try {
-      const officialsRes = await listNsmisDomain('technical-officials', { search: profile.email })
-      const officialsList = asList(officialsRes)
-      const nameKey = fullName.value.toLowerCase().trim()
-      const matchOfficial = officialsList.find(o => String(o.full_name || '').toLowerCase().trim() === nameKey)
-      if (matchOfficial) {
-        isOfficial.value = true
-        officialData.value = matchOfficial
+  try {
+    const athletesRes = await listNsmisDomain('athletes', { search: profile.email })
+    const athletesList = asList(athletesRes)
+    const match = athletesList.find(ath => String(ath.email_address || '').toLowerCase() === String(profile.email || '').toLowerCase())
+    if (match) {
+      isAthlete.value = true
+      athleteData.value = match
+      
+      const athleteId = match.id
+      const [medicalRes, safeguardingRes, antidopingRes, nationalTeamRes, resultsRes, medalsRes] = await Promise.allSettled([
+        listNsmisDomain('medical-records', { search: athleteId }),
+        listNsmisDomain('safeguarding-records', { search: athleteId }),
+        listNsmisDomain('anti-doping', { search: athleteId }),
+        listNsmisDomain('national-team', { search: athleteId }),
+        listNsmisDomain('competition-results', { search: athleteId }),
+        listNsmisDomain('medals', { search: athleteId })
+      ])
+      
+      if (medicalRes.status === 'fulfilled') {
+        const medItems = asList(medicalRes.value)
+        athleteMedical.value = medItems.find(r => r.athlete_id === athleteId) || null
       }
-    } catch (e) {
-      console.warn('Failed to load official context details:', e)
+      if (safeguardingRes.status === 'fulfilled') {
+        const sgItems = asList(safeguardingRes.value)
+        athleteSafeguarding.value = sgItems.find(r => r.athlete_id === athleteId) || null
+      }
+      if (antidopingRes.status === 'fulfilled') {
+        const adItems = asList(antidopingRes.value)
+        athleteAntiDoping.value = adItems.find(r => r.athlete_id === athleteId) || null
+      }
+      if (nationalTeamRes.status === 'fulfilled') {
+        const ntItems = asList(nationalTeamRes.value)
+        athleteNationalTeam.value = ntItems.find(r => r.athlete_id === athleteId) || null
+      }
+      if (resultsRes.status === 'fulfilled') {
+        const resItems = asList(resultsRes.value)
+        athleteResults.value = resItems.filter(r => r.athlete_id === athleteId)
+      }
+      if (medalsRes.status === 'fulfilled') {
+        const medItems = asList(medalsRes.value)
+        athleteMedals.value = medItems.filter(r => r.athlete_id === athleteId)
+      }
     }
+  } catch (e) {
+    console.warn('Failed to load athlete context details:', e)
   }
 
-  loading.value = false
+  try {
+    const coachesRes = await listNsmisDomain('coaches', { search: profile.email })
+    const coachesList = asList(coachesRes)
+    const matchCoach = coachesList.find(c => String(c.email || '').toLowerCase() === String(profile.email || '').toLowerCase())
+    if (matchCoach) {
+      isCoach.value = true
+      coachData.value = matchCoach
+    }
+  } catch (e) {
+    console.warn('Failed to load coach context details:', e)
+  }
+
+  try {
+    const officialsRes = await listNsmisDomain('technical-officials', { search: profile.email })
+    const officialsList = asList(officialsRes)
+    const nameKey = fullName.value.toLowerCase().trim()
+    const matchOfficial = officialsList.find(o => String(o.full_name || '').toLowerCase().trim() === nameKey)
+    if (matchOfficial) {
+      isOfficial.value = true
+      officialData.value = matchOfficial
+    }
+  } catch (e) {
+    console.warn('Failed to load official context details:', e)
+  }
 }
 
 async function loadActivities(page = 1) {
