@@ -120,6 +120,7 @@ func (s *UserService) LinkFederation(ctx context.Context, userID, federationID, 
 type UpdateUserInput struct {
 	FirstName string
 	LastName  string
+	Email     string
 	Phone     string
 	NIN       string
 }
@@ -131,6 +132,9 @@ func (s *UserService) Update(ctx context.Context, id string, in UpdateUserInput)
 	}
 	user.FirstName = in.FirstName
 	user.LastName = in.LastName
+	if in.Email != "" {
+		user.Email = in.Email
+	}
 	user.Phone = in.Phone
 	if in.NIN != "" {
 		user.NIN = in.NIN

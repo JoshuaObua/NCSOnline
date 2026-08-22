@@ -262,9 +262,9 @@ func (r *UserRepo) CreateFederationMembership(ctx context.Context, userID, feder
 }
 
 func (r *UserRepo) Update(ctx context.Context, u *models.User) error {
-	const q = `UPDATE users SET first_name=$2, last_name=$3, phone=$4, nin=$5, avatar_url=$6, updated_at=NOW()
+	const q = `UPDATE users SET first_name=$2, last_name=$3, email=COALESCE(NULLIF($4, ''), email), phone=$5, nin=$6, avatar_url=$7, updated_at=NOW()
 	           WHERE id=$1 AND deleted_at IS NULL`
-	_, err := r.db.Exec(ctx, q, u.ID, u.FirstName, u.LastName, u.Phone, u.NIN, u.AvatarURL)
+	_, err := r.db.Exec(ctx, q, u.ID, u.FirstName, u.LastName, u.Email, u.Phone, u.NIN, u.AvatarURL)
 	return err
 }
 

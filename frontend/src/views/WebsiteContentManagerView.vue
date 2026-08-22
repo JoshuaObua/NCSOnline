@@ -1314,14 +1314,17 @@
 
         <CreateUserPanel
           v-else-if="active === 'users'"
-          @saved="selectSection('manage-users')"
-          @cancel="selectSection('manage-users')"
+          :initial-model="editingUserModel"
+          @saved="handleUserSaved"
+          @cancel="handleUserCancel"
           @message="setMsg"
           @error="setErr"
         />
 
         <ManageUsersPanel
           v-else-if="active === 'manage-users'"
+          @create-user="onAddUser"
+          @edit-user="onEditUser"
           @navigate="selectSection"
           @message="setMsg"
           @error="setErr"
@@ -2232,6 +2235,8 @@ const teamForm = reactive({ id:'', full_name:'', designation:'', department_id:'
 const councilForm = reactive({ id:'', full_name:'', designation:'', image_url:'', bio:'', sort_order:0, is_active:true })
 const roleForm = reactive({ id:'', name:'', description:'', is_system:false })
 const userForm = reactive({ id:'', first_name:'', last_name:'', email:'', phone:'', password:'' })
+const users = ref([])
+const editingUserModel = ref(null)
 
 const blogCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
 const projectCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
@@ -2575,6 +2580,17 @@ watch(() => route.query.section, (newSection) => {
         selectedFederationIdForProfile.value = route.query.id
         selectedFederationForProfile.value = associations.value.find(a => a.id === route.query.id || a.slug === route.query.id) || null
       }
+      if (target === 'users' && route.query.id && (!editingUserModel.value || editingUserModel.value.id !== route.query.id)) {
+        if (!users.value.length) {
+          loadUsers().then(() => {
+            const found = users.value.find(u => u.id === route.query.id)
+            if (found) editingUserModel.value = JSON.parse(JSON.stringify(found))
+          })
+        } else {
+          const found = users.value.find(u => u.id === route.query.id)
+          if (found) editingUserModel.value = JSON.parse(JSON.stringify(found))
+        }
+      }
       if (['users', 'manage-users'].includes(target) && !users.value.length) loadUsers()
       if (['manage-federation-officials', 'create-federation-officials'].includes(target) && !federationOfficials.value.length) loadFederationOfficials()
     }
@@ -2585,6 +2601,9 @@ function selectSection(id) {
   if (!canAccessSection(id)) {
     setErr(new Error('You do not have permission to access that portal section.'))
     return
+  }
+  if (id === 'users') {
+    editingUserModel.value = null
   }
   const previous = active.value
   const next = sections.find(section => section.id === id)
@@ -3099,6 +3118,50 @@ async function removeAssociation(item) {
 
 function editAssociation(item) {
   onEditFederation(item)
+}
+
+async function loadUsers() {
+  try {
+    const res = await cms.adminListUsers({ per_page: 200 })
+    const items = res?.data?.data || res?.data?.items || res?.data || []
+    users.value = Array.isArray(items) ? items : []
+  } catch (err) {
+    console.warn('Could not load users list:', err)
+  }
+}
+
+function onAddUser() {
+  editingUserModel.value = null
+  active.value = 'users'
+  if (router.currentRoute.value.query.section !== 'users') {
+    router.replace({ path: '/portal', query: { section: 'users' } })
+  }
+}
+
+function onEditUser(user) {
+  editingUserModel.value = JSON.parse(JSON.stringify(user))
+  active.value = 'users'
+  if (router.currentRoute.value.query.section !== 'users' || router.currentRoute.value.query.id !== user.id) {
+    router.replace({ path: '/portal', query: { section: 'users', id: user.id } })
+  }
+}
+
+function handleUserSaved(msg) {
+  editingUserModel.value = null
+  if (msg) setMsg(msg)
+  active.value = 'manage-users'
+  if (router.currentRoute.value.query.section !== 'manage-users') {
+    router.replace({ path: '/portal', query: { section: 'manage-users' } })
+  }
+  loadUsers()
+}
+
+function handleUserCancel() {
+  editingUserModel.value = null
+  active.value = 'manage-users'
+  if (router.currentRoute.value.query.section !== 'manage-users') {
+    router.replace({ path: '/portal', query: { section: 'manage-users' } })
+  }
 }
 function editFact(item) { copyInto(factForm, item); active.value = 'facts' }
 function editFAQ(item) { copyInto(faqForm, item); active.value = 'faqs' }

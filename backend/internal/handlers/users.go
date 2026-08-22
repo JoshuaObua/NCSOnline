@@ -197,6 +197,7 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		FirstName string `json:"first_name"`
 		LastName  string `json:"last_name"`
+		Email     string `json:"email"`
 		Phone     string `json:"phone"`
 		NIN       string `json:"nin"`
 	}
@@ -205,7 +206,7 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, err := h.svc.Update(r.Context(), id, services.UpdateUserInput{
-		FirstName: req.FirstName, LastName: req.LastName, Phone: req.Phone, NIN: req.NIN,
+		FirstName: req.FirstName, LastName: req.LastName, Email: req.Email, Phone: req.Phone, NIN: req.NIN,
 	})
 	if errors.Is(err, repository.ErrNotFound) {
 		response.Err(w, http.StatusNotFound, "NOT_FOUND", "User not found")

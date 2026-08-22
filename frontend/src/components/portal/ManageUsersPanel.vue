@@ -11,7 +11,7 @@
         <button type="button" class="btn btn-outline" :disabled="loading" @click="loadUsers">
           <i class="icofont-refresh" :class="{ 'icofont-spin': loading }"></i> Refresh
         </button>
-        <button id="btn-add-new-user" type="button" class="btn btn-primary btn-add-new-user" @click="goToCreateUser">
+        <button id="btn-add-new-user" type="button" class="btn btn-primary btn-add-new-user" @click="handleCreateUser">
           <i class="icofont-plus-circle"></i> Add New User
         </button>
       </div>
@@ -159,7 +159,7 @@
                     type="button"
                     class="action-btn btn-edit"
                     title="Edit user details"
-                    @click="openEditModal(user)"
+                    @click="handleEditUser(user)"
                   >
                     <i class="icofont-ui-edit"></i> Edit
                   </button>
@@ -233,55 +233,7 @@
     </section>
 
     <!-- =====================================================================
-         MODAL 2: EDIT USER MODAL
-         ===================================================================== -->
-    <div v-if="showEditModal" class="modal-backdrop" @click.self="showEditModal = false">
-      <div class="modal-dialog">
-        <header class="modal-header">
-          <h3><i class="icofont-ui-edit"></i> Edit User: {{ activeUser?.email }}</h3>
-          <button type="button" class="modal-close" @click="showEditModal = false">&times;</button>
-        </header>
-        <form class="modal-form" @submit.prevent="submitEditUser">
-          <div class="form-row">
-            <div class="form-group">
-              <label>First Name <strong>*</strong></label>
-              <input v-model.trim="editForm.first_name" required />
-            </div>
-            <div class="form-group">
-              <label>Last Name <strong>*</strong></label>
-              <input v-model.trim="editForm.last_name" required />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>Email Address</label>
-            <input :value="activeUser?.email" disabled class="input-disabled" />
-            <small class="field-hint">Email address cannot be changed directly.</small>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group flex-1">
-              <label>Phone Number</label>
-              <input v-model.trim="editForm.phone" placeholder="+256 700 000 000" />
-            </div>
-            <div class="form-group flex-1">
-              <label>National ID Number (NIN)</label>
-              <input v-model.trim="editForm.nin" class="font-monospace" placeholder="e.g. CM92018104NCS2" />
-            </div>
-          </div>
-
-          <footer class="modal-footer">
-            <button type="button" class="btn btn-outline" @click="showEditModal = false">Cancel</button>
-            <button type="submit" class="btn btn-primary" :disabled="saving">
-              <i class="icofont-save"></i> {{ saving ? 'Updating...' : 'Save Changes' }}
-            </button>
-          </footer>
-        </form>
-      </div>
-    </div>
-
-    <!-- =====================================================================
-         MODAL 3: RESET PASSWORD MODAL
+         MODAL: RESET PASSWORD MODAL (Quick Action)
          ===================================================================== -->
     <div v-if="showResetModal" class="modal-backdrop" @click.self="showResetModal = false">
       <div class="modal-dialog">
@@ -386,16 +338,18 @@ import Swal from 'sweetalert2'
 import * as cms from '@/api/cms.js'
 import apiClient from '@/api/client.js'
 
-const emit = defineEmits(['message', 'error', 'navigate'])
+const emit = defineEmits(['create-user', 'edit-user', 'message', 'error', 'navigate'])
 const router = useRouter()
 
-function goToCreateUser() {
+function handleCreateUser() {
+  emit('create-user')
   emit('navigate', 'users')
-  if (router) {
-    router.push({ path: '/portal', query: { section: 'users' } })
-  }
 }
 
+function handleEditUser(user) {
+  emit('edit-user', user)
+  emit('navigate', 'users')
+}
 
 const users = ref([])
 const roles = ref([])
@@ -411,31 +365,11 @@ const statusFilter = ref('ALL')
 const roleFilter = ref('ALL')
 
 const activeUser = ref(null)
-const showCreateModal = ref(false)
-const showEditModal = ref(false)
 const showResetModal = ref(false)
 const showRolesModal = ref(false)
 
-const showCreatePassword = ref(false)
 const showResetPasswordText = ref(false)
 const resetPasswordValue = ref('')
-
-const createForm = reactive({
-  first_name: '',
-  last_name: '',
-  email: '',
-  phone: '',
-  password: '',
-  role_id: '',
-})
-
-const editForm = reactive({
-  id: '',
-  first_name: '',
-  last_name: '',
-  phone: '',
-  nin: '',
-})
 
 const currentUserId = computed(() => {
   try {
@@ -522,96 +456,6 @@ function resetFilters() {
   statusFilter.value = 'ALL'
   roleFilter.value = 'ALL'
   filterUsers()
-}
-
-// ── CREATE USER ─────────────────────────────────────────────────────────────
-
-function openCreateModal() {
-  Object.assign(createForm, {
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    password: '',
-    role_id: '',
-  })
-  showCreatePassword.value = false
-  showCreateModal.value = true
-}
-
-function generateCreatePassword() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*'
-  let pwd = ''
-  for (let i = 0; i < 16; i++) {
-    pwd += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  createForm.password = pwd
-  showCreatePassword.value = true
-}
-
-async function submitCreateUser() {
-  if (createForm.password.length < 12) {
-    localError.value = 'Password must be at least 12 characters.'
-    return
-  }
-  saving.value = true
-  localError.value = ''
-  try {
-    const res = await cms.adminCreateUser({
-      first_name: createForm.first_name,
-      last_name: createForm.last_name,
-      email: createForm.email,
-      phone: createForm.phone,
-      password: createForm.password,
-    })
-    const newUser = res.data?.data || res.data
-    if (createForm.role_id && newUser?.id) {
-      await cms.adminAssignUserRole(newUser.id, createForm.role_id)
-    }
-    showCreateModal.value = false
-    notifySuccess(`User ${createForm.email} created successfully.`)
-    await loadUsers()
-  } catch (err) {
-    localError.value = err.response?.data?.error?.message || err.message || 'Failed to create user.'
-    emit('error', localError.value)
-  } finally {
-    saving.value = false
-  }
-}
-
-// ── EDIT USER ───────────────────────────────────────────────────────────────
-
-function openEditModal(user) {
-  activeUser.value = user
-  Object.assign(editForm, {
-    id: user.id,
-    first_name: user.first_name || '',
-    last_name: user.last_name || '',
-    phone: user.phone || '',
-    nin: user.nin || '',
-  })
-  showEditModal.value = true
-}
-
-async function submitEditUser() {
-  saving.value = true
-  localError.value = ''
-  try {
-    await cms.adminUpdateUser(editForm.id, {
-      first_name: editForm.first_name,
-      last_name: editForm.last_name,
-      phone: editForm.phone,
-      nin: editForm.nin,
-    })
-    showEditModal.value = false
-    notifySuccess(`User ${activeUser.value?.email} updated successfully.`)
-    await loadUsers()
-  } catch (err) {
-    localError.value = err.response?.data?.error?.message || err.message || 'Failed to update user.'
-    emit('error', localError.value)
-  } finally {
-    saving.value = false
-  }
 }
 
 // ── SUSPEND / REACTIVATE ───────────────────────────────────────────────────
