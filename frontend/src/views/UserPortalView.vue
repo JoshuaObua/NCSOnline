@@ -890,6 +890,12 @@ async function loadPortal() {
 async function loadSportsRegistryContext() {
   if (!profile || !profile.email) return
 
+  const roles = userRoles.value
+  const hasRegistryRole = roles.some(r =>
+    ['athlete', 'role_athlete', 'coach', 'role_coach', 'technical_official', 'role_technical_official', 'admin', 'super_admin', 'general_secretary', 'federation_admin'].includes(r)
+  )
+  if (!hasRegistryRole) return
+
   try {
     const athletesRes = await listNsmisDomain('athletes', { search: profile.email })
     const athletesList = asList(athletesRes)
@@ -933,9 +939,7 @@ async function loadSportsRegistryContext() {
         athleteMedals.value = medItems.filter(r => r.athlete_id === athleteId)
       }
     }
-  } catch (e) {
-    console.warn('Failed to load athlete context details:', e)
-  }
+  } catch (e) {}
 
   try {
     const coachesRes = await listNsmisDomain('coaches', { search: profile.email })
@@ -945,9 +949,7 @@ async function loadSportsRegistryContext() {
       isCoach.value = true
       coachData.value = matchCoach
     }
-  } catch (e) {
-    console.warn('Failed to load coach context details:', e)
-  }
+  } catch (e) {}
 
   try {
     const officialsRes = await listNsmisDomain('technical-officials', { search: profile.email })
@@ -958,9 +960,7 @@ async function loadSportsRegistryContext() {
       isOfficial.value = true
       officialData.value = matchOfficial
     }
-  } catch (e) {
-    console.warn('Failed to load official context details:', e)
-  }
+  } catch (e) {}
 }
 
 async function loadActivities(page = 1) {
