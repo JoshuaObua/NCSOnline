@@ -301,7 +301,7 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import * as cms from '@/api/cms.js'
 
 const props = defineProps({
@@ -312,6 +312,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['saved', 'cancel', 'message', 'error'])
+const route = useRoute()
 const router = useRouter()
 
 const roles = ref([])
@@ -320,8 +321,6 @@ const showPassword = ref(false)
 const changePassword = ref(false)
 const localError = ref('')
 const localMessage = ref('')
-
-const isEditing = computed(() => !!props.initialModel?.id)
 
 const form = reactive({
   id: '',
@@ -334,6 +333,8 @@ const form = reactive({
   role_id: '',
   is_active: true,
 })
+
+const isEditing = computed(() => !!form.id || !!props.initialModel?.id)
 
 function populateFromModel(model) {
   if (model && model.id) {
@@ -350,7 +351,7 @@ function populateFromModel(model) {
     // Determine initial role_id
     if (model.roles && model.roles.length) {
       const r = model.roles[0]
-      form.role_id = r.id || (typeof r === 'string' ? r : '')
+      form.role_id = typeof r === 'object' && r ? (r.id || '') : (typeof r === 'string' ? r : '')
     } else {
       form.role_id = ''
     }
@@ -370,7 +371,37 @@ function populateFromModel(model) {
 
 watch(() => props.initialModel, (newModel) => {
   populateFromModel(newModel)
-}, { immediate: true })
+}, { immediate: true, deep: true })
+
+onMounted(async () => {
+  try {
+    const res = await cms.adminListRoles()
+    roles.value = res.data?.data || res.data || []
+
+    const queryUserId = route?.query?.id
+    if (!props.initialModel?.id && queryUserId) {
+      try {
+        const uRes = await cms.adminGetUser(queryUserId)
+        const u = uRes?.data?.data || uRes?.data
+        if (u && u.id) {
+          populateFromModel(u)
+        }
+      } catch (err) {
+        console.warn('Could not fetch user by ID:', err)
+      }
+    }
+
+    // If editing and role was a name string, resolve to role.id
+    if (form.role_id && roles.value.length) {
+      const matched = roles.value.find(r => r.name === form.role_id || r.id === form.role_id)
+      if (matched) {
+        form.role_id = matched.id
+      }
+    }
+  } catch (e) {
+    console.error('Could not load roles:', e)
+  }
+})
 
 const passwordStrengthLabel = computed(() => {
   const len = form.password.length
