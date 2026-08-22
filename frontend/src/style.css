@@ -1135,3 +1135,108 @@ body.dark .user-portal footer.main-footer,
   border-top-color: #334155 !important;
   color: #94a3b8 !important;
 }
+
+/* =====================================================================
+   SPORTS REGISTRY & EQUIPMENT FORMS DARK MODE
+   ===================================================================== */
+html.dark .registry-card,
+body.dark .registry-card,
+[data-theme="dark"] .registry-card,
+html.dark .equipment-card,
+body.dark .equipment-card,
+[data-theme="dark"] .equipment-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.dark .registry-card .page-header,
+body.dark .registry-card .page-header,
+[data-theme="dark"] .registry-card .page-header,
+html.dark .equipment-card .page-header,
+body.dark .equipment-card .page-header,
+[data-theme="dark"] .equipment-card .page-header {
+  border-bottom-color: #334155 !important;
+}
+
+html.dark .registry-card .page-header h2,
+body.dark .registry-card .page-header h2,
+[data-theme="dark"] .registry-card .page-header h2,
+html.dark .equipment-card .page-header h1,
+body.dark .equipment-card .page-header h1,
+[data-theme="dark"] .equipment-card .page-header h1 {
+  color: #f8fafc !important;
+}
+
+html.dark .registry-card .page-header span,
+body.dark .registry-card .page-header span,
+[data-theme="dark"] .registry-card .page-header span,
+html.dark .equipment-card .page-header span,
+body.dark .equipment-card .page-header span,
+[data-theme="dark"] .equipment-card .page-header span {
+  color: #94a3b8 !important;
+}
+
+html.dark .registry-form .field label,
+body.dark .registry-form .field label,
+[data-theme="dark"] .registry-form .field label,
+html.dark .equipment-form .field label,
+body.dark .equipment-form .field label,
+[data-theme="dark"] .equipment-form .field label {
+  color: #cbd5e1 !important;
+}
+
+html.dark .registry-form .field input:not([type=checkbox]),
+html.dark .registry-form .field select,
+html.dark .registry-form .field textarea,
+body.dark .registry-form .field input:not([type=checkbox]),
+body.dark .registry-form .field select,
+body.dark .registry-form .field textarea,
+[data-theme="dark"] .registry-form .field input:not([type=checkbox]),
+[data-theme="dark"] .registry-form .field select,
+[data-theme="dark"] .registry-form .field textarea,
+html.dark .equipment-form .field input,
+html.dark .equipment-form .field select,
+body.dark .equipment-form .field input,
+body.dark .equipment-form .field select,
+[data-theme="dark"] .equipment-form .field input,
+[data-theme="dark"] .equipment-form .field select {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .registry-card .back-button,
+html.dark .registry-card .cancel-button,
+body.dark .registry-card .back-button,
+body.dark .registry-card .cancel-button,
+[data-theme="dark"] .registry-card .back-button,
+[data-theme="dark"] .registry-card .cancel-button,
+html.dark .equipment-card .back-button,
+html.dark .equipment-card .cancel-button,
+body.dark .equipment-card .back-button,
+body.dark .equipment-card .cancel-button,
+[data-theme="dark"] .equipment-card .back-button,
+[data-theme="dark"] .equipment-card .cancel-button {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .registry-form .form-actions,
+body.dark .registry-form .form-actions,
+[data-theme="dark"] .registry-form .form-actions,
+html.dark .equipment-form .form-actions,
+body.dark .equipment-form .form-actions,
+[data-theme="dark"] .equipment-form .form-actions {
+  border-top-color: #334155 !important;
+}
+
+html.dark .checkbox-field,
+body.dark .checkbox-field,
+[data-theme="dark"] .checkbox-field {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
