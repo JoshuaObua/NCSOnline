@@ -2235,7 +2235,6 @@ const teamForm = reactive({ id:'', full_name:'', designation:'', department_id:'
 const councilForm = reactive({ id:'', full_name:'', designation:'', image_url:'', bio:'', sort_order:0, is_active:true })
 const roleForm = reactive({ id:'', name:'', description:'', is_system:false })
 const userForm = reactive({ id:'', first_name:'', last_name:'', email:'', phone:'', password:'' })
-const users = ref([])
 const editingUserModel = ref(null)
 
 const blogCategoryFields = fields(['name','slug','sort_order','is_active'], ['description'])
