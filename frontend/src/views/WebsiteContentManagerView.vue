@@ -801,6 +801,28 @@
           />
         </section>
 
+        <section v-else-if="active === 'create-federation-officials'" class="cms-panel">
+          <FederationOfficialEditorPanel
+            :initial-model="editingFederationOfficialModel"
+            :federations="associations"
+            :saving="savingFederationOfficial"
+            @save="handleSaveFederationOfficial"
+            @cancel="active = 'manage-federation-officials'"
+          />
+        </section>
+
+        <section v-else-if="active === 'manage-federation-officials'" class="cms-panel">
+          <ManageFederationOfficialsPanel
+            :items="federationOfficials"
+            :federations="associations"
+            :loading="loadingFederationOfficials"
+            @create-official="editingFederationOfficialModel = null; active = 'create-federation-officials'"
+            @edit-official="onEditFederationOfficial"
+            @delete-official="handleDeleteFederationOfficial"
+            @view-federation-profile="onViewFederationProfile"
+          />
+        </section>
+
         <section v-else-if="active === 'federation-profile'" class="cms-panel">
           <FederationProfilePanel
             :federation-id="selectedFederationIdForProfile"
@@ -1659,6 +1681,9 @@ import NamisManagerPanel from '@/components/portal/NamisManagerPanel.vue'
 import ManageFederationsPanel from '@/components/portal/ManageFederationsPanel.vue'
 import FederationProfilePanel from '@/components/portal/FederationProfilePanel.vue'
 import FederationEditorPanel from '@/components/portal/FederationEditorPanel.vue'
+import FederationOfficialEditorPanel from '@/components/portal/FederationOfficialEditorPanel.vue'
+import ManageFederationOfficialsPanel from '@/components/portal/ManageFederationOfficialsPanel.vue'
+import { listNsmisDomain, createNsmisDomain, updateNsmisDomain, deleteNsmisDomain } from '@/api/nsmis.js'
 import NamisRegistryEntryView from '@/views/NamisRegistryEntryView.vue'
 import SportsRegistryReportsPanel from '@/components/portal/SportsRegistryReportsPanel.vue'
 import AppearanceSettingsPanel from '@/components/cms/AppearanceSettingsPanel.vue'
@@ -1715,6 +1740,10 @@ const selectedFederationForProfile = ref(null)
 const editingFederationModel = ref(null)
 const savingFederation = ref(false)
 const loadingFederations = ref(false)
+const federationOfficials = ref([])
+const editingFederationOfficialModel = ref(null)
+const savingFederationOfficial = ref(false)
+const loadingFederationOfficials = ref(false)
 const analytics = ref(null)
 
 ensureOtikaStyles()
@@ -1796,6 +1825,8 @@ const investSections = []
 const federationSections = [
   { id:'associations', label:'Add New Federation', icon:'icofont-plus-circle' },
   { id:'manage-federations', label:'Manage Federations', icon:'icofont-list' },
+  { id:'create-federation-officials', label:'Add Federation Official', icon:'icofont-user-plus' },
+  { id:'manage-federation-officials', label:'Manage Federation Officials', icon:'icofont-users-social' },
   { id:'create-federation-categories', label:'Create Federation Category', icon:'icofont-folder-open' },
   { id:'manage-federation-categories', label:'Manage Federation Categories', icon:'icofont-tags' },
 ]
@@ -1909,6 +1940,8 @@ const sectionPermissionMap = {
   'manage-invest-categories':['investment_categories:read'],
   associations:['federations:create'],
   'manage-federations':['federations:read'],
+  'create-federation-officials':['federations:create', 'federations:write'],
+  'manage-federation-officials':['federations:read'],
   'federation-profile':['federations:read'],
   'create-federation-categories':['federation_categories:create'],
   'manage-federation-categories':['federation_categories:read'],
@@ -2543,6 +2576,7 @@ watch(() => route.query.section, (newSection) => {
         selectedFederationForProfile.value = associations.value.find(a => a.id === route.query.id || a.slug === route.query.id) || null
       }
       if (['users', 'manage-users'].includes(target) && !users.value.length) loadUsers()
+      if (['manage-federation-officials', 'create-federation-officials'].includes(target) && !federationOfficials.value.length) loadFederationOfficials()
     }
   }
 }, { immediate: true })
@@ -2975,6 +3009,59 @@ function onEditFederation(fed) {
   active.value = 'associations'
   if (router.currentRoute.value.query.section !== 'associations') {
     router.replace({ path: '/portal', query: { section: 'associations' } })
+  }
+}
+
+async function loadFederationOfficials() {
+  loadingFederationOfficials.value = true
+  try {
+    const res = await listNsmisDomain('federation-officers', { per_page: 200 })
+    const items = listData(res)
+    federationOfficials.value = Array.isArray(items) ? items : (res?.data?.data || [])
+  } catch (err) {
+    console.warn('Could not load federation officials:', err)
+  } finally {
+    loadingFederationOfficials.value = false
+  }
+}
+
+function onEditFederationOfficial(off) {
+  editingFederationOfficialModel.value = JSON.parse(JSON.stringify(off))
+  active.value = 'create-federation-officials'
+  if (router.currentRoute.value.query.section !== 'create-federation-officials') {
+    router.replace({ path: '/portal', query: { section: 'create-federation-officials' } })
+  }
+}
+
+async function handleSaveFederationOfficial(payload) {
+  savingFederationOfficial.value = true
+  try {
+    if (editingFederationOfficialModel.value && editingFederationOfficialModel.value.id) {
+      await updateNsmisDomain('federation-officers', editingFederationOfficialModel.value.id, payload)
+      setMsg('Federation official updated successfully')
+    } else {
+      await createNsmisDomain('federation-officers', payload)
+      setMsg('Federation official added successfully')
+    }
+    await loadFederationOfficials()
+    editingFederationOfficialModel.value = null
+    active.value = 'manage-federation-officials'
+    router.replace({ path: '/portal', query: { section: 'manage-federation-officials' } })
+  } catch (err) {
+    setErr(err)
+  } finally {
+    savingFederationOfficial.value = false
+  }
+}
+
+async function handleDeleteFederationOfficial(off) {
+  if (!(await confirmAction(`Delete official ${off.full_name}?`, 'This official will be removed from the federation leadership records.'))) return
+  try {
+    await deleteNsmisDomain('federation-officers', off.id)
+    await loadFederationOfficials()
+    setMsg('Federation official deleted')
+  } catch (err) {
+    setErr(err)
   }
 }
 

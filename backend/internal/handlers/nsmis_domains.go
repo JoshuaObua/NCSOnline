@@ -27,9 +27,9 @@ func domainPermission(resource string, write bool) []string {
 	}
 	if strings.HasPrefix(resource, "federation-") {
 		if write {
-			return []string{"federations:write:own", "federations:write:any"}
+			return []string{"federations:write:own", "federations:write:any", "federations:create", "federations:update", "admin", "super_admin", "cms:write"}
 		}
-		return []string{"federations:read:own", "federations:read:any"}
+		return []string{"federations:read:own", "federations:read:any", "admin", "super_admin", "cms:read"}
 	}
 	
 	permResource := strings.ReplaceAll(resource, "-", "_")
