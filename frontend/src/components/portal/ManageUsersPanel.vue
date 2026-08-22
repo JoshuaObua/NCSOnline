@@ -1391,6 +1391,8 @@ function formatDate(isoStr) {
 }
 
 .modal-dialog {
+  position: relative;
+  z-index: 10000;
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 14px;
