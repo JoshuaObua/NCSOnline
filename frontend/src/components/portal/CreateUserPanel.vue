@@ -97,6 +97,20 @@
                 />
               </div>
             </div>
+
+            <div class="form-group">
+              <label>National Identification Number (NIN)</label>
+              <div class="input-with-icon">
+                <i class="icofont-id-card input-icon"></i>
+                <input
+                  v-model.trim="form.nin"
+                  type="text"
+                  placeholder="e.g. CM92018104NCS2"
+                  class="form-input has-icon font-monospace"
+                />
+              </div>
+              <small class="field-help">Assigned independent NIN for cross-profile identity verification (Athletes, Coaches, Officials).</small>
+            </div>
           </div>
         </div>
 
@@ -238,6 +252,7 @@ const form = reactive({
   last_name: '',
   email: '',
   phone: '',
+  nin: '',
   password: '',
   role_id: '',
 })
@@ -291,6 +306,7 @@ async function submitForm() {
       last_name: form.last_name,
       email: form.email,
       phone: form.phone,
+      nin: form.nin,
       password: form.password,
     })
 

@@ -39,21 +39,45 @@
             </div>
           </div>
 
-          <!-- Section 2: Official Identification & Position -->
+          <!-- Section 2: Official Identification & Position (User / NIN Searchable Select) -->
           <div class="section-title">
-            <i class="icofont-tie"></i> Official Information & Position
+            <i class="icofont-tie"></i> Official Information & Identification (Name / NIN)
           </div>
           <div class="row">
-            <!-- Full Name -->
+            <!-- Full Name with User/NIN search -->
             <div class="form-group col-lg-6">
-              <label class="font-weight-bold">Full Name <span class="text-danger">*</span></label>
-              <input
+              <label class="font-weight-bold">
+                Official User Profile / Full Name <span class="text-danger">*</span>
+              </label>
+              <SearchableUserSelect
                 v-model="form.full_name"
-                type="text"
-                class="form-control"
-                placeholder="e.g. Eng. Moses Magogo, Edgar Watson"
-                required
+                placeholder="Search registered user by Name, NIN, or Email..."
+                @select="onUserSelected"
               />
+              <small class="form-text text-muted">
+                Dynamically searchable across registered user profiles by Full Name, NIN, or Email. You can also assign custom external names.
+              </small>
+            </div>
+
+            <!-- National Identification Number (NIN) -->
+            <div class="form-group col-lg-6">
+              <label class="font-weight-bold">
+                National Identification Number (NIN)
+              </label>
+              <div class="input-group">
+                <div class="input-group-prepend">
+                  <span class="input-group-text"><i class="icofont-id-card"></i></span>
+                </div>
+                <input
+                  v-model="form.nin"
+                  type="text"
+                  class="form-control font-monospace"
+                  placeholder="e.g. CM92018104NCS2"
+                />
+              </div>
+              <small class="form-text text-muted">
+                Assigned independent NIN linking official across all sporting and administrative profiles.
+              </small>
             </div>
 
             <!-- Position / Role -->
@@ -169,6 +193,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import SearchableFederationSelect from '@/components/ui/SearchableFederationSelect.vue'
+import SearchableUserSelect from '@/components/ui/SearchableUserSelect.vue'
 
 const props = defineProps({
   initialModel: {
@@ -194,6 +219,8 @@ const form = reactive({
   id: '',
   federation_id: '',
   full_name: '',
+  nin: '',
+  user_id: '',
   position: 'PRESIDENT',
   position_label: 'President / Chairperson',
   email: '',
@@ -212,6 +239,8 @@ function syncFromProps() {
       id: props.initialModel.id,
       federation_id: props.initialModel.federation_id || '',
       full_name: props.initialModel.full_name || '',
+      nin: props.initialModel.nin || '',
+      user_id: props.initialModel.user_id || '',
       position: props.initialModel.position || 'OTHER',
       position_label: props.initialModel.position_label || '',
       email: props.initialModel.email || '',
@@ -225,6 +254,8 @@ function syncFromProps() {
       id: '',
       federation_id: '',
       full_name: '',
+      nin: '',
+      user_id: '',
       position: 'PRESIDENT',
       position_label: 'President / Chairperson',
       email: '',
@@ -233,6 +264,15 @@ function syncFromProps() {
       term_ends_on: '',
       is_active: true,
     })
+  }
+}
+
+function onUserSelected(user) {
+  if (user) {
+    if (user.nin) form.nin = user.nin
+    if (user.email && !form.email) form.email = user.email
+    if (user.phone && !form.phone) form.phone = user.phone
+    if (user.id) form.user_id = user.id
   }
 }
 
@@ -277,6 +317,8 @@ function submitForm() {
   const payload = {
     federation_id: form.federation_id,
     full_name: form.full_name.trim(),
+    nin: form.nin.trim(),
+    user_id: form.user_id || undefined,
     position: form.position,
     position_label: form.position_label.trim() || form.position,
     email: form.email.trim(),
@@ -299,5 +341,17 @@ watch(() => props.initialModel, syncFromProps, { immediate: true })
 <style scoped>
 .official-editor-card {
   max-width: 100%;
+}
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #34395e;
+  margin-top: 24px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f4f6f9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

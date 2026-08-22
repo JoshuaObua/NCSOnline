@@ -34,6 +34,7 @@ type CreateUserInput struct {
 	FirstName    string
 	LastName     string
 	Phone        string
+	NIN          string
 	FederationID string
 	ActorID      string
 }
@@ -51,6 +52,7 @@ func (s *UserService) Create(ctx context.Context, in CreateUserInput) (*models.U
 		FirstName:     in.FirstName,
 		LastName:      in.LastName,
 		Phone:         in.Phone,
+		NIN:           in.NIN,
 		IsActive:      true,
 		AccountStatus: models.AccountStatusActive,
 	}
@@ -119,6 +121,7 @@ type UpdateUserInput struct {
 	FirstName string
 	LastName  string
 	Phone     string
+	NIN       string
 }
 
 func (s *UserService) Update(ctx context.Context, id string, in UpdateUserInput) (*models.User, error) {
@@ -129,6 +132,9 @@ func (s *UserService) Update(ctx context.Context, id string, in UpdateUserInput)
 	user.FirstName = in.FirstName
 	user.LastName = in.LastName
 	user.Phone = in.Phone
+	if in.NIN != "" {
+		user.NIN = in.NIN
+	}
 	if err := s.users.Update(ctx, user); err != nil {
 		return nil, err
 	}

@@ -95,6 +95,7 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 		FirstName    string `json:"first_name"`
 		LastName     string `json:"last_name"`
 		Phone        string `json:"phone"`
+		NIN          string `json:"nin"`
 		FederationID string `json:"federation_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -153,7 +154,7 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 	actorID, _ := r.Context().Value(models.CtxUserID).(string)
 	user, err := h.svc.Create(r.Context(), services.CreateUserInput{
 		Email: req.Email, Password: req.Password,
-		FirstName: req.FirstName, LastName: req.LastName, Phone: req.Phone,
+		FirstName: req.FirstName, LastName: req.LastName, Phone: req.Phone, NIN: req.NIN,
 		FederationID: targetFed, ActorID: actorID,
 	})
 	if err != nil {
@@ -197,13 +198,14 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 		FirstName string `json:"first_name"`
 		LastName  string `json:"last_name"`
 		Phone     string `json:"phone"`
+		NIN       string `json:"nin"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
 		return
 	}
 	user, err := h.svc.Update(r.Context(), id, services.UpdateUserInput{
-		FirstName: req.FirstName, LastName: req.LastName, Phone: req.Phone,
+		FirstName: req.FirstName, LastName: req.LastName, Phone: req.Phone, NIN: req.NIN,
 	})
 	if errors.Is(err, repository.ErrNotFound) {
 		response.Err(w, http.StatusNotFound, "NOT_FOUND", "User not found")

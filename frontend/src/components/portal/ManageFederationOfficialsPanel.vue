@@ -102,7 +102,12 @@
                   <div class="official-avatar">
                     <i class="icofont-user-suited"></i>
                   </div>
-                  <span class="official-full-name">{{ off.full_name }}</span>
+                  <div class="official-name-meta">
+                    <span class="official-full-name">{{ off.full_name }}</span>
+                    <span v-if="off.nin" class="official-nin-badge">
+                      <i class="icofont-id-card"></i> {{ off.nin }}
+                    </span>
+                  </div>
                 </div>
               </td>
               <td>
@@ -568,5 +573,32 @@ const filteredItems = computed(() => {
 .btn-action-delete:hover {
   background: #e11d48 !important;
   color: #ffffff !important;
+}
+</style>
+
+<style scoped>
+.official-name-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.official-nin-badge {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: monospace;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  width: fit-content;
+}
+:global(body.dark-theme) .official-nin-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.35);
 }
 </style>

@@ -63,8 +63,8 @@ func New(db *pgxpool.Pool) *Repos {
 type UserRepo struct{ db *pgxpool.Pool }
 
 func (r *UserRepo) Create(ctx context.Context, u *models.User) error {
-	const q = `INSERT INTO users (id, email, password_hash, first_name, last_name, phone, avatar_url, auth_provider, google_sub, is_email_verified, email_verified_at)
-	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $10 THEN NOW() ELSE NULL END)
+	const q = `INSERT INTO users (id, email, password_hash, first_name, last_name, phone, nin, avatar_url, auth_provider, google_sub, is_email_verified, email_verified_at)
+	           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,CASE WHEN $11 THEN NOW() ELSE NULL END)
 	           RETURNING created_at, updated_at`
 	if u.AuthProvider == "" {
 		u.AuthProvider = "password"
@@ -74,12 +74,12 @@ func (r *UserRepo) Create(ctx context.Context, u *models.User) error {
 		googleSub = u.GoogleSub
 	}
 	return r.db.QueryRow(ctx, q,
-		u.ID, u.Email, u.PasswordHash, u.FirstName, u.LastName, u.Phone, u.AvatarURL, u.AuthProvider, googleSub, u.IsEmailVerified,
+		u.ID, u.Email, u.PasswordHash, u.FirstName, u.LastName, u.Phone, u.NIN, u.AvatarURL, u.AuthProvider, googleSub, u.IsEmailVerified,
 	).Scan(&u.CreatedAt, &u.UpdatedAt)
 }
 
 func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error) {
-	const q = `SELECT id, email, password_hash, first_name, last_name, COALESCE(phone,''),
+	const q = `SELECT id, email, password_hash, first_name, last_name, COALESCE(phone,''), COALESCE(nin,''),
 	                  COALESCE(avatar_url,''), COALESCE(auth_provider,''), COALESCE(google_sub,''),
 	                  COALESCE(pin_hash,''), COALESCE(pin_change_required, TRUE),
 	                  is_active, account_status, status_reason, fraud_flag, fraud_reason,
@@ -90,7 +90,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 	           FROM users WHERE id=$1 AND deleted_at IS NULL`
 	u := &models.User{}
 	err := r.db.QueryRow(ctx, q, id).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &u.Phone,
+		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &u.Phone, &u.NIN,
 		&u.AvatarURL, &u.AuthProvider, &u.GoogleSub,
 		&u.PinHash, &u.PinChangeRequired,
 		&u.IsActive, &u.AccountStatus, &u.StatusReason, &u.FraudFlag, &u.FraudReason,
@@ -106,7 +106,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 }
 
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, error) {
-	const q = `SELECT id, email, password_hash, first_name, last_name, COALESCE(phone,''),
+	const q = `SELECT id, email, password_hash, first_name, last_name, COALESCE(phone,''), COALESCE(nin,''),
 	                  COALESCE(avatar_url,''), COALESCE(auth_provider,''), COALESCE(google_sub,''),
 	                  COALESCE(pin_hash,''), COALESCE(pin_change_required, TRUE),
 	                  is_active, account_status, status_reason, fraud_flag, fraud_reason,
@@ -117,7 +117,7 @@ func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, 
 	           FROM users WHERE email=$1 AND deleted_at IS NULL`
 	u := &models.User{}
 	err := r.db.QueryRow(ctx, q, email).Scan(
-		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &u.Phone,
+		&u.ID, &u.Email, &u.PasswordHash, &u.FirstName, &u.LastName, &u.Phone, &u.NIN,
 		&u.AvatarURL, &u.AuthProvider, &u.GoogleSub,
 		&u.PinHash, &u.PinChangeRequired,
 		&u.IsActive, &u.AccountStatus, &u.StatusReason, &u.FraudFlag, &u.FraudReason,
@@ -262,9 +262,9 @@ func (r *UserRepo) CreateFederationMembership(ctx context.Context, userID, feder
 }
 
 func (r *UserRepo) Update(ctx context.Context, u *models.User) error {
-	const q = `UPDATE users SET first_name=$2, last_name=$3, phone=$4, avatar_url=$5, updated_at=NOW()
+	const q = `UPDATE users SET first_name=$2, last_name=$3, phone=$4, nin=$5, avatar_url=$6, updated_at=NOW()
 	           WHERE id=$1 AND deleted_at IS NULL`
-	_, err := r.db.Exec(ctx, q, u.ID, u.FirstName, u.LastName, u.Phone, u.AvatarURL)
+	_, err := r.db.Exec(ctx, q, u.ID, u.FirstName, u.LastName, u.Phone, u.NIN, u.AvatarURL)
 	return err
 }
 
