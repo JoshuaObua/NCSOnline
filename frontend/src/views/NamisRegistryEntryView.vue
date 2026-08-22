@@ -90,7 +90,13 @@ import SearchableAgeCategorySelect from '@/components/ui/SearchableAgeCategorySe
 
 const route = useRoute()
 const router = useRouter()
-const resource = computed(() => String(route.params.resource || ''))
+const resource = computed(() => {
+  if (route.params.resource) return String(route.params.resource)
+  if (route.query.resource) return String(route.query.resource)
+  const m = route.path.match(/\/namis\/([^/]+)\/new/)
+  if (m) return m[1]
+  return 'athletes'
+})
 const definition = computed(() => registryResources[resource.value])
 const listRoute = computed(() => ({ path: '/portal', query: { section: `namis-${resource.value}` } }))
 const listLabel = computed(() => definition.value?.label || 'registry')

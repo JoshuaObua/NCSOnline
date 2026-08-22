@@ -276,6 +276,17 @@
               </div>
             </div>
 
+            <!-- Custom Searchable Dropdown for Age Categories -->
+            <div v-else-if="field.type === 'age_category_select'" class="searchable-select-field">
+              <SearchableAgeCategorySelect
+                :id="`manager-${field.key}`"
+                v-model="formPayload[field.key]"
+                :categories="ageCategories"
+                :required="field.required"
+                placeholder="Search and select age category (e.g. U17, Senior, U20, Masters)..."
+              />
+            </div>
+
             <div v-else-if="field.type === 'boolean'" class="checkbox-container">
               <input type="checkbox" v-model="formPayload[field.key]" />
               <span>Enable / Active Protection</span>
@@ -316,6 +327,7 @@ import {
   getAthleteDashboard
 } from '@/api/nsmis.js'
 import { registryResources } from '@/utils/namisRegistryConfig.js'
+import SearchableAgeCategorySelect from '@/components/ui/SearchableAgeCategorySelect.vue'
 
 const props = defineProps({
   userScope: { type: Array, default: () => [] },
@@ -398,8 +410,16 @@ function closeAllDropdowns(e) {
   }
 }
 
+const ageCategories = ref([])
+
 onMounted(() => {
   window.addEventListener('click', closeAllDropdowns)
+  listNsmisDomain('athlete-age-categories', { per_page: 200 })
+    .then(res => {
+      if (res?.data?.items) ageCategories.value = res.data.items
+      else if (Array.isArray(res?.data)) ageCategories.value = res.data
+    })
+    .catch(() => {})
 })
 
 onUnmounted(() => {
@@ -580,7 +600,7 @@ const fieldsConfig = {
     { key: 'national_team_status', label: 'National Team Status', type: 'select', options: ['NO', 'DEVELOPMENT', 'SENIOR', 'FORMER'] },
     { key: 'status', label: 'Status', type: 'select', options: ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'RETIRED'] },
     { key: 'consent_basis', label: 'Consent Basis (e.g. FEDERATION_MANDATE)' },
-    { key: 'age_category', label: 'Age Category', type: 'select', options: ['U10', 'U12', 'U15', 'U17', 'U20', 'Senior'] },
+    { key: 'age_category', label: 'Age Category', type: 'age_category_select' },
     { key: 'phone_contact', label: 'Phone Number' },
     { key: 'email_address', label: 'Email Address' },
     { key: 'next_of_kin', label: 'Next of Kin' },
