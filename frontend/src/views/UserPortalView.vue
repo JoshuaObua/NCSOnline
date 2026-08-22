@@ -1558,27 +1558,61 @@ function cancel2FAEnrollment() {
   z-index: 849;
 }
 
-/* ── Main Content Area ─────────────────────────────────────────────── */
+/* ── Main Content Area (100% Page Fit - No Horizontal Overflow) ───── */
 .main-content {
   margin-top: 60px;
   margin-left: 240px;
-  padding: 24px;
+  padding: 24px 30px 48px;
+  width: calc(100% - 240px) !important;
+  max-width: calc(100% - 240px) !important;
   min-height: calc(100vh - 60px);
-  transition: margin-left 0.28s ease;
+  box-sizing: border-box !important;
+  transition: margin-left 0.28s ease, width 0.28s ease, max-width 0.28s ease;
+  overflow-x: hidden;
 }
-.sidebar-mini .main-content { margin-left: 64px; }
+.sidebar-mini .main-content {
+  margin-left: 64px !important;
+  width: calc(100% - 64px) !important;
+  max-width: calc(100% - 64px) !important;
+}
 @media (max-width: 768px) {
-  .main-content { margin-left: 0; padding: 16px; }
+  .main-content {
+    margin-left: 0 !important;
+    padding: 16px 16px 32px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }
 
-/* ── Section Header ────────────────────────────────────────────────── */
+/* ── Section Structure ─────────────────────────────────────────────── */
+.section {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+.section-body {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* ── Section Header (Reset Otika Negative Margins) ─────────────────── */
 .section-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 12px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 0 20px 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  border-bottom: none !important;
 }
 .section-header h1 {
   font-size: 20px; font-weight: 700; color: #1e293b;
@@ -1591,7 +1625,7 @@ function cancel2FAEnrollment() {
 .breadcrumb-item {
   font-size: 13px; color: #94a3b8;
 }
-.breadcrumb-item.active a { color: #6777ef; text-decoration: none; }
+.breadcrumb-item.active a { color: #6777ef; text-decoration: none; font-weight: 600; }
 .breadcrumb-item + .breadcrumb-item::before {
   content: '/';
   margin-right: 6px;
@@ -1610,7 +1644,7 @@ function cancel2FAEnrollment() {
   padding: 8px 18px;
   border-radius: 30px; border: none; cursor: pointer;
   font-size: 13px; font-weight: 600;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
   outline: none !important;
 }
 .btn-primary {
@@ -1687,6 +1721,88 @@ function cancel2FAEnrollment() {
 .secondary-command:hover {
   background: #e2e8f0;
   color: #1e293b;
+}
+
+/* ── Toolbar, Search Boxes & Dropdowns ─────────────────────────────── */
+.list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+  background: #fff;
+  padding: 16px 20px;
+  border-radius: 10px;
+  border: 1px solid #edf2f7;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
+  width: 100%;
+}
+.list-toolbar label {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 240px;
+  max-width: 440px;
+  margin-bottom: 0;
+}
+.list-toolbar label i {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  font-size: 16px;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.list-toolbar input[type="search"],
+.list-toolbar input[type="text"] {
+  width: 100%;
+  height: 42px;
+  padding: 8px 16px 8px 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e293b;
+  background: #f8fafc;
+  transition: all 0.15s ease;
+  outline: none !important;
+  box-sizing: border-box;
+}
+.list-toolbar input[type="search"]:focus,
+.list-toolbar input[type="text"]:focus {
+  border-color: #6777ef;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(103, 119, 239, 0.15) !important;
+}
+.list-toolbar select {
+  height: 42px;
+  padding: 8px 36px 8px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  background-color: #f8fafc;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  outline: none !important;
+  min-width: 180px;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+.list-toolbar select:focus {
+  border-color: #6777ef;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(103, 119, 239, 0.15) !important;
 }
 
 /* ── KPI Metrics Grid ──────────────────────────────────────────────── */
@@ -1781,32 +1897,38 @@ function cancel2FAEnrollment() {
   margin-bottom: 12px;
 }
 
-/* ── Data Tables ───────────────────────────────────────────────────── */
+/* ── Data Tables (Clean horizontal scrolling within card) ─────────── */
 .data-table {
+  width: 100% !important;
+  max-width: 100% !important;
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 25px rgba(0,0,0,0.06);
+  border-radius: 10px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
   border: 1px solid #edf2f7;
-  overflow-x: auto;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
   margin-top: 16px;
 }
 .data-table table {
   width: 100%;
+  min-width: 680px;
   border-collapse: collapse;
   text-align: left;
 }
 .data-table th {
-  padding: 12px 18px;
+  padding: 14px 20px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: #64748b;
   background: #f8fafc;
-  border-bottom: 1px solid #edf2f7;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
 }
 .data-table td {
-  padding: 14px 18px;
+  padding: 16px 20px;
   font-size: 13px;
   color: #334155;
   border-bottom: 1px solid #f1f5f9;
@@ -1815,11 +1937,39 @@ function cancel2FAEnrollment() {
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tr:hover td { background: #fbfcfe; }
 
+/* ── Table Action Buttons ──────────────────────────────────────────── */
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.table-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s ease;
+  outline: none !important;
+}
+.table-actions button:hover {
+  background: #6777ef;
+  border-color: #6777ef;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(103, 119, 239, 0.3);
+}
+
 /* ── Status Badges ─────────────────────────────────────────────────── */
 .status {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
   font-size: 11px;
   font-weight: 700;
@@ -1831,7 +1981,7 @@ function cancel2FAEnrollment() {
 .status.red { background: #fee2e2; color: #dc2626; }
 .status.blue { background: #e0f2fe; color: #0284c7; }
 
-/* ── Profile & Wallet Layouts ──────────────────────────────────────── */
+/* ── Profile & Settings Layouts ────────────────────────────────────── */
 .profile-layout {
   display: grid;
   gap: 24px;
@@ -1845,12 +1995,21 @@ function cancel2FAEnrollment() {
 @media (max-width: 900px) {
   .profile-grid-3 { grid-template-columns: 1fr; }
 }
+.profile-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+@media (max-width: 900px) {
+  .profile-grid-2 { grid-template-columns: 1fr; }
+}
+
 .profile-summary {
   background: #fff;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 24px;
   text-align: center;
-  box-shadow: 0 4px 25px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 25px rgba(0,0,0,0.05);
   border: 1px solid #edf2f7;
 }
 .profile-avatar {
@@ -1865,11 +2024,72 @@ function cancel2FAEnrollment() {
 }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
 
+.profile-form {
+  background: #fff;
+  border-radius: 10px;
+  padding: 24px;
+  box-shadow: 0 4px 25px rgba(0,0,0,0.05);
+  border: 1px solid #edf2f7;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.profile-form h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 4px;
+}
+.profile-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0;
+}
+.profile-form input,
+.profile-form select,
+.profile-form textarea {
+  width: 100%;
+  height: 42px;
+  padding: 8px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e293b;
+  background: #f8fafc;
+  transition: all 0.15s ease;
+  outline: none !important;
+  box-sizing: border-box;
+}
+.profile-form input:focus,
+.profile-form select:focus,
+.profile-form textarea:focus {
+  border-color: #6777ef;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(103, 119, 239, 0.15) !important;
+}
+.profile-form input:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+.profile-form div:has(> label + label) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 575px) {
+  .profile-form div:has(> label + label) { grid-template-columns: 1fr; }
+}
+
 /* ── Card ──────────────────────────────────────────────────────────── */
 .card {
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 25px rgba(0,0,0,0.06);
+  border-radius: 10px;
+  box-shadow: 0 4px 25px rgba(0,0,0,0.05);
   border: 1px solid #edf2f7;
   overflow: hidden;
 }
@@ -1878,7 +2098,7 @@ function cancel2FAEnrollment() {
 /* ── Messages & Alerts ─────────────────────────────────────────────── */
 .portal-success, .portal-error {
   padding: 12px 18px;
-  border-radius: 6px; margin-bottom: 20px;
+  border-radius: 8px; margin-bottom: 20px;
   font-size: 13px; font-weight: 500;
 }
 .portal-success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
@@ -1891,11 +2111,24 @@ footer.main-footer, .main-footer {
   padding: 16px 24px;
   border-top: 1px solid #e8edf2;
   background: #fff;
-  margin-left: 240px;
-  transition: margin-left 0.28s;
+  width: calc(100% - 240px) !important;
+  max-width: calc(100% - 240px) !important;
+  margin-left: 240px !important;
+  box-sizing: border-box !important;
+  transition: margin-left 0.28s, width 0.28s, max-width 0.28s;
 }
-.sidebar-mini footer.main-footer { margin-left: 64px; }
-@media (max-width: 768px) { footer.main-footer { margin-left: 0; } }
+.sidebar-mini footer.main-footer {
+  margin-left: 64px !important;
+  width: calc(100% - 64px) !important;
+  max-width: calc(100% - 64px) !important;
+}
+@media (max-width: 768px) {
+  footer.main-footer, .main-footer {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
 
 /* ── Dark Mode Overrides ───────────────────────────────────────────── */
 :global(.dark) .user-portal { background: #0f172a; color: #e2e8f0; }
@@ -1934,6 +2167,39 @@ footer.main-footer, .main-footer {
   background: #1e293b;
   border-color: #334155;
   box-shadow: 0 4px 25px rgba(0,0,0,.3);
+}
+:global(.dark) .list-toolbar {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+:global(.dark) .list-toolbar input[type="search"],
+:global(.dark) .list-toolbar input[type="text"],
+:global(.dark) .list-toolbar select {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+:global(.dark) .list-toolbar select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+}
+:global(.dark) .table-actions button {
+  background: #0f172a;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+:global(.dark) .profile-form {
+  background: #1e293b;
+  border-color: #334155;
+}
+:global(.dark) .profile-form h2 { color: #f8fafc; }
+:global(.dark) .profile-form label { color: #cbd5e1; }
+:global(.dark) .profile-form input,
+:global(.dark) .profile-form select,
+:global(.dark) .profile-form textarea {
+  background-color: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
 }
 :global(.dark) .user-kpis article strong,
 :global(.dark) .section-header h1,
