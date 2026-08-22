@@ -1284,58 +1284,11 @@
           </form>
         </section>
 
-        <section v-else-if="active === 'manage-users'" class="cms-panel">
-          <div class="cms-panel-head">
-            <h2>Manage Users</h2>
-            <div class="cms-actions-inline">
-              <button type="button" @click="resetUserForm(); active = 'users'">New user</button>
-              <button type="button" @click="loadUsers">Refresh</button>
-            </div>
-          </div>
-          <form class="cms-search" @submit.prevent="loadUsers">
-            <input v-model="userSearch" placeholder="Search users by name or email..." />
-            <button type="submit">Search</button>
-          </form>
-          <div class="card otika-basic-table-card">
-            <div class="card-body p-0">
-              <div class="table-responsive">
-                <table class="table table-striped table-hover table-sm mb-0">
-                  <thead><tr><th>User</th><th>Status</th><th>Roles</th><th class="text-right">Actions</th></tr></thead>
-                  <tbody>
-                    <tr v-for="user in users" :key="user.id">
-                      <td><strong>{{ user.first_name }} {{ user.last_name }}</strong><br /><span>{{ user.email }}</span></td>
-                      <td><span class="badge" :class="user.is_active ? 'badge-success' : 'badge-danger'">{{ user.account_status || (user.is_active ? 'ACTIVE' : 'DISABLED') }}</span></td>
-                      <td>
-                        <span v-for="role in user.roles || []" :key="role.id || role.name" class="badge badge-primary mr-1">{{ role.name || role }}</span>
-                        <span v-if="!(user.roles || []).length" class="text-muted">No roles</span>
-                      </td>
-                      <td class="table-actions text-right">
-                        <button v-if="hasPermission('users:update') || hasPermission('users:write:own')" type="button" class="btn btn-sm btn-primary" @click="editUser(user)">Edit</button>
-                        <button v-if="hasPermission('users:roles') || hasPermission('roles:assign') || hasPermission('users:roles:own')" type="button" class="btn btn-sm btn-info" @click="openUserRoles(user)">Roles</button>
-                        <button v-if="hasPermission('users:reset_password') || hasPermission('users:write:own')" type="button" class="btn btn-sm btn-warning" @click="promptResetPassword(user)">Reset</button>
-                        <button v-if="hasPermission('users:activate') || hasPermission('users:write:own')" type="button" class="btn btn-sm btn-secondary" @click="toggleUserActive(user)">{{ user.is_active ? 'Disable' : 'Activate' }}</button>
-                        <button v-if="hasPermission('users:delete') || hasPermission('users:write:own')" type="button" class="btn btn-sm btn-danger" @click="removeUser(user)">Delete</button>
-                      </td>
-                    </tr>
-                    <tr v-if="!users.length"><td colspan="4" class="text-center text-muted py-4">No users found.</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-          <article v-if="selectedUser" class="cms-subpanel">
-            <div class="cms-panel-head">
-              <h2>Roles for {{ selectedUser.first_name }} {{ selectedUser.last_name }}</h2>
-              <span>{{ selectedUser.email }}</span>
-            </div>
-            <div class="permission-grid">
-              <label v-for="role in roles" :key="role.id" class="permission-row">
-                <input type="checkbox" :checked="userHasRole(selectedUser, role)" @change="toggleUserRole(selectedUser, role, $event.target.checked)" />
-                <span><strong>{{ role.name }}</strong><small>{{ role.description || (role.is_system ? 'System role' : 'Custom role') }}</small></span>
-              </label>
-            </div>
-          </article>
-        </section>
+        <ManageUsersPanel
+          v-else-if="active === 'manage-users'"
+          @message="setMsg"
+          @error="setErr"
+        />
 
         <section v-else-if="active === 'roles'" class="cms-panel">
           <div class="cms-panel-head">
@@ -1685,6 +1638,7 @@ import StorageSettingsPanel from '@/components/cms/StorageSettingsPanel.vue'
 import FormBuilderPanel from '@/components/cms/FormBuilderPanel.vue'
 import AdminApplicationsPanel from '@/components/portal/AdminApplicationsPanel.vue'
 import AdminDashboardPanel from '@/components/portal/AdminDashboardPanel.vue'
+import ManageUsersPanel from '@/components/portal/ManageUsersPanel.vue'
 import NamisManagerPanel from '@/components/portal/NamisManagerPanel.vue'
 import NamisRegistryEntryView from '@/views/NamisRegistryEntryView.vue'
 import SportsRegistryReportsPanel from '@/components/portal/SportsRegistryReportsPanel.vue'
@@ -2462,19 +2416,8 @@ function isLocalPreviewSession() {
   return ['local-portal-preview-token', 'local-cms-preview-token'].includes(localStorage.getItem('ncsms_access_token'))
 }
 async function canReachApi(force = false) {
-  if (!force && apiAvailable.value !== null) return apiAvailable.value
-  let timer
-  try {
-    const controller = new AbortController()
-    timer = window.setTimeout(() => controller.abort(), 1800)
-    const res = await fetch(`${API_BASE_URL}/health`, { signal: controller.signal, cache: 'no-store' })
-    apiAvailable.value = res.ok
-  } catch {
-    apiAvailable.value = false
-  } finally {
-    if (timer) window.clearTimeout(timer)
-  }
-  return apiAvailable.value
+  apiAvailable.value = true
+  return true
 }
 function listData(res, fallback = []) {
   const value = data(res)
