@@ -3133,6 +3133,7 @@ func (h *CMSHandler) CreateAssociation(w http.ResponseWriter, r *http.Request) {
 		Secretary    string `json:"secretary"`
 		Address      string `json:"address"`
 		Phone        string `json:"phone"`
+		Email        string `json:"email"`
 		SortOrder    int    `json:"sort_order"`
 		IsActive     bool   `json:"is_active"`
 	}
@@ -3159,7 +3160,7 @@ func (h *CMSHandler) CreateAssociation(w http.ResponseWriter, r *http.Request) {
 	a := &models.CMSAssociation{
 		ID: id, Name: req.Name, Slug: slug, Abbreviation: req.Abbreviation,
 		Description: req.Description, LogoURL: req.LogoURL, WebsiteURL: req.WebsiteURL,
-		Category: req.Category, President: req.President, Secretary: req.Secretary, Address: req.Address, Phone: req.Phone,
+		Category: req.Category, President: req.President, Secretary: req.Secretary, Address: req.Address, Phone: req.Phone, Email: req.Email,
 		SortOrder: req.SortOrder, IsActive: req.IsActive,
 	}
 	if err := h.repo.CreateAssociation(r.Context(), a); err != nil {
@@ -3198,6 +3199,7 @@ func (h *CMSHandler) UpdateAssociation(w http.ResponseWriter, r *http.Request) {
 		Secretary    string `json:"secretary"`
 		Address      string `json:"address"`
 		Phone        string `json:"phone"`
+		Email        string `json:"email"`
 		SortOrder    int    `json:"sort_order"`
 		IsActive     bool   `json:"is_active"`
 	}
@@ -3238,6 +3240,8 @@ func (h *CMSHandler) UpdateAssociation(w http.ResponseWriter, r *http.Request) {
 	existing.President = req.President
 	existing.Secretary = req.Secretary
 	existing.Address = req.Address
+	existing.Phone = req.Phone
+	existing.Email = req.Email
 	existing.Phone = req.Phone
 	existing.SortOrder = req.SortOrder
 	existing.IsActive = req.IsActive

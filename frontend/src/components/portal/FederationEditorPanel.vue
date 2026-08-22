@@ -130,11 +130,35 @@
             </div>
           </div>
 
-          <!-- Section 3: Contact & Headquarters -->
+          <!-- Section 3: Contact & Headquarters Details -->
           <div class="section-title">
             <i class="icofont-location-pin"></i> Contact & Headquarters Details
           </div>
           <div class="row">
+            <!-- Official Email -->
+            <div class="form-group col-lg-6">
+              <label class="font-weight-bold">Official Email Address</label>
+              <input
+                v-model="form.email"
+                type="email"
+                class="form-control"
+                placeholder="e.g. admin@fufa.co.ug, info@federation.ug"
+              />
+              <small class="form-text text-muted">Primary administrative email for statutory notifications and communications.</small>
+            </div>
+
+            <!-- Official Phone -->
+            <div class="form-group col-lg-6">
+              <label class="font-weight-bold">Official Phone Number</label>
+              <input
+                v-model="form.phone"
+                type="text"
+                class="form-control"
+                placeholder="e.g. +256 414 345 678"
+              />
+            </div>
+
+            <!-- Physical Address -->
             <div class="form-group col-lg-6">
               <label>Physical Address / Headquarters</label>
               <input
@@ -145,17 +169,8 @@
               />
             </div>
 
-            <div class="form-group col-lg-3">
-              <label>Official Phone Number</label>
-              <input
-                v-model="form.phone"
-                type="text"
-                class="form-control"
-                placeholder="e.g. +256 414 345 678"
-              />
-            </div>
-
-            <div class="form-group col-lg-3">
+            <!-- Official Website URL -->
+            <div class="form-group col-lg-6">
               <label>Official Website URL</label>
               <input
                 v-model="form.website_url"
@@ -164,19 +179,45 @@
                 placeholder="e.g. https://fufa.co.ug"
               />
             </div>
+          </div>
 
-            <div class="form-group col-lg-8">
-              <label>Federation Logo URL</label>
-              <input
+          <!-- Section 4: Federation Logo & Media Upload -->
+          <div class="section-title">
+            <i class="icofont-image"></i> Federation Logo & Emblem
+          </div>
+          <div class="row">
+            <div class="form-group col-12">
+              <label class="font-weight-bold">Upload Federation Logo / Crest</label>
+              <DropzoneUpload
                 v-model="form.logo_url"
-                type="text"
-                class="form-control"
-                placeholder="e.g. /uploads/logos/fufa.png or https://..."
+                label="Federation Logo"
+                hint="Drag and drop or click to upload SVG, PNG, WebP or JPEG (transparent background recommended)."
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                @error="onUploadError"
               />
+              <small class="form-text text-muted mt-1">
+                The logo will be displayed on the national sports directory, federation profile, and public website.
+              </small>
+            </div>
+          </div>
+
+          <!-- Section 5: Mandate & About Details -->
+          <div class="section-title">
+            <i class="icofont-document-folder"></i> Statutory Mandate & Description
+          </div>
+          <div class="row">
+            <div class="form-group col-12">
+              <label>About the Federation & Statutory Mandate</label>
+              <textarea
+                v-model="form.description"
+                class="form-control"
+                rows="4"
+                placeholder="Describe the background, core sporting objectives, mandate under the National Sports Act, and affiliated disciplines..."
+              ></textarea>
             </div>
 
-            <div class="form-group col-lg-2">
-              <label>Sort Order</label>
+            <div class="form-group col-lg-3">
+              <label>Display Sort Order</label>
               <input
                 v-model.number="form.sort_order"
                 type="number"
@@ -184,8 +225,8 @@
               />
             </div>
 
-            <div class="form-group col-lg-2">
-              <label class="d-block">Status</label>
+            <div class="form-group col-lg-3">
+              <label class="d-block">Publication Status</label>
               <div class="custom-control custom-checkbox mt-2">
                 <input
                   id="fed-active-toggle"
@@ -196,20 +237,10 @@
                 <label class="custom-control-label" for="fed-active-toggle">Active & Published</label>
               </div>
             </div>
-
-            <div class="form-group col-12">
-              <label>Federation Mandate & Overview Description</label>
-              <textarea
-                v-model="form.description"
-                class="form-control otika-textarea"
-                rows="4"
-                placeholder="Describe the mandate, sport disciplines governed, and background of this national federation..."
-              ></textarea>
-            </div>
           </div>
         </div>
 
-        <!-- Footer actions -->
+        <!-- Card Footer -->
         <div class="card-footer text-right d-flex justify-content-between align-items-center">
           <button type="button" class="btn btn-secondary" @click="$emit('cancel')">
             Cancel
@@ -217,7 +248,7 @@
           <button type="submit" class="btn btn-primary btn-lg" :disabled="saving">
             <i v-if="saving" class="icofont-spinner icofont-spin mr-1"></i>
             <i v-else class="icofont-save mr-1"></i>
-            {{ isEditing ? 'Update Federation' : 'Create Federation' }}
+            {{ isEditing ? 'Update Federation Details' : 'Save New Federation' }}
           </button>
         </div>
       </form>
@@ -227,6 +258,7 @@
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
+import DropzoneUpload from '@/components/cms/DropzoneUpload.vue'
 
 const props = defineProps({
   initialModel: {
@@ -249,128 +281,172 @@ const props = defineProps({
 
 const emit = defineEmits(['save', 'cancel'])
 
-const originalId = ref('')
 const collisionError = ref('')
-const isCustomId = ref(false)
+const originalId = ref('')
 
 const form = reactive({
   id: '',
   name: '',
   slug: '',
   abbreviation: '',
-  category: 'Other',
+  category: '',
   president: '',
   secretary: '',
+  email: '',
   phone: '',
   address: '',
   website_url: '',
-  description: '',
   logo_url: '',
+  description: '',
   sort_order: 0,
   is_active: true,
 })
 
 const isEditing = computed(() => !!originalId.value)
 
-function normalizeSlug(val) {
-  return String(val || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-}
-
 function syncFromProps() {
   collisionError.value = ''
-  if (props.initialModel && props.initialModel.id) {
-    originalId.value = props.initialModel.id
+  if (props.initialModel && (props.initialModel.id || props.initialModel.name)) {
+    originalId.value = props.initialModel.id || ''
+    const catVal = (typeof props.initialModel.category === 'object' ? props.initialModel.category?.name : props.initialModel.category) || 'Other'
     Object.assign(form, {
-      id: props.initialModel.id,
+      id: props.initialModel.id || '',
       name: props.initialModel.name || '',
       slug: props.initialModel.slug || '',
       abbreviation: props.initialModel.abbreviation || props.initialModel.acronym || '',
-      category: (typeof props.initialModel.category === 'object' ? props.initialModel.category?.name : props.initialModel.category) || 'Other',
+      category: catVal,
       president: props.initialModel.president || '',
       secretary: props.initialModel.secretary || '',
+      email: props.initialModel.email || '',
       phone: props.initialModel.phone || '',
       address: props.initialModel.address || props.initialModel.physical_address || '',
       website_url: props.initialModel.website_url || props.initialModel.website || '',
-      description: props.initialModel.description || '',
       logo_url: props.initialModel.logo_url || '',
-      sort_order: Number(props.initialModel.sort_order || 0),
+      description: props.initialModel.description || '',
+      sort_order: props.initialModel.sort_order || 0,
       is_active: props.initialModel.is_active !== false,
     })
-    isCustomId.value = true
   } else {
     originalId.value = ''
-    isCustomId.value = false
     Object.assign(form, {
       id: '',
       name: '',
       slug: '',
       abbreviation: '',
-      category: props.categories[0]?.name || 'Other',
+      category: props.categories?.[0]?.name || 'Ball Sports',
       president: '',
       secretary: '',
+      email: '',
       phone: '',
       address: '',
       website_url: '',
-      description: '',
       logo_url: '',
-      sort_order: 0,
+      description: '',
+      sort_order: (props.existingFederations?.length || 0) + 1,
       is_active: true,
     })
   }
 }
 
-function onIdChanged() {
-  isCustomId.value = true
-  collisionError.value = ''
+function onUploadError(err) {
+  collisionError.value = typeof err === 'string' ? err : (err?.message || 'File upload failed')
+}
+
+function slugify(text) {
+  return String(text || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
 }
 
 function onNameChanged() {
-  if (!isEditing.value && !form.slug) {
-    form.slug = normalizeSlug(form.name)
+  if (!form.slug) {
+    form.slug = slugify(form.name)
   }
-  if (!isCustomId.value && !isEditing.value && !form.id) {
+  if (!originalId.value && !form.id) {
     autoGenerateId()
   }
 }
 
 function onAcronymChanged() {
-  if (!isCustomId.value && !isEditing.value) {
+  if (!originalId.value && (!form.id || form.id.startsWith('assoc_'))) {
     autoGenerateId()
   }
 }
 
+function onIdChanged() {
+  collisionError.value = ''
+}
+
 function autoGenerateId() {
-  const code = form.abbreviation || form.slug || normalizeSlug(form.name)
-  if (code) {
-    form.id = 'assoc_' + normalizeSlug(code)
+  if (form.abbreviation) {
+    form.id = 'assoc_' + slugify(form.abbreviation).replace(/-/g, '_')
+  } else if (form.name) {
+    form.id = 'assoc_' + slugify(form.name).replace(/-/g, '_')
   }
 }
 
-function submitForm() {
+function validateCollision() {
   collisionError.value = ''
-  const newId = String(form.id || '').trim()
+  const currentId = String(form.id || '').trim().toLowerCase()
+  if (!currentId) {
+    collisionError.value = 'Federation ID is required.'
+    return false
+  }
 
-  if (!newId) {
-    collisionError.value = 'Federation ID cannot be blank.'
+  // Check collision with existing federations
+  const duplicate = (props.existingFederations || []).find(
+    f => f.id && f.id.toLowerCase() === currentId && f.id !== originalId.value
+  )
+
+  if (duplicate) {
+    collisionError.value = `Federation ID "${form.id}" is already used by "${duplicate.name}". Please choose a distinct identifier.`
+    return false
+  }
+
+  return true
+}
+
+function submitForm() {
+  if (!validateCollision()) {
     return
   }
 
-  // Client-side collision check against other federations
-  const collision = props.existingFederations.find(f => f.id === newId && f.id !== originalId.value)
-  if (collision) {
-    collisionError.value = `Federation ID "${newId}" is already used by "${collision.name}". Please choose another unique identifier.`
+  if (!form.name.trim()) {
+    collisionError.value = 'Federation name is required.'
     return
   }
 
-  if (!form.slug) {
-    form.slug = normalizeSlug(form.name)
+  if (!form.slug.trim()) {
+    form.slug = slugify(form.name)
   }
 
-  emit('save', {
-    ...form,
-    id: originalId.value || newId,
-    new_id: newId,
-  })
+  const payload = {
+    name: form.name.trim(),
+    slug: form.slug.trim(),
+    abbreviation: form.abbreviation.trim(),
+    category: form.category,
+    president: form.president.trim(),
+    secretary: form.secretary.trim(),
+    email: form.email.trim(),
+    phone: form.phone.trim(),
+    address: form.address.trim(),
+    website_url: form.website_url.trim(),
+    logo_url: form.logo_url.trim(),
+    description: form.description.trim(),
+    sort_order: Number(form.sort_order) || 0,
+    is_active: form.is_active,
+  }
+
+  if (isEditing.value) {
+    payload.id = originalId.value
+    payload.new_id = form.id.trim()
+  } else {
+    payload.id = form.id.trim()
+  }
+
+  emit('save', payload)
 }
 
 watch(() => props.initialModel, syncFromProps, { immediate: true })
@@ -380,8 +456,16 @@ watch(() => props.initialModel, syncFromProps, { immediate: true })
 .federation-editor-card {
   max-width: 100%;
 }
-
-.font-monospace {
-  font-family: 'Courier New', Courier, monospace;
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #34395e;
+  margin-top: 24px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f4f6f9;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 </style>

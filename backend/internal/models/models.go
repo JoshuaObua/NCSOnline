@@ -635,6 +635,7 @@ type CMSAssociation struct {
 	Secretary    string    `json:"secretary,omitempty"`
 	Address      string    `json:"address,omitempty"`
 	Phone        string    `json:"phone,omitempty"`
+	Email        string    `json:"email,omitempty"`
 	SortOrder    int       `json:"sort_order"`
 	IsActive     bool      `json:"is_active"`
 	CreatedAt    time.Time `json:"created_at"`
