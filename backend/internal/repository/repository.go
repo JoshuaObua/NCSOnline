@@ -612,6 +612,45 @@ func (r *TokenRepo) RevokeAllForUser(ctx context.Context, userID string) error {
 	return err
 }
 
+func (r *TokenRepo) ListActiveForUser(ctx context.Context, userID string) ([]models.ActiveSession, error) {
+	const q = `SELECT id, COALESCE(ip_address,''), COALESCE(user_agent,''), created_at, expires_at 
+	           FROM refresh_tokens 
+	           WHERE user_id=$1 AND revoked_at IS NULL AND expires_at > NOW() 
+	           ORDER BY created_at DESC`
+	rows, err := r.db.Query(ctx, q, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	sessions := []models.ActiveSession{}
+	for rows.Next() {
+		var s models.ActiveSession
+		if err := rows.Scan(&s.ID, &s.IPAddress, &s.UserAgent, &s.CreatedAt, &s.ExpiresAt); err != nil {
+			return nil, err
+		}
+		sessions = append(sessions, s)
+	}
+	return sessions, rows.Err()
+}
+
+func (r *TokenRepo) RevokeForUser(ctx context.Context, userID, sessionID string) error {
+	const q = `UPDATE refresh_tokens SET revoked_at=NOW() WHERE id=$1 AND user_id=$2 AND revoked_at IS NULL`
+	tag, err := r.db.Exec(ctx, q, sessionID, userID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *TokenRepo) RevokeOthersForUser(ctx context.Context, userID, currentSessionID string) error {
+	const q = `UPDATE refresh_tokens SET revoked_at=NOW() WHERE user_id=$1 AND id<>$2 AND revoked_at IS NULL`
+	_, err := r.db.Exec(ctx, q, userID, currentSessionID)
+	return err
+}
+
 // ── Application Repository ────────────────────────────────────────
 
 type ApplicationRepo struct{ db *pgxpool.Pool }

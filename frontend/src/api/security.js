@@ -24,6 +24,15 @@ export const verify2FA = (code) =>
 export const disable2FA = () =>
   apiClient.post('/api/v1/me/security/2fa/disable').then(r => r.data)
 
+export const listMySessions = () =>
+  apiClient.get('/api/v1/me/security/sessions').then(r => r.data?.data ?? r.data ?? [])
+
+export const revokeMySession = (id) =>
+  apiClient.delete(`/api/v1/me/security/sessions/${id}`).then(r => r.data)
+
+export const revokeOtherSessions = () =>
+  apiClient.post('/api/v1/me/security/sessions/revoke-others').then(r => r.data)
+
 // Existing auth surface re-exported for convenience
 export const changePassword = (currentPassword, newPassword) =>
   apiClient.post('/api/v1/auth/change-password', { current_password: currentPassword, new_password: newPassword }).then(r => r.data)

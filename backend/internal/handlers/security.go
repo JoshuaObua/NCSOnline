@@ -19,10 +19,11 @@ import (
 )
 
 type SecurityHandler struct {
-	svc   *services.SecurityService
-	users *repository.UserRepo
-	audit *repository.AuditRepo
-	cfg   *config.Config
+	svc    *services.SecurityService
+	users  *repository.UserRepo
+	audit  *repository.AuditRepo
+	tokens *repository.TokenRepo
+	cfg    *config.Config
 }
 
 // GET /api/v1/me/activities
@@ -195,3 +196,49 @@ func (h *SecurityHandler) Disable2FA(w http.ResponseWriter, r *http.Request) {
 	}
 	response.JSONMsg(w, http.StatusOK, "Two-factor authentication disabled")
 }
+
+// GET /api/v1/me/security/sessions
+func (h *SecurityHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	if userID == "" {
+		response.Err(w, http.StatusUnauthorized, "UNAUTHORIZED", "Authentication required")
+		return
+	}
+	sessions, err := h.tokens.ListActiveForUser(r.Context(), userID)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not retrieve active sessions")
+		return
+	}
+	response.JSON(w, http.StatusOK, sessions)
+}
+
+// DELETE /api/v1/me/security/sessions/{id}
+func (h *SecurityHandler) RevokeSession(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	sessionID := chi.URLParam(r, "id")
+	if sessionID == "" {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Session ID is required")
+		return
+	}
+	if err := h.tokens.RevokeForUser(r.Context(), userID, sessionID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Session not found or already revoked")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not revoke session")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "Session revoked successfully")
+}
+
+// POST /api/v1/me/security/sessions/revoke-others
+func (h *SecurityHandler) RevokeOtherSessions(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	currentSessionID, _ := r.Context().Value(models.CtxSessionID).(string)
+	if err := h.tokens.RevokeOthersForUser(r.Context(), userID, currentSessionID); err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not revoke other sessions")
+		return
+	}
+	response.JSONMsg(w, http.StatusOK, "All other sessions revoked successfully")
+}
+

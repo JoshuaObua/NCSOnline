@@ -46,6 +46,8 @@
               <div class="dropdown-menu dropdown-menu-right pullDown" :class="{ show: profileOpen }">
                 <div class="dropdown-title">Hello {{ firstName }}</div>
                 <button type="button" class="dropdown-item has-icon" @click="select('profile')"><i class="fas fa-user"></i> My Profile</button>
+                <button type="button" class="dropdown-item has-icon" @click="select('settings')"><i class="fas fa-cog"></i> Settings</button>
+                <button type="button" class="dropdown-item has-icon" @click="select('activities')"><i class="fas fa-history"></i> My Activities</button>
                 <button type="button" class="dropdown-item has-icon" @click="select('applications')"><i class="fas fa-file-alt"></i> My Applications</button>
                 <button type="button" class="dropdown-item has-icon" @click="select('transactions')"><i class="fas fa-receipt"></i> Transactions</button>
                 <div class="dropdown-divider"></div>
@@ -262,15 +264,154 @@
               </template>
 
               <template v-else-if="section === 'activities'">
-                <header class="page-heading"><div><p>My Activities</p><h1>Recent account activity</h1><span>Security and portal actions recorded for your account.</span></div></header>
-                <div class="timeline-list">
-                  <article v-if="!activities.length" class="empty-state"><i class="icofont-history"></i><h3>No activities yet</h3><p>Your recent portal activity will appear here.</p></article>
-                  <article v-for="item in activities" :key="item.id"><span><i class="icofont-check-circled"></i></span><div><strong>{{ activityTitle(item) }}</strong><p>{{ activityDescription(item) }}</p><small>{{ formatDate(item.created_at) }}</small></div></article>
+                <header class="page-heading">
+                  <div>
+                    <p>Security & Audit Trail</p>
+                    <h1>My Activities & Audit Logs</h1>
+                    <span>Comprehensive record of your authentication events, application updates, and security logs.</span>
+                  </div>
+                  <button type="button" class="secondary-command" :disabled="loadingActivities" @click="loadActivities(activityPage)">
+                    <i class="icofont-refresh" :class="{ 'animate-spin': loadingActivities }"></i> Refresh logs
+                  </button>
+                </header>
+
+                <!-- Activity Summary KPIs -->
+                <div class="user-kpis activity-kpis">
+                  <article>
+                    <span class="blue"><i class="icofont-history"></i></span>
+                    <div>
+                      <small>Total Events</small>
+                      <strong>{{ activityTotal }}</strong>
+                      <p>All recorded actions</p>
+                    </div>
+                  </article>
+                  <article>
+                    <span class="green"><i class="icofont-shield-check"></i></span>
+                    <div>
+                      <small>Auth & Security</small>
+                      <strong>{{ activityStats.authCount }}</strong>
+                      <p>Logins & credentials</p>
+                    </div>
+                  </article>
+                  <article>
+                    <span class="amber"><i class="icofont-file-document"></i></span>
+                    <div>
+                      <small>Applications</small>
+                      <strong>{{ activityStats.appCount }}</strong>
+                      <p>Drafts & submissions</p>
+                    </div>
+                  </article>
+                  <article>
+                    <span class="cyan"><i class="icofont-clock-time"></i></span>
+                    <div>
+                      <small>Last Active</small>
+                      <strong style="font-size: 15px; font-weight: 700; margin-top: 4px;">{{ activityStats.lastActive }}</strong>
+                      <p>Latest event timestamp</p>
+                    </div>
+                  </article>
                 </div>
-                <div v-if="activityTotalPages > 1" class="cms-pagination activity-pagination" aria-label="Activity pagination">
-                  <button type="button" :disabled="activityPage <= 1" @click="loadActivities(activityPage - 1)">Previous</button>
-                  <span>Page {{ activityPage }} of {{ activityTotalPages }} &middot; {{ activityTotal }} events</span>
-                  <button type="button" :disabled="activityPage >= activityTotalPages" @click="loadActivities(activityPage + 1)">Next</button>
+
+                <!-- Activities Filter & Search Toolbar -->
+                <div class="list-toolbar activity-toolbar">
+                  <label class="search-label">
+                    <i class="icofont-search-1"></i>
+                    <input v-model="activitySearchQuery" type="search" placeholder="Search activities by action, IP, or location..." />
+                  </label>
+                  <div class="activity-category-pills">
+                    <button
+                      type="button"
+                      class="category-pill"
+                      :class="{ active: activityCategoryFilter === 'ALL' }"
+                      @click="activityCategoryFilter = 'ALL'"
+                    >
+                      All ({{ activities.length }})
+                    </button>
+                    <button
+                      type="button"
+                      class="category-pill"
+                      :class="{ active: activityCategoryFilter === 'AUTH' }"
+                      @click="activityCategoryFilter = 'AUTH'"
+                    >
+                      <i class="icofont-key"></i> Auth & Security
+                    </button>
+                    <button
+                      type="button"
+                      class="category-pill"
+                      :class="{ active: activityCategoryFilter === 'APPLICATIONS' }"
+                      @click="activityCategoryFilter = 'APPLICATIONS'"
+                    >
+                      <i class="icofont-file-alt"></i> Applications
+                    </button>
+                    <button
+                      type="button"
+                      class="category-pill"
+                      :class="{ active: activityCategoryFilter === 'PROFILE' }"
+                      @click="activityCategoryFilter = 'PROFILE'"
+                    >
+                      <i class="icofont-user-alt-7"></i> Profile & Account
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Activities Timeline List -->
+                <div v-if="loadingActivities" class="text-center py-5">
+                  <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+                  <p class="text-muted mt-3 font-weight-bold">Loading activity history...</p>
+                </div>
+                <div v-else-if="!filteredActivities.length" class="empty-state card text-center p-5 border-0 shadow-sm" style="border-radius: 10px; background: #fff;">
+                  <i class="icofont-history" style="font-size: 48px; color: #cbd5e1; margin-bottom: 12px;"></i>
+                  <h3 class="font-weight-bold" style="font-size: 18px; color: #1e293b;">No activities match your filters</h3>
+                  <p class="text-muted small mb-0">Try clearing your search query or selecting a different category filter.</p>
+                </div>
+                <div v-else class="activity-timeline-feed">
+                  <div v-for="item in filteredActivities" :key="item.id || item.created_at" class="activity-feed-card">
+                    <div class="activity-icon-wrapper" :class="getActivityTone(item)">
+                      <i :class="getActivityIcon(item)"></i>
+                    </div>
+                    <div class="activity-content">
+                      <div class="activity-header-row">
+                        <div class="activity-title-group">
+                          <h4 class="activity-title">{{ activityTitle(item) }}</h4>
+                          <span class="activity-category-badge" :class="getActivityTone(item)">
+                            {{ getActivityCategory(item) }}
+                          </span>
+                        </div>
+                        <time class="activity-time" :title="formatDate(item.created_at)">
+                          <i class="icofont-clock-time"></i> {{ formatRelativeTime(item.created_at) }}
+                        </time>
+                      </div>
+                      <p class="activity-description">{{ activityDescription(item) }}</p>
+                      <div class="activity-meta-row">
+                        <span v-if="item.ip_address" class="meta-pill">
+                          <i class="icofont-globe"></i> IP: <strong>{{ item.ip_address }}</strong>
+                        </span>
+                        <span v-if="item.geo_city || item.geo_country" class="meta-pill">
+                          <i class="icofont-location-pin"></i> {{ [item.geo_city, item.geo_country].filter(Boolean).join(', ') }}
+                        </span>
+                        <span v-if="item.browser || item.os_name" class="meta-pill">
+                          <i class="icofont-laptop"></i> {{ [item.os_name, item.browser].filter(Boolean).join(' ') }}
+                        </span>
+                        <span class="meta-pill date-pill">
+                          <i class="icofont-calendar"></i> {{ formatDate(item.created_at) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="activityTotalPages > 1" class="activity-pagination-bar mt-4">
+                  <div class="pagination-info">
+                    Showing Page <strong>{{ activityPage }}</strong> of <strong>{{ activityTotalPages }}</strong> ({{ activityTotal }} total events recorded)
+                  </div>
+                  <div class="pagination-buttons">
+                    <button type="button" class="btn btn-sm btn-secondary" :disabled="activityPage <= 1 || loadingActivities" @click="loadActivities(activityPage - 1)">
+                      <i class="icofont-arrow-left"></i> Previous
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary" :disabled="activityPage >= activityTotalPages || loadingActivities" @click="loadActivities(activityPage + 1)">
+                      Next <i class="icofont-arrow-right"></i>
+                    </button>
+                  </div>
                 </div>
               </template>
 
@@ -382,10 +523,461 @@
                 </div>
               </template>
 
+              <!-- ── Settings Section (Password Change, Sessions, Preferences & 2FA) ── -->
+              <template v-else-if="section === 'settings'">
+                <header class="page-heading">
+                  <div>
+                    <p>Account Settings</p>
+                    <h1>Security, Active Sessions & Preferences</h1>
+                    <span>Manage your credentials, review signed-in devices, and configure two-factor authentication.</span>
+                  </div>
+                </header>
+
+                <!-- Settings Sub-Navigation Tabs -->
+                <div class="settings-nav-tabs">
+                  <button
+                    type="button"
+                    class="settings-tab-btn"
+                    :class="{ active: settingsTab === 'password' }"
+                    @click="settingsTab = 'password'"
+                  >
+                    <i class="icofont-key"></i>
+                    <span>Password & Security</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="settings-tab-btn"
+                    :class="{ active: settingsTab === 'sessions' }"
+                    @click="onSelectSessionsTab"
+                  >
+                    <i class="icofont-laptop"></i>
+                    <span>Active Sessions</span>
+                    <span v-if="sessions.length" class="badge bg-primary text-white ms-2" style="font-size: 11px;">{{ sessions.length }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="settings-tab-btn"
+                    :class="{ active: settingsTab === 'preferences' }"
+                    @click="settingsTab = 'preferences'"
+                  >
+                    <i class="icofont-shield-check"></i>
+                    <span>Preferences & 2FA</span>
+                  </button>
+                </div>
+
+                <!-- Tab 1: Password & Security -->
+                <div v-if="settingsTab === 'password'" class="settings-tab-content">
+                  <div class="row g-4">
+                    <div class="col-lg-7">
+                      <div class="settings-card">
+                        <div class="settings-card-header">
+                          <i class="icofont-key text-primary fs-4"></i>
+                          <div>
+                            <h3>Change Password</h3>
+                            <p>Choose a strong, unique password to secure your NCS Portal account.</p>
+                          </div>
+                        </div>
+
+                        <form @submit.prevent="updatePassword" class="settings-form">
+                          <div class="form-group mb-3">
+                            <label class="form-label font-weight-bold">Current Password <span class="text-danger">*</span></label>
+                            <div class="password-input-wrap">
+                              <input
+                                v-model="passwordCurrent"
+                                :type="showPasswordCurrent ? 'text' : 'password'"
+                                class="form-control"
+                                placeholder="Enter your current password"
+                                required
+                              />
+                              <button type="button" class="btn-toggle-eye" @click="showPasswordCurrent = !showPasswordCurrent">
+                                <i :class="showPasswordCurrent ? 'icofont-eye' : 'icofont-eye-blocked'"></i>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div class="form-group mb-3">
+                            <label class="form-label font-weight-bold">New Password <span class="text-danger">*</span></label>
+                            <div class="password-input-wrap">
+                              <input
+                                v-model="passwordNew"
+                                :type="showPasswordNew ? 'text' : 'password'"
+                                class="form-control"
+                                placeholder="Enter new password (min 8 characters)"
+                                required
+                              />
+                              <button type="button" class="btn-toggle-eye" @click="showPasswordNew = !showPasswordNew">
+                                <i :class="showPasswordNew ? 'icofont-eye' : 'icofont-eye-blocked'"></i>
+                              </button>
+                            </div>
+
+                            <!-- Live Password Strength Meter -->
+                            <div v-if="passwordNew" class="password-strength-box mt-2">
+                              <div class="strength-bar-track">
+                                <div class="strength-bar-fill" :class="passwordStrengthClass" :style="{ width: passwordStrengthPercent + '%' }"></div>
+                              </div>
+                              <div class="d-flex justify-content-between align-items-center mt-1">
+                                <small class="strength-label">Strength: <strong :class="passwordStrengthTextClass">{{ passwordStrengthLabel }}</strong></small>
+                              </div>
+                              <ul class="password-rules-list mt-2">
+                                <li :class="{ met: passwordNew.length >= 8 }">
+                                  <i :class="passwordNew.length >= 8 ? 'icofont-check-circled text-success' : 'icofont-close-circled text-muted'"></i>
+                                  At least 8 characters
+                                </li>
+                                <li :class="{ met: /[A-Z]/.test(passwordNew) && /[a-z]/.test(passwordNew) }">
+                                  <i :class="(/[A-Z]/.test(passwordNew) && /[a-z]/.test(passwordNew)) ? 'icofont-check-circled text-success' : 'icofont-close-circled text-muted'"></i>
+                                  Uppercase & lowercase letters
+                                </li>
+                                <li :class="{ met: /[0-9]/.test(passwordNew) }">
+                                  <i :class="/[0-9]/.test(passwordNew) ? 'icofont-check-circled text-success' : 'icofont-close-circled text-muted'"></i>
+                                  At least one number
+                                </li>
+                                <li :class="{ met: /[^A-Za-z0-9]/.test(passwordNew) }">
+                                  <i :class="/[^A-Za-z0-9]/.test(passwordNew) ? 'icofont-check-circled text-success' : 'icofont-close-circled text-muted'"></i>
+                                  Special symbol (!@#$%^&*)
+                                </li>
+                              </ul>
+                            </div>
+                          </div>
+
+                          <div class="form-group mb-4">
+                            <label class="form-label font-weight-bold">Confirm New Password <span class="text-danger">*</span></label>
+                            <div class="password-input-wrap">
+                              <input
+                                v-model="passwordConfirm"
+                                :type="showPasswordConfirm ? 'text' : 'password'"
+                                class="form-control"
+                                placeholder="Re-enter your new password"
+                                required
+                              />
+                              <button type="button" class="btn-toggle-eye" @click="showPasswordConfirm = !showPasswordConfirm">
+                                <i :class="showPasswordConfirm ? 'icofont-eye' : 'icofont-eye-blocked'"></i>
+                              </button>
+                            </div>
+                            <small v-if="passwordConfirm && passwordNew !== passwordConfirm" class="text-danger mt-1 d-block font-weight-bold">
+                              <i class="icofont-warning"></i> Passwords do not match.
+                            </small>
+                            <small v-else-if="passwordConfirm && passwordNew === passwordConfirm" class="text-success mt-1 d-block font-weight-bold">
+                              <i class="icofont-check-circled"></i> Passwords match!
+                            </small>
+                          </div>
+
+                          <button
+                            type="submit"
+                            class="primary-command"
+                            :disabled="changingPassword || (passwordNew && passwordNew !== passwordConfirm)"
+                          >
+                            <i v-if="changingPassword" class="icofont-spinner animate-spin"></i>
+                            <i v-else class="icofont-key"></i>
+                            {{ changingPassword ? 'Updating Password...' : 'Update Password' }}
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+
+                    <div class="col-lg-5">
+                      <div class="settings-card security-tips-card">
+                        <div class="settings-card-header">
+                          <i class="icofont-shield-alt text-info fs-4"></i>
+                          <div>
+                            <h3>Password Security Tips</h3>
+                            <p>Best practices for safeguarding your NCS account.</p>
+                          </div>
+                        </div>
+                        <ul class="security-tips-list">
+                          <li>
+                            <i class="icofont-check text-success"></i>
+                            <div>
+                              <strong>Use Unique Passwords</strong>
+                              <p>Avoid reusing passwords from other personal or work websites.</p>
+                            </div>
+                          </li>
+                          <li>
+                            <i class="icofont-check text-success"></i>
+                            <div>
+                              <strong>Combine Words & Symbols</strong>
+                              <p>Passphrases with numbers and punctuation are significantly more resilient to automated attacks.</p>
+                            </div>
+                          </li>
+                          <li>
+                            <i class="icofont-check text-success"></i>
+                            <div>
+                              <strong>Enable 2FA Verification</strong>
+                              <p>Activate email-based two-factor authentication in the Preferences tab for extra defense.</p>
+                            </div>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 2: Sessions Management -->
+                <div v-else-if="settingsTab === 'sessions'" class="settings-tab-content">
+                  <div class="settings-card mb-4">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 pb-3 border-bottom mb-4">
+                      <div class="d-flex align-items-center gap-3">
+                        <span class="p-3 bg-light-primary text-primary rounded-circle" style="display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; background: #e0e7ff;">
+                          <i class="icofont-laptop" style="font-size: 24px;"></i>
+                        </span>
+                        <div>
+                          <h3 class="mb-1 font-weight-bold" style="font-size: 18px; color: #1e293b;">Active Login Sessions</h3>
+                          <p class="text-muted small mb-0">These are web browsers and devices that have recently authenticated to your NCS portal.</p>
+                        </div>
+                      </div>
+                      <div class="d-flex gap-2">
+                        <button
+                          type="button"
+                          class="secondary-command"
+                          :disabled="loadingSessions"
+                          @click="loadSessions"
+                        >
+                          <i class="icofont-refresh" :class="{ 'animate-spin': loadingSessions }"></i> Refresh
+                        </button>
+                        <button
+                          v-if="sessions.length > 1"
+                          type="button"
+                          class="btn btn-danger btn-sm"
+                          style="border-radius: 30px; font-weight: 600;"
+                          :disabled="revokingAllOtherSessions"
+                          @click="revokeAllOtherSessions"
+                        >
+                          <i v-if="revokingAllOtherSessions" class="icofont-spinner animate-spin"></i>
+                          <i v-else class="icofont-logout"></i>
+                          Sign Out All Other Devices
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Sessions Feed -->
+                    <div v-if="loadingSessions" class="text-center py-5">
+                      <div class="spinner-border text-primary" role="status"></div>
+                      <p class="text-muted mt-3 font-weight-bold">Loading active sessions...</p>
+                    </div>
+
+                    <div v-else-if="!sessions.length" class="empty-state text-center py-5">
+                      <i class="icofont-laptop text-muted" style="font-size: 48px;"></i>
+                      <h4 class="mt-3 font-weight-bold">No active sessions found</h4>
+                      <p class="text-muted small">Your current session details will appear on your next refresh.</p>
+                    </div>
+
+                    <div v-else class="sessions-list-grid">
+                      <div
+                        v-for="(sess, index) in sessions"
+                        :key="sess.id || index"
+                        class="session-item-card"
+                        :class="{ 'current-session-card': index === 0 }"
+                      >
+                        <div class="session-device-icon" :class="{ 'current': index === 0 }">
+                          <i :class="getSessionDeviceIcon(sess.user_agent)"></i>
+                        </div>
+                        <div class="session-details">
+                          <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                            <h4 class="session-device-name">{{ parseSessionBrowser(sess.user_agent) }}</h4>
+                            <span v-if="index === 0" class="badge bg-success text-white current-badge">
+                              <i class="icofont-check-circled"></i> Current Session (This Device)
+                            </span>
+                          </div>
+                          <div class="session-meta-items">
+                            <span class="meta-item">
+                              <i class="icofont-globe"></i> IP Address: <strong>{{ sess.ip_address || 'Current Network' }}</strong>
+                            </span>
+                            <span class="meta-item">
+                              <i class="icofont-calendar"></i> Signed in: {{ formatDate(sess.created_at) }}
+                            </span>
+                            <span v-if="sess.expires_at" class="meta-item">
+                              <i class="icofont-clock-time"></i> Expires: {{ formatDate(sess.expires_at) }}
+                            </span>
+                          </div>
+                        </div>
+                        <div v-if="index !== 0" class="session-actions">
+                          <button
+                            type="button"
+                            class="btn btn-outline-danger btn-sm"
+                            style="border-radius: 20px; font-weight: 600;"
+                            :disabled="revokingSessionId === sess.id"
+                            @click="revokeSession(sess.id)"
+                          >
+                            <i v-if="revokingSessionId === sess.id" class="icofont-spinner animate-spin"></i>
+                            <i v-else class="icofont-ui-delete"></i> Revoke
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 3: Preferences & 2FA Setup -->
+                <div v-if="settingsTab === 'preferences'" class="settings-tab-content">
+                  <div class="row g-4">
+                    <!-- Two-Factor Authentication Box -->
+                    <div class="col-lg-6">
+                      <div class="settings-card h-100">
+                        <div class="settings-card-header">
+                          <i class="icofont-shield-check text-primary fs-4"></i>
+                          <div>
+                            <h3>Two-Factor Authentication (2FA)</h3>
+                            <p>Enhance account protection with email one-time passcodes.</p>
+                          </div>
+                        </div>
+
+                        <div class="twofa-status-banner p-3 rounded-3 mb-4" :class="twofaEnabled ? 'twofa-active' : 'twofa-inactive'">
+                          <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                              <i :class="twofaEnabled ? 'icofont-check-circled text-success fs-4' : 'icofont-exclamation-circle text-warning fs-4'"></i>
+                              <div>
+                                <strong class="d-block font-weight-bold" :class="twofaEnabled ? 'text-success' : 'text-warning'">
+                                  {{ twofaEnabled ? '2FA is currently ENABLED' : '2FA is currently DISABLED' }}
+                                </strong>
+                                <small class="text-muted">
+                                  {{ twofaEnabled ? 'Your account requires email verification code upon login.' : 'Activate 2FA for mandatory login challenge verification.' }}
+                                </small>
+                              </div>
+                            </div>
+                            <span class="badge" :class="twofaEnabled ? 'bg-success text-white' : 'bg-warning text-dark'" style="font-weight: 700; font-size: 11px;">
+                              {{ twofaEnabled ? 'PROTECTED' : 'ACTION RECOMMENDED' }}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p class="text-muted small mb-4" style="line-height: 1.6;">
+                          When 2FA is active, every time you sign in with your email and password, a secure 6-digit one-time code will be dispatched to <strong>{{ profile.email }}</strong>. You must enter this code to complete authentication.
+                        </p>
+
+                        <!-- If 2FA is Disabled: Show Enable Button -->
+                        <div v-if="!twofaEnabled && !showTwoFAVerify">
+                          <button
+                            type="button"
+                            class="primary-command"
+                            :disabled="toggling2FA"
+                            @click="toggle2FA"
+                          >
+                            <i v-if="toggling2FA" class="icofont-spinner animate-spin"></i>
+                            <i v-else class="icofont-shield-check"></i>
+                            {{ toggling2FA ? 'Sending verification code...' : 'Set Up Two-Factor Authentication' }}
+                          </button>
+                        </div>
+
+                        <!-- 2FA Enrollment Verification Panel -->
+                        <div v-if="showTwoFAVerify" class="p-3 border rounded-3 bg-light mt-3" style="border-color: #fef08a !important; background: #fefce8 !important;">
+                          <h4 class="font-weight-bold text-dark mb-1" style="font-size: 14px;">Verify Activation Code</h4>
+                          <p class="text-muted small mb-3">A 6-digit activation code was sent to <strong>{{ profile.email }}</strong>. Enter it below to activate 2FA:</p>
+                          <div class="d-flex gap-2 align-items-center">
+                            <input
+                              v-model.trim="twofaVerifyCode"
+                              type="text"
+                              maxlength="6"
+                              placeholder="123456"
+                              class="form-control text-center font-weight-bold"
+                              style="width: 140px; font-size: 18px; letter-spacing: 4px; border: 2px solid #6777ef; background: #fff;"
+                            />
+                            <button
+                              type="button"
+                              class="primary-command"
+                              :disabled="verifying2FA || !twofaVerifyCode || twofaVerifyCode.length < 6"
+                              @click="confirm2FA"
+                            >
+                              <i v-if="verifying2FA" class="icofont-spinner animate-spin"></i>
+                              <i v-else class="icofont-check"></i>
+                              Confirm & Activate
+                            </button>
+                            <button
+                              type="button"
+                              class="secondary-command"
+                              @click="cancel2FAEnrollment"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+
+                        <!-- If 2FA is Enabled: Show Disable Option -->
+                        <div v-if="twofaEnabled">
+                          <button
+                            type="button"
+                            class="btn btn-outline-danger"
+                            style="border-radius: 30px; font-weight: 600; font-size: 13px; padding: 8px 20px;"
+                            :disabled="toggling2FA"
+                            @click="toggle2FA"
+                          >
+                            <i v-if="toggling2FA" class="icofont-spinner animate-spin"></i>
+                            <i v-else class="icofont-ui-close"></i>
+                            {{ toggling2FA ? 'Disabling...' : 'Disable Two-Factor Authentication' }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Notification & Communication Preferences -->
+                    <div class="col-lg-6">
+                      <div class="settings-card h-100">
+                        <div class="settings-card-header">
+                          <i class="icofont-notification text-primary fs-4"></i>
+                          <div>
+                            <h3>Notification Preferences</h3>
+                            <p>Choose which alerts and email dispatches you wish to receive.</p>
+                          </div>
+                        </div>
+
+                        <div class="preferences-list">
+                          <label class="preference-item">
+                            <input type="checkbox" v-model="prefEmailAppStatus" class="pref-checkbox" />
+                            <div class="preference-text">
+                              <strong>Application Status Updates</strong>
+                              <p>Receive email alerts when reviewers approve, request information, or issue decisions on your applications.</p>
+                            </div>
+                          </label>
+
+                          <label class="preference-item">
+                            <input type="checkbox" v-model="prefEmailSecurity" class="pref-checkbox" />
+                            <div class="preference-text">
+                              <strong>Security & Login Alerts</strong>
+                              <p>Receive notifications whenever a new browser or IP signs into your account.</p>
+                            </div>
+                          </label>
+
+                          <label class="preference-item">
+                            <input type="checkbox" v-model="prefEmailAnnouncements" class="pref-checkbox" />
+                            <div class="preference-text">
+                              <strong>NCS Announcements & Bulletins</strong>
+                              <p>Receive official sports notices, circulars, and registry updates from NCS administration.</p>
+                            </div>
+                          </label>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
+                          <button
+                            type="button"
+                            class="primary-command"
+                            :disabled="savingPreferences"
+                            @click="savePreferences"
+                          >
+                            <i v-if="savingPreferences" class="icofont-spinner animate-spin"></i>
+                            <i v-else class="icofont-save"></i>
+                            Save Preferences
+                          </button>
+                          <span v-if="preferencesSaved" class="text-success font-weight-bold small">
+                            <i class="icofont-check-circled"></i> Saved!
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- ── My Profile Section ── -->
               <template v-else-if="section === 'profile'">
-                <header class="page-heading"><div><p>My Profile</p><h1>Personal information & settings</h1><span>Keep your identity details current and manage security settings.</span></div></header>
+                <header class="page-heading">
+                  <div>
+                    <p>My Profile</p>
+                    <h1>Personal Information & Identity</h1>
+                    <span>Keep your identity details current and manage account profile settings.</span>
+                  </div>
+                  <button type="button" class="secondary-command" @click="select('settings')">
+                    <i class="icofont-gear"></i> Manage Account Settings
+                  </button>
+                </header>
                 <div class="profile-layout">
-                  
                   <div class="profile-grid-3">
                     <!-- Profile Photo & Summary -->
                     <article class="profile-summary">
@@ -395,6 +987,9 @@
                       </div>
                       <h2>{{ fullName }}</h2>
                       <p>{{ profile.email }}</p>
+                      <div class="d-flex justify-content-center gap-1 mt-2">
+                        <span class="badge bg-primary text-white" style="font-size: 11px; text-transform: uppercase;">{{ userProfileLabel }}</span>
+                      </div>
                       
                       <!-- Avatar upload -->
                       <div style="margin-top: 16px; width: 100%;">
@@ -415,47 +1010,12 @@
                         <label>Last name<input v-model.trim="profile.last_name" required /></label>
                       </div>
                       <label>Email address<input :value="profile.email" type="email" disabled /></label>
-                      <button type="submit" class="primary-command" :disabled="savingProfile"><i class="icofont-save"></i> {{ savingProfile ? 'Saving...' : 'Save profile' }}</button>
+                      <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                        <button type="submit" class="primary-command" :disabled="savingProfile"><i class="icofont-save"></i> {{ savingProfile ? 'Saving...' : 'Save profile' }}</button>
+                        <button type="button" class="secondary-command" @click="select('settings')"><i class="icofont-key"></i> Change Password / Security</button>
+                      </div>
                     </form>
                   </div>
-
-                  <div class="profile-grid-2">
-                    <!-- Password Change Form -->
-                    <form class="profile-form" @submit.prevent="updatePassword">
-                      <h2>Change Password</h2>
-                      <label>Current Password<input v-model="passwordCurrent" type="password" required placeholder="Enter current password" /></label>
-                      <label>New Password<input v-model="passwordNew" type="password" required placeholder="Min 8 characters" /></label>
-                      <label>Confirm New Password<input v-model="passwordConfirm" type="password" required placeholder="Confirm new password" /></label>
-                      <button type="submit" class="primary-command" :disabled="changingPassword"><i class="icofont-key"></i> {{ changingPassword ? 'Updating...' : 'Update password' }}</button>
-                    </form>
-
-                    <!-- Two-Factor Authentication (2FA) -->
-                    <div class="profile-form">
-                      <h2>Two-Factor Authentication (2FA)</h2>
-                      <p style="color: #6c757d; font-size: 13px; line-height: 1.5; margin-bottom: 16px;">
-                        Protect your account with email-based verification. When signing in, you will be prompted to enter a 6-digit code sent to your email.
-                      </p>
-                      
-                      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-                        <label class="switch-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                          <input type="checkbox" :checked="twofaEnabled" :disabled="toggling2FA" @change="toggle2FA" style="width: 18px; height: 18px; accent-color: #6777ef;" />
-                          <strong>Enable Email 2FA</strong>
-                        </label>
-                      </div>
-
-                      <!-- 2FA verification panel -->
-                      <div v-if="showTwoFAVerify" style="padding: 16px; border: 1px solid #ffe2ad; background: #fffaf0; border-radius: 8px; margin-top: 12px;">
-                        <h3 style="margin: 0 0 4px; color: #b45309; font-size: 14px; font-weight: 700;">Verify Activation Code</h3>
-                        <p style="margin: 0 0 12px; color: #b45309; font-size: 11px; opacity: 0.85;">Enter the 6-digit validation code sent to your email to activate 2FA.</p>
-                        <div style="display: flex; gap: 8px;">
-                          <input v-model.trim="twofaVerifyCode" type="text" maxlength="6" style="width: 120px; text-align: center; font-weight: bold; font-size: 16px; color:#111; background:#fff; border:1px solid #ffe2ad;" placeholder="123456" />
-                          <button type="button" class="primary-command" :disabled="verifying2FA" @click="confirm2FA">Confirm</button>
-                          <button type="button" class="secondary-command" @click="cancel2FAEnrollment">Cancel</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                 </div>
               </template>
             </div>
@@ -481,7 +1041,7 @@ import { useRouter } from 'vue-router'
 import { getCurrentUser, updateMyProfile, uploadProfileAvatar } from '@/api/auth.js'
 import { listMyAuditLogs } from '@/api/account.js'
 import { listMyLegacyApplications, listMyTransactions } from '@/api/applications.js'
-import { getMySecurity, enroll2FA, verify2FA, disable2FA, changePassword } from '@/api/security.js'
+import { getMySecurity, enroll2FA, verify2FA, disable2FA, changePassword, listMySessions, revokeMySession, revokeOtherSessions } from '@/api/security.js'
 import * as cms from '@/api/cms.js'
 import { portalListOpenForms, portalListSubmissions } from '@/api/forms.js'
 import { listNsmisDomain } from '@/api/nsmis.js'
@@ -493,7 +1053,7 @@ import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 import { recordMenuNavigation } from '@/services/activityAudit.js'
 
 const router = useRouter()
-const portalSectionIds = ['dashboard', 'apply', 'applications', 'my-files', 'activities', 'notifications', 'messages', 'transactions', 'profile']
+const portalSectionIds = ['dashboard', 'apply', 'applications', 'my-files', 'activities', 'notifications', 'messages', 'transactions', 'settings', 'profile']
 const section = ref('dashboard')
 const sidebarCollapsed = ref(localStorage.getItem('ncsms_sidebar_collapsed') === 'true')
 const mobileSidebarOpen = ref(false)
@@ -519,12 +1079,31 @@ const uploadingAvatar = ref(false)
 const passwordCurrent = ref('')
 const passwordNew = ref('')
 const passwordConfirm = ref('')
+const showPasswordCurrent = ref(false)
+const showPasswordNew = ref(false)
+const showPasswordConfirm = ref(false)
 const changingPassword = ref(false)
 const twofaEnabled = ref(false)
 const toggling2FA = ref(false)
 const showTwoFAVerify = ref(false)
 const twofaVerifyCode = ref('')
 const verifying2FA = ref(false)
+
+const settingsTab = ref('password')
+const sessions = ref([])
+const loadingSessions = ref(false)
+const revokingSessionId = ref('')
+const revokingAllOtherSessions = ref(false)
+
+const prefEmailAppStatus = ref(localStorage.getItem('ncs_pref_app_status') !== 'false')
+const prefEmailSecurity = ref(localStorage.getItem('ncs_pref_security') !== 'false')
+const prefEmailAnnouncements = ref(localStorage.getItem('ncs_pref_announcements') === 'true')
+const savingPreferences = ref(false)
+const preferencesSaved = ref(false)
+
+const activityCategoryFilter = ref('ALL')
+const activitySearchQuery = ref('')
+const loadingActivities = ref(false)
 
 const isAthlete = ref(false)
 const athleteData = ref(null)
@@ -581,6 +1160,7 @@ const navigation = computed(() => {
     { id: 'notifications', label: 'Notifications', icon: 'icofont-notification', badge: unreadNotifications.value || '' },
     { id: 'messages', label: 'Messages', icon: 'icofont-envelope', badge: messageCount.value || '' },
     { id: 'transactions', label: 'My Transactions', icon: 'icofont-money' },
+    { id: 'settings', label: 'Settings', icon: 'icofont-gear' },
     { id: 'profile', label: 'My Profile', icon: 'icofont-user-alt-3' }
   )
   return items
@@ -610,6 +1190,92 @@ const filteredApplications = computed(() => allApplications.value.filter(item =>
   return !needle || [item.title, item.reference, item.status].some(value => String(value || '').toLowerCase().includes(needle))
 }))
 const applicationStatuses = computed(() => [...new Set(allApplications.value.map(item => item.status).filter(Boolean))].sort())
+
+const passwordStrengthScore = computed(() => {
+  const p = passwordNew.value || ''
+  if (!p) return 0
+  let score = 0
+  if (p.length >= 8) score++
+  if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++
+  if (/[0-9]/.test(p)) score++
+  if (/[^A-Za-z0-9]/.test(p)) score++
+  return score
+})
+
+const passwordStrengthPercent = computed(() => (passwordStrengthScore.value / 4) * 100)
+
+const passwordStrengthLabel = computed(() => {
+  if (!passwordNew.value) return ''
+  switch (passwordStrengthScore.value) {
+    case 1: return 'Weak'
+    case 2: return 'Fair'
+    case 3: return 'Good'
+    case 4: return 'Strong'
+    default: return 'Very Weak'
+  }
+})
+
+const passwordStrengthClass = computed(() => {
+  switch (passwordStrengthScore.value) {
+    case 1: return 'strength-weak'
+    case 2: return 'strength-fair'
+    case 3: return 'strength-good'
+    case 4: return 'strength-strong'
+    default: return 'strength-weak'
+  }
+})
+
+const passwordStrengthTextClass = computed(() => {
+  switch (passwordStrengthScore.value) {
+    case 1: return 'text-danger'
+    case 2: return 'text-warning'
+    case 3: return 'text-info'
+    case 4: return 'text-success'
+    default: return 'text-muted'
+  }
+})
+
+const filteredActivities = computed(() => {
+  return activities.value.filter(item => {
+    if (activityCategoryFilter.value !== 'ALL') {
+      const cat = getActivityCategory(item)
+      if (activityCategoryFilter.value === 'AUTH' && cat !== 'AUTH') return false
+      if (activityCategoryFilter.value === 'APPLICATIONS' && cat !== 'APPLICATION') return false
+      if (activityCategoryFilter.value === 'PROFILE' && cat !== 'PROFILE') return false
+    }
+    const query = activitySearchQuery.value.trim().toLowerCase()
+    if (query) {
+      const matchText = [
+        activityTitle(item),
+        activityDescription(item),
+        item.ip_address,
+        item.geo_city,
+        item.geo_country,
+        item.browser,
+        item.os_name
+      ].filter(Boolean).join(' ').toLowerCase()
+      return matchText.includes(query)
+    }
+    return true
+  })
+})
+
+const activityStats = computed(() => {
+  const items = activities.value
+  let authCount = 0
+  let appCount = 0
+  items.forEach(item => {
+    const cat = getActivityCategory(item)
+    if (cat === 'AUTH') authCount++
+    if (cat === 'APPLICATION') appCount++
+  })
+  const latest = items[0]?.created_at ? formatDate(items[0].created_at) : 'None'
+  return {
+    authCount,
+    appCount,
+    lastActive: latest
+  }
+})
 const userKpis = computed(() => {
   const apps = allApplications.value
   const inReview = apps.filter(item => ['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW'].includes(item.status)).length
@@ -965,6 +1631,7 @@ async function loadSportsRegistryContext() {
 
 async function loadActivities(page = 1) {
   activityPage.value = page
+  loadingActivities.value = true
   try {
     const res = await listMyAuditLogs({ page: activityPage.value, per_page: activityPerPage.value })
     const unwrapped = res?.data ?? res ?? {}
@@ -972,7 +1639,146 @@ async function loadActivities(page = 1) {
     activityTotal.value = unwrapped.meta?.total ?? activities.value.length
   } catch (err) {
     error.value = 'Could not load activity logs.'
+  } finally {
+    loadingActivities.value = false
   }
+}
+
+async function onSelectSessionsTab() {
+  settingsTab.value = 'sessions'
+  await loadSessions()
+}
+
+async function loadSessions() {
+  loadingSessions.value = true
+  try {
+    const res = await listMySessions()
+    sessions.value = Array.isArray(res) ? res : (res?.data || [])
+  } catch (err) {
+    console.warn('Could not load sessions:', err)
+  } finally {
+    loadingSessions.value = false
+  }
+}
+
+async function revokeSession(sessionId) {
+  if (!sessionId) return
+  if (!confirm('Are you sure you want to revoke this session? The device will be signed out.')) return
+  revokingSessionId.value = sessionId
+  try {
+    await revokeMySession(sessionId)
+    success.value = 'Session revoked successfully.'
+    await loadSessions()
+  } catch (err) {
+    error.value = apiError(err, 'Could not revoke session.')
+  } finally {
+    revokingSessionId.value = ''
+  }
+}
+
+async function revokeAllOtherSessions() {
+  if (!confirm('Are you sure you want to sign out of all other devices? All other active sessions will be terminated.')) return
+  revokingAllOtherSessions.value = true
+  try {
+    await revokeOtherSessions()
+    success.value = 'All other devices have been signed out.'
+    await loadSessions()
+  } catch (err) {
+    error.value = apiError(err, 'Could not revoke other sessions.')
+  } finally {
+    revokingAllOtherSessions.value = false
+  }
+}
+
+function getSessionDeviceIcon(ua) {
+  const str = String(ua || '').toLowerCase()
+  if (str.includes('iphone') || str.includes('android') || str.includes('mobile')) return 'icofont-smart-phone'
+  if (str.includes('ipad') || str.includes('tablet')) return 'icofont-tablet'
+  if (str.includes('macintosh') || str.includes('mac os')) return 'icofont-brand-apple'
+  if (str.includes('windows')) return 'icofont-brand-windows'
+  if (str.includes('linux')) return 'icofont-brand-linux'
+  return 'icofont-laptop'
+}
+
+function parseSessionBrowser(ua) {
+  const str = String(ua || '')
+  if (!str) return 'Web Browser'
+  let browser = 'Browser'
+  if (str.includes('Edg/')) browser = 'Microsoft Edge'
+  else if (str.includes('Chrome/')) browser = 'Google Chrome'
+  else if (str.includes('Safari/') && !str.includes('Chrome/')) browser = 'Apple Safari'
+  else if (str.includes('Firefox/')) browser = 'Mozilla Firefox'
+  
+  let os = ''
+  if (str.includes('Windows NT 10.0')) os = 'Windows 10/11'
+  else if (str.includes('Windows')) os = 'Windows'
+  else if (str.includes('Macintosh')) os = 'macOS'
+  else if (str.includes('iPhone')) os = 'iOS'
+  else if (str.includes('Android')) os = 'Android'
+  else if (str.includes('Linux')) os = 'Linux'
+  
+  return os ? `${browser} on ${os}` : browser
+}
+
+async function savePreferences() {
+  savingPreferences.value = true
+  preferencesSaved.value = false
+  try {
+    localStorage.setItem('ncs_pref_app_status', String(prefEmailAppStatus.value))
+    localStorage.setItem('ncs_pref_security', String(prefEmailSecurity.value))
+    localStorage.setItem('ncs_pref_announcements', String(prefEmailAnnouncements.value))
+    preferencesSaved.value = true
+    success.value = 'Preferences saved successfully.'
+    setTimeout(() => { preferencesSaved.value = false }, 3000)
+  } catch (err) {
+    error.value = 'Could not save preferences.'
+  } finally {
+    savingPreferences.value = false
+  }
+}
+
+function getActivityCategory(item) {
+  const endpoint = String(item.endpoint || '').toLowerCase()
+  const eventType = String(item.event_type || '').toUpperCase()
+  if (eventType.includes('AUTH') || endpoint.includes('/auth') || endpoint.includes('/2fa') || endpoint.includes('/security')) return 'AUTH'
+  if (endpoint.includes('/forms') || endpoint.includes('/submissions') || endpoint.includes('/applications')) return 'APPLICATION'
+  if (endpoint.includes('/transactions') || endpoint.includes('/payment')) return 'FINANCE'
+  if (endpoint.includes('/profile') || endpoint.includes('/users/me')) return 'PROFILE'
+  return 'SYSTEM'
+}
+
+function getActivityIcon(item) {
+  const cat = getActivityCategory(item)
+  switch (cat) {
+    case 'AUTH': return 'icofont-key'
+    case 'APPLICATION': return 'icofont-file-document'
+    case 'FINANCE': return 'icofont-money'
+    case 'PROFILE': return 'icofont-ui-user'
+    default: return 'icofont-history'
+  }
+}
+
+function getActivityTone(item) {
+  const cat = getActivityCategory(item)
+  switch (cat) {
+    case 'AUTH': return 'blue'
+    case 'APPLICATION': return 'amber'
+    case 'FINANCE': return 'green'
+    case 'PROFILE': return 'cyan'
+    default: return 'purple'
+  }
+}
+
+function formatRelativeTime(dateString) {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffSecs = Math.floor((now - date) / 1000)
+  if (diffSecs < 60) return 'Just now'
+  if (diffSecs < 3600) return `${Math.floor(diffSecs / 60)} mins ago`
+  if (diffSecs < 86400) return `${Math.floor(diffSecs / 3600)} hours ago`
+  if (diffSecs < 604800) return `${Math.floor(diffSecs / 86400)} days ago`
+  return date.toLocaleDateString('en-UG', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 async function select(id) {
@@ -994,11 +1800,14 @@ async function select(id) {
   if (id === 'activities') {
     loadActivities(1)
   }
-  if (id === 'profile') {
+  if (id === 'settings' || id === 'profile') {
     try {
       const sec = await getMySecurity()
       twofaEnabled.value = sec?.twofa?.enabled ?? false
     } catch (e) {}
+    if (id === 'settings' && settingsTab.value === 'sessions') {
+      loadSessions()
+    }
   }
 }
 
@@ -2207,5 +3016,488 @@ footer.main-footer, .main-footer {
 :global(.dark) .data-table th { background: #1e293b; color: #94a3b8; }
 :global(.dark) .data-table td { color: #cbd5e1; border-bottom-color: #334155; }
 :global(.dark) footer.main-footer { background: #1e293b; border-top-color: #334155; }
+
+/* ── My Activities & Audit Trail Styling ───────────────────────────── */
+.activity-kpis {
+  margin-bottom: 24px;
+}
+.activity-toolbar {
+  margin-bottom: 24px;
+  gap: 16px;
+}
+.activity-category-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.category-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 30px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none !important;
+}
+.category-pill:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+.category-pill.active {
+  background: #6777ef;
+  color: #fff;
+  border-color: #6777ef;
+  box-shadow: 0 2px 6px rgba(103, 119, 239, 0.35);
+}
+
+.activity-timeline-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.activity-feed-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #edf2f7;
+  padding: 18px 22px;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.activity-feed-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.activity-icon-wrapper {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.activity-icon-wrapper.blue { background: #e0f2fe; color: #0284c7; }
+.activity-icon-wrapper.green { background: #dcfce7; color: #16a34a; }
+.activity-icon-wrapper.amber { background: #fef3c7; color: #d97706; }
+.activity-icon-wrapper.purple { background: #f3e8ff; color: #9333ea; }
+.activity-icon-wrapper.cyan { background: #ecfeff; color: #0891b2; }
+
+.activity-content {
+  flex: 1;
+  min-width: 0;
+}
+.activity-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.activity-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.activity-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+.activity-category-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+}
+.activity-category-badge.blue { background: #e0f2fe; color: #0284c7; }
+.activity-category-badge.green { background: #dcfce7; color: #16a34a; }
+.activity-category-badge.amber { background: #fef3c7; color: #d97706; }
+.activity-category-badge.purple { background: #f3e8ff; color: #9333ea; }
+.activity-category-badge.cyan { background: #ecfeff; color: #0891b2; }
+
+.activity-time {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.activity-description {
+  font-size: 13px;
+  color: #475569;
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+.activity-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #64748b;
+}
+.meta-pill i { font-size: 12px; }
+.meta-pill strong { color: #334155; }
+.date-pill { background: #f1f5f9; color: #475569; }
+
+.activity-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: #fff;
+  padding: 14px 20px;
+  border-radius: 10px;
+  border: 1px solid #edf2f7;
+}
+.pagination-info { font-size: 13px; color: #64748b; }
+.pagination-buttons { display: flex; gap: 8px; }
+
+/* ── Settings Sub-Navigation & Layout ──────────────────────────────── */
+.settings-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 12px;
+}
+.settings-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 30px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none !important;
+}
+.settings-tab-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+.settings-tab-btn.active {
+  background: #6777ef;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(103, 119, 239, 0.35);
+}
+
+.settings-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 26px;
+  border: 1px solid #edf2f7;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.04);
+}
+.settings-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #edf2f7;
+}
+.settings-card-header h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 4px;
+}
+.settings-card-header p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+}
+
+.password-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.password-input-wrap input {
+  padding-right: 42px !important;
+}
+.btn-toggle-eye {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 16px;
+  outline: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-toggle-eye:hover { color: #6777ef; }
+
+.strength-bar-track {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.strength-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+.strength-weak { background-color: #ef4444; }
+.strength-fair { background-color: #f59e0b; }
+.strength-good { background-color: #06b6d4; }
+.strength-strong { background-color: #10b981; }
+
+.password-rules-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+@media (max-width: 575px) {
+  .password-rules-list { grid-template-columns: 1fr; }
+}
+.password-rules-list li {
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.password-rules-list li.met {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.security-tips-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.security-tips-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.security-tips-list strong {
+  display: block;
+  font-size: 13px;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+.security-tips-list p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ── Sessions List ─────────────────────────────────────────────────── */
+.sessions-list-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.session-item-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  transition: all 0.15s ease;
+}
+.session-item-card.current-session-card {
+  background: #fff;
+  border-color: #86efac;
+  box-shadow: 0 2px 10px rgba(34, 197, 94, 0.08);
+}
+.session-device-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #e2e8f0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.session-device-icon.current {
+  background: #dcfce7;
+  color: #16a34a;
+}
+.session-details { flex: 1; min-width: 0; }
+.session-device-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+.current-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+}
+.session-meta-items {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.session-meta-items .meta-item {
+  font-size: 12px;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Preferences & 2FA ─────────────────────────────────────────────── */
+.twofa-status-banner.twofa-active {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+.twofa-status-banner.twofa-inactive {
+  background: #fffbeb;
+  border: 1px solid #fef08a;
+}
+.preferences-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.preference-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  cursor: pointer;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #edf2f7;
+  background: #f8fafc;
+  transition: all 0.15s ease;
+}
+.preference-item:hover {
+  background: #fff;
+  border-color: #cbd5e1;
+}
+.pref-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #6777ef;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.preference-text strong {
+  display: block;
+  font-size: 13px;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+.preference-text p {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ── Dark Mode Extensions for Activities & Settings ───────────────── */
+:global(.dark) .category-pill {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+:global(.dark) .category-pill:hover {
+  background: #334155;
+  color: #f8fafc;
+}
+:global(.dark) .category-pill.active {
+  background: #6777ef;
+  color: #fff;
+}
+:global(.dark) .activity-feed-card,
+:global(.dark) .settings-card,
+:global(.dark) .activity-pagination-bar {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.25);
+}
+:global(.dark) .activity-title,
+:global(.dark) .settings-card-header h3,
+:global(.dark) .session-device-name,
+:global(.dark) .security-tips-list strong,
+:global(.dark) .preference-text strong {
+  color: #f8fafc;
+}
+:global(.dark) .activity-description,
+:global(.dark) .settings-card-header p,
+:global(.dark) .security-tips-list p,
+:global(.dark) .preference-text p {
+  color: #94a3b8;
+}
+:global(.dark) .meta-pill,
+:global(.dark) .session-item-card {
+  background: #0f172a;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+:global(.dark) .session-item-card.current-session-card {
+  background: #1e293b;
+  border-color: #16a34a;
+}
+:global(.dark) .preference-item {
+  background: #0f172a;
+  border-color: #334155;
+}
+:global(.dark) .preference-item:hover {
+  background: #1e293b;
+}
+
 </style>
 

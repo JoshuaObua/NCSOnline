@@ -295,6 +295,9 @@ func main() {
 				r.Post("/2fa/enroll", h.Security.Enroll2FA)
 				r.Post("/2fa/verify", h.Security.Verify2FA)
 				r.Post("/2fa/disable", h.Security.Disable2FA)
+				r.Get("/sessions", h.Security.ListSessions)
+				r.Delete("/sessions/{id}", h.Security.RevokeSession)
+				r.Post("/sessions/revoke-others", h.Security.RevokeOtherSessions)
 			})
 
 			r.Route("/nsmis", func(r chi.Router) {
