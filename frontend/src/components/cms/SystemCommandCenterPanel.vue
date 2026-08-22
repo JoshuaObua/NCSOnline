@@ -159,8 +159,7 @@
           </label>
         </div>
       </div>
-      <pre class="ops-terminal bg-slate-950 text-sky-400 rounded-xl p-4 font-mono text-xs leading-relaxed max-h-96 overflow-y-auto border border-slate-800 whitespace-pre-wrap word-break-break-word" ref="terminalRef">{{ filteredLogLines.join('
-') || 'Select a service above and click "Logs" to inspect live container logs.' }}</pre>
+      <pre class="ops-terminal bg-slate-950 text-sky-400 rounded-xl p-4 font-mono text-xs leading-relaxed max-h-96 overflow-y-auto border border-slate-800 whitespace-pre-wrap word-break-break-word" ref="terminalRef">{{ filteredLogLines.join('\n') || 'Select a service above and click "Logs" to inspect live container logs.' }}</pre>
     </article>
 
     <!-- System Events -->
