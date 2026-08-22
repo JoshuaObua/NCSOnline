@@ -3121,6 +3121,7 @@ func (h *CMSHandler) ListAssociations(w http.ResponseWriter, r *http.Request) {
 
 func (h *CMSHandler) CreateAssociation(w http.ResponseWriter, r *http.Request) {
 	var req struct {
+		ID           string `json:"id"`
 		Name         string `json:"name"`
 		Slug         string `json:"slug"`
 		Abbreviation string `json:"abbreviation"`
@@ -3147,15 +3148,23 @@ func (h *CMSHandler) CreateAssociation(w http.ResponseWriter, r *http.Request) {
 	if slug == "" {
 		slug = toSlug(req.Name)
 	}
+	id := strings.TrimSpace(req.ID)
+	if id == "" {
+		if req.Abbreviation != "" {
+			id = "assoc_" + strings.ToLower(strings.TrimSpace(req.Abbreviation))
+		} else {
+			id = "assoc_" + slug
+		}
+	}
 	a := &models.CMSAssociation{
-		ID: uuid.NewString(), Name: req.Name, Slug: slug, Abbreviation: req.Abbreviation,
+		ID: id, Name: req.Name, Slug: slug, Abbreviation: req.Abbreviation,
 		Description: req.Description, LogoURL: req.LogoURL, WebsiteURL: req.WebsiteURL,
 		Category: req.Category, President: req.President, Secretary: req.Secretary, Address: req.Address, Phone: req.Phone,
 		SortOrder: req.SortOrder, IsActive: req.IsActive,
 	}
 	if err := h.repo.CreateAssociation(r.Context(), a); err != nil {
 		if errors.Is(err, repository.ErrDuplicate) {
-			response.Err(w, http.StatusConflict, "DUPLICATE_SLUG", "An association with this slug already exists")
+			response.Err(w, http.StatusConflict, "DUPLICATE", "A federation with this ID, slug or acronym already exists")
 			return
 		}
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not create association")
@@ -3176,7 +3185,10 @@ func (h *CMSHandler) UpdateAssociation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
+		ID           string `json:"id"`
+		NewID        string `json:"new_id"`
 		Name         string `json:"name"`
+		Slug         string `json:"slug"`
 		Abbreviation string `json:"abbreviation"`
 		Description  string `json:"description"`
 		LogoURL      string `json:"logo_url"`
@@ -3193,8 +3205,20 @@ func (h *CMSHandler) UpdateAssociation(w http.ResponseWriter, r *http.Request) {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON")
 		return
 	}
+
+	targetID := strings.TrimSpace(req.NewID)
+	if targetID == "" {
+		targetID = strings.TrimSpace(req.ID)
+	}
+	if targetID == "" {
+		targetID = id
+	}
+
 	if req.Name != "" {
 		existing.Name = req.Name
+	}
+	if req.Slug != "" {
+		existing.Slug = req.Slug
 	}
 	if req.Description != "" {
 		existing.Description = req.Description
@@ -3208,17 +3232,25 @@ func (h *CMSHandler) UpdateAssociation(w http.ResponseWriter, r *http.Request) {
 	if req.Abbreviation != "" {
 		existing.Abbreviation = req.Abbreviation
 	}
-	existing.Category = req.Category
+	if req.Category != "" {
+		existing.Category = req.Category
+	}
 	existing.President = req.President
 	existing.Secretary = req.Secretary
 	existing.Address = req.Address
 	existing.Phone = req.Phone
 	existing.SortOrder = req.SortOrder
 	existing.IsActive = req.IsActive
-	if err := h.repo.UpdateAssociation(r.Context(), existing); err != nil {
+
+	if err := h.repo.UpdateAssociationWithID(r.Context(), id, targetID, existing); err != nil {
+		if errors.Is(err, repository.ErrDuplicate) {
+			response.Err(w, http.StatusConflict, "DUPLICATE", "The specified Federation ID is already in use by another federation")
+			return
+		}
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update association")
 		return
 	}
+	existing.ID = targetID
 	response.JSON(w, http.StatusOK, existing)
 }
 

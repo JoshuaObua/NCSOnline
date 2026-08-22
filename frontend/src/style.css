@@ -1618,3 +1618,176 @@ body.dark .searchable-select-container .suggestion-chip,
   border-color: #334155 !important;
   color: #93c5fd !important;
 }
+
+
+/* ==========================================================================
+   FEDERATIONS MANAGEMENT & FEDERATION PROFILE - DARK MODE STYLES
+   ========================================================================== */
+body.dark-theme .panel-title,
+body.dark-theme .crumb-current,
+body.dark-theme .fed-title,
+body.dark-theme .card-head h3,
+body.dark-theme .detail-val,
+body.dark-theme .timeline-val,
+body.dark-theme .kpi-num,
+body.dark-theme .fed-primary-name,
+body.dark-theme .member-info h4 {
+  color: #f1f5f9 !important;
+}
+
+body.dark-theme .panel-subtitle,
+body.dark-theme .detail-label,
+body.dark-theme .timeline-label,
+body.dark-theme .score-title,
+body.dark-theme .kpi-title,
+body.dark-theme .fed-subtitle,
+body.dark-theme .member-contact,
+body.dark-theme .check-item,
+body.dark-theme .about-text {
+  color: #94a3b8 !important;
+}
+
+body.dark-theme .crumb-separator {
+  color: #475569 !important;
+}
+
+body.dark-theme .btn-back {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+body.dark-theme .btn-back:hover {
+  background: #334155 !important;
+}
+
+body.dark-theme .fed-hero-card,
+body.dark-theme .profile-section-card,
+body.dark-theme .table-card,
+body.dark-theme .member-card,
+body.dark-theme .kpi-box,
+body.dark-theme .table-container,
+body.dark-theme .loading-state-card,
+body.dark-theme .error-state-card {
+  background: #1b2030 !important;
+  border-color: #2b334c !important;
+}
+
+body.dark-theme .card-head {
+  background: #151928 !important;
+  border-bottom-color: #2b334c !important;
+}
+
+body.dark-theme .logo-wrapper,
+body.dark-theme .logo-circle {
+  background: #151928 !important;
+  border-color: #2b334c !important;
+}
+
+body.dark-theme .contact-chip {
+  background: #151928 !important;
+  border-color: #2b334c !important;
+  color: #cbd5e1 !important;
+}
+body.dark-theme .contact-chip.leader-chip {
+  background: #2a1b38 !important;
+  border-color: #4a2b66 !important;
+  color: #c084fc !important;
+}
+
+body.dark-theme .profile-tabs-header {
+  border-bottom-color: #2b334c !important;
+}
+
+body.dark-theme .tab-btn {
+  color: #94a3b8 !important;
+}
+body.dark-theme .tab-btn:hover {
+  color: #818cf8 !important;
+}
+body.dark-theme .tab-btn.active {
+  color: #818cf8 !important;
+  border-bottom-color: #818cf8 !important;
+  background: #151928 !important;
+}
+
+body.dark-theme .detail-list li {
+  border-bottom-color: #232a3e !important;
+}
+
+body.dark-theme .score-card {
+  background: #151928 !important;
+  border-color: #2b334c !important;
+}
+
+body.dark-theme .sub-tab-btn {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+body.dark-theme .sub-tab-btn.active {
+  background: #6777ef !important;
+  border-color: #6777ef !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .profile-data-table th,
+body.dark-theme .fed-data-table th {
+  background: #151928 !important;
+  color: #94a3b8 !important;
+  border-bottom-color: #2b334c !important;
+}
+
+body.dark-theme .profile-data-table td,
+body.dark-theme .fed-data-table td {
+  border-bottom-color: #232a3e !important;
+  color: #e2e8f0 !important;
+}
+
+body.dark-theme .badge-tag,
+body.dark-theme .badge-category {
+  background: #151928 !important;
+  border-color: #2b334c !important;
+  color: #cbd5e1 !important;
+}
+
+body.dark-theme .fed-id-code {
+  background: #151928 !important;
+  color: #94a3b8 !important;
+}
+
+body.dark-theme .btn-action-edit {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+body.dark-theme .btn-action-edit:hover {
+  background: #334155 !important;
+}
+
+body.dark-theme .btn-action-profile {
+  background: #1e293b !important;
+  border-color: #3b82f6 !important;
+  color: #60a5fa !important;
+}
+
+body.dark-theme .btn-action-delete {
+  background: #2d1820 !important;
+  border-color: #5c1d2e !important;
+  color: #fb7185 !important;
+}
+
+body.dark-theme .fed-search-input,
+body.dark-theme .filter-select {
+  background-color: #1b2030 !important;
+  border-color: #2b334c !important;
+  color: #f1f5f9 !important;
+}
+
+body.dark-theme .license-badge-box {
+  background: #064e3b !important;
+  border-color: #047857 !important;
+}
+body.dark-theme .license-info-col h4,
+body.dark-theme .license-num {
+  color: #a7f3d0 !important;
+}

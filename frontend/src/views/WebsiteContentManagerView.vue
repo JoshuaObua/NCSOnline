@@ -779,12 +779,35 @@
         </section>
 
         <section v-else-if="active === 'associations'" class="cms-panel">
-          <EditorForm title="Add New Federation" :model="associationForm" :fields="associationFields" @save="saveAssociation" />
+          <FederationEditorPanel
+            :initial-model="editingFederationModel"
+            :categories="federationCategories"
+            :existing-federations="associations"
+            :saving="savingFederation"
+            @save="handleSaveFederation"
+            @cancel="active = 'manage-federations'"
+          />
         </section>
 
         <section v-else-if="active === 'manage-federations'" class="cms-panel">
-          <div class="cms-panel-head"><h2>Manage Federations</h2><button type="button" @click="resetFederationForm(); active = 'associations'">New federation</button></div>
-          <ContentTable :items="associations" title-key="name" subtitle-key="category" @edit="editAssociation" @delete="removeAssociation" />
+          <ManageFederationsPanel
+            :items="associations"
+            :categories="federationCategories"
+            :loading="loadingFederations"
+            @create-federation="editingFederationModel = null; active = 'associations'"
+            @edit-federation="onEditFederation"
+            @delete-federation="removeAssociation"
+            @view-profile="onViewFederationProfile"
+          />
+        </section>
+
+        <section v-else-if="active === 'federation-profile'" class="cms-panel">
+          <FederationProfilePanel
+            :federation-id="selectedFederationIdForProfile"
+            :initial-federation="selectedFederationForProfile"
+            @navigate="selectSection"
+            @edit-federation="onEditFederation"
+          />
         </section>
 
         <section v-else-if="active === 'create-federation-categories'" class="cms-panel">
@@ -1633,6 +1656,9 @@ import AdminDashboardPanel from '@/components/portal/AdminDashboardPanel.vue'
 import ManageUsersPanel from '@/components/portal/ManageUsersPanel.vue'
 import CreateUserPanel from '@/components/portal/CreateUserPanel.vue'
 import NamisManagerPanel from '@/components/portal/NamisManagerPanel.vue'
+import ManageFederationsPanel from '@/components/portal/ManageFederationsPanel.vue'
+import FederationProfilePanel from '@/components/portal/FederationProfilePanel.vue'
+import FederationEditorPanel from '@/components/portal/FederationEditorPanel.vue'
 import NamisRegistryEntryView from '@/views/NamisRegistryEntryView.vue'
 import SportsRegistryReportsPanel from '@/components/portal/SportsRegistryReportsPanel.vue'
 import AppearanceSettingsPanel from '@/components/cms/AppearanceSettingsPanel.vue'
@@ -1684,6 +1710,11 @@ const messagesOpen = ref(false)
 const notificationsOpen = ref(false)
 const profileOpen = ref(false)
 const globalSearch = ref('')
+const selectedFederationIdForProfile = ref('')
+const selectedFederationForProfile = ref(null)
+const editingFederationModel = ref(null)
+const savingFederation = ref(false)
+const loadingFederations = ref(false)
 const analytics = ref(null)
 
 ensureOtikaStyles()
@@ -1809,6 +1840,7 @@ const namisSections = [
 ]
 const routeOnlySections = [
   { id: 'namis-registry-new', label: 'Add Sports Registry Record', icon: 'icofont-plus-circle' },
+  { id: 'federation-profile', label: 'Federation Profile', icon: 'icofont-id-card' },
 ]
 const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections, ...namisSections, ...routeOnlySections]
 const allowedPortalSectionIds = new Set(sections.map(section => section.id))
@@ -1877,6 +1909,7 @@ const sectionPermissionMap = {
   'manage-invest-categories':['investment_categories:read'],
   associations:['federations:create'],
   'manage-federations':['federations:read'],
+  'federation-profile':['federations:read'],
   'create-federation-categories':['federation_categories:create'],
   'manage-federation-categories':['federation_categories:read'],
   facts:['fun_facts:create'],
@@ -2505,6 +2538,10 @@ watch(() => route.query.section, (newSection) => {
   if (target && target !== active.value && allowedPortalSectionIds.has(target)) {
     if (canAccessSection(target)) {
       active.value = target
+      if (target === 'federation-profile' && route.query.id) {
+        selectedFederationIdForProfile.value = route.query.id
+        selectedFederationForProfile.value = associations.value.find(a => a.id === route.query.id || a.slug === route.query.id) || null
+      }
       if (['users', 'manage-users'].includes(target) && !users.value.length) loadUsers()
     }
   }
@@ -2924,7 +2961,57 @@ function editEvent(item) {
   active.value = 'events'
 }
 function editFacility(item) { copyInto(facilityForm, item); active.value = 'facilities' }
-function editAssociation(item) { copyInto(associationForm, item); active.value = 'associations' }
+function onViewFederationProfile(id, fed) {
+  selectedFederationIdForProfile.value = id
+  selectedFederationForProfile.value = fed || associations.value.find(a => a.id === id) || null
+  active.value = 'federation-profile'
+  if (router.currentRoute.value.query.section !== 'federation-profile' || router.currentRoute.value.query.id !== id) {
+    router.replace({ path: '/portal', query: { section: 'federation-profile', id } })
+  }
+}
+
+function onEditFederation(fed) {
+  editingFederationModel.value = JSON.parse(JSON.stringify(fed))
+  active.value = 'associations'
+  if (router.currentRoute.value.query.section !== 'associations') {
+    router.replace({ path: '/portal', query: { section: 'associations' } })
+  }
+}
+
+async function handleSaveFederation(payload) {
+  savingFederation.value = true
+  try {
+    if (editingFederationModel.value && editingFederationModel.value.id) {
+      await cms.adminUpdateAssociation(editingFederationModel.value.id, payload)
+      setMsg('Federation updated successfully')
+    } else {
+      await cms.adminCreateAssociation(payload)
+      setMsg('Federation created successfully')
+    }
+    await loadAll()
+    active.value = 'manage-federations'
+    router.replace({ path: '/portal', query: { section: 'manage-federations' } })
+  } catch (err) {
+    setErr(err)
+  } finally {
+    savingFederation.value = false
+  }
+}
+
+async function removeAssociation(item) {
+  if (!(await confirmAction(`Delete ${item.name}?`, 'This federation will be removed from the sports registry directory.'))) return
+  try {
+    await cms.adminDeleteAssociation(item.id)
+    await loadAll()
+    setMsg('Federation deleted')
+  } catch (err) {
+    setErr(err)
+  }
+}
+
+function editAssociation(item) {
+  onEditFederation(item)
+}
 function editFact(item) { copyInto(factForm, item); active.value = 'facts' }
 function editFAQ(item) { copyInto(faqForm, item); active.value = 'faqs' }
 function editResource(item) { copyInto(resourceForm, item); active.value = 'resources' }
@@ -2956,7 +3043,6 @@ async function removeReportCategory(item) { await removeEntity(item, cms.adminDe
 async function removeSpeechCategory(item) { await removeEntity(item, cms.adminDeleteSpeechCategory) }
 async function removeEvent(item) { await removeEntity(item, cms.adminDeleteEvent) }
 async function removeFacility(item) { await removeEntity(item, cms.adminDeleteFacility) }
-async function removeAssociation(item) { await removeEntity(item, cms.adminDeleteAssociation) }
 async function removeFact(item) { await removeEntity(item, cms.adminDeleteFunFact) }
 async function removeFAQ(item) { await removeEntity(item, cms.adminDeleteFAQ) }
 async function removeResource(item) { await removeEntity(item, cms.adminDeleteResource) }

@@ -2347,15 +2347,106 @@ func (r *CMSRepo) CreateAssociation(ctx context.Context, a *models.CMSAssociatio
 	if err != nil && isDuplicate(err) {
 		return ErrDuplicate
 	}
-	return err
+	if err != nil {
+		return err
+	}
+
+	// Also sync to federations table
+	const fedQ = `INSERT INTO federations (id, name, acronym, ncs_registration_number, recognition_status, physical_address, email, website, contact_person, is_active)
+	              VALUES ($1, $2, $3, $4, 'RECOGNISED', $5, '', $6, $7, $8)
+	              ON CONFLICT (id) DO UPDATE SET
+	                name = EXCLUDED.name,
+	                acronym = EXCLUDED.acronym,
+	                physical_address = EXCLUDED.physical_address,
+	                website = EXCLUDED.website,
+	                contact_person = EXCLUDED.contact_person,
+	                is_active = EXCLUDED.is_active`
+	acronym := a.Abbreviation
+	if acronym == "" {
+		acronym = strings.ToUpper(a.Slug)
+	}
+	regNum := "NCS-REG-" + strings.ToUpper(acronym)
+	contactPerson := a.Secretary
+	if contactPerson == "" {
+		contactPerson = a.President
+	}
+	_, _ = r.db.Exec(ctx, fedQ, a.ID, a.Name, acronym, regNum, a.Address, a.WebsiteURL, contactPerson, a.IsActive)
+
+	return nil
 }
 
 func (r *CMSRepo) UpdateAssociation(ctx context.Context, a *models.CMSAssociation) error {
+	return r.UpdateAssociationWithID(ctx, a.ID, a.ID, a)
+}
+
+func (r *CMSRepo) UpdateAssociationWithID(ctx context.Context, oldID, newID string, a *models.CMSAssociation) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	if oldID != newID {
+		// Check collision on other rows
+		var exists bool
+		if err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM cms_associations WHERE id=$1 AND id<>$2)", newID, oldID).Scan(&exists); err != nil {
+			return err
+		}
+		if exists {
+			return ErrDuplicate
+		}
+		var existsFed bool
+		if err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM federations WHERE id=$1 AND id<>$2)", newID, oldID).Scan(&existsFed); err != nil {
+			return err
+		}
+		if existsFed {
+			return ErrDuplicate
+		}
+
+		// Cascade update in federations (which automatically cascades to all 19 referencing tables)
+		if _, err := tx.Exec(ctx, "UPDATE federations SET id=$1 WHERE id=$2", newID, oldID); err != nil {
+			return err
+		}
+
+		// Update in cms_associations
+		if _, err := tx.Exec(ctx, "UPDATE cms_associations SET id=$1 WHERE id=$2", newID, oldID); err != nil {
+			return err
+		}
+	}
+
 	const q = `UPDATE cms_associations SET name=$2, slug=$3, abbreviation=$4, description=$5, logo_url=$6,
 	           website_url=$7, category=$8, president=$9, secretary=$10, address=$11, phone=$12,
 	           sort_order=$13, is_active=$14, updated_at=NOW() WHERE id=$1`
-	_, err := r.db.Exec(ctx, q, a.ID, a.Name, a.Slug, a.Abbreviation, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive)
-	return err
+	if _, err := tx.Exec(ctx, q, newID, a.Name, a.Slug, a.Abbreviation, a.Description, a.LogoURL, a.WebsiteURL, a.Category, a.President, a.Secretary, a.Address, a.Phone, a.SortOrder, a.IsActive); err != nil {
+		if isDuplicate(err) {
+			return ErrDuplicate
+		}
+		return err
+	}
+
+	// Also sync federations row
+	const fedSync = `INSERT INTO federations (id, name, acronym, ncs_registration_number, recognition_status, physical_address, email, website, contact_person, is_active)
+	                 VALUES ($1, $2, $3, $4, 'RECOGNISED', $5, '', $6, $7, $8)
+	                 ON CONFLICT (id) DO UPDATE SET
+	                   name = EXCLUDED.name,
+	                   acronym = EXCLUDED.acronym,
+	                   physical_address = EXCLUDED.physical_address,
+	                   website = EXCLUDED.website,
+	                   contact_person = EXCLUDED.contact_person,
+	                   is_active = EXCLUDED.is_active,
+	                   updated_at = NOW()`
+	acronym := a.Abbreviation
+	if acronym == "" {
+		acronym = strings.ToUpper(a.Slug)
+	}
+	regNum := "NCS-REG-" + strings.ToUpper(acronym)
+	contactPerson := a.Secretary
+	if contactPerson == "" {
+		contactPerson = a.President
+	}
+	_, _ = tx.Exec(ctx, fedSync, newID, a.Name, acronym, regNum, a.Address, a.WebsiteURL, contactPerson, a.IsActive)
+
+	return tx.Commit(ctx)
 }
 
 func (r *CMSRepo) DeleteAssociation(ctx context.Context, id string) error {
