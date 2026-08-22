@@ -1505,3 +1505,116 @@ body.dark .create-user-page .btn-secondary,
   border-color: #334155 !important;
   color: #93c5fd !important;
 }
+
+/* ==========================================================================
+   Searchable Age Category Select - Dark Mode Overrides
+   ========================================================================== */
+html.dark .searchable-select-container .select-trigger,
+body.dark .searchable-select-container .select-trigger,
+[data-theme="dark"] .searchable-select-container .select-trigger {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .searchable-select-container .cat-name,
+body.dark .searchable-select-container .cat-name,
+[data-theme="dark"] .searchable-select-container .cat-name {
+  color: #f8fafc !important;
+}
+
+html.dark .searchable-select-container .dropdown-panel,
+body.dark .searchable-select-container .dropdown-panel,
+[data-theme="dark"] .searchable-select-container .dropdown-panel {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45) !important;
+}
+
+html.dark .searchable-select-container .search-header,
+body.dark .searchable-select-container .search-header,
+[data-theme="dark"] .searchable-select-container .search-header {
+  background-color: #0f172a !important;
+  border-bottom-color: #334155 !important;
+}
+
+html.dark .searchable-select-container .search-input,
+body.dark .searchable-select-container .search-input,
+[data-theme="dark"] .searchable-select-container .search-input {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .searchable-select-container .panel-meta,
+html.dark .searchable-select-container .panel-footer,
+body.dark .searchable-select-container .panel-meta,
+body.dark .searchable-select-container .panel-footer,
+[data-theme="dark"] .searchable-select-container .panel-meta,
+[data-theme="dark"] .searchable-select-container .panel-footer {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+html.dark .searchable-select-container .option-item,
+body.dark .searchable-select-container .option-item,
+[data-theme="dark"] .searchable-select-container .option-item {
+  color: #cbd5e1 !important;
+}
+
+html.dark .searchable-select-container .option-item:hover,
+html.dark .searchable-select-container .option-item.is-highlighted,
+body.dark .searchable-select-container .option-item:hover,
+body.dark .searchable-select-container .option-item.is-highlighted,
+[data-theme="dark"] .searchable-select-container .option-item:hover,
+[data-theme="dark"] .searchable-select-container .option-item.is-highlighted {
+  background-color: #0f172a !important;
+}
+
+html.dark .searchable-select-container .option-item.is-selected,
+body.dark .searchable-select-container .option-item.is-selected,
+[data-theme="dark"] .searchable-select-container .option-item.is-selected {
+  background-color: #1e1b4b !important;
+}
+
+html.dark .searchable-select-container .option-title,
+body.dark .searchable-select-container .option-title,
+[data-theme="dark"] .searchable-select-container .option-title {
+  color: #f8fafc !important;
+}
+
+html.dark .searchable-select-container .option-meta,
+body.dark .searchable-select-container .option-meta,
+[data-theme="dark"] .searchable-select-container .option-meta {
+  color: #94a3b8 !important;
+}
+
+html.dark .searchable-select-container .code-tag,
+body.dark .searchable-select-container .code-tag,
+[data-theme="dark"] .searchable-select-container .code-tag {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .searchable-select-container .add-custom-option,
+body.dark .searchable-select-container .add-custom-option,
+[data-theme="dark"] .searchable-select-container .add-custom-option {
+  background-color: #1e1b4b !important;
+  border-top-color: #4338ca !important;
+}
+
+html.dark .searchable-select-container .suggestion-banner,
+body.dark .searchable-select-container .suggestion-banner,
+[data-theme="dark"] .searchable-select-container .suggestion-banner {
+  color: #94a3b8 !important;
+}
+
+html.dark .searchable-select-container .suggestion-chip,
+body.dark .searchable-select-container .suggestion-chip,
+[data-theme="dark"] .searchable-select-container .suggestion-chip {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #93c5fd !important;
+}

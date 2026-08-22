@@ -35,6 +35,18 @@
             :loading="loadingReferences"
             placeholder="Search and select sports federation (e.g. FUFA, UAF, Boxing)..."
           />
+          <SearchableAgeCategorySelect
+            v-else-if="item.type === 'age_category'"
+            :id="`registry-${item.key}`"
+            v-model="form[item.key]"
+            :categories="ageCategories"
+            :suggested-category="suggestedAgeCategory"
+            :required="item.required"
+            :disabled="loadingReferences"
+            :loading="loadingReferences"
+            placeholder="Search and select age category (e.g. U17, Senior, U20, Masters)..."
+            @add-category="handleAddAgeCategory"
+          />
           <select v-else-if="item.type === 'athlete'" :id="`registry-${item.key}`" v-model="form[item.key]" :required="item.required" :disabled="loadingReferences">
             <option value="">Select athlete</option>
             <option v-for="option in athletes" :key="option.id" :value="option.id">{{ option.full_name }}{{ option.athlete_number ? ` (${option.athlete_number})` : '' }}</option>
@@ -74,6 +86,7 @@ import { createNsmisDomain, listNsmisDomain } from '@/api/nsmis.js'
 import apiClient from '@/api/client.js'
 import { registryResources } from '@/utils/namisRegistryConfig.js'
 import SearchableFederationSelect from '@/components/ui/SearchableFederationSelect.vue'
+import SearchableAgeCategorySelect from '@/components/ui/SearchableAgeCategorySelect.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -83,6 +96,7 @@ const listRoute = computed(() => ({ path: '/portal', query: { section: `namis-${
 const listLabel = computed(() => definition.value?.label || 'registry')
 const form = reactive({})
 const federations = ref([])
+const ageCategories = ref([])
 const athletes = ref([])
 const competitions = ref([])
 const users = ref([])
@@ -91,6 +105,44 @@ const saving = ref(false)
 const loadError = ref('')
 const formError = ref('')
 const successMessage = ref('')
+
+const suggestedAgeCategory = computed(() => {
+  if (!form.date_of_birth) return ''
+  const dob = new Date(form.date_of_birth)
+  if (isNaN(dob.getTime())) return ''
+  const today = new Date()
+  let age = today.getFullYear() - dob.getFullYear()
+  const m = today.getMonth() - dob.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--
+  if (age < 0) return ''
+  if (age <= 10) return 'U10'
+  if (age <= 12) return 'U12'
+  if (age <= 14) return 'U14'
+  if (age <= 15) return 'U15'
+  if (age <= 16) return 'U16'
+  if (age <= 17) return 'U17'
+  if (age <= 18) return 'U18'
+  if (age <= 20) return 'U20'
+  if (age <= 23) return 'U23'
+  if (age <= 34) return 'Senior'
+  return 'Masters'
+})
+
+watch(suggestedAgeCategory, (newVal) => {
+  if (newVal && (!form.age_category || form.age_category === 'Senior')) {
+    form.age_category = newVal
+  }
+})
+
+async function handleAddAgeCategory(name) {
+  try {
+    await createNsmisDomain('athlete-age-categories', { code: name, name, is_active: true })
+    const res = await listNsmisDomain('athlete-age-categories', { per_page: 200 })
+    ageCategories.value = extractArray(res)
+  } catch (e) {
+    console.warn('Could not persist custom age category to database:', e)
+  }
+}
 
 watch(definition, initialiseForm, { immediate: true })
 onMounted(loadReferences)
@@ -115,6 +167,17 @@ function extractArray(res) {
 async function loadReferences() {
   const types = new Set((definition.value?.fields || []).map(item => item.type))
   const requests = []
+  if (types.has('age_category')) {
+    requests.push(
+      listNsmisDomain('athlete-age-categories', { per_page: 200 })
+        .then(res => {
+          ageCategories.value = extractArray(res)
+        })
+        .catch(e => {
+          console.warn('Could not fetch age categories from API:', e)
+        })
+    )
+  }
   if (types.has('federation')) {
     requests.push(
       listNsmisDomain('federations', { per_page: 200 })

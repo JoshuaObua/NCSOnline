@@ -13,6 +13,12 @@ import (
 )
 
 func domainPermission(resource string, write bool) []string {
+	if resource == "athlete-age-categories" {
+		if write {
+			return []string{"athletes:write:any", "athletes:write:own", "federations:write:any", "dashboard:read", "admin"}
+		}
+		return []string{"athletes:read:any", "athletes:read:own", "athletes:write:any", "athletes:write:own", "federations:read:any", "dashboard:read", "admin"}
+	}
 	if strings.HasPrefix(resource, "safeguarding-") {
 		if write {
 			return []string{"safeguarding:cases:manage", "safeguarding_records:write:own", "safeguarding_records:write:any"}
