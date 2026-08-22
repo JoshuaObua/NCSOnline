@@ -358,9 +358,9 @@
                   <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
                   <p class="text-muted mt-3 font-weight-bold">Loading activity history...</p>
                 </div>
-                <div v-else-if="!filteredActivities.length" class="empty-state card text-center p-5 border-0 shadow-sm" style="border-radius: 10px; background: #fff;">
+                <div v-else-if="!filteredActivities.length" class="empty-state card text-center p-5 border-0 shadow-sm">
                   <i class="icofont-history" style="font-size: 48px; color: #cbd5e1; margin-bottom: 12px;"></i>
-                  <h3 class="font-weight-bold" style="font-size: 18px; color: #1e293b;">No activities match your filters</h3>
+                  <h3 class="font-weight-bold section-subheading">No activities match your filters</h3>
                   <p class="text-muted small mb-0">Try clearing your search query or selecting a different category filter.</p>
                 </div>
                 <div v-else class="activity-timeline-feed">
@@ -475,10 +475,10 @@
                   </article>
                 </div>
 
-                <div v-if="!userFiles.length" class="empty-state py-5 card shadow-sm text-center border-0" style="border-radius: 12px; background: #fff;">
+                <div v-if="!userFiles.length" class="empty-state py-5 card shadow-sm text-center border-0">
                   <div class="card-body p-5">
                     <i class="icofont-folder-open text-muted" style="font-size: 64px;"></i>
-                    <h3 class="mt-3 fw-bold text-dark">No Credentials Found</h3>
+                    <h3 class="mt-3 fw-bold empty-title">No Credentials Found</h3>
                     <p class="text-muted max-w-md mx-auto">
                       Currently, there are no active athlete licenses, coach credentials, or technical official clearances linked to your email in the system.
                     </p>
@@ -487,7 +487,7 @@
 
                 <div v-else class="row">
                   <div v-for="file in userFiles" :key="file.id" class="col-md-6 mb-4">
-                    <div class="card shadow-sm border-0 h-100 credential-card" style="border-radius: 12px; background: #fff; transition: transform 0.2s; box-shadow: 0 4px 20px rgba(0,0,0,0.05) !important;">
+                    <div class="card shadow-sm border-0 h-100 credential-card">
                       <div class="card-body p-4 d-flex flex-column h-100">
                         <header class="d-flex align-items-start justify-content-between mb-3">
                           <div class="d-flex align-items-center gap-3">
@@ -496,7 +496,7 @@
                             </span>
                             <div>
                               <span class="badge bg-light text-muted text-uppercase mb-1" style="font-size: 9px; font-weight: 700; border: 1px solid rgba(0,0,0,0.06);">{{ file.type }}</span>
-                              <h3 class="h5 mb-0 fw-bold text-dark" style="font-size: 15px; font-weight: 700;">{{ file.title }}</h3>
+                              <h3 class="h5 mb-0 fw-bold credential-title">{{ file.title }}</h3>
                             </div>
                           </div>
                           <span class="badge" :class="getStatusBadgeClass(file.status)" style="font-size: 10px; font-weight: 700;">{{ file.status }}</span>
@@ -507,7 +507,7 @@
                         <div class="mt-auto pt-3 border-top d-flex flex-column gap-2" style="border-color: rgba(0,0,0,0.06) !important;">
                           <div class="d-flex justify-content-between text-muted small" style="font-size: 12px;">
                             <span>License No:</span>
-                            <strong class="text-dark">{{ file.number }}</strong>
+                            <strong class="credential-number">{{ file.number }}</strong>
                           </div>
                           <div class="d-flex justify-content-between text-muted small" style="font-size: 12px;">
                             <span>Issued On:</span>
@@ -720,7 +720,7 @@
                           <i class="icofont-laptop" style="font-size: 24px;"></i>
                         </span>
                         <div>
-                          <h3 class="mb-1 font-weight-bold" style="font-size: 18px; color: #1e293b;">Active Login Sessions</h3>
+                          <h3 class="mb-1 font-weight-bold sessions-heading">Active Login Sessions</h3>
                           <p class="text-muted small mb-0">These are web browsers and devices that have recently authenticated to your NCS portal.</p>
                         </div>
                       </div>
@@ -3007,118 +3007,539 @@ footer.main-footer, .main-footer {
   }
 }
 
-/* ── Dark Mode Overrides ───────────────────────────────────────────── */
-:global(.dark) .user-portal { background: #0f172a; color: #e2e8f0; }
+
+/* =====================================================================
+   COMPREHENSIVE PORTAL DARK MODE ENGINE
+   Works dynamically across all sections, cards, forms, tables & components
+   ===================================================================== */
+:global(.dark) .user-portal,
+:global([data-theme="dark"]) .user-portal {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
 :global(.dark) .navbar-bg,
-:global(.dark) .main-navbar { background: #1e293b; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
-:global(.dark) .main-sidebar { background: #1e293b; border-right-color: #334155; }
+:global(.dark) .main-navbar,
+:global([data-theme="dark"]) .navbar-bg,
+:global([data-theme="dark"]) .main-navbar {
+  background-color: #1e293b !important;
+  border-bottom: 1px solid #334155 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+:global(.dark) .main-sidebar,
+:global([data-theme="dark"]) .main-sidebar {
+  background-color: #1e293b !important;
+  border-right: 1px solid #334155 !important;
+}
+
 :global(.dark) .sidebar-brand,
-:global(.dark) .sidebar-user { border-bottom-color: #334155; }
+:global(.dark) .sidebar-user,
+:global([data-theme="dark"]) .sidebar-brand,
+:global([data-theme="dark"]) .sidebar-user {
+  border-bottom-color: #334155 !important;
+}
+
+:global(.dark) .sidebar-user strong,
+:global([data-theme="dark"]) .sidebar-user strong {
+  color: #f8fafc !important;
+}
+
+:global(.dark) .sidebar-user span,
+:global([data-theme="dark"]) .sidebar-user span {
+  color: #94a3b8 !important;
+}
+
+:global(.dark) .sidebar-menu .menu-header,
+:global([data-theme="dark"]) .sidebar-menu .menu-header {
+  color: #64748b !important;
+}
+
 :global(.dark) .sidebar-menu li a,
-:global(.dark) .sidebar-menu li button.nav-link { color: #cbd5e1; }
+:global(.dark) .sidebar-menu li button.nav-link,
+:global([data-theme="dark"]) .sidebar-menu li a,
+:global([data-theme="dark"]) .sidebar-menu li button.nav-link {
+  color: #cbd5e1 !important;
+}
+
 :global(.dark) .sidebar-menu li.active > a,
 :global(.dark) .sidebar-menu li.active > button,
-:global(.dark) .sidebar-menu li.active > button.nav-link {
-  background-color: #1e293b !important;
+:global(.dark) .sidebar-menu li.active > button.nav-link,
+:global([data-theme="dark"]) .sidebar-menu li.active > a,
+:global([data-theme="dark"]) .sidebar-menu li.active > button,
+:global([data-theme="dark"]) .sidebar-menu li.active > button.nav-link {
+  background-color: #0f172a !important;
   color: #93c5fd !important;
-  border: none !important;
-  border-left: none !important;
-  outline: none !important;
-  box-shadow: none !important;
 }
+
 :global(.dark) .sidebar-menu li.active > a i,
-:global(.dark) .sidebar-menu li.active > button i {
+:global(.dark) .sidebar-menu li.active > button i,
+:global([data-theme="dark"]) .sidebar-menu li.active > a i,
+:global([data-theme="dark"]) .sidebar-menu li.active > button i {
   color: #93c5fd !important;
 }
+
 :global(.dark) .sidebar-menu li a:hover,
-:global(.dark) .sidebar-menu li button:hover {
+:global(.dark) .sidebar-menu li button:hover,
+:global([data-theme="dark"]) .sidebar-menu li a:hover,
+:global([data-theme="dark"]) .sidebar-menu li button:hover {
   background-color: #334155 !important;
   color: #f8fafc !important;
 }
+
+/* Page Headers & Titles */
+:global(.dark) .section-header h1,
+:global(.dark) .page-heading h1,
+:global([data-theme="dark"]) .section-header h1,
+:global([data-theme="dark"]) .page-heading h1 {
+  color: #f8fafc !important;
+}
+
+:global(.dark) .page-heading p,
+:global([data-theme="dark"]) .page-heading p {
+  color: #93c5fd !important;
+}
+
+:global(.dark) .page-heading span,
+:global([data-theme="dark"]) .page-heading span {
+  color: #94a3b8 !important;
+}
+
+/* Cards, Panels & KPI Containers */
 :global(.dark) .card,
 :global(.dark) .user-kpis article,
+:global(.dark) .activity-kpis article,
 :global(.dark) .feed-list article,
 :global(.dark) .data-table,
 :global(.dark) .profile-summary,
-:global(.dark) .dropdown-menu {
-  background: #1e293b;
-  border-color: #334155;
-  box-shadow: 0 4px 25px rgba(0,0,0,.3);
+:global(.dark) .profile-form,
+:global(.dark) .settings-card,
+:global(.dark) .empty-state,
+:global(.dark) .credential-card,
+:global(.dark) .athlete-detail-card,
+:global([data-theme="dark"]) .card,
+:global([data-theme="dark"]) .user-kpis article,
+:global([data-theme="dark"]) .activity-kpis article,
+:global([data-theme="dark"]) .feed-list article,
+:global([data-theme="dark"]) .data-table,
+:global([data-theme="dark"]) .profile-summary,
+:global([data-theme="dark"]) .profile-form,
+:global([data-theme="dark"]) .settings-card,
+:global([data-theme="dark"]) .empty-state,
+:global([data-theme="dark"]) .credential-card,
+:global([data-theme="dark"]) .athlete-detail-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.3) !important;
 }
-:global(.dark) .list-toolbar {
-  background: #1e293b;
-  border-color: #334155;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+
+:global(.dark) .user-kpis article strong,
+:global(.dark) .activity-kpis article strong,
+:global(.dark) .credential-title,
+:global(.dark) .credential-number,
+:global(.dark) .empty-title,
+:global(.dark) .sessions-heading,
+:global(.dark) .section-subheading,
+:global([data-theme="dark"]) .user-kpis article strong,
+:global([data-theme="dark"]) .activity-kpis article strong,
+:global([data-theme="dark"]) .credential-title,
+:global([data-theme="dark"]) .credential-number,
+:global([data-theme="dark"]) .empty-title,
+:global([data-theme="dark"]) .sessions-heading,
+:global([data-theme="dark"]) .section-subheading {
+  color: #f8fafc !important;
 }
+
+:global(.dark) .user-kpis article small,
+:global(.dark) .activity-kpis article small,
+:global([data-theme="dark"]) .user-kpis article small,
+:global([data-theme="dark"]) .activity-kpis article small {
+  color: #94a3b8 !important;
+}
+
+:global(.dark) .user-kpis article p,
+:global(.dark) .activity-kpis article p,
+:global([data-theme="dark"]) .user-kpis article p,
+:global([data-theme="dark"]) .activity-kpis article p {
+  color: #cbd5e1 !important;
+}
+
+/* Toolbars, Inputs, Selects & Searches */
+:global(.dark) .list-toolbar,
+:global([data-theme="dark"]) .list-toolbar {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
 :global(.dark) .list-toolbar input[type="search"],
 :global(.dark) .list-toolbar input[type="text"],
-:global(.dark) .list-toolbar select {
-  background-color: #0f172a;
-  border-color: #334155;
-  color: #f8fafc;
-}
-:global(.dark) .list-toolbar select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-}
-:global(.dark) .table-actions button {
-  background: #0f172a;
-  border-color: #334155;
-  color: #cbd5e1;
-}
-:global(.dark) .profile-form {
-  background: #1e293b;
-  border-color: #334155;
-}
-:global(.dark) .profile-form h2 { color: #f8fafc; }
-:global(.dark) .profile-form label { color: #cbd5e1; }
+:global(.dark) .list-toolbar select,
 :global(.dark) .profile-form input,
 :global(.dark) .profile-form select,
-:global(.dark) .profile-form textarea {
-  background-color: #0f172a;
-  border-color: #334155;
-  color: #f8fafc;
-}
-:global(.dark) .user-kpis article strong,
-:global(.dark) .section-header h1,
-:global(.dark) .page-heading h1 { color: #f8fafc; }
-:global(.dark) .data-table th { background: #1e293b; color: #94a3b8; }
-:global(.dark) .data-table td { color: #cbd5e1; border-bottom-color: #334155; }
-:global(.dark) footer.main-footer { background: #1e293b; border-top-color: #334155; }
-:global(.dark) .main-navbar .nav-link-lg.cms-top-icon,
-:global(.dark) .main-navbar button.cms-top-icon,
-:global(.dark) .main-navbar .portal-top-action,
-:global(.dark) .main-navbar .portal-theme-toggle {
-  background: #0f172a !important;
+:global(.dark) .profile-form textarea,
+:global(.dark) .settings-form input,
+:global(.dark) .settings-form select,
+:global(.dark) .settings-form textarea,
+:global([data-theme="dark"]) .list-toolbar input[type="search"],
+:global([data-theme="dark"]) .list-toolbar input[type="text"],
+:global([data-theme="dark"]) .list-toolbar select,
+:global([data-theme="dark"]) .profile-form input,
+:global([data-theme="dark"]) .profile-form select,
+:global([data-theme="dark"]) .profile-form textarea,
+:global([data-theme="dark"]) .settings-form input,
+:global([data-theme="dark"]) .settings-form select,
+:global([data-theme="dark"]) .settings-form textarea {
+  background-color: #0f172a !important;
   border-color: #334155 !important;
   color: #f8fafc !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
 }
-:global(.dark) .main-navbar .nav-link-lg.cms-top-icon i,
-:global(.dark) .main-navbar button.cms-top-icon i,
-:global(.dark) .main-navbar .portal-top-action i,
-:global(.dark) .main-navbar .portal-theme-toggle i {
+
+:global(.dark) .list-toolbar select,
+:global([data-theme="dark"]) .list-toolbar select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+}
+
+:global(.dark) .profile-form label,
+:global(.dark) .settings-form label,
+:global([data-theme="dark"]) .profile-form label,
+:global([data-theme="dark"]) .settings-form label {
+  color: #cbd5e1 !important;
+}
+
+:global(.dark) .profile-form input:disabled,
+:global([data-theme="dark"]) .profile-form input:disabled {
+  background-color: #1e293b !important;
+  color: #64748b !important;
+}
+
+/* Data Tables */
+:global(.dark) .data-table,
+:global([data-theme="dark"]) .data-table {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+:global(.dark) .data-table th,
+:global([data-theme="dark"]) .data-table th {
+  background-color: #0f172a !important;
+  color: #94a3b8 !important;
+  border-bottom-color: #334155 !important;
+}
+
+:global(.dark) .data-table td,
+:global([data-theme="dark"]) .data-table td {
+  color: #cbd5e1 !important;
+  border-bottom-color: #334155 !important;
+}
+
+:global(.dark) .data-table tr:hover td,
+:global([data-theme="dark"]) .data-table tr:hover td {
+  background-color: #243044 !important;
+}
+
+:global(.dark) .data-table td strong,
+:global([data-theme="dark"]) .data-table td strong {
   color: #f8fafc !important;
 }
-:global(.dark) .main-navbar .nav-link-lg.cms-top-icon:hover,
-:global(.dark) .main-navbar button.cms-top-icon:hover,
-:global(.dark) .main-navbar .portal-top-action:hover,
-:global(.dark) .main-navbar .portal-theme-toggle:hover {
-  background: #1e293b !important;
+
+:global(.dark) .table-actions button,
+:global([data-theme="dark"]) .table-actions button {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+:global(.dark) .table-actions button:hover,
+:global([data-theme="dark"]) .table-actions button:hover {
+  background-color: #6777ef !important;
   border-color: #6777ef !important;
-  color: #93c5fd !important;
+  color: #fff !important;
 }
-:global(.dark) .main-navbar .nav-link-lg.cms-top-icon:hover i,
-:global(.dark) .main-navbar button.cms-top-icon:hover i,
-:global(.dark) .main-navbar .portal-top-action:hover i,
-:global(.dark) .main-navbar .portal-theme-toggle:hover i {
-  color: #93c5fd !important;
+
+/* Feed Lists & Notifications & Messages */
+:global(.dark) .feed-list article,
+:global([data-theme="dark"]) .feed-list article {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
 }
-:global(.dark) .headerBadge1,
-:global(.dark) .headerBadge2 {
-  border-color: #1e293b !important;
-}
-:global(.dark) .portal-navbar-title strong {
+
+:global(.dark) .feed-list article strong,
+:global([data-theme="dark"]) .feed-list article strong {
   color: #f8fafc !important;
+}
+
+:global(.dark) .feed-list article p,
+:global([data-theme="dark"]) .feed-list article p {
+  color: #cbd5e1 !important;
+}
+
+:global(.dark) .feed-list article small,
+:global([data-theme="dark"]) .feed-list article small {
+  color: #94a3b8 !important;
+}
+
+:global(.dark) .feed-list article.unread,
+:global([data-theme="dark"]) .feed-list article.unread {
+  background-color: #1e3a8a33 !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Transactions */
+:global(.dark) .transaction-summary,
+:global([data-theme="dark"]) .transaction-summary {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+:global(.dark) .transaction-summary span,
+:global([data-theme="dark"]) .transaction-summary span {
+  color: #94a3b8 !important;
+}
+
+:global(.dark) .transaction-summary strong,
+:global([data-theme="dark"]) .transaction-summary strong {
+  color: #f8fafc !important;
+}
+
+/* Activities & Timeline Feed */
+:global(.dark) .activity-feed-card,
+:global([data-theme="dark"]) .activity-feed-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+:global(.dark) .activity-title,
+:global([data-theme="dark"]) .activity-title {
+  color: #f8fafc !important;
+}
+
+:global(.dark) .activity-description,
+:global([data-theme="dark"]) .activity-description {
+  color: #cbd5e1 !important;
+}
+
+:global(.dark) .meta-pill,
+:global([data-theme="dark"]) .meta-pill {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+:global(.dark) .meta-pill strong,
+:global([data-theme="dark"]) .meta-pill strong {
+  color: #f8fafc !important;
+}
+
+:global(.dark) .category-pill,
+:global([data-theme="dark"]) .category-pill {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+:global(.dark) .category-pill:hover,
+:global([data-theme="dark"]) .category-pill:hover {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+:global(.dark) .category-pill.active,
+:global([data-theme="dark"]) .category-pill.active {
+  background-color: #6777ef !important;
+  color: #fff !important;
+  border-color: #6777ef !important;
+}
+
+:global(.dark) .activity-pagination-bar,
+:global([data-theme="dark"]) .activity-pagination-bar {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+:global(.dark) .pagination-info,
+:global([data-theme="dark"]) .pagination-info {
+  color: #94a3b8 !important;
+}
+
+/* Settings, Sessions & Preferences */
+:global(.dark) .settings-nav-tabs,
+:global([data-theme="dark"]) .settings-nav-tabs {
+  border-bottom-color: #334155 !important;
+}
+
+:global(.dark) .settings-tab-btn,
+:global([data-theme="dark"]) .settings-tab-btn {
+  color: #94a3b8 !important;
+}
+
+:global(.dark) .settings-tab-btn:hover,
+:global([data-theme="dark"]) .settings-tab-btn:hover {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+:global(.dark) .settings-tab-btn.active,
+:global([data-theme="dark"]) .settings-tab-btn.active {
+  background-color: #6777ef !important;
+  color: #fff !important;
+}
+
+:global(.dark) .settings-card-header,
+:global([data-theme="dark"]) .settings-card-header {
+  border-bottom-color: #334155 !important;
+}
+
+:global(.dark) .settings-card-header h3,
+:global([data-theme="dark"]) .settings-card-header h3 {
+  color: #f8fafc !important;
+}
+
+:global(.dark) .settings-card-header p,
+:global([data-theme="dark"]) .settings-card-header p {
+  color: #94a3b8 !important;
+}
+
+:global(.dark) .security-tips-card,
+:global([data-theme="dark"]) .security-tips-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+:global(.dark) .security-tips-list strong,
+:global([data-theme="dark"]) .security-tips-list strong {
+  color: #f8fafc !important;
+}
+
+:global(.dark) .security-tips-list p,
+:global([data-theme="dark"]) .security-tips-list p {
+  color: #94a3b8 !important;
+}
+
+:global(.dark) .session-item-card,
+:global([data-theme="dark"]) .session-item-card {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+:global(.dark) .session-item-card.current-session-card,
+:global([data-theme="dark"]) .session-item-card.current-session-card {
+  background-color: #1e293b !important;
+  border-color: #16a34a !important;
+}
+
+:global(.dark) .session-device-name,
+:global([data-theme="dark"]) .session-device-name {
+  color: #f8fafc !important;
+}
+
+:global(.dark) .meta-item,
+:global([data-theme="dark"]) .meta-item {
+  color: #94a3b8 !important;
+}
+
+:global(.dark) .session-device-icon,
+:global([data-theme="dark"]) .session-device-icon {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+:global(.dark) .preference-item,
+:global([data-theme="dark"]) .preference-item {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+:global(.dark) .preference-item:hover,
+:global([data-theme="dark"]) .preference-item:hover {
+  background-color: #1e293b !important;
+}
+
+:global(.dark) .preference-text strong,
+:global([data-theme="dark"]) .preference-text strong {
+  color: #f8fafc !important;
+}
+
+:global(.dark) .preference-text p,
+:global([data-theme="dark"]) .preference-text p {
+  color: #94a3b8 !important;
+}
+
+:global(.dark) .twofa-status-banner.twofa-active,
+:global([data-theme="dark"]) .twofa-status-banner.twofa-active {
+  background-color: #052e16 !important;
+  border-color: #166534 !important;
+}
+
+:global(.dark) .twofa-status-banner.twofa-inactive,
+:global([data-theme="dark"]) .twofa-status-banner.twofa-inactive {
+  background-color: #451a03 !important;
+  border-color: #9a3412 !important;
+}
+
+/* Athlete Registry Extension */
+:global(.dark) .athlete-detail-card,
+:global([data-theme="dark"]) .athlete-detail-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+:global(.dark) .athlete-detail-card header h3,
+:global([data-theme="dark"]) .athlete-detail-card header h3 {
+  color: #f8fafc !important;
+}
+
+:global(.dark) .athlete-detail-card ul li,
+:global([data-theme="dark"]) .athlete-detail-card ul li {
+  border-bottom-color: #334155 !important;
+}
+
+:global(.dark) .athlete-detail-card ul li span,
+:global([data-theme="dark"]) .athlete-detail-card ul li span {
+  color: #94a3b8 !important;
+}
+
+:global(.dark) .athlete-detail-card ul li strong,
+:global([data-theme="dark"]) .athlete-detail-card ul li strong {
+  color: #f8fafc !important;
+}
+
+/* Dropdown Menu */
+:global(.dark) .dropdown-menu,
+:global([data-theme="dark"]) .dropdown-menu {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+:global(.dark) .dropdown-title,
+:global([data-theme="dark"]) .dropdown-title {
+  color: #64748b !important;
+}
+
+:global(.dark) .dropdown-item,
+:global([data-theme="dark"]) .dropdown-item {
+  color: #e2e8f0 !important;
+}
+
+:global(.dark) .dropdown-item:hover,
+:global([data-theme="dark"]) .dropdown-item:hover {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+:global(.dark) .dropdown-divider,
+:global([data-theme="dark"]) .dropdown-divider {
+  background-color: #334155 !important;
+}
+
+/* Footer */
+:global(.dark) footer.main-footer,
+:global([data-theme="dark"]) footer.main-footer {
+  background-color: #1e293b !important;
+  border-top-color: #334155 !important;
+  color: #94a3b8 !important;
 }
 
 /* ── My Activities & Audit Trail Styling ───────────────────────────── */

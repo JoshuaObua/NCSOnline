@@ -77,5 +77,28 @@ const isPendingSubmission = item => item?.status && !['DRAFT', 'NEEDS_INFORMATIO
 .forms-grid footer button:disabled{color:#98a6ad!important;cursor:not-allowed!important}
 .forms-empty{width:100%!important;max-width:100%!important;padding:28px 14px!important;overflow-wrap:anywhere!important}
 @media(max-width:760px){.forms-grid{grid-template-columns:1fr!important}.forms-grid article{grid-template-columns:58px minmax(0,1fr)!important}.forms-grid article>img,.form-mark{width:58px!important;min-width:58px!important}}
-@media(max-width:420px){.open-forms-section>header{align-items:flex-start!important;flex-direction:column!important}.forms-grid article{grid-template-columns:52px minmax(0,1fr)!important}.forms-grid article>img,.form-mark{width:52px!important;min-width:52px!important}.forms-grid footer{align-items:flex-start!important;flex-direction:column!important}.forms-grid footer button{width:100%!important}}
+:global(.dark) .forms-grid article {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.3) !important;
+}
+:global(.dark) .open-forms-section > header h2,
+:global(.dark) .forms-grid h3,
+:global(.dark) .forms-grid footer strong {
+  color: #f8fafc !important;
+}
+:global(.dark) .forms-grid small {
+  color: #93c5fd !important;
+}
+:global(.dark) .forms-grid p {
+  color: #cbd5e1 !important;
+}
+:global(.dark) .forms-grid footer button {
+  color: #93c5fd !important;
+}
+:global(.dark) .forms-empty {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
 </style>

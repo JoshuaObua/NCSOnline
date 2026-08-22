@@ -25,6 +25,10 @@ function applyTheme(nextTheme) {
     document.documentElement.classList.toggle('dark', normalized === 'dark')
     document.documentElement.setAttribute('data-theme', normalized)
     document.documentElement.style.colorScheme = normalized
+    if (document.body) {
+      document.body.classList.toggle('dark', normalized === 'dark')
+      document.body.setAttribute('data-theme', normalized)
+    }
   }
   try {
     localStorage.setItem(STORAGE_KEY, normalized)
