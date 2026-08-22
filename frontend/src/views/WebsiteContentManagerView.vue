@@ -3119,16 +3119,6 @@ function editAssociation(item) {
   onEditFederation(item)
 }
 
-async function loadUsers() {
-  try {
-    const res = await cms.adminListUsers({ per_page: 200 })
-    const items = res?.data?.data || res?.data?.items || res?.data || []
-    users.value = Array.isArray(items) ? items : []
-  } catch (err) {
-    console.warn('Could not load users list:', err)
-  }
-}
-
 function onAddUser() {
   editingUserModel.value = null
   active.value = 'users'
