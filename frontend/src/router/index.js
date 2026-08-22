@@ -113,9 +113,9 @@ const routes = [
   },
   { path: '/cms/login', name: 'CMSLogin', component: CMSLoginView },
   { path: '/cms', name: 'WebsiteCMS', component: WebsiteContentManagerView },
-  { path: '/apply', redirect: '/portal/login' },
-  { path: '/register', redirect: '/portal/register' },
-  { path: '/login', redirect: '/portal/login' },
+  { path: '/apply', name: 'ApplyRedirect', beforeEnter: () => { window.location.assign(portalUrl('/apply')); return false } },
+  { path: '/register', name: 'RegisterRedirect', beforeEnter: () => { window.location.assign(portalUrl('/register')); return false } },
+  { path: '/login', name: 'LoginRedirect', beforeEnter: () => { window.location.assign(portalUrl('/login')); return false } },
   { path: '/account/:pathMatch(.*)*', redirect: to => `/portal${to.fullPath}` },
   { path: '/portal/:pathMatch(.*)*', name: 'PortalRedirect', beforeEnter: to => {
     const envBase = import.meta.env?.VITE_INTRANET_URL?.replace(/\/$/, '')
