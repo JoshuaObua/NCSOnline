@@ -248,6 +248,7 @@ const filteredItems = computed(() => {
       const fedAcronym = getFederationAcronym(item.federation_id).toLowerCase()
       return (
         String(item.full_name || '').toLowerCase().includes(q) ||
+        String(item.nin || '').toLowerCase().includes(q) ||
         String(item.position || '').toLowerCase().includes(q) ||
         String(item.position_label || '').toLowerCase().includes(q) ||
         String(item.email || '').toLowerCase().includes(q) ||
