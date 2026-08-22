@@ -25,10 +25,16 @@
             <option value="">Select {{ item.label.toLowerCase() }}</option>
             <option v-for="option in item.options" :key="option" :value="option">{{ readable(option) }}</option>
           </select>
-          <select v-else-if="item.type === 'federation'" :id="`registry-${item.key}`" v-model="form[item.key]" :required="item.required" :disabled="loadingReferences">
-            <option value="">Select federation</option>
-            <option v-for="option in federations" :key="option.id" :value="option.id">{{ option.name }}{{ option.acronym ? ` (${option.acronym})` : '' }}</option>
-          </select>
+          <SearchableFederationSelect
+            v-else-if="item.type === 'federation'"
+            :id="`registry-${item.key}`"
+            v-model="form[item.key]"
+            :federations="federations"
+            :required="item.required"
+            :disabled="loadingReferences"
+            :loading="loadingReferences"
+            placeholder="Search and select sports federation (e.g. FUFA, UAF, Boxing)..."
+          />
           <select v-else-if="item.type === 'athlete'" :id="`registry-${item.key}`" v-model="form[item.key]" :required="item.required" :disabled="loadingReferences">
             <option value="">Select athlete</option>
             <option v-for="option in athletes" :key="option.id" :value="option.id">{{ option.full_name }}{{ option.athlete_number ? ` (${option.athlete_number})` : '' }}</option>
@@ -67,6 +73,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { createNsmisDomain, listNsmisDomain } from '@/api/nsmis.js'
 import apiClient from '@/api/client.js'
 import { registryResources } from '@/utils/namisRegistryConfig.js'
+import SearchableFederationSelect from '@/components/ui/SearchableFederationSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -95,17 +102,64 @@ function initialiseForm() {
 }
 function isWide(item) { return ['textarea', 'json'].includes(item.type) || ['full_name','item_name','name','reference'].includes(item.key) }
 function readable(value) { return String(value).toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, char => char.toUpperCase()) }
+
+function extractArray(res) {
+  if (!res || !res.data) return []
+  if (Array.isArray(res.data.data)) return res.data.data
+  if (Array.isArray(res.data.items)) return res.data.items
+  if (Array.isArray(res.data.data?.items)) return res.data.data.items
+  if (Array.isArray(res.data)) return res.data
+  return []
+}
+
 async function loadReferences() {
   const types = new Set((definition.value?.fields || []).map(item => item.type))
   const requests = []
-  if (types.has('federation')) requests.push(listNsmisDomain('federations', { per_page: 100 }).then(res => { federations.value = res.data?.data?.items || res.data?.items || [] }))
-  if (types.has('athlete')) requests.push(listNsmisDomain('athletes', { per_page: 100 }).then(res => { athletes.value = res.data?.data?.items || res.data?.items || [] }))
-  if (types.has('competition')) requests.push(listNsmisDomain('competitions', { per_page: 100 }).then(res => { competitions.value = res.data?.data?.items || res.data?.items || [] }))
-  if (types.has('user')) requests.push(apiClient.get('/api/v1/admin/users', { params: { per_page: 100 } }).then(res => { users.value = res.data?.data?.items || res.data?.data || res.data?.items || [] }))
+  if (types.has('federation')) {
+    requests.push(
+      listNsmisDomain('federations', { per_page: 200 })
+        .then(res => {
+          federations.value = extractArray(res)
+        })
+        .catch(async () => {
+          try {
+            const fallback = await apiClient.get('/api/v1/nsmis/federations')
+            federations.value = extractArray(fallback)
+          } catch (e) {
+            console.error('Failed to load federations', e)
+          }
+        })
+    )
+  }
+  if (types.has('athlete')) {
+    requests.push(
+      listNsmisDomain('athletes', { per_page: 200 })
+        .then(res => { athletes.value = extractArray(res) })
+    )
+  }
+  if (types.has('competition')) {
+    requests.push(
+      listNsmisDomain('competitions', { per_page: 200 })
+        .then(res => { competitions.value = extractArray(res) })
+    )
+  }
+  if (types.has('user')) {
+    requests.push(
+      apiClient.get('/api/v1/admin/users', { params: { per_page: 200 } })
+        .then(res => { users.value = extractArray(res) })
+    )
+  }
   if (!requests.length) return
   loadingReferences.value = true
-  try { await Promise.all(requests) } catch (err) { loadError.value = err.response?.data?.error?.message || 'Could not load form options.' } finally { loadingReferences.value = false }
+  try {
+    await Promise.all(requests)
+  } catch (err) {
+    loadError.value = err.response?.data?.error?.message || 'Could not load form options.'
+  } finally {
+    loadingReferences.value = false
+  }
 }
+
 function buildPayload() {
   const payload = {}
   for (const item of definition.value.fields) {
@@ -121,6 +175,7 @@ function buildPayload() {
   if (resource.value === 'competitions' && payload.starts_on && payload.ends_on && payload.ends_on < payload.starts_on) throw new Error('Competition end date cannot be before its start date.')
   return payload
 }
+
 async function saveRecord() {
   formError.value = ''; successMessage.value = ''
   saving.value = true
@@ -133,5 +188,103 @@ async function saveRecord() {
 </script>
 
 <style scoped>
-.registry-entry-page{padding:0;color:#34395e}.registry-card{width:100%;padding:30px;box-sizing:border-box;background:#fff;border:1px solid #e8eaf0;border-radius:14px;box-shadow:0 8px 30px rgba(44,62,80,.08)}.page-header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;padding-bottom:24px;border-bottom:1px solid #eceef3}.page-header p{margin:0 0 5px;color:#6777ef;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.page-header h2{margin:0 0 8px;font-size:28px}.page-header span{color:#6c757d}.back-button,.cancel-button{display:inline-flex;align-items:center;gap:7px;padding:10px 15px;border:1px solid #dfe2ea;border-radius:7px;color:#4f5d73;text-decoration:none;font-weight:700;white-space:nowrap}.registry-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;padding-top:26px}.field{display:flex;flex-direction:column;gap:8px}.wide{grid-column:1/-1}.field label{font-size:13px;font-weight:700}.field label strong{color:#e74c3c}.field input:not([type=checkbox]),.field select,.field textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d9dce5;border-radius:7px;background:#fff;color:#34395e;font:inherit}.field input:not([type=checkbox]),.field select{min-height:44px}.field textarea{resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:#6777ef;outline:3px solid rgba(103,119,239,.12)}.checkbox-field{min-height:44px;display:flex;align-items:center;gap:10px;padding:0 12px;border:1px solid #d9dce5;border-radius:7px}.checkbox-field input{width:18px;height:18px}.sensitive-notice{display:flex;gap:10px;align-items:center;margin-top:20px;padding:13px 15px;border-radius:8px;background:#fff8e7;color:#856404;border:1px solid #ffe6a7}.alert{padding:12px 14px;margin:20px 0 0;border-radius:7px;font-weight:600}.alert-error{background:#fff1f0;color:#c0392b;border:1px solid #ffd4d0}.alert-success{background:#edf9f0;color:#218838;border:1px solid #ccebd4}.form-actions{display:flex;justify-content:flex-end;gap:12px;padding-top:22px;border-top:1px solid #eceef3}.save-button{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:7px;background:#6777ef;color:#fff;font-weight:700;cursor:pointer}.save-button:disabled{opacity:.65;cursor:wait}@media(max-width:720px){.registry-card{padding:20px}.page-header{flex-direction:column}.registry-form{grid-template-columns:1fr}.wide{grid-column:auto}.form-actions{flex-direction:column-reverse}.back-button,.cancel-button,.save-button{justify-content:center}}
+.registry-entry-page{padding:0;color:#34395e}
+.registry-card{width:100%;padding:30px;box-sizing:border-box;background:#fff;border:1px solid #e8eaf0;border-radius:14px;box-shadow:0 8px 30px rgba(44,62,80,.08)}
+.page-header{display:flex;justify-content:space-between;gap:24px;align-items:flex-start;padding-bottom:24px;border-bottom:1px solid #eceef3}
+.page-header p{margin:0 0 5px;color:#6777ef;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.page-header h2{margin:0 0 8px;font-size:28px}
+.page-header span{color:#6c757d}
+.back-button,.cancel-button{display:inline-flex;align-items:center;gap:7px;padding:10px 15px;border:1px solid #dfe2ea;border-radius:7px;color:#4f5d73;text-decoration:none;font-weight:700;white-space:nowrap}
+.registry-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;padding-top:26px}
+.field{display:flex;flex-direction:column;gap:8px}
+.wide{grid-column:1/-1}
+.field label{font-size:13px;font-weight:700}
+.field label strong{color:#e74c3c}
+.field input:not([type=checkbox]),.field select,.field textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d9dce5;border-radius:7px;background:#fff;color:#34395e;font:inherit}
+.field input:not([type=checkbox]),.field select{min-height:44px}
+.field textarea{resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#6777ef;outline:3px solid rgba(103,119,239,.12)}
+.checkbox-field{min-height:44px;display:flex;align-items:center;gap:10px;padding:0 12px;border:1px solid #d9dce5;border-radius:7px}
+.checkbox-field input{width:18px;height:18px}
+.sensitive-notice{display:flex;gap:10px;align-items:center;margin-top:20px;padding:13px 15px;border-radius:8px;background:#fff8e7;color:#856404;border:1px solid #ffe6a7}
+.alert{padding:12px 14px;margin:20px 0 0;border-radius:7px;font-weight:600}
+.alert-error{background:#fff1f0;color:#c0392b;border:1px solid #ffd4d0}
+.alert-success{background:#edf9f0;color:#218838;border:1px solid #ccebd4}
+.form-actions{display:flex;justify-content:flex-end;gap:12px;padding-top:22px;border-top:1px solid #eceef3}
+.save-button{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border:0;border-radius:7px;background:#6777ef;color:#fff;font-weight:700;cursor:pointer}
+.save-button:disabled{opacity:.65;cursor:wait}
+
+/* Dark Mode Styles */
+:global(html.dark) .registry-card,
+:global(body.dark) .registry-card,
+:global([data-theme="dark"]) .registry-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3) !important;
+}
+
+:global(html.dark) .page-header,
+:global(body.dark) .page-header,
+:global([data-theme="dark"]) .page-header {
+  border-bottom-color: #334155 !important;
+}
+
+:global(html.dark) .page-header h2,
+:global(body.dark) .page-header h2,
+:global([data-theme="dark"]) .page-header h2 {
+  color: #f8fafc !important;
+}
+
+:global(html.dark) .page-header span,
+:global(body.dark) .page-header span,
+:global([data-theme="dark"]) .page-header span {
+  color: #94a3b8 !important;
+}
+
+:global(html.dark) .field label,
+:global(body.dark) .field label,
+:global([data-theme="dark"]) .field label {
+  color: #cbd5e1 !important;
+}
+
+:global(html.dark) .field input:not([type=checkbox]),
+:global(html.dark) .field select,
+:global(html.dark) .field textarea,
+:global(body.dark) .field input:not([type=checkbox]),
+:global(body.dark) .field select,
+:global(body.dark) .field textarea,
+:global([data-theme="dark"]) .field input:not([type=checkbox]),
+:global([data-theme="dark"]) .field select,
+:global([data-theme="dark"]) .field textarea {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+:global(html.dark) .back-button,
+:global(html.dark) .cancel-button,
+:global(body.dark) .back-button,
+:global(body.dark) .cancel-button,
+:global([data-theme="dark"]) .back-button,
+:global([data-theme="dark"]) .cancel-button {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+:global(html.dark) .form-actions,
+:global(body.dark) .form-actions,
+:global([data-theme="dark"]) .form-actions {
+  border-top-color: #334155 !important;
+}
+
+@media(max-width:720px){
+  .registry-card{padding:20px}
+  .page-header{flex-direction:column}
+  .registry-form{grid-template-columns:1fr}
+  .wide{grid-column:auto}
+  .form-actions{flex-direction:column-reverse}
+  .back-button,.cancel-button,.save-button{justify-content:center}
+}
 </style>
