@@ -2135,7 +2135,7 @@ function cancel2FAEnrollment() {
   outline: none !important;
   box-shadow: none !important;
   cursor: pointer;
-  color: #64748b;
+  color: #1e293b;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2146,16 +2146,84 @@ function cancel2FAEnrollment() {
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
-.nav-link:hover { background: #f1f5f9; color: #1e293b; }
-.nav-link-lg i { font-size: 18px; }
-.cms-top-icon { font-size: 18px; }
+.nav-link:hover { background: #f1f5f9; color: #4f46e5; }
+
+/* ── Top Navbar Action Buttons (Vibrant, Sharp, High-Contrast) ───── */
+.main-navbar .nav-link-lg.cms-top-icon,
+.main-navbar button.cms-top-icon,
+.main-navbar .portal-top-action,
+.main-navbar .portal-theme-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  border: 1px solid #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font-size: 20px !important;
+  position: relative !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
+}
+
+.main-navbar .nav-link-lg.cms-top-icon i,
+.main-navbar button.cms-top-icon i,
+.main-navbar .portal-top-action i,
+.main-navbar .portal-theme-toggle i {
+  color: #0f172a !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  transition: color 0.18s ease, transform 0.18s ease !important;
+}
+
+.main-navbar .nav-link-lg.cms-top-icon:hover,
+.main-navbar button.cms-top-icon:hover,
+.main-navbar .portal-top-action:hover,
+.main-navbar .portal-theme-toggle:hover {
+  background: #eef2ff !important;
+  border-color: #818cf8 !important;
+  color: #4338ca !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2) !important;
+}
+
+.main-navbar .nav-link-lg.cms-top-icon:hover i,
+.main-navbar button.cms-top-icon:hover i,
+.main-navbar .portal-top-action:hover i,
+.main-navbar .portal-theme-toggle:hover i {
+  color: #4338ca !important;
+}
+
+.headerBadge1, .headerBadge2 {
+  position: absolute !important;
+  top: -4px !important;
+  right: -4px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  border-radius: 999px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 4px !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.18) !important;
+}
+.headerBadge1 { background: #ef4444 !important; color: #ffffff !important; }
+.headerBadge2 { background: #6777ef !important; color: #ffffff !important; }
 
 .portal-navbar-title {
   display: flex; flex-direction: column; line-height: 1.3;
-  padding: 0 10px; color: #1e293b;
+  padding: 0 10px; color: #0f172a;
 }
-.portal-navbar-title small { font-size: 11px; color: #94a3b8; }
-.portal-navbar-title strong { font-size: 14px; font-weight: 600; }
+.portal-navbar-title small { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; }
+.portal-navbar-title strong { font-size: 15px; font-weight: 700; color: #0f172a; }
 
 /* ── Avatar / Initials ─────────────────────────────────────────────── */
 .user-img-radious-style {
@@ -3016,6 +3084,42 @@ footer.main-footer, .main-footer {
 :global(.dark) .data-table th { background: #1e293b; color: #94a3b8; }
 :global(.dark) .data-table td { color: #cbd5e1; border-bottom-color: #334155; }
 :global(.dark) footer.main-footer { background: #1e293b; border-top-color: #334155; }
+:global(.dark) .main-navbar .nav-link-lg.cms-top-icon,
+:global(.dark) .main-navbar button.cms-top-icon,
+:global(.dark) .main-navbar .portal-top-action,
+:global(.dark) .main-navbar .portal-theme-toggle {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+}
+:global(.dark) .main-navbar .nav-link-lg.cms-top-icon i,
+:global(.dark) .main-navbar button.cms-top-icon i,
+:global(.dark) .main-navbar .portal-top-action i,
+:global(.dark) .main-navbar .portal-theme-toggle i {
+  color: #f8fafc !important;
+}
+:global(.dark) .main-navbar .nav-link-lg.cms-top-icon:hover,
+:global(.dark) .main-navbar button.cms-top-icon:hover,
+:global(.dark) .main-navbar .portal-top-action:hover,
+:global(.dark) .main-navbar .portal-theme-toggle:hover {
+  background: #1e293b !important;
+  border-color: #6777ef !important;
+  color: #93c5fd !important;
+}
+:global(.dark) .main-navbar .nav-link-lg.cms-top-icon:hover i,
+:global(.dark) .main-navbar button.cms-top-icon:hover i,
+:global(.dark) .main-navbar .portal-top-action:hover i,
+:global(.dark) .main-navbar .portal-theme-toggle:hover i {
+  color: #93c5fd !important;
+}
+:global(.dark) .headerBadge1,
+:global(.dark) .headerBadge2 {
+  border-color: #1e293b !important;
+}
+:global(.dark) .portal-navbar-title strong {
+  color: #f8fafc !important;
+}
 
 /* ── My Activities & Audit Trail Styling ───────────────────────────── */
 .activity-kpis {
