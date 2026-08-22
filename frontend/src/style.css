@@ -550,3 +550,588 @@ html.dark .public-site .border-gray-200 {
 /* v-click-once — visual feedback + double-click lock */
 .click-pressed { transform: scale(0.97); transition: transform 120ms ease; }
 .click-locked  { opacity: 0.6; cursor: progress !important; }
+
+
+/* =====================================================================
+   NCS USER PORTAL GLOBAL DARK MODE ENGINE
+   ===================================================================== */
+html.dark .user-portal,
+body.dark .user-portal,
+[data-theme="dark"] .user-portal,
+.dark .user-portal {
+  background-color: #0f172a !important;
+  color: #e2e8f0 !important;
+}
+
+html.dark .user-portal .navbar-bg,
+html.dark .user-portal .main-navbar,
+body.dark .user-portal .navbar-bg,
+body.dark .user-portal .main-navbar,
+[data-theme="dark"] .user-portal .navbar-bg,
+[data-theme="dark"] .user-portal .main-navbar {
+  background-color: #1e293b !important;
+  border-bottom: 1px solid #334155 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.dark .user-portal .main-sidebar,
+body.dark .user-portal .main-sidebar,
+[data-theme="dark"] .user-portal .main-sidebar {
+  background-color: #1e293b !important;
+  border-right: 1px solid #334155 !important;
+}
+
+html.dark .user-portal .sidebar-brand,
+html.dark .user-portal .sidebar-user,
+body.dark .user-portal .sidebar-brand,
+body.dark .user-portal .sidebar-user,
+[data-theme="dark"] .user-portal .sidebar-brand,
+[data-theme="dark"] .user-portal .sidebar-user {
+  border-bottom-color: #334155 !important;
+}
+
+html.dark .user-portal .sidebar-user strong,
+body.dark .user-portal .sidebar-user strong,
+[data-theme="dark"] .user-portal .sidebar-user strong {
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .sidebar-user span,
+body.dark .user-portal .sidebar-user span,
+[data-theme="dark"] .user-portal .sidebar-user span {
+  color: #94a3b8 !important;
+}
+
+html.dark .user-portal .sidebar-menu .menu-header,
+body.dark .user-portal .sidebar-menu .menu-header,
+[data-theme="dark"] .user-portal .sidebar-menu .menu-header {
+  color: #64748b !important;
+}
+
+html.dark .user-portal .sidebar-menu li a,
+html.dark .user-portal .sidebar-menu li button.nav-link,
+body.dark .user-portal .sidebar-menu li a,
+body.dark .user-portal .sidebar-menu li button.nav-link,
+[data-theme="dark"] .user-portal .sidebar-menu li a,
+[data-theme="dark"] .user-portal .sidebar-menu li button.nav-link {
+  color: #cbd5e1 !important;
+}
+
+html.dark .user-portal .sidebar-menu li.active > a,
+html.dark .user-portal .sidebar-menu li.active > button,
+html.dark .user-portal .sidebar-menu li.active > button.nav-link,
+body.dark .user-portal .sidebar-menu li.active > a,
+body.dark .user-portal .sidebar-menu li.active > button,
+body.dark .user-portal .sidebar-menu li.active > button.nav-link,
+[data-theme="dark"] .user-portal .sidebar-menu li.active > a,
+[data-theme="dark"] .user-portal .sidebar-menu li.active > button,
+[data-theme="dark"] .user-portal .sidebar-menu li.active > button.nav-link {
+  background-color: #0f172a !important;
+  color: #93c5fd !important;
+}
+
+html.dark .user-portal .sidebar-menu li.active > a i,
+html.dark .user-portal .sidebar-menu li.active > button i,
+body.dark .user-portal .sidebar-menu li.active > a i,
+body.dark .user-portal .sidebar-menu li.active > button i,
+[data-theme="dark"] .user-portal .sidebar-menu li.active > a i,
+[data-theme="dark"] .user-portal .sidebar-menu li.active > button i {
+  color: #93c5fd !important;
+}
+
+html.dark .user-portal .sidebar-menu li a:hover,
+html.dark .user-portal .sidebar-menu li button:hover,
+body.dark .user-portal .sidebar-menu li a:hover,
+body.dark .user-portal .sidebar-menu li button:hover,
+[data-theme="dark"] .user-portal .sidebar-menu li a:hover,
+[data-theme="dark"] .user-portal .sidebar-menu li button:hover {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+/* Page Headers */
+html.dark .user-portal .section-header h1,
+html.dark .user-portal .page-heading h1,
+body.dark .user-portal .section-header h1,
+body.dark .user-portal .page-heading h1,
+[data-theme="dark"] .user-portal .section-header h1,
+[data-theme="dark"] .user-portal .page-heading h1 {
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .page-heading p,
+body.dark .user-portal .page-heading p,
+[data-theme="dark"] .user-portal .page-heading p {
+  color: #93c5fd !important;
+}
+
+html.dark .user-portal .page-heading span,
+body.dark .user-portal .page-heading span,
+[data-theme="dark"] .user-portal .page-heading span {
+  color: #94a3b8 !important;
+}
+
+/* Cards & Containers across all sections */
+html.dark .user-portal .card,
+html.dark .user-portal .user-kpis article,
+html.dark .user-portal .activity-kpis article,
+html.dark .user-portal .forms-grid article,
+html.dark .user-portal .feed-list article,
+html.dark .user-portal .data-table,
+html.dark .user-portal .profile-summary,
+html.dark .user-portal .profile-form,
+html.dark .user-portal .settings-card,
+html.dark .user-portal .empty-state,
+html.dark .user-portal .credential-card,
+html.dark .user-portal .athlete-detail-card,
+body.dark .user-portal .card,
+body.dark .user-portal .user-kpis article,
+body.dark .user-portal .activity-kpis article,
+body.dark .user-portal .forms-grid article,
+body.dark .user-portal .feed-list article,
+body.dark .user-portal .data-table,
+body.dark .user-portal .profile-summary,
+body.dark .user-portal .profile-form,
+body.dark .user-portal .settings-card,
+body.dark .user-portal .empty-state,
+body.dark .user-portal .credential-card,
+body.dark .user-portal .athlete-detail-card,
+[data-theme="dark"] .user-portal .card,
+[data-theme="dark"] .user-portal .user-kpis article,
+[data-theme="dark"] .user-portal .activity-kpis article,
+[data-theme="dark"] .user-portal .forms-grid article,
+[data-theme="dark"] .user-portal .feed-list article,
+[data-theme="dark"] .user-portal .data-table,
+[data-theme="dark"] .user-portal .profile-summary,
+[data-theme="dark"] .user-portal .profile-form,
+[data-theme="dark"] .user-portal .settings-card,
+[data-theme="dark"] .user-portal .empty-state,
+[data-theme="dark"] .user-portal .credential-card,
+[data-theme="dark"] .user-portal .athlete-detail-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .user-portal .user-kpis article strong,
+html.dark .user-portal .activity-kpis article strong,
+html.dark .user-portal .forms-grid h3,
+html.dark .user-portal .forms-grid footer strong,
+html.dark .user-portal .credential-title,
+html.dark .user-portal .credential-number,
+html.dark .user-portal .empty-title,
+html.dark .user-portal .sessions-heading,
+html.dark .user-portal .section-subheading,
+body.dark .user-portal .user-kpis article strong,
+body.dark .user-portal .activity-kpis article strong,
+body.dark .user-portal .forms-grid h3,
+body.dark .user-portal .forms-grid footer strong,
+[data-theme="dark"] .user-portal .user-kpis article strong,
+[data-theme="dark"] .user-portal .activity-kpis article strong,
+[data-theme="dark"] .user-portal .forms-grid h3,
+[data-theme="dark"] .user-portal .forms-grid footer strong {
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .user-kpis article small,
+html.dark .user-portal .activity-kpis article small,
+html.dark .user-portal .forms-grid small,
+body.dark .user-portal .user-kpis article small,
+body.dark .user-portal .activity-kpis article small,
+body.dark .user-portal .forms-grid small,
+[data-theme="dark"] .user-portal .user-kpis article small,
+[data-theme="dark"] .user-portal .activity-kpis article small,
+[data-theme="dark"] .user-portal .forms-grid small {
+  color: #93c5fd !important;
+}
+
+html.dark .user-portal .user-kpis article p,
+html.dark .user-portal .activity-kpis article p,
+html.dark .user-portal .forms-grid p,
+body.dark .user-portal .user-kpis article p,
+body.dark .user-portal .activity-kpis article p,
+body.dark .user-portal .forms-grid p,
+[data-theme="dark"] .user-portal .user-kpis article p,
+[data-theme="dark"] .user-portal .activity-kpis article p,
+[data-theme="dark"] .user-portal .forms-grid p {
+  color: #cbd5e1 !important;
+}
+
+html.dark .user-portal .forms-empty,
+body.dark .user-portal .forms-empty,
+[data-theme="dark"] .user-portal .forms-empty {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #94a3b8 !important;
+}
+
+html.dark .user-portal .open-forms-section > header h2,
+body.dark .user-portal .open-forms-section > header h2,
+[data-theme="dark"] .user-portal .open-forms-section > header h2 {
+  color: #f8fafc !important;
+}
+
+/* Toolbars, Inputs & Selects */
+html.dark .user-portal .list-toolbar,
+body.dark .user-portal .list-toolbar,
+[data-theme="dark"] .user-portal .list-toolbar {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+html.dark .user-portal .list-toolbar input,
+html.dark .user-portal .list-toolbar select,
+html.dark .user-portal .profile-form input,
+html.dark .user-portal .profile-form select,
+html.dark .user-portal .profile-form textarea,
+html.dark .user-portal .settings-form input,
+html.dark .user-portal .settings-form select,
+html.dark .user-portal .settings-form textarea,
+body.dark .user-portal .list-toolbar input,
+body.dark .user-portal .list-toolbar select,
+body.dark .user-portal .profile-form input,
+body.dark .user-portal .profile-form select,
+body.dark .user-portal .profile-form textarea,
+body.dark .user-portal .settings-form input,
+body.dark .user-portal .settings-form select,
+body.dark .user-portal .settings-form textarea,
+[data-theme="dark"] .user-portal .list-toolbar input,
+[data-theme="dark"] .user-portal .list-toolbar select,
+[data-theme="dark"] .user-portal .profile-form input,
+[data-theme="dark"] .user-portal .profile-form select,
+[data-theme="dark"] .user-portal .profile-form textarea,
+[data-theme="dark"] .user-portal .settings-form input,
+[data-theme="dark"] .user-portal .settings-form select,
+[data-theme="dark"] .user-portal .settings-form textarea {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .list-toolbar select,
+body.dark .user-portal .list-toolbar select,
+[data-theme="dark"] .user-portal .list-toolbar select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+}
+
+html.dark .user-portal .profile-form label,
+html.dark .user-portal .settings-form label,
+body.dark .user-portal .profile-form label,
+body.dark .user-portal .settings-form label,
+[data-theme="dark"] .user-portal .profile-form label,
+[data-theme="dark"] .user-portal .settings-form label {
+  color: #cbd5e1 !important;
+}
+
+/* Data Tables */
+html.dark .user-portal .data-table,
+body.dark .user-portal .data-table,
+[data-theme="dark"] .user-portal .data-table {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+html.dark .user-portal .data-table th,
+body.dark .user-portal .data-table th,
+[data-theme="dark"] .user-portal .data-table th {
+  background-color: #0f172a !important;
+  color: #94a3b8 !important;
+  border-bottom-color: #334155 !important;
+}
+
+html.dark .user-portal .data-table td,
+body.dark .user-portal .data-table td,
+[data-theme="dark"] .user-portal .data-table td {
+  color: #cbd5e1 !important;
+  border-bottom-color: #334155 !important;
+}
+
+html.dark .user-portal .data-table tr:hover td,
+body.dark .user-portal .data-table tr:hover td,
+[data-theme="dark"] .user-portal .data-table tr:hover td {
+  background-color: #243044 !important;
+}
+
+html.dark .user-portal .data-table td strong,
+body.dark .user-portal .data-table td strong,
+[data-theme="dark"] .user-portal .data-table td strong {
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .table-actions button,
+body.dark .user-portal .table-actions button,
+[data-theme="dark"] .user-portal .table-actions button {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+/* Feed Lists, Notifications & Messages */
+html.dark .user-portal .feed-list article,
+body.dark .user-portal .feed-list article,
+[data-theme="dark"] .user-portal .feed-list article {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+html.dark .user-portal .feed-list article strong,
+body.dark .user-portal .feed-list article strong,
+[data-theme="dark"] .user-portal .feed-list article strong {
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .feed-list article p,
+body.dark .user-portal .feed-list article p,
+[data-theme="dark"] .user-portal .feed-list article p {
+  color: #cbd5e1 !important;
+}
+
+html.dark .user-portal .feed-list article small,
+body.dark .user-portal .feed-list article small,
+[data-theme="dark"] .user-portal .feed-list article small {
+  color: #94a3b8 !important;
+}
+
+html.dark .user-portal .feed-list article.unread,
+body.dark .user-portal .feed-list article.unread,
+[data-theme="dark"] .user-portal .feed-list article.unread {
+  background-color: rgba(30, 58, 138, 0.2) !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Activities */
+html.dark .user-portal .activity-feed-card,
+body.dark .user-portal .activity-feed-card,
+[data-theme="dark"] .user-portal .activity-feed-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+html.dark .user-portal .activity-title,
+body.dark .user-portal .activity-title,
+[data-theme="dark"] .user-portal .activity-title {
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .activity-description,
+body.dark .user-portal .activity-description,
+[data-theme="dark"] .user-portal .activity-description {
+  color: #cbd5e1 !important;
+}
+
+html.dark .user-portal .meta-pill,
+body.dark .user-portal .meta-pill,
+[data-theme="dark"] .user-portal .meta-pill {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .user-portal .meta-pill strong,
+body.dark .user-portal .meta-pill strong,
+[data-theme="dark"] .user-portal .meta-pill strong {
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .category-pill,
+body.dark .user-portal .category-pill,
+[data-theme="dark"] .user-portal .category-pill {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .user-portal .category-pill:hover,
+body.dark .user-portal .category-pill:hover,
+[data-theme="dark"] .user-portal .category-pill:hover {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .category-pill.active,
+body.dark .user-portal .category-pill.active,
+[data-theme="dark"] .user-portal .category-pill.active {
+  background-color: #6777ef !important;
+  color: #fff !important;
+  border-color: #6777ef !important;
+}
+
+html.dark .user-portal .activity-pagination-bar,
+body.dark .user-portal .activity-pagination-bar,
+[data-theme="dark"] .user-portal .activity-pagination-bar {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+html.dark .user-portal .pagination-info,
+body.dark .user-portal .pagination-info,
+[data-theme="dark"] .user-portal .pagination-info {
+  color: #94a3b8 !important;
+}
+
+/* Settings, Sessions & Preferences */
+html.dark .user-portal .settings-nav-tabs,
+body.dark .user-portal .settings-nav-tabs,
+[data-theme="dark"] .user-portal .settings-nav-tabs {
+  border-bottom-color: #334155 !important;
+}
+
+html.dark .user-portal .settings-tab-btn,
+body.dark .user-portal .settings-tab-btn,
+[data-theme="dark"] .user-portal .settings-tab-btn {
+  color: #94a3b8 !important;
+}
+
+html.dark .user-portal .settings-tab-btn:hover,
+body.dark .user-portal .settings-tab-btn:hover,
+[data-theme="dark"] .user-portal .settings-tab-btn:hover {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .settings-tab-btn.active,
+body.dark .user-portal .settings-tab-btn.active,
+[data-theme="dark"] .user-portal .settings-tab-btn.active {
+  background-color: #6777ef !important;
+  color: #fff !important;
+}
+
+html.dark .user-portal .settings-card-header,
+body.dark .user-portal .settings-card-header,
+[data-theme="dark"] .user-portal .settings-card-header {
+  border-bottom-color: #334155 !important;
+}
+
+html.dark .user-portal .settings-card-header h3,
+body.dark .user-portal .settings-card-header h3,
+[data-theme="dark"] .user-portal .settings-card-header h3 {
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .settings-card-header p,
+body.dark .user-portal .settings-card-header p,
+[data-theme="dark"] .user-portal .settings-card-header p {
+  color: #94a3b8 !important;
+}
+
+html.dark .user-portal .security-tips-card,
+body.dark .user-portal .security-tips-card,
+[data-theme="dark"] .user-portal .security-tips-card {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+html.dark .user-portal .security-tips-list strong,
+body.dark .user-portal .security-tips-list strong,
+[data-theme="dark"] .user-portal .security-tips-list strong {
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .security-tips-list p,
+body.dark .user-portal .security-tips-list p,
+[data-theme="dark"] .user-portal .security-tips-list p {
+  color: #94a3b8 !important;
+}
+
+html.dark .user-portal .session-item-card,
+body.dark .user-portal .session-item-card,
+[data-theme="dark"] .user-portal .session-item-card {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html.dark .user-portal .session-item-card.current-session-card,
+body.dark .user-portal .session-item-card.current-session-card,
+[data-theme="dark"] .user-portal .session-item-card.current-session-card {
+  background-color: #1e293b !important;
+  border-color: #16a34a !important;
+}
+
+html.dark .user-portal .session-device-name,
+body.dark .user-portal .session-device-name,
+[data-theme="dark"] .user-portal .session-device-name {
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .meta-item,
+body.dark .user-portal .meta-item,
+[data-theme="dark"] .user-portal .meta-item {
+  color: #94a3b8 !important;
+}
+
+html.dark .user-portal .session-device-icon,
+body.dark .user-portal .session-device-icon,
+[data-theme="dark"] .user-portal .session-device-icon {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+html.dark .user-portal .preference-item,
+body.dark .user-portal .preference-item,
+[data-theme="dark"] .user-portal .preference-item {
+  background-color: #0f172a !important;
+  border-color: #334155 !important;
+}
+
+html.dark .user-portal .preference-item:hover,
+body.dark .user-portal .preference-item:hover,
+[data-theme="dark"] .user-portal .preference-item:hover {
+  background-color: #1e293b !important;
+}
+
+html.dark .user-portal .preference-text strong,
+body.dark .user-portal .preference-text strong,
+[data-theme="dark"] .user-portal .preference-text strong {
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .preference-text p,
+body.dark .user-portal .preference-text p,
+[data-theme="dark"] .user-portal .preference-text p {
+  color: #94a3b8 !important;
+}
+
+/* Dropdown Menu */
+html.dark .user-portal .dropdown-menu,
+body.dark .user-portal .dropdown-menu,
+[data-theme="dark"] .user-portal .dropdown-menu {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.dark .user-portal .dropdown-title,
+body.dark .user-portal .dropdown-title,
+[data-theme="dark"] .user-portal .dropdown-title {
+  color: #64748b !important;
+}
+
+html.dark .user-portal .dropdown-item,
+body.dark .user-portal .dropdown-item,
+[data-theme="dark"] .user-portal .dropdown-item {
+  color: #e2e8f0 !important;
+}
+
+html.dark .user-portal .dropdown-item:hover,
+body.dark .user-portal .dropdown-item:hover,
+[data-theme="dark"] .user-portal .dropdown-item:hover {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .user-portal .dropdown-divider,
+body.dark .user-portal .dropdown-divider,
+[data-theme="dark"] .user-portal .dropdown-divider {
+  background-color: #334155 !important;
+}
+
+/* Footer */
+html.dark .user-portal footer.main-footer,
+body.dark .user-portal footer.main-footer,
+[data-theme="dark"] .user-portal footer.main-footer {
+  background-color: #1e293b !important;
+  border-top-color: #334155 !important;
+  color: #94a3b8 !important;
+}
