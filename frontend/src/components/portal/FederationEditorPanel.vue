@@ -104,29 +104,41 @@
             </div>
           </div>
 
-          <!-- Section 2: Leadership & Governance -->
+          <!-- Section 2: Leadership & Governance with Dynamic User/NIN Search -->
           <div class="section-title">
-            <i class="icofont-business-man"></i> Leadership & Governance
+            <i class="icofont-business-man"></i> Leadership & Governance (Dynamic User Search by Name / NIN)
           </div>
           <div class="row">
+            <!-- President / Chairperson Searchable Dropdown -->
             <div class="form-group col-lg-6">
-              <label>President / Chairperson Name</label>
-              <input
+              <label class="font-weight-bold">
+                President / Chairperson Name
+              </label>
+              <SearchableUserSelect
                 v-model="form.president"
-                type="text"
-                class="form-control"
-                placeholder="e.g. Eng. Moses Magogo"
+                placeholder="Search registered user by Name, NIN, or Email..."
+                :users="userList"
+                @select="onPresidentSelected"
               />
+              <small class="form-text text-muted">
+                Dynamically searchable across registered user profiles by Full Name, NIN, or Email. You can also assign custom external names.
+              </small>
             </div>
 
+            <!-- General Secretary / CEO Searchable Dropdown -->
             <div class="form-group col-lg-6">
-              <label>General Secretary / CEO Name</label>
-              <input
+              <label class="font-weight-bold">
+                General Secretary / CEO Name
+              </label>
+              <SearchableUserSelect
                 v-model="form.secretary"
-                type="text"
-                class="form-control"
-                placeholder="e.g. Edgar Watson"
+                placeholder="Search registered user by Name, NIN, or Email..."
+                :users="userList"
+                @select="onSecretarySelected"
               />
+              <small class="form-text text-muted">
+                Dynamically searchable across registered user profiles by Full Name, NIN, or Email. You can also assign custom external names.
+              </small>
             </div>
           </div>
 
@@ -259,6 +271,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import DropzoneUpload from '@/components/cms/DropzoneUpload.vue'
+import SearchableUserSelect from '@/components/ui/SearchableUserSelect.vue'
 
 const props = defineProps({
   initialModel: {
@@ -270,6 +283,10 @@ const props = defineProps({
     default: () => [],
   },
   existingFederations: {
+    type: Array,
+    default: () => [],
+  },
+  userList: {
     type: Array,
     default: () => [],
   },
@@ -345,6 +362,24 @@ function syncFromProps() {
       sort_order: (props.existingFederations?.length || 0) + 1,
       is_active: true,
     })
+  }
+}
+
+function onPresidentSelected(user) {
+  if (user && user.email && !form.email) {
+    form.email = user.email
+  }
+  if (user && user.phone && !form.phone) {
+    form.phone = user.phone
+  }
+}
+
+function onSecretarySelected(user) {
+  if (user && user.email && !form.email) {
+    form.email = user.email
+  }
+  if (user && user.phone && !form.phone) {
+    form.phone = user.phone
   }
 }
 

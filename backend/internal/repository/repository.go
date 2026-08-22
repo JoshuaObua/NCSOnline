@@ -168,34 +168,34 @@ func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams, federat
 		countQ := `SELECT COUNT(DISTINCT u.id) FROM users u 
 		           JOIN federation_memberships fm ON fm.user_id = u.id
 		           WHERE u.deleted_at IS NULL AND fm.federation_id = ANY($2)
-		           AND ($1='' OR u.first_name ILIKE $1 OR u.last_name ILIKE $1 OR u.email ILIKE $1)`
+		           AND ($1='' OR u.first_name ILIKE $1 OR u.last_name ILIKE $1 OR u.email ILIKE $1 OR u.nin ILIKE $1)`
 		if err = r.db.QueryRow(ctx, countQ, search, federationIDs).Scan(&total); err != nil {
 			return nil, 0, err
 		}
 
-		q := `SELECT DISTINCT u.id, u.email, u.first_name, u.last_name, COALESCE(u.phone,''),
+		q := `SELECT DISTINCT u.id, u.email, u.first_name, u.last_name, COALESCE(u.phone,''), COALESCE(u.nin,''),
 		                      u.is_active, u.account_status, u.status_reason, u.fraud_flag, u.fraud_reason,
 		                      u.suspended_until, u.status_changed_at, u.is_email_verified,
 		                      u.last_login_at, u.created_at, u.updated_at
 		      FROM users u
 		      JOIN federation_memberships fm ON fm.user_id = u.id
 		      WHERE u.deleted_at IS NULL AND fm.federation_id = ANY($2)
-		      AND ($1='' OR u.first_name ILIKE $1 OR u.last_name ILIKE $1 OR u.email ILIKE $1)
+		      AND ($1='' OR u.first_name ILIKE $1 OR u.last_name ILIKE $1 OR u.email ILIKE $1 OR u.nin ILIKE $1)
 		      ORDER BY u.created_at DESC LIMIT $3 OFFSET $4`
 		rows, err = r.db.Query(ctx, q, search, federationIDs, p.PerPage, p.Offset())
 	} else {
 		countQ := `SELECT COUNT(*) FROM users WHERE deleted_at IS NULL
-		           AND ($1='' OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1)`
+		           AND ($1='' OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1 OR nin ILIKE $1)`
 		if err = r.db.QueryRow(ctx, countQ, search).Scan(&total); err != nil {
 			return nil, 0, err
 		}
 
-		q := `SELECT id, email, first_name, last_name, COALESCE(phone,''),
+		q := `SELECT id, email, first_name, last_name, COALESCE(phone,''), COALESCE(nin,''),
 		            is_active, account_status, status_reason, fraud_flag, fraud_reason,
 		            suspended_until, status_changed_at, is_email_verified,
 		            last_login_at, created_at, updated_at
 		     FROM users WHERE deleted_at IS NULL
-		     AND ($1='' OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1)
+		     AND ($1='' OR first_name ILIKE $1 OR last_name ILIKE $1 OR email ILIKE $1 OR nin ILIKE $1)
 		     ORDER BY created_at DESC LIMIT $2 OFFSET $3`
 		rows, err = r.db.Query(ctx, q, search, p.PerPage, p.Offset())
 	}
@@ -208,7 +208,7 @@ func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams, federat
 	users := []*models.User{}
 	for rows.Next() {
 		u := &models.User{}
-		if err = rows.Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.Phone,
+		if err = rows.Scan(&u.ID, &u.Email, &u.FirstName, &u.LastName, &u.Phone, &u.NIN,
 			&u.IsActive, &u.AccountStatus, &u.StatusReason, &u.FraudFlag, &u.FraudReason,
 			&u.SuspendedUntil, &u.StatusChangedAt, &u.IsEmailVerified,
 			&u.LastLoginAt, &u.CreatedAt, &u.UpdatedAt); err != nil {

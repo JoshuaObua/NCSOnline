@@ -17,6 +17,7 @@ type User struct {
 	FirstName         string     `json:"first_name"`
 	LastName          string     `json:"last_name"`
 	Phone             string     `json:"phone,omitempty"`
+	NIN               string     `json:"nin,omitempty"`
 	AvatarURL         string     `json:"avatar_url,omitempty"`
 	AuthProvider      string     `json:"auth_provider,omitempty"`
 	GoogleSub         string     `json:"-"`
