@@ -1,6 +1,6 @@
 <template>
-  <AppPreloader />
   <main class="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center px-4 py-12 transition-colors duration-200">
+    <AppPreloader />
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
         <router-link class="inline-block transition-transform hover:scale-105" to="/">
