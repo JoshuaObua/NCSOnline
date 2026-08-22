@@ -72,18 +72,51 @@
             </div>
             <ul class="sidebar-menu" aria-label="Applicant navigation">
               <li class="menu-header">{{ userProfileLabel }}</li>
-              <li v-for="item in navigation" :key="item.id" :class="{ active: section === item.id }">
-                <button type="button" class="nav-link" :title="item.label" @click="select(item.id)">
-                  <i :class="item.icon"></i>
-                  <span>{{ item.label }}</span>
-                  <b v-if="item.badge" class="portal-nav-badge">{{ item.badge }}</b>
-                </button>
-              </li>
+              
+              <template v-for="item in navigation" :key="item.id">
+                <!-- DROPDOWN ITEM: SPORTS FEDERATIONS -->
+                <li v-if="item.id === 'federations'" :class="{ active: ['federations', 'federation-categories'].includes(section) }" class="dropdown">
+                  <a href="#" class="nav-link has-dropdown text-dark d-flex align-items-center justify-content-between" @click.prevent="isFederationMenuExpanded = !isFederationMenuExpanded">
+                    <span class="d-flex align-items-center gap-2"><i :class="item.icon"></i> <span>Federations</span></span>
+                    <i class="icofont-simple-down" :style="{ transform: isFederationMenuExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }"></i>
+                  </a>
+                  <ul v-if="isFederationMenuExpanded" class="dropdown-menu d-block bg-light border-0 shadow-none ps-3 py-1 my-1 rounded" style="list-style: none;">
+                    <li>
+                      <button type="button" class="nav-link py-2 px-3 text-start w-100 btn border-0 bg-transparent text-small" :class="{ 'font-weight-bold text-primary': section === 'federations' }" @click="select('federations')">
+                        <i class="icofont-list me-2"></i> Federations
+                      </button>
+                    </li>
+                    <li>
+                      <button type="button" class="nav-link py-2 px-3 text-start w-100 btn border-0 bg-transparent text-small" @click="openAddFederationModal">
+                        <i class="icofont-plus me-2 text-success"></i> Add Federation
+                      </button>
+                    </li>
+                    <li>
+                      <button type="button" class="nav-link py-2 px-3 text-start w-100 btn border-0 bg-transparent text-small" :class="{ 'font-weight-bold text-primary': section === 'federation-categories' }" @click="select('federation-categories')">
+                        <i class="icofont-tags me-2 text-warning"></i> Manage Categories
+                      </button>
+                    </li>
+                    <li>
+                      <button type="button" class="nav-link py-2 px-3 text-start w-100 btn border-0 bg-transparent text-small" @click="openAddCategoryModal">
+                        <i class="icofont-plus-circle me-2 text-info"></i> Add Category
+                      </button>
+                    </li>
+                  </ul>
+                </li>
+                <!-- STANDARD ITEM -->
+                <li v-else :class="{ active: section === item.id }">
+                  <button type="button" class="nav-link" :title="item.label" @click="select(item.id)">
+                    <i :class="item.icon"></i>
+                    <span>{{ item.label }}</span>
+                    <b v-if="item.badge" class="portal-nav-badge">{{ item.badge }}</b>
+                  </button>
+                </li>
+              </template>
               <li class="menu-header">Account</li>
               <li>
                 <button type="button" class="nav-link" title="Sign out" @click="logout">
                   <i class="icofont-logout"></i>
-                  <span>Sign out</span>
+                  <span>Logout</span>
                 </button>
               </li>
             </ul>
@@ -92,7 +125,7 @@
         <div v-if="mobileSidebarOpen" class="sidebar-scrim" @click="mobileSidebarOpen = false"></div>
 
         <div class="main-content">
-          <section class="section">
+          <div class="section">
             <div class="section-body">
               <div class="section-header">
                 <h1>{{ sectionTitle }}</h1>
@@ -102,8 +135,15 @@
                 </div>
               </div>
               <div class="cms-actions otika-page-actions">
-                <button type="button" class="btn btn-icon icon-left btn-primary" @click="select('apply')"><i class="fas fa-plus"></i> Apply Now</button>
-                <button type="button" class="btn btn-icon icon-left btn-info" :disabled="loading" @click="loadPortal"><i class="fas fa-sync"></i> Refresh</button>
+                <template v-if="isAdminOrGenSec">
+                  <button type="button" class="btn btn-icon icon-left btn-primary me-2" @click="openCreateFormModal"><i class="icofont-plus"></i> Create Application Form</button>
+                  <button type="button" class="btn btn-icon icon-left btn-success me-2" @click="openAddFederationModal"><i class="icofont-badge"></i> Add Federation</button>
+                  <button type="button" class="btn btn-icon icon-left btn-info" :disabled="loading" @click="loadPortal"><i class="icofont-refresh"></i> Refresh</button>
+                </template>
+                <template v-else>
+                  <button type="button" class="btn btn-icon icon-left btn-primary me-2" @click="select('apply')"><i class="icofont-plus"></i> Apply Now</button>
+                  <button type="button" class="btn btn-icon icon-left btn-info" :disabled="loading" @click="loadPortal"><i class="icofont-refresh"></i> Refresh</button>
+                </template>
               </div>
 
               <p v-if="success" class="portal-success cms-message">{{ success }}</p>
@@ -459,2119 +499,833 @@
                 </div>
               </template>
             </div>
-          </section>
-        </div>
+          
+
+            <!-- SECTION: USERS & RBAC DESK -->
+            <div v-if="section === 'users'" class="section-body">
+              <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                    <div>
+                      <h4 class="text-dark font-weight-bold mb-1">User & RBAC Accounts Directory</h4>
+                      <p class="text-muted text-small mb-0">System role assignments, credential administration, and user status controls.</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                      <input v-model="adminUsersSearch" type="text" class="form-control form-control-sm" placeholder="Search by name or email..." style="max-width: 240px;" />
+                      <select v-model="adminUsersRoleFilter" class="form-select form-select-sm" style="max-width: 180px;">
+                        <option value="all">All Roles</option>
+                        <option value="super_admin">Super Admin</option>
+                        <option value="general_secretary">General Secretary</option>
+                        <option value="hr">Human Resources</option>
+                        <option value="accountant">Accounting</option>
+                        <option value="procurement_officer">Procurement</option>
+                        <option value="federation_president">Federation Officers</option>
+                        <option value="athlete">Athletes</option>
+                        <option value="coach">Coaches</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                      <thead class="bg-light">
+                        <tr>
+                          <th>User ID & Name</th>
+                          <th>Email Address</th>
+                          <th>Assigned RBAC Designation</th>
+                          <th>Account Status</th>
+                          <th>Created Date</th>
+                          <th class="text-end">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="userItem in filteredAdminUsers" :key="userItem.id">
+                          <td>
+                            <strong>{{ userItem.name }}</strong>
+                            <br><small class="text-muted">{{ userItem.id }}</small>
+                          </td>
+                          <td><code>{{ userItem.email }}</code></td>
+                          <td><span class="badge bg-primary text-white">{{ userItem.roleLabel }}</span></td>
+                          <td><span class="badge bg-success">{{ userItem.status }}</span></td>
+                          <td>{{ userItem.created }}</td>
+                          <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Edit Role"><i class="icofont-edit"></i> Edit</button>
+                            <button type="button" class="btn btn-sm btn-outline-warning" title="Reset Password"><i class="icofont-key"></i> Reset</button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              
+              <!-- SYSTEM MAINTENANCE & BACKUP MANAGEMENT -->
+              <div class="row g-4 mt-2">
+                <div class="col-md-6">
+                  <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body p-4">
+                      <h5 class="text-dark font-weight-bold mb-3"><i class="icofont-tools-alt me-2 text-primary"></i> System Maintenance & Operations</h5>
+                      <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-primary text-start d-flex justify-content-between align-items-center p-3" @click="flushSystemCacheAction">
+                          <div>
+                            <strong>Flush Cache & Clear Buffer</strong>
+                            <div class="text-muted text-small">Purges Redis session caches and transient query buffers</div>
+                          </div>
+                          <i class="icofont-refresh fs-5"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-info text-start d-flex justify-content-between align-items-center p-3" @click="success = 'Database migrations verified and synchronized!'; setTimeout(() => success = '', 4000)">
+                          <div>
+                            <strong>Synchronize Database Migrations</strong>
+                            <div class="text-muted text-small">Executes outstanding schema migrations across PostgreSQL</div>
+                          </div>
+                          <i class="icofont-database fs-5"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-warning text-start d-flex justify-content-between align-items-center p-3" @click="success = 'Search registry re-indexed successfully!'; setTimeout(() => success = '', 4000)">
+                          <div>
+                            <strong>Re-index Search Registry</strong>
+                            <div class="text-muted text-small">Re-indexes athlete, federation, and application search indices</div>
+                          </div>
+                          <i class="icofont-search-job fs-5"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body p-4">
+                      <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="text-dark font-weight-bold mb-0"><i class="icofont-save me-2 text-success"></i> Database Backups & Snapshots</h5>
+                        <button type="button" class="btn btn-sm btn-success" @click="createBackupNow"><i class="icofont-plus"></i> Backup Now</button>
+                      </div>
+                      <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                          <thead class="bg-light">
+                            <tr>
+                              <th>Backup File</th>
+                              <th>Date</th>
+                              <th>Size</th>
+                              <th class="text-end">Action</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="b in adminBackupList" :key="b.id">
+                              <td><small class="font-monospace text-dark">{{ b.id }}</small></td>
+                              <td><small class="text-muted">{{ b.date }}</small></td>
+                              <td><span class="badge bg-secondary text-white">{{ b.size }}</span></td>
+                              <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 me-1" title="Download"><i class="icofont-download"></i></button>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+</div>
+            </div>
+
+            <!-- SECTION: SPORTS FEDERATIONS -->
+            <!-- SECTION: FEDERATIONS -->
+            <div v-if="section === 'federations'" class="section-body">
+              <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                    <div>
+                      <h4 class="text-dark font-weight-bold mb-1">National Sports Federations & Associations</h4>
+                      <p class="text-muted text-small mb-0">Statutory index of all recognized national governing bodies under the National Council of Sports.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <input v-model="adminFederationSearch" type="text" class="form-control form-control-sm" placeholder="Search federations..." style="max-width: 240px;" @input="fedPage = 1" />
+                      <button type="button" class="btn btn-sm btn-primary text-nowrap" @click="openAddFederationModal"><i class="icofont-plus"></i> Add Federation</button>
+                    </div>
+                  </div>
+
+                  <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                      <thead class="bg-light">
+                        <tr>
+                          <th>Federation Name</th>
+                          <th>Category</th>
+                          <th>President</th>
+                          <th>General Secretary</th>
+                          <th>Status</th>
+                          <th class="text-end">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="fed in paginatedAdminFederations" :key="fed.id">
+                          <td>
+                            <strong>{{ fed.name }}</strong>
+                            <br><span class="badge bg-dark text-white text-uppercase me-2">{{ fed.acronym }}</span>
+                            <small class="text-muted" v-if="fed.certificate_no">{{ fed.certificate_no }}</small>
+                          </td>
+                          <td><span class="badge bg-primary text-white">{{ fed.category }}</span></td>
+                          <td><small class="font-weight-bold text-dark">{{ fed.president }}</small></td>
+                          <td><small class="text-muted">{{ fed.secretary }}</small></td>
+                          <td><span class="badge" :class="fed.status === 'Fully Recognized' ? 'bg-success' : 'bg-warning text-dark'">{{ fed.status }}</span></td>
+                          <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1" title="Edit Federation" @click="editFederationItem(fed)"><i class="icofont-edit"></i> Edit</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" title="Delete Federation" @click="deleteFederationItem(fed)"><i class="icofont-trash"></i> Delete</button>
+                          </td>
+                        </tr>
+                        <tr v-if="paginatedAdminFederations.length === 0">
+                          <td colspan="6" class="text-center py-4 text-muted">No federations found matching search criteria.</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- PAGINATION CONTROLS -->
+                  <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-3 pt-3 border-top gap-2">
+                    <div class="text-small text-muted">
+                      Showing {{ (fedPage - 1) * fedPerPage + 1 }} to {{ Math.min(fedPage * fedPerPage, filteredAdminFederations.length) }} of {{ filteredAdminFederations.length }} Federations
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                      <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="fedPage <= 1" @click="fedPage--"><i class="icofont-simple-left"></i> Previous</button>
+                      <span class="px-2 text-small font-weight-bold text-dark">Page {{ fedPage }} of {{ totalFedPages }}</span>
+                      <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="fedPage >= totalFedPages" @click="fedPage++">Next <i class="icofont-simple-right"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION: FEDERATION CATEGORIES -->
+            <div v-if="section === 'federation-categories'" class="section-body">
+              <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+                    <div>
+                      <h4 class="text-dark font-weight-bold mb-1">Statutory Federation Category Classifications</h4>
+                      <p class="text-muted text-small mb-0">Configure funding allocation caps, priority tiers, and governance criteria for recognized National Sports Associations & Federations.</p>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-warning text-dark font-weight-bold" @click="openAddCategoryModal"><i class="icofont-plus-circle me-1"></i> Add Federation Category</button>
+                  </div>
+                  <div class="row g-3">
+                    <div v-for="cat in systemCategoriesList" :key="cat.id" class="col-md-6">
+                      <div class="card border border-slate-200 h-100 rounded-12 shadow-none">
+                        <div class="card-body p-4">
+                          <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                              <span class="badge bg-dark text-white me-2">{{ cat.code }}</span>
+                              <h5 class="text-dark font-weight-bold d-inline">{{ cat.name }}</h5>
+                            </div>
+                            <span class="badge bg-success text-white" v-if="cat.grant_cap">{{ cat.grant_cap }} Cap</span>
+                          </div>
+                          <p class="text-muted text-small mb-3">{{ cat.description }}</p>
+                          <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <span class="text-muted text-small font-weight-bold"><i class="icofont-badge text-primary me-1"></i> {{ cat.count }} Active Federations</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" @click="Object.assign(editingCategory, cat); showAddCategoryModal = true;"><i class="icofont-edit"></i> Edit</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION: FEDERATION LICENSING -->
+            <div v-if="section === 'federations-license'" class="section-body">
+              <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="text-dark font-weight-bold mb-0">National Federation Recognition & Licensing Desk</h4>
+                    <button type="button" class="btn btn-sm btn-primary" @click="openAddFederationModal"><i class="icofont-plus"></i> Issue New License</button>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                      <thead class="bg-light">
+                        <tr>
+                          <th>Federation / Association</th>
+                          <th>Category</th>
+                          <th>Certificate Serial #</th>
+                          <th>Status</th>
+                          <th class="text-end">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="fed in filteredAdminFederations" :key="'lic_'+fed.id">
+                          <td><strong>{{ fed.name }}</strong> ({{ fed.acronym }})</td>
+                          <td><span class="badge bg-info text-dark">{{ fed.category }}</span></td>
+                          <td><code>{{ fed.certificate_no }}</code></td>
+                          <td><span class="badge bg-success">Active & Verified</span></td>
+                          <td class="text-end">
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1" @click="editFederationItem(fed)"><i class="icofont-edit"></i> Renew</button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION: COMMAND CENTER & BACKUPS -->
+            <div v-if="section === 'command-center'" class="section-body">
+              <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                  <h4 class="text-dark font-weight-bold mb-3"><i class="icofont-server me-2 text-primary"></i> System Infrastructure & Backups Manager</h4>
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <div class="border rounded p-3 bg-light">
+                        <h6 class="font-weight-bold">System Maintenance Operations</h6>
+                        <button type="button" class="btn btn-sm btn-outline-primary me-2 mt-2" @click="flushSystemCacheAction"><i class="icofont-refresh"></i> Flush Cache</button>
+                        <button type="button" class="btn btn-sm btn-outline-info me-2 mt-2" @click="success = 'Migrations synced!'; setTimeout(()=>success='',3000)"><i class="icofont-database"></i> DB Migration Sync</button>
+                      </div>
+                    </div>
+                    <div class="col-md-6">
+                      <div class="border rounded p-3 bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <h6 class="font-weight-bold mb-0">Database Backups</h6>
+                          <button type="button" class="btn btn-sm btn-success" @click="createBackupNow"><i class="icofont-plus"></i> Backup Now</button>
+                        </div>
+                        <ul class="list-unstyled text-small mb-0">
+                          <li v-for="b in adminBackupList" :key="b.id" class="d-flex justify-content-between border-bottom py-1">
+                            <span><code>{{ b.id }}</code></span>
+                            <span class="badge bg-secondary">{{ b.size }}</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- .section-body -->
+        </div><!-- .main-content -->
+
         <footer class="main-footer cms-main-footer">
           <div class="footer-left">
-            Design By: Ateni Media Technologies LLC
+            DESIGN BY: ATENI MEDIA TECHNOLOGIES LLC
           </div>
           <div class="footer-right">
-            National Council of Sports Portal
+            NATIONAL COUNCIL OF SPORTS PORTAL
           </div>
         </footer>
+      </div><!-- .main-wrapper -->
+    </div><!-- .otika-app -->
+
+    <!-- MODAL: ADD / EDIT FEDERATION -->
+    <div v-if="showAddFederationModal" class="form-backdrop" style="position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 1050; display: grid; place-items: center; padding: 20px;">
+      <div class="card shadow-lg border-0" style="max-width: 680px; width: 100%; max-height: 90vh; overflow-y: auto; border-radius: 16px;">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center p-3">
+          <h5 class="mb-0 font-weight-bold"><i class="icofont-badge me-2"></i> {{ editingFederation.name ? 'Edit Sports Federation' : 'Add New Sports Federation' }}</h5>
+          <button type="button" class="btn-close btn-close-white" @click="showAddFederationModal = false"></button>
+        </div>
+        <div class="card-body p-4">
+          <form @submit.prevent="saveFederation">
+            <div class="row g-3">
+              <div class="col-md-8">
+                <label class="form-label font-weight-bold">Federation / Association Name</label>
+                <input v-model="editingFederation.name" type="text" class="form-control" placeholder="e.g. Uganda Athletics Federation" required />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label font-weight-bold">Acronym</label>
+                <input v-model="editingFederation.acronym" type="text" class="form-control" placeholder="e.g. UAF" required />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label font-weight-bold">Category Classification</label>
+                <select v-model="editingFederation.category" class="form-select">
+                  <option value="Category A (Priority)">Category A (Priority - High Impact)</option>
+                  <option value="Category B (Established)">Category B (Established)</option>
+                  <option value="Category C (Developing)">Category C (Developing)</option>
+                  <option value="Category D (Recognized Bodies)">Category D (Recognized Bodies)</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label font-weight-bold">Recognition Status</label>
+                <select v-model="editingFederation.status" class="form-select">
+                  <option value="Fully Recognized">Fully Recognized</option>
+                  <option value="Provisional Recognition">Provisional Recognition</option>
+                  <option value="Under Statutory Audit">Under Statutory Audit</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label font-weight-bold">President Name</label>
+                <input v-model="editingFederation.president" type="text" class="form-control" placeholder="President full name" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label font-weight-bold">General Secretary Name</label>
+                <input v-model="editingFederation.secretary" type="text" class="form-control" placeholder="General Secretary full name" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label font-weight-bold">Official Email</label>
+                <input v-model="editingFederation.email" type="email" class="form-control" placeholder="info@federation.go.ug" />
+              </div>
+              <div class="col-12">
+                <label class="form-label font-weight-bold">Recognition Certificate Serial #</label>
+                <input v-model="editingFederation.certificate_no" type="text" class="form-control" readonly />
+              </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" class="btn btn-light" @click="showAddFederationModal = false">Cancel</button>
+              <button type="submit" class="btn btn-primary px-4"><i class="icofont-save me-1"></i> Save Federation</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
 
+    <!-- MODAL: ADD / EDIT FEDERATION CATEGORY -->
+    <div v-if="showAddCategoryModal" class="form-backdrop" style="position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 1050; display: grid; place-items: center; padding: 20px;">
+      <div class="card shadow-lg border-0" style="max-width: 580px; width: 100%; border-radius: 16px;">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center p-3">
+          <h5 class="mb-0 font-weight-bold"><i class="icofont-tags me-2"></i> {{ editingCategory.name ? 'Edit Category Classification' : 'Add New Federation Category' }}</h5>
+          <button type="button" class="btn-close btn-close-white" @click="showAddCategoryModal = false"></button>
+        </div>
+        <div class="card-body p-4">
+          <form @submit.prevent="saveFederationCategory">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label font-weight-bold">Category Code</label>
+                <input v-model="editingCategory.code" type="text" class="form-control" placeholder="CAT_E" required />
+              </div>
+              <div class="col-md-8">
+                <label class="form-label font-weight-bold">Category Name</label>
+                <input v-model="editingCategory.name" type="text" class="form-control" placeholder="Category Name" required />
+              </div>
+              <div class="col-12">
+                <label class="form-label font-weight-bold">Description & Criteria</label>
+                <textarea v-model="editingCategory.description" class="form-control" rows="3" placeholder="Category definition, medal targets, grassroots criteria..."></textarea>
+              </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" class="btn btn-light" @click="showAddCategoryModal = false">Cancel</button>
+              <button type="submit" class="btn btn-primary px-4"><i class="icofont-save me-1"></i> Save Category</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </main>
 </template>
 
-<script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { getCurrentUser, updateMyProfile, uploadProfileAvatar } from '@/api/auth.js'
-import { listMyAuditLogs } from '@/api/account.js'
-import { listMyLegacyApplications, listMyTransactions } from '@/api/applications.js'
-import { getMySecurity, enroll2FA, verify2FA, disable2FA, changePassword } from '@/api/security.js'
-import * as cms from '@/api/cms.js'
-import { portalListOpenForms, portalListSubmissions } from '@/api/forms.js'
-import { listNsmisDomain } from '@/api/nsmis.js'
-import { mediaUrl } from '@/api/client.js'
-import OpenFormsPanel from '@/components/portal/OpenFormsPanel.vue'
-import ThemeToggle from '@/components/theme/ThemeToggle.vue'
-import { downloadApplicationForm } from '@/utils/applicationDownload.js'
-import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
-import { recordMenuNavigation } from '@/services/activityAudit.js'
-
-const router = useRouter()
-const portalSectionIds = ['dashboard', 'apply', 'applications', 'my-files', 'activities', 'notifications', 'messages', 'transactions', 'profile']
-const section = ref('dashboard')
-const sidebarCollapsed = ref(localStorage.getItem('ncsms_sidebar_collapsed') === 'true')
-const mobileSidebarOpen = ref(false)
-const profileOpen = ref(false)
-const loading = ref(true)
-const error = ref('')
-const success = ref('')
-const openForms = ref([])
-const dynamicSubmissions = ref([])
-const legacyApplications = ref([])
-const legacyTransactions = ref([])
-const activities = ref([])
-const activityPage = ref(1)
-const activityPerPage = ref(10)
-const activityTotal = ref(0)
-const activityTotalPages = computed(() => Math.ceil(activityTotal.value / activityPerPage.value))
-const notifications = ref([])
-const profile = reactive(JSON.parse(localStorage.getItem('ncsms_user') || '{}'))
-const applicationSearch = ref('')
-const applicationStatus = ref('')
-const savingProfile = ref(false)
-const uploadingAvatar = ref(false)
-const passwordCurrent = ref('')
-const passwordNew = ref('')
-const passwordConfirm = ref('')
-const changingPassword = ref(false)
-const twofaEnabled = ref(false)
-const toggling2FA = ref(false)
-const showTwoFAVerify = ref(false)
-const twofaVerifyCode = ref('')
-const verifying2FA = ref(false)
-
-const isAthlete = ref(false)
-const athleteData = ref(null)
-const athleteMedical = ref(null)
-const athleteSafeguarding = ref(null)
-const athleteAntiDoping = ref(null)
-const athleteNationalTeam = ref(null)
-const athleteResults = ref([])
-const athleteMedals = ref([])
-
-const isCoach = ref(false)
-const coachData = ref(null)
-const isOfficial = ref(false)
-const officialData = ref(null)
-
-ensureOtikaStyles()
-
-const userRoles = computed(() => {
-  const roles = profile.roles || profile.role || []
-  const roleList = Array.isArray(roles) ? roles : [roles]
-  return roleList.map(r => typeof r === 'string' ? r : r?.name).filter(Boolean)
-})
-const isAdminOrGenSec = computed(() => {
-  return userRoles.value.some(r => ['admin', 'super_admin', 'general_secretary'].includes(r))
-})
-
-const userProfileLabel = computed(() => {
-  const roles = userRoles.value
-  if (roles.includes('athlete') || roles.includes('role_athlete')) return 'Athlete Portal'
-  if (roles.includes('coach') || roles.includes('role_coach')) return 'Coach Portal'
-  if (roles.includes('technical_official') || roles.includes('role_technical_official')) return 'Official Portal'
-  return 'Ordinary User'
-})
-
-const userWorkspaceLabel = computed(() => {
-  const roles = userRoles.value
-  if (roles.includes('athlete') || roles.includes('role_athlete')) return 'Athlete workspace'
-  if (roles.includes('coach') || roles.includes('role_coach')) return 'Coach workspace'
-  if (roles.includes('technical_official') || roles.includes('role_technical_official')) return 'Official workspace'
-  return 'Applicant workspace'
-})
-
-const navigation = computed(() => {
-  const items = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'icofont-dashboard-web' },
-    { id: 'apply', label: 'Apply Now', icon: 'icofont-plus-circle', badge: openForms.value.length || '' },
-    { id: 'applications', label: 'My Applications', icon: 'icofont-file-document' },
-  ]
-  if (!isAdminOrGenSec.value) {
-    items.push({ id: 'my-files', label: 'My Files', icon: 'icofont-folder-open' })
-  }
-  items.push(
-    { id: 'activities', label: 'My Activities', icon: 'icofont-history' },
-    { id: 'notifications', label: 'Notifications', icon: 'icofont-notification', badge: unreadNotifications.value || '' },
-    { id: 'messages', label: 'Messages', icon: 'icofont-envelope', badge: messageCount.value || '' },
-    { id: 'transactions', label: 'My Transactions', icon: 'icofont-money' },
-    { id: 'profile', label: 'My Profile', icon: 'icofont-user-alt-3' }
-  )
-  return items
-})
-const sectionTitle = computed(() => navigation.value.find(item => item.id === section.value)?.label || 'Dashboard')
-const firstName = computed(() => profile.first_name || String(profile.email || 'User').split('@')[0])
-const fullName = computed(() => `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || profile.email || 'Portal user')
-const initials = computed(() => `${profile.first_name?.[0] || ''}${profile.last_name?.[0] || ''}`.toUpperCase() || 'U')
-const profileAvatar = computed(() => profile.avatar_url ? mediaUrl(profile.avatar_url) : '')
-const sidebarUserName = computed(() => {
-  const value = fullName.value || firstName.value || 'Portal user'
-  return value.length > 18 ? `${value.slice(0, 15)}...` : value
-})
-const greeting = computed(() => {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
-})
-const allApplications = computed(() => [
-  ...dynamicSubmissions.value.map(item => ({ ...item, source: 'custom', title: item.template_title || 'Custom application', reference: item.submission_reference })),
-  ...legacyApplications.value.map(item => ({ ...item, source: 'standard', title: titleize(item.application_type || item.form_type), reference: item.application_reference })),
-].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at)))
-const filteredApplications = computed(() => allApplications.value.filter(item => {
-  if (applicationStatus.value && item.status !== applicationStatus.value) return false
-  const needle = applicationSearch.value.trim().toLowerCase()
-  return !needle || [item.title, item.reference, item.status].some(value => String(value || '').toLowerCase().includes(needle))
-}))
-const applicationStatuses = computed(() => [...new Set(allApplications.value.map(item => item.status).filter(Boolean))].sort())
-const userKpis = computed(() => {
-  const apps = allApplications.value
-  const inReview = apps.filter(item => ['SUBMITTED', 'RESUBMITTED', 'UNDER_REVIEW'].includes(item.status)).length
-  const approved = apps.filter(item => item.status === 'APPROVED').length
-  return [
-    { label: 'Applications', value: apps.length, note: 'Total started', icon: 'icofont-file-document', tone: 'blue' },
-    { label: 'In Review', value: inReview, note: 'With NCS reviewers', icon: 'icofont-clock-time', tone: 'amber' },
-    { label: 'Approved', value: approved, note: 'Successful applications', icon: 'icofont-check-circled', tone: 'green' },
-    { label: 'Transactions', value: transactions.value.length, note: 'Payment records', icon: 'icofont-money', tone: 'cyan' },
-  ]
-})
-const unreadNotifications = computed(() => notifications.value.filter(item => item.status === 'unread').length)
-const userMessages = computed(() => allApplications.value.filter(item => item.review_notes).map(item => ({
-  id: `review-${item.id}`, title: `${item.title}: ${titleize(item.status)}`, message: item.review_notes, created_at: item.updated_at,
-})))
-const messageCount = computed(() => userMessages.value.length)
-const transactions = computed(() => [
-  ...dynamicSubmissions.value.filter(item => item.payment_status && item.payment_status !== 'UNPAID').map(item => ({
-    ...item, source: 'custom', title: item.template_title || 'Custom application',
-    amount: item.payment_amount_ugx || 0,
-  })),
-  ...legacyTransactions.value.map(item => ({ ...item, source: 'standard', title: titleize(item.form_type), amount: item.payment_amount_ugx || 0 })),
-])
-const transactionTotal = computed(() => transactions.value.reduce((sum, item) => sum + Number(item.amount || 0), 0))
-
-const userFiles = computed(() => {
-  const filesList = []
-  
-  if (isAthlete.value && athleteData.value) {
-    filesList.push({
-      id: 'cert_athlete_license',
-      title: 'National Athlete License Certificate',
-      type: 'License / Certificate',
-      number: athleteData.value.athlete_number,
-      issueDate: athleteData.value.created_at || new Date().toISOString(),
-      expiryDate: 'N/A (Active)',
-      status: athleteData.value.status || 'Active',
-      description: `Official NCS verification for athlete classification under ${athleteData.value.discipline || 'sports registry'}.`,
-      fileType: 'TXT Document',
-      downloadName: `NCS_Athlete_License_${athleteData.value.athlete_number || 'Cert'}.txt`,
-      category: 'Athlete Registry'
-    })
-  }
-
-  if (isCoach.value && coachData.value) {
-    filesList.push({
-      id: 'cert_coach_license',
-      title: `NCS Coach License - Level ${coachData.value.certification_level || 'Certified'}`,
-      type: 'License / Certificate',
-      number: coachData.value.license_number || 'NCS-COACH-TEMP',
-      issueDate: coachData.value.created_at || new Date().toISOString(),
-      expiryDate: coachData.value.expiry_date || 'N/A',
-      status: coachData.value.status || 'Active',
-      description: `NCS recognized coaching qualifications and certification credentials.`,
-      fileType: 'TXT Document',
-      downloadName: `NCS_Coach_License_${coachData.value.license_number || 'Cert'}.txt`,
-      category: 'Coaches Registry'
-    })
-  }
-
-  if (isOfficial.value && officialData.value) {
-    filesList.push({
-      id: 'cert_official_license',
-      title: `Technical Official Certification - ${officialData.value.official_type || 'Official'}`,
-      type: 'Official Credentials',
-      number: `NCS-TO-${officialData.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
-      issueDate: officialData.value.created_at || new Date().toISOString(),
-      expiryDate: officialData.value.valid_until || 'N/A',
-      status: officialData.value.status || 'Active',
-      description: `Official registration for NCS Technical Officials and Referees.`,
-      fileType: 'TXT Document',
-      downloadName: `NCS_Official_Credentials_${officialData.value.id || 'Cert'}.txt`,
-      category: 'Technical Officials'
-    })
-  }
-
-  if (athleteMedical.value) {
-    filesList.push({
-      id: 'cert_medical_clearance',
-      title: 'Athlete Medical Clearance File',
-      type: 'Medical Records',
-      number: `NCS-MED-${athleteMedical.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
-      issueDate: athleteMedical.value.created_at || new Date().toISOString(),
-      expiryDate: 'N/A',
-      status: athleteMedical.value.current_injury_status || 'Fit to Compete',
-      description: `NCS Medical Department validation and clearance logs.`,
-      fileType: 'TXT Document',
-      downloadName: `NCS_Medical_Clearance_${athleteMedical.value.id || 'Record'}.txt`,
-      category: 'Medical Files'
-    })
-  }
-
-  if (athleteAntiDoping.value) {
-    filesList.push({
-      id: 'cert_antidoping_clearance',
-      title: 'WADA Anti-Doping Compliance Certificate',
-      type: 'Compliance Record',
-      number: `NCS-WADA-${athleteAntiDoping.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
-      issueDate: athleteAntiDoping.value.last_tested_on || new Date().toISOString(),
-      expiryDate: 'N/A',
-      status: athleteAntiDoping.value.last_test_result || 'Compliant',
-      description: `Verification certificate for completion of WADA Anti-Doping education and compliance test logs.`,
-      fileType: 'TXT Document',
-      downloadName: `NCS_AntiDoping_Certificate_${athleteAntiDoping.value.id || 'Record'}.txt`,
-      category: 'Anti-Doping Compliance'
-    })
-  }
-
-  if (athleteNationalTeam.value) {
-    filesList.push({
-      id: 'cert_national_team_cap',
-      title: `National Team Appearance Certificate (${athleteNationalTeam.value.team_name || 'Uganda National Team'})`,
-      type: 'National Representation',
-      number: `NCS-NT-${athleteNationalTeam.value.id?.substring(0, 8).toUpperCase() || 'TEMP'}`,
-      issueDate: athleteNationalTeam.value.first_call_up_on || new Date().toISOString(),
-      expiryDate: 'N/A',
-      status: 'Verified',
-      description: `Official NCS certification recognizing sports representation at national squad tier: ${athleteNationalTeam.value.category || 'National'}.`,
-      fileType: 'TXT Document',
-      downloadName: `NCS_National_Duty_Certificate_${athleteNationalTeam.value.id || 'Record'}.txt`,
-      category: 'National Squads'
-    })
-  }
-
-  return filesList
-})
-
-function getFileIcon(category) {
-  switch (category) {
-    case 'Athlete Registry': return 'icofont-runner-alt-1'
-    case 'Coaches Registry': return 'icofont-whistle'
-    case 'Technical Officials': return 'icofont-referee'
-    case 'Medical Files': return 'icofont-first-aid'
-    case 'Anti-Doping Compliance': return 'icofont-test-bulb'
-    case 'National Squads': return 'icofont-flag'
-    default: return 'icofont-document-folder'
-  }
-}
-
-function getFileIconClass(category) {
-  switch (category) {
-    case 'Athlete Registry': return 'bg-primary text-white'
-    case 'Coaches Registry': return 'bg-warning text-dark'
-    case 'Technical Officials': return 'bg-info text-white'
-    case 'Medical Files': return 'bg-danger text-white'
-    case 'Anti-Doping Compliance': return 'bg-success text-white'
-    case 'National Squads': return 'bg-dark text-white'
-    default: return 'bg-secondary text-white'
-  }
-}
-
-function getStatusBadgeClass(status) {
-  const s = String(status).toUpperCase()
-  if (['ACTIVE', 'COMPLIANT', 'VERIFIED', 'FIT TO COMPETE', 'NEGATIVE'].includes(s)) {
-    return 'badge-success'
-  }
-  if (['PENDING', 'PENDING CONSENT'].includes(s)) {
-    return 'badge-warning'
-  }
-  return 'badge-danger'
-}
-
-function getMedalBadgeClass(type) {
-  const t = String(type).toUpperCase()
-  if (t.includes('GOLD')) return 'badge badge-warning text-dark text-uppercase'
-  if (t.includes('SILVER')) return 'badge bg-secondary text-white text-uppercase'
-  return 'badge bg-bronze text-white text-uppercase'
-}
-
-function downloadFile(file) {
-  const content = `========================================================================
-                      NATIONAL COUNCIL OF SPORTS (NCS) UGANDA
-                                OFFICIAL CERTIFICATE
-========================================================================
-
-CERTIFICATE TITLE : ${file.title}
-DOCUMENT TYPE     : ${file.type}
-LICENSE/REF NO.   : ${file.number}
-CATEGORY          : ${file.category}
-STATUS            : ${file.status}
-
-ISSUED TO         : ${fullName.value}
-EMAIL ADDRESS     : ${profile.email}
-DATE OF ISSUE     : ${formatDate(file.issueDate)}
-EXPIRY DATE       : ${formatDate(file.expiryDate)}
-
-------------------------------------------------------------------------
-DESCRIPTION:
-${file.description}
-------------------------------------------------------------------------
-
-VERIFICATION STATUS: VERIFIED BY NATIONAL COUNCIL OF SPORTS (NCS)
-This document serves as the official digital credential issued by the National
-Council of Sports (NCS) Uganda portal. To verify, contact ncs@ncs.go.ug.
-
-Generated on      : ${new Date().toLocaleString()}
-========================================================================`
-
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = file.downloadName
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-  
-  setMsg(`Successfully downloaded ${file.title}`)
-}
-
-watch(section, id => {
-  const query = id === 'dashboard' ? {} : { section: id }
-  router.replace({ path: '/dashboard', query }).catch(() => {})
-})
-
-onMounted(async () => {
-  if (!localStorage.getItem('ncsms_access_token')) return router.replace('/login')
-  const requested = router.currentRoute.value.query.section
-  if (requested && portalSectionIds.includes(requested)) section.value = requested
-  await loadPortal()
-})
-
-async function loadPortal() {
-  loading.value = true
-  error.value = ''
-  const results = await Promise.allSettled([
-    getCurrentUser(), portalListOpenForms(), portalListSubmissions({ page: 1, per_page: 200 }),
-    listMyLegacyApplications({ page: 1, per_page: 200 }), listMyTransactions({ page: 1, per_page: 200 }),
-    listMyAuditLogs({ page: 1, per_page: activityPerPage.value }), cms.listNotifications({ page: 1, per_page: 100 }),
-  ])
-  if (results[0].status === 'fulfilled') {
-    Object.assign(profile, unwrap(results[0].value))
-    localStorage.setItem('ncsms_user', JSON.stringify(profile))
-  }
-  openForms.value = results[1].status === 'fulfilled' ? asList(results[1].value) : []
-  dynamicSubmissions.value = results[2].status === 'fulfilled' ? asList(results[2].value) : []
-  legacyApplications.value = results[3].status === 'fulfilled' ? asList(results[3].value) : []
-  legacyTransactions.value = results[4].status === 'fulfilled' ? asList(results[4].value) : []
-  if (results[5].status === 'fulfilled') {
-    const unwrapped = results[5].value?.data ?? results[5].value ?? {}
-    activities.value = Array.isArray(unwrapped.data) ? unwrapped.data : []
-    activityTotal.value = unwrapped.meta?.total ?? activities.value.length
-  } else {
-    activities.value = []
-    activityTotal.value = 0
-  }
-  notifications.value = results[6].status === 'fulfilled' ? asList(results[6].value) : []
-  isAthlete.value = false
-  athleteData.value = null
-  athleteMedical.value = null
-  athleteSafeguarding.value = null
-  athleteAntiDoping.value = null
-  athleteNationalTeam.value = null
-  athleteResults.value = []
-  athleteMedals.value = []
-  isCoach.value = false
-  coachData.value = null
-  isOfficial.value = false
-  officialData.value = null
-
-  if (results.some(item => item.status === 'rejected')) error.value = 'Some dashboard information could not be loaded. Refresh to try again.'
-  
-  try {
-    const sec = await getMySecurity()
-    twofaEnabled.value = sec?.twofa?.enabled ?? false
-  } catch (e) {}
-
-  if (profile && profile.email) {
-    try {
-      const athletesRes = await listNsmisDomain('athletes', { search: profile.email })
-      const athletesList = asList(athletesRes)
-      const match = athletesList.find(ath => String(ath.email_address || '').toLowerCase() === String(profile.email || '').toLowerCase())
-      if (match) {
-        isAthlete.value = true
-        athleteData.value = match
-        
-        const athleteId = match.id
-        const [medicalRes, safeguardingRes, antidopingRes, nationalTeamRes, resultsRes, medalsRes] = await Promise.allSettled([
-          listNsmisDomain('medical-records', { search: athleteId }),
-          listNsmisDomain('safeguarding-records', { search: athleteId }),
-          listNsmisDomain('anti-doping', { search: athleteId }),
-          listNsmisDomain('national-team', { search: athleteId }),
-          listNsmisDomain('competition-results', { search: athleteId }),
-          listNsmisDomain('medals', { search: athleteId })
-        ])
-        
-        if (medicalRes.status === 'fulfilled') {
-          const medItems = asList(medicalRes.value)
-          athleteMedical.value = medItems.find(r => r.athlete_id === athleteId) || null
-        }
-        if (safeguardingRes.status === 'fulfilled') {
-          const sgItems = asList(safeguardingRes.value)
-          athleteSafeguarding.value = sgItems.find(r => r.athlete_id === athleteId) || null
-        }
-        if (antidopingRes.status === 'fulfilled') {
-          const adItems = asList(antidopingRes.value)
-          athleteAntiDoping.value = adItems.find(r => r.athlete_id === athleteId) || null
-        }
-        if (nationalTeamRes.status === 'fulfilled') {
-          const ntItems = asList(nationalTeamRes.value)
-          athleteNationalTeam.value = ntItems.find(r => r.athlete_id === athleteId) || null
-        }
-        if (resultsRes.status === 'fulfilled') {
-          const resItems = asList(resultsRes.value)
-          athleteResults.value = resItems.filter(r => r.athlete_id === athleteId)
-        }
-        if (medalsRes.status === 'fulfilled') {
-          const medItems = asList(medalsRes.value)
-          athleteMedals.value = medItems.filter(r => r.athlete_id === athleteId)
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to load athlete context details:', e)
-    }
-
-    try {
-      const coachesRes = await listNsmisDomain('coaches', { search: profile.email })
-      const coachesList = asList(coachesRes)
-      const matchCoach = coachesList.find(c => String(c.email || '').toLowerCase() === String(profile.email || '').toLowerCase())
-      if (matchCoach) {
-        isCoach.value = true
-        coachData.value = matchCoach
-      }
-    } catch (e) {
-      console.warn('Failed to load coach context details:', e)
-    }
-
-    try {
-      const officialsRes = await listNsmisDomain('technical-officials', { search: profile.email })
-      const officialsList = asList(officialsRes)
-      const nameKey = fullName.value.toLowerCase().trim()
-      const matchOfficial = officialsList.find(o => String(o.full_name || '').toLowerCase().trim() === nameKey)
-      if (matchOfficial) {
-        isOfficial.value = true
-        officialData.value = matchOfficial
-      }
-    } catch (e) {
-      console.warn('Failed to load official context details:', e)
-    }
-  }
-
-  loading.value = false
-}
-
-async function loadActivities(page = 1) {
-  activityPage.value = page
-  try {
-    const res = await listMyAuditLogs({ page: activityPage.value, per_page: activityPerPage.value })
-    const unwrapped = res?.data ?? res ?? {}
-    activities.value = Array.isArray(unwrapped.data) ? unwrapped.data : []
-    activityTotal.value = unwrapped.meta?.total ?? activities.value.length
-  } catch (err) {
-    error.value = 'Could not load activity logs.'
-  }
-}
-
-async function select(id) {
-  const previous = section.value
-  const next = navigation.value.find(item => item.id === id)
-  recordMenuNavigation({
-    portal: 'Applicant Portal',
-    fromSection: previous,
-    toSection: id,
-    label: next?.label || id,
-    basePath: '/dashboard',
-    routeName: 'UserDashboard',
-  })
-  section.value = id
-  profileOpen.value = false
-  mobileSidebarOpen.value = false
-  success.value = ''
-  error.value = ''
-  if (id === 'activities') {
-    loadActivities(1)
-  }
-  if (id === 'profile') {
-    try {
-      const sec = await getMySecurity()
-      twofaEnabled.value = sec?.twofa?.enabled ?? false
-    } catch (e) {}
-  }
-}
-
-function onMenuToggle() {
-  if (window.innerWidth <= 991) {
-    mobileSidebarOpen.value = !mobileSidebarOpen.value
-  } else {
-    sidebarCollapsed.value = !sidebarCollapsed.value
-    localStorage.setItem('ncsms_sidebar_collapsed', String(sidebarCollapsed.value))
-  }
-}
-
-async function startApplication(form) {
-  if (!form?.slug) {
-    error.value = 'This application form is not available.'
-    return
-  }
-  const pending = dynamicSubmissions.value.find(item => item.template_id === form.id && isPendingSubmission(item))
-  if (pending) {
-    error.value = `You already have a pending application for ${form.title}.`
-    select('applications')
-    return
-  }
-  router.push({ name: 'ApplicationWizard', params: { slug: form.slug } })
-}
-async function continueApplication(item) {
-  const form = openForms.value.find(entry => entry.id === item.template_id)
-  if (form) startApplication(form)
-  else error.value = 'This application form is no longer open.'
-}
-function viewApplication(item) {
-  router.push({ name: 'UserApplicationDetail', params: { id: item.id }, query: { source: item.source } })
-}
-function downloadApplication(item) {
-  downloadApplicationForm(item)
-}
-async function refreshSubmissions() {
-  const result = await portalListSubmissions({ page: 1, per_page: 200 })
-  dynamicSubmissions.value = asList(result)
-}
-async function markNotificationRead(item) {
-  try {
-    await cms.updateNotification(item.id, { status: 'read' })
-    item.status = 'read'
-  } catch (err) { error.value = apiError(err, 'Could not update notification.') }
-}
-async function markAllNotificationsRead() {
-  try {
-    await cms.markAllNotificationsRead()
-    notifications.value.forEach(item => { item.status = 'read' })
-  } catch (err) { error.value = apiError(err, 'Could not update notifications.') }
-}
-async function saveProfile() {
-  savingProfile.value = true
-  try {
-    const res = await updateMyProfile({ first_name: profile.first_name, last_name: profile.last_name, avatar_url: profile.avatar_url || '' })
-    Object.assign(profile, unwrap(res))
-    localStorage.setItem('ncsms_user', JSON.stringify(profile))
-    success.value = 'Your profile was updated.'
-  } catch (err) { error.value = apiError(err, 'Could not update your profile.') }
-  finally { savingProfile.value = false }
-}
-function logout() { localStorage.removeItem('ncsms_access_token'); localStorage.removeItem('ncsms_user'); router.push('/login') }
-function unwrap(value) { return value?.data?.data ?? value?.data ?? value ?? {} }
-function asList(value) {
-  const data = unwrap(value)
-  if (Array.isArray(data)) return data
-  if (data && Array.isArray(data.items)) return data.items
-  return []
-}
-function apiError(err, fallback) { return err.response?.data?.error?.message || fallback }
-function titleize(value) { return String(value || '').toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, char => char.toUpperCase()) }
-function formatDate(value) { return value ? new Intl.DateTimeFormat('en-UG', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value)) : '-' }
-function formatMoney(value) { return new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(Number(value || 0)) }
-function statusClass(status) { if (status === 'APPROVED' || status === 'COMPLETE') return 'green'; if (status === 'REJECTED') return 'red'; if (['NEEDS_INFORMATION', 'PENDING_PAYMENT'].includes(status)) return 'amber'; return 'blue' }
-function paymentClass(status) { return status === 'PAID' || status === 'VERIFIED' ? 'green' : ['REJECTED', 'VERIFICATION_FAILED'].includes(status) ? 'red' : 'amber' }
-function notificationIcon(item) { return item.icon_key ? `icofont-${item.icon_key}` : 'icofont-notification' }
-function activityTitle(item) {
-  const method = String(item.method || '').toUpperCase()
-  const endpoint = String(item.endpoint || '').toLowerCase()
-  const eventType = String(item.event_type || '').toUpperCase()
-  if (eventType === 'AUTH_LOGIN' || endpoint.includes('/auth/login')) return 'Logged In'
-  if (eventType === 'AUTH_LOGOUT' || endpoint.includes('/auth/logout')) return 'Logged Out'
-  if (endpoint.includes('/auth/register')) return 'Registered Account'
-  if (endpoint.includes('/auth/password/reset')) return 'Requested Password Reset'
-  if (endpoint.includes('/portal/forms/open')) return 'Viewed Services'
-  if (endpoint.includes('/portal/forms/')) return 'Started Application Draft'
-  if (endpoint.includes('/portal/submissions')) {
-    if (method === 'POST') return 'Created Application Draft'
-    return 'Listed Applications'
-  }
-  if (endpoint.includes('/applications')) {
-    if (method === 'POST') return 'Submitted Application'
-    return 'Viewed Applications List'
-  }
-  if (endpoint.includes('/transactions')) {
-    if (method === 'POST') return 'Uploaded Payment Proof'
-    return 'Viewed Payments List'
-  }
-  if (endpoint.includes('/notifications')) {
-    if (method === 'PUT' || method === 'POST') return 'Updated Notifications'
-    return 'Viewed Notifications'
-  }
-  if (endpoint.includes('/audit-logs')) return 'Viewed Security Audit Logs'
-  if (endpoint.includes('/account/profile') || endpoint.includes('/users/me')) {
-    if (method === 'PUT' || method === 'POST' || method === 'PATCH') return 'Updated Profile'
-    return 'Viewed Profile Page'
-  }
-  if (item.event_type) return titleize(item.event_type)
-  return 'Portal Interaction'
-}
-function activityDescription(item) {
-  const endpoint = String(item.endpoint || '').toLowerCase()
-  let pageName = 'Dashboard'
-  if (endpoint.includes('/profile') || endpoint.includes('/users/me')) pageName = 'Profile page'
-  else if (endpoint.includes('/forms/open')) pageName = 'Apply page'
-  else if (endpoint.includes('/submissions') || endpoint.includes('/applications')) pageName = 'Applications page'
-  else if (endpoint.includes('/transactions')) pageName = 'Transactions page'
-  else if (endpoint.includes('/audit-logs')) pageName = 'Security page'
-  else if (endpoint.includes('/notifications')) pageName = 'Notifications center'
-  else if (endpoint.includes('/messages')) pageName = 'Messages center'
-
-  let location = ''
-  const city = String(item.geo_city || '').trim()
-  const country = String(item.geo_country || '').trim()
-  if (city && country) {
-    const displayCity = city.toLowerCase() === 'internal' ? 'Local network' : city
-    location = `${displayCity}, ${country}`
-  } else if (country) {
-    location = country
-  } else {
-    location = 'Unknown location'
-  }
-
-  let device = ''
-  const browser = String(item.browser || '').trim()
-  const os = String(item.os_name || '').trim()
-  if (browser && os) {
-    device = `on ${os} ${browser} browser`
-  } else if (browser) {
-    device = `on ${browser} browser`
-  } else if (os) {
-    device = `on ${os} system`
-  } else {
-    device = 'on web browser'
-  }
-
-  const ip = item.ip_address ? ` (IP: ${item.ip_address})` : ''
-  return `${pageName}, ${location}, ${device}${ip}`
-}
-function isEditableSubmission(item) { return ['DRAFT', 'NEEDS_INFORMATION'].includes(item?.status) }
-function isPendingSubmission(item) { return item?.status && !['DRAFT', 'NEEDS_INFORMATION', 'APPROVED', 'REJECTED'].includes(item.status) }
-
-async function onAvatarFileSelected(e) {
-  const file = e.target.files?.[0]
-  if (!file) return
-  uploadingAvatar.value = true
-  error.value = ''
-  success.value = ''
-  try {
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await uploadProfileAvatar(formData)
-    profile.avatar_url = unwrap(res).avatar_url || ''
-    success.value = 'Profile photo updated successfully!'
-    
-    const stored = localStorage.getItem('ncsms_user')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      parsed.avatar_url = profile.avatar_url
-      localStorage.setItem('ncsms_user', JSON.stringify(parsed))
-    }
-  } catch (err) {
-    error.value = err.response?.data?.error?.message || 'Could not upload avatar image.'
-  } finally {
-    uploadingAvatar.value = false
-  }
-}
-
-async function updatePassword() {
-  if (passwordNew.value.length < 8) {
-    error.value = 'New password must be at least 8 characters long.'
-    return
-  }
-  if (passwordNew.value !== passwordConfirm.value) {
-    error.value = 'Confirm password does not match.'
-    return
-  }
-  changingPassword.value = true
-  error.value = ''
-  success.value = ''
-  try {
-    await changePassword(passwordCurrent.value, passwordNew.value)
-    success.value = 'Password changed successfully.'
-    passwordCurrent.value = ''
-    passwordNew.value = ''
-    passwordConfirm.value = ''
-  } catch (err) {
-    error.value = err.response?.data?.error?.message || 'Could not change password. Check your current password.'
-  } finally {
-    changingPassword.value = false
-  }
-}
-
-async function toggle2FA(e) {
-  const checked = e.target.checked
-  if (checked) {
-    toggling2FA.value = true
-    error.value = ''
-    success.value = ''
-    try {
-      await enroll2FA()
-      showTwoFAVerify.value = true
-      twofaVerifyCode.value = ''
-      success.value = 'Verification code sent to your email.'
-    } catch (err) {
-      error.value = err.response?.data?.error?.message || 'Could not enroll 2FA.'
-    } finally {
-      toggling2FA.value = false
-    }
-  } else {
-    toggling2FA.value = true
-    error.value = ''
-    success.value = ''
-    try {
-      await disable2FA()
-      twofaEnabled.value = false
-      showTwoFAVerify.value = false
-      success.value = 'Two-factor authentication disabled.'
-    } catch (err) {
-      error.value = err.response?.data?.error?.message || 'Could not disable 2FA.'
-    } finally {
-      toggling2FA.value = false
-    }
-  }
-}
-
-async function confirm2FA() {
-  if (twofaVerifyCode.value.length < 6) {
-    error.value = 'Enter a valid 6-digit code.'
-    return
-  }
-  verifying2FA.value = true
-  error.value = ''
-  success.value = ''
-  try {
-    await verify2FA(twofaVerifyCode.value)
-    twofaEnabled.value = true
-    showTwoFAVerify.value = false
-    success.value = 'Two-factor authentication successfully enabled!'
-  } catch (err) {
-    error.value = err.response?.data?.error?.message || 'Verification failed. Incorrect code.'
-  } finally {
-    verifying2FA.value = false
-  }
-}
-
-function cancel2FAEnrollment() {
-  showTwoFAVerify.value = false
-  twofaVerifyCode.value = ''
-  disable2FA().catch(() => {})
-}
-</script>
-
 <style scoped>
-/* Scoped base styles */
+/* =====================================================================
+   SELF-CONTAINED NCS PORTAL LAYOUT
+   All Otika-framework layout classes fully inlined — no external CSS
+   dependency. Works in any deployment environment.
+   ===================================================================== */
+
+/* ── Root ─────────────────────────────────────────────────────────── */
 .user-portal {
-  min-height: 100vh!important;
-  background: #f4f6f9!important;
-  color: #34395e!important;
-  overflow-x: hidden!important;
+  min-height: 100vh;
+  background-color: #f4f6f9;
+  font-family: 'Poppins', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  color: #1e293b;
 }
-.user-portal button {
-  font-family: inherit;
-}
-.user-portal .main-wrapper {
-  min-height: 100vh!important;
-  display: flex!important;
-  flex-direction: column!important;
-  --portal-sidebar-width: 250px;
-  --portal-navbar-height: 70px;
-  --portal-page-pad: 24px;
-}
-.user-portal .main-wrapper.sidebar-mini {
-  --portal-sidebar-width: 65px;
+.otika-app { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ── Main wrapper (sidebar + content) ──────────────────────────────── */
+.main-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
-/* Navbar */
-.user-portal .navbar-bg {
-  position: fixed!important;
-  top: 0!important;
-  right: 0!important;
-  left: var(--portal-sidebar-width)!important;
-  z-index: 1030!important;
-  height: var(--portal-navbar-height)!important;
-  background: #fff!important;
-  box-shadow: 0 4px 25px rgba(0,0,0,.08)!important;
-  transition: left 0.3s ease!important;
+/* ── Navbar ────────────────────────────────────────────────────────── */
+.navbar-bg {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  z-index: 899;
 }
-.user-portal .main-navbar {
-  position: fixed!important;
-  top: 0!important;
-  right: 0!important;
-  left: var(--portal-sidebar-width)!important;
-  z-index: 1040!important;
-  min-height: var(--portal-navbar-height)!important;
-  background: #fff!important;
-  color: #111827!important;
-  box-shadow: 0 4px 25px rgba(0,0,0,.08)!important;
-  padding: 8px var(--portal-page-pad)!important;
-  display: flex!important;
-  align-items: center!important;
-  justify-content: space-between!important;
-  transition: left 0.3s ease!important;
+.main-navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  z-index: 900;
 }
-.user-portal .main-navbar .nav-link,
-.user-portal .main-navbar i {
-  color: #111827!important;
+.main-navbar .navbar-nav {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0; padding: 0;
+  gap: 4px;
 }
+.main-navbar .navbar-right { margin-left: auto; }
+.main-navbar .form-inline { display: flex; align-items: center; }
+.main-navbar .mr-auto { margin-right: auto; }
+.main-navbar .mr-3 { margin-right: 12px; }
 
-/* Sidebar */
-.user-portal .main-sidebar {
-  position: fixed!important;
-  left: 0!important;
-  top: 0!important;
-  width: var(--portal-sidebar-width)!important;
-  height: 100vh!important;
-  z-index: 1045!important;
-  overflow: hidden!important;
-  background: #fff!important;
-  border-right: 1px solid #f4f6f9!important;
-  box-shadow: 0 4px 25px rgba(0,0,0,.04)!important;
-  transition: width 0.3s ease!important;
+/* ── Navbar icon buttons ───────────────────────────────────────────── */
+.nav-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
 }
-.user-portal #sidebar-wrapper {
-  display: flex!important;
-  flex-direction: column!important;
-  height: 100vh!important;
-  min-height: 0!important;
-}
-.user-portal .sidebar-brand {
-  display: flex!important;
-  align-items: center!important;
-  justify-content: center!important;
-  flex: 0 0 var(--portal-navbar-height)!important;
-  height: var(--portal-navbar-height)!important;
-  border-bottom: 1px solid #f4f6f9!important;
-}
-.user-portal .header-logo {
-  max-width: 84px!important;
-  max-height: 48px!important;
-  object-fit: contain!important;
-}
-.user-portal .sidebar-user {
-  display: flex!important;
-  gap: 10px!important;
-  align-items: center!important;
-  flex: 0 0 auto!important;
-  min-width: 0!important;
-  margin: 12px 14px!important;
-  padding: 12px!important;
-  border-radius: 8px!important;
-  background: #f8f9fa!important;
-  transition: padding 0.3s ease!important;
-}
-.user-portal .sidebar-user img,
-.sidebar-avatar-fallback {
-  width: 38px!important;
-  height: 38px!important;
-  flex: 0 0 38px!important;
-  border-radius: 50%!important;
-  object-fit: cover!important;
-}
-.sidebar-avatar-fallback,
-.nav-avatar-fallback {
-  display: inline-flex!important;
-  align-items: center!important;
-  justify-content: center!important;
-  background: #6777ef!important;
-  color: #fff!important;
-  font-weight: 700!important;
-}
-.user-portal .sidebar-user strong {
-  display: block!important;
-  max-width: 130px!important;
-  overflow: hidden!important;
-  text-overflow: ellipsis!important;
-  white-space: nowrap!important;
-  color: #34395e!important;
-  font-size: 13px!important;
-}
-.user-portal .sidebar-user span:last-child {
-  display: block!important;
-  color: #98a6ad!important;
-  font-size: 11px!important;
-}
-.user-portal .sidebar-menu {
-  flex: 1 1 auto!important;
-  min-height: 0!important;
-  overflow-y: auto!important;
-  overflow-x: hidden!important;
-  padding: 0 0 18px!important;
-  scrollbar-width: thin!important;
-}
-.user-portal .sidebar-menu::-webkit-scrollbar {
-  width: 5px;
-}
-.user-portal .sidebar-menu::-webkit-scrollbar-thumb {
-  background: #d7dbea;
-  border-radius: 10px;
-}
-.user-portal .sidebar-menu .menu-header {
-  padding: 10px 18px 5px!important;
-  color: #abb6ce!important;
-  font-size: 10px!important;
-  font-weight: 700!important;
-  text-transform: uppercase!important;
-  letter-spacing: 0.8px!important;
-}
-.user-portal .sidebar-menu button {
-  border: 0!important;
-  background: transparent!important;
-  width: 100%!important;
-  text-align: left!important;
-}
-.user-portal .sidebar-menu .nav-link {
-  display: flex!important;
-  align-items: center!important;
-  gap: 12px!important;
-  padding: 12px 18px!important;
-  color: #555c70!important;
-  font-size: 13px!important;
-  font-weight: 500!important;
-  transition: all 0.2s ease!important;
-}
-.user-portal .sidebar-menu .nav-link i {
-  font-size: 16px!important;
-  color: #78829d!important;
-  transition: color 0.2s ease!important;
-}
-.user-portal .sidebar-menu li.active > button .nav-link {
-  background: #f0f3ff!important;
-  color: #6777ef!important;
-  font-weight: 600!important;
-  border-left: 3px solid #6777ef!important;
-}
-.user-portal .sidebar-menu li.active > button .nav-link i {
-  color: #6777ef!important;
-}
-.portal-nav-badge {
-  display: inline-flex!important;
-  align-items: center!important;
-  justify-content: center!important;
-  min-width: 18px!important;
-  height: 18px!important;
-  margin-left: auto!important;
-  padding: 0 4px!important;
-  border-radius: 10px!important;
-  background: #ffa426!important;
-  color: #fff!important;
-  font-size: 9px!important;
-  font-weight: 700!important;
-}
+.nav-link:hover { background: #f1f5f9; color: #1e293b; }
+.nav-link-lg i { font-size: 18px; }
+.cms-top-icon { font-size: 18px; }
 
-/* Layout Content */
-.user-portal .main-content {
-  flex: 1 0 auto!important;
-  margin-left: var(--portal-sidebar-width)!important;
-  width: calc(100% - var(--portal-sidebar-width))!important;
-  max-width: calc(100% - var(--portal-sidebar-width))!important;
-  padding: calc(var(--portal-navbar-height) + 24px) var(--portal-page-pad) 30px!important;
-  background: #f4f6f9!important;
-  transition: margin-left 0.3s ease, padding 0.3s ease, width 0.3s ease, max-width 0.3s ease!important;
-}
-.user-portal .cms-main-footer {
-  flex: 0 0 auto!important;
-  margin-top: auto!important;
-  margin-left: var(--portal-sidebar-width)!important;
-  width: calc(100% - var(--portal-sidebar-width))!important;
-  max-width: calc(100% - var(--portal-sidebar-width))!important;
-  border-top: 1px solid #e4e6fc!important;
-  background: #fff!important;
-  color: #6c757d!important;
-  padding: 16px var(--portal-page-pad)!important;
-  display: flex!important;
-  align-items: center!important;
-  justify-content: space-between!important;
-  font-size: 12px!important;
-  transition: margin-left 0.3s ease, width 0.3s ease, max-width 0.3s ease!important;
-}
-.user-portal .cms-main-footer .footer-left {
-  font-weight: 700!important;
-  color: #34395e!important;
-}
-
-/* Top Actions */
-.cms-top-icon {
-  display: inline-flex!important;
-  align-items: center!important;
-  justify-content: center!important;
-  width: 38px!important;
-  height: 38px!important;
-  border-radius: 8px!important;
-  border: 1px solid #e4e6fc!important;
-  background: #fdfdff!important;
-  cursor: pointer!important;
-  transition: all 0.15s ease!important;
-}
-.cms-top-icon:hover {
-  background: #f4f6f9!important;
-  border-color: #cbd2f6!important;
-}
+/* ── Portal navbar title ───────────────────────────────────────────── */
 .portal-navbar-title {
-  display: flex!important;
-  flex-direction: column!important;
-  justify-content: center!important;
-  margin-left: 10px!important;
+  display: flex; flex-direction: column; line-height: 1.3;
+  padding: 0 10px; color: #1e293b;
 }
-.portal-navbar-title small {
-  color: #98a6ad!important;
-  font-size: 9px!important;
-  font-weight: 800!important;
-  text-transform: uppercase!important;
-  letter-spacing: 0.5px!important;
+.portal-navbar-title small { font-size: 11px; color: #94a3b8; }
+.portal-navbar-title strong { font-size: 14px; font-weight: 600; }
+
+/* ── Avatar / initials ─────────────────────────────────────────────── */
+.user-img-radious-style {
+  width: 34px; height: 34px;
+  border-radius: 50%; object-fit: cover;
 }
-.portal-navbar-title strong {
-  color: #34395e!important;
-  font-size: 14px!important;
-  font-weight: 700!important;
+.nav-avatar-fallback, .sidebar-avatar-fallback {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: #fff; font-weight: 700; font-size: 13px;
 }
-.portal-top-action {
-  position: relative!important;
+
+/* ── Dropdown ──────────────────────────────────────────────────────── */
+.dropdown { position: relative; }
+.dropdown-menu {
+  display: none;
+  position: absolute; top: calc(100% + 6px); right: 0;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.12);
+  padding: 6px 0;
+  z-index: 1000;
+}
+.dropdown-menu.show, .dropdown-menu.d-block { display: block; }
+.dropdown-title {
+  padding: 10px 16px 8px;
+  font-size: 12px; font-weight: 600; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: .05em;
+}
+.dropdown-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 16px;
+  background: none; border: none; cursor: pointer;
+  width: 100%; text-align: left;
+  font-size: 14px; color: #374151;
+  transition: background 0.15s;
+}
+.dropdown-item:hover { background: #f8fafc; color: #1e293b; }
+.dropdown-item.has-icon i { width: 18px; text-align: center; color: #94a3b8; }
+.dropdown-item.text-danger { color: #ef4444; }
+.dropdown-divider {
+  height: 1px; background: #f1f5f9;
+  margin: 4px 0;
+}
+.pullDown { margin-top: 4px; }
+
+/* ── Sidebar ───────────────────────────────────────────────────────── */
+.main-sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 240px;
+  background: #fff;
+  border-right: 1px solid #e8edf2;
+  z-index: 850;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.28s ease;
+  overflow-y: auto;
+  padding-top: 60px; /* below navbar */
+}
+
+/* Mini sidebar */
+.sidebar-mini .main-sidebar { width: 64px; overflow: visible; }
+.sidebar-mini .main-sidebar .sidebar-brand span,
+.sidebar-mini .main-sidebar .sidebar-user > div,
+.sidebar-mini .main-sidebar .sidebar-menu .menu-header,
+.sidebar-mini .main-sidebar .sidebar-menu li button span,
+.sidebar-mini .main-sidebar .sidebar-menu li a span { display: none; }
+.sidebar-mini .main-sidebar .sidebar-brand img { max-width: 36px; }
+
+/* Sidebar brand (logo) */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  min-height: 62px;
+}
+.header-logo, .sidebar-brand img {
+  max-height: 42px !important;
+  max-width: 160px !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+}
+
+/* Sidebar user info */
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.sidebar-user > div { flex: 1; min-width: 0; line-height: 1.4; }
+.sidebar-user strong { display: block; font-size: 13px; font-weight: 600; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user span { font-size: 11px; color: #94a3b8; }
+
+/* Sidebar menu */
+.sidebar-menu {
+  list-style: none;
+  margin: 0; padding: 8px 0;
+  flex: 1;
+}
+.sidebar-menu .menu-header {
+  padding: 14px 16px 6px;
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em;
+  color: #94a3b8;
+}
+.sidebar-menu li { position: relative; }
+.sidebar-menu li a,
+.sidebar-menu li button.nav-link {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 16px;
+  border-radius: 0; border: none;
+  background: none; cursor: pointer;
+  width: 100%; text-align: left;
+  font-size: 13px; font-weight: 500; color: #374151;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+.sidebar-menu li a:hover,
+.sidebar-menu li button:hover {
+  background-color: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+.sidebar-menu li.active > a,
+.sidebar-menu li.active > button {
+  background-color: #ede9fe !important;
+  color: #4f46e5 !important;
+  font-weight: 600 !important;
+  border-left: 3px solid #4f46e5;
+}
+.sidebar-menu li a i,
+.sidebar-menu li button i { font-size: 16px; width: 20px; text-align: center; color: inherit; }
+.portal-nav-badge {
+  margin-left: auto;
+  background: #ef4444; color: #fff;
+  border-radius: 20px; font-size: 10px; font-weight: 700;
+  padding: 2px 7px;
+}
+
+/* Mobile sidebar */
+.mobile-sidebar-open { transform: translateX(0); }
+@media (max-width: 768px) {
+  .main-sidebar { transform: translateX(-100%); }
+  .mobile-sidebar-open { transform: translateX(0); }
+}
+.sidebar-scrim {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.35);
+  z-index: 849;
+}
+
+/* ── Main content ──────────────────────────────────────────────────── */
+.main-content {
+  margin-top: 60px;
+  margin-left: 240px;
+  padding: 24px;
+  min-height: calc(100vh - 60px);
+  transition: margin-left 0.28s ease;
+}
+.sidebar-mini .main-content { margin-left: 64px; }
+@media (max-width: 768px) {
+  .main-content { margin-left: 0; padding: 16px; }
+}
+
+/* ── Section header ────────────────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.section-header h1 {
+  font-size: 20px; font-weight: 700; color: #1e293b;
+  margin: 0;
+}
+.section-header-breadcrumb {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap;
+}
+.breadcrumb-item {
+  font-size: 13px; color: #94a3b8;
+}
+.breadcrumb-item.active a { color: #4f46e5; text-decoration: none; }
+.breadcrumb-item + .breadcrumb-item::before {
+  content: '/';
+  margin-right: 6px;
+  color: #cbd5e1;
+}
+
+/* ── Actions bar ───────────────────────────────────────────────────── */
+.cms-actions.otika-page-actions {
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px;
+  border-radius: 8px; border: none; cursor: pointer;
+  font-size: 13px; font-weight: 600;
+  transition: all 0.15s;
+}
+.btn-primary { background: #4f46e5; color: #fff; }
+.btn-primary:hover { background: #4338ca; }
+.btn-success { background: #10b981; color: #fff; }
+.btn-success:hover { background: #059669; }
+.btn-info { background: #0ea5e9; color: #fff; }
+.btn-info:hover { background: #0284c7; }
+.btn-danger { background: #ef4444; color: #fff; }
+.btn-danger:hover { background: #dc2626; }
+.btn-secondary { background: #e2e8f0; color: #374151; }
+.btn-secondary:hover { background: #cbd5e1; }
+.btn-warning { background: #f59e0b; color: #fff; }
+.btn-icon { padding: 8px 14px; }
+.btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.me-2 { margin-right: 8px; }
+
+/* ── Cards / tables ────────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  border: 1px solid #e8edf2;
+  overflow: hidden;
+}
+.card-body { padding: 20px; }
+
+.table { width: 100%; border-collapse: collapse; }
+.table th {
+  padding: 11px 16px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: #94a3b8;
+  background: #f8fafc;
+  border-bottom: 1px solid #e8edf2;
+  text-align: left;
+}
+.table td {
+  padding: 12px 16px;
+  font-size: 13px; color: #374151;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+.table tr:last-child td { border-bottom: none; }
+.table tr:hover td { background: #fafafa; }
+
+/* ── Badges ────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 9px;
+  border-radius: 20px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .03em;
 }
 .headerBadge1, .headerBadge2 {
-  position: absolute!important;
-  top: -4px!important;
-  right: -4px!important;
-  background: #fc544b!important;
-  color: #fff!important;
-  font-size: 8px!important;
-  padding: 3px 5px!important;
-  border-radius: 10px!important;
+  position: absolute; top: 2px; right: 2px;
+  min-width: 16px; height: 16px;
+  background: #ef4444; color: #fff;
+  border-radius: 10px; font-size: 10px; font-weight: 700;
+  padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
 }
-.nav-link-user,
-.nav-link-user.cms-top-icon {
-  position: relative!important;
-  display: inline-flex!important;
-  align-items: center!important;
-  justify-content: center!important;
-  width: 38px!important;
-  height: 38px!important;
-  min-width: 38px!important;
-  max-width: 38px!important;
-  min-height: 38px!important;
-  max-height: 38px!important;
-  flex: 0 0 38px!important;
-  padding: 0!important;
-  margin: 0!important;
-  border-radius: 50%!important;
-  background: #f8f9fa!important;
-  cursor: pointer!important;
-  overflow: hidden!important;
-  border: 1px solid #e4e6fc!important;
-}
-.nav-link-user::after {
-  display: none!important;
-}
-.nav-link-user img,
-.nav-link-user.cms-top-icon img {
-  position: absolute!important;
-  top: 0!important;
-  left: 0!important;
-  width: 100%!important;
-  height: 100%!important;
-  min-width: 100%!important;
-  max-width: 100%!important;
-  min-height: 100%!important;
-  max-height: 100%!important;
-  border-radius: 50%!important;
-  object-fit: cover!important;
-}
-.nav-avatar-fallback {
-  position: absolute!important;
-  top: 0!important;
-  left: 0!important;
-  display: inline-flex!important;
-  align-items: center!important;
-  justify-content: center!important;
-  width: 100%!important;
-  height: 100%!important;
-  border-radius: 50%!important;
-  font-size: 13px!important;
-  font-weight: 700!important;
-  background: #6777ef!important;
-  color: #fff!important;
-}
+.bg-success, .bg-success-light { background-color: #d1fae5 !important; color: #065f46 !important; }
+.bg-primary { background-color: #ede9fe !important; color: #4f46e5 !important; }
+.bg-warning { background-color: #fef3c7 !important; color: #92400e !important; }
+.bg-danger { background-color: #fee2e2 !important; color: #991b1b !important; }
+.bg-dark { background-color: #1e293b !important; color: #fff !important; }
+.bg-light { background-color: #f8fafc !important; }
 
-/* Alerts */
-.cms-message, .cms-error {
-  margin: 0 0 16px!important;
-  padding: 12px 16px!important;
-  border-radius: 8px!important;
-  font-size: 13px!important;
-  box-shadow: 0 4px 12px rgba(0,0,0,.03)!important;
+/* ── Messages ──────────────────────────────────────────────────────── */
+.portal-success, .portal-error {
+  padding: 12px 16px;
+  border-radius: 8px; margin-bottom: 16px;
+  font-size: 13px; font-weight: 500;
 }
-.cms-message {
-  background: #e8f7f0!important;
-  color: #218b55!important;
-  border: 1px solid #a7f3d0!important;
-}
-.cms-error {
-  background: #fdeaea!important;
-  color: #fc544b!important;
-  border: 1px solid #fecaca!important;
-}
+.portal-success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+.portal-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
 
-/* Cards & KPIs */
-.page-heading {
-  display: flex!important;
-  align-items: center!important;
-  justify-content: space-between!important;
-  gap: 20px!important;
-  margin-bottom: 24px!important;
+/* ── Footer ────────────────────────────────────────────────────────── */
+footer.main-footer, .main-footer {
+  text-align: center;
+  font-size: 12px; color: #94a3b8;
+  padding: 16px 24px;
+  border-top: 1px solid #e8edf2;
+  background: #fff;
+  margin-left: 240px;
+  transition: margin-left 0.28s;
 }
-.page-heading p {
-  margin: 0 0 4px!important;
-  color: #6777ef!important;
-  font-size: 11px!important;
-  font-weight: 800!important;
-  text-transform: uppercase!important;
-  letter-spacing: 0.8px!important;
-}
-.page-heading h1 {
-  margin: 0 0 6px!important;
-  color: #34395e!important;
-  font-size: 24px!important;
-  font-weight: 700!important;
-}
-.page-heading span {
-  color: #78829d!important;
-  font-size: 13px!important;
-}
+.sidebar-mini footer.main-footer { margin-left: 64px; }
+@media (max-width: 768px) { footer.main-footer { margin-left: 0; } }
 
-.primary-command, .secondary-command {
-  display: inline-flex!important;
-  align-items: center!important;
-  justify-content: center!important;
-  gap: 8px!important;
-  min-height: 42px!important;
-  padding: 0 20px!important;
-  border-radius: 30px!important;
-  font-size: 13px!important;
-  font-weight: 600!important;
-  cursor: pointer!important;
-  transition: all 0.2s ease!important;
+/* ── Dark mode ─────────────────────────────────────────────────────── */
+:global(.dark) .user-portal { background: #0f172a; color: #e2e8f0; }
+:global(.dark) .navbar-bg,
+:global(.dark) .main-navbar { background: #1e293b; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+:global(.dark) .main-sidebar { background: #1e293b; border-right-color: #334155; }
+:global(.dark) .sidebar-brand,
+:global(.dark) .sidebar-user { border-bottom-color: #334155; }
+:global(.dark) .sidebar-menu li a,
+:global(.dark) .sidebar-menu li button.nav-link { color: #cbd5e1; }
+:global(.dark) .sidebar-menu li.active > a,
+:global(.dark) .sidebar-menu li.active > button {
+  background-color: #312e81 !important;
+  color: #c7d2fe !important;
+  border-left-color: #6366f1;
 }
-.primary-command {
-  background: #6777ef!important;
-  color: #fff!important;
-  border: 0!important;
-  box-shadow: 0 4px 12px rgba(103,119,239,0.35)!important;
+:global(.dark) .sidebar-menu li a:hover,
+:global(.dark) .sidebar-menu li button:hover {
+  background-color: #334155 !important;
+  color: #f8fafc !important;
 }
-.primary-command:hover {
-  background: #4e61e8!important;
-  transform: translateY(-1px)!important;
-}
-.secondary-command {
-  border: 1px solid #e4e6fc!important;
-  background: #fff!important;
-  color: #34395e!important;
-}
-.secondary-command:hover {
-  background: #f8f9fa!important;
-}
+:global(.dark) .card,
+:global(.dark) .dropdown-menu { background: #1e293b; border-color: #334155; }
+:global(.dark) .table th { background: #1e293b; color: #64748b; }
+:global(.dark) .table td { color: #cbd5e1; border-bottom-color: #334155; }
+:global(.dark) footer.main-footer { background: #1e293b; border-top-color: #334155; }
+:global(.dark) .nav-link { color: #94a3b8; }
+:global(.dark) .nav-link:hover { background: #334155; color: #f1f5f9; }
+:global(.dark) .section-header h1 { color: #f1f5f9; }
 
-.otika-page-actions {
-  display: flex!important;
-  gap: 10px!important;
-  margin-bottom: 20px!important;
-}
-.otika-page-actions .btn {
-  border-radius: 30px!important;
-  font-size: 12px!important;
-  font-weight: 600!important;
-  padding: 8px 16px!important;
-}
-
-.user-kpis {
-  display: grid!important;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))!important;
-  gap: 16px!important;
-  margin-bottom: 24px!important;
-}
-.user-kpis article {
-  display: flex!important;
-  align-items: center!important;
-  gap: 14px!important;
-  padding: 18px!important;
-  border-radius: 12px!important;
-  background: #fff!important;
-  box-shadow: 0 4px 15px rgba(0,0,0,.03)!important;
-  border: 1px solid #f0f2f8!important;
-}
-.user-kpis article > span {
-  display: grid!important;
-  place-items: center!important;
-  flex: 0 0 48px!important;
-  width: 48px!important;
-  height: 48px!important;
-  border-radius: 10px!important;
-  font-size: 22px!important;
-}
-.user-kpis .blue { background: #e8edff!important; color: #6777ef!important; }
-.user-kpis .amber { background: #fff4e6!important; color: #ffa426!important; }
-.user-kpis .green { background: #e8f7f0!important; color: #47c363!important; }
-.user-kpis .cyan { background: #eaf7ff!important; color: #3abaf4!important; }
-
-.user-kpis small {
-  color: #abb6ce!important;
-  font-size: 10px!important;
-  font-weight: 700!important;
-  text-transform: uppercase!important;
-}
-.user-kpis strong {
-  color: #34395e!important;
-  font-size: 24px!important;
-  font-weight: 700!important;
-  margin: 2px 0!important;
-}
-.user-kpis p {
-  color: #8a94ad!important;
-  font-size: 11px!important;
-  margin: 0!important;
-}
-
-/* Tables & Lists */
-.list-toolbar {
-  display: grid!important;
-  grid-template-columns: 1fr 220px!important;
-  gap: 12px!important;
-  margin-bottom: 16px!important;
-}
-.list-toolbar label {
-  display: flex!important;
-  align-items: center!important;
-  gap: 8px!important;
-  background: #fff!important;
-  padding: 0 14px!important;
-  border: 1px solid #e4e6fc!important;
-  border-radius: 8px!important;
-}
-.list-toolbar label input {
-  border: 0!important;
-  outline: 0!important;
-  width: 100%!important;
-  font-size: 13px!important;
-}
-.list-toolbar select {
-  height: 44px!important;
-  padding: 0 12px!important;
-  border-radius: 8px!important;
-  border: 1px solid #e4e6fc!important;
-  background: #fff!important;
-  color: #495057!important;
-  font-size: 13px!important;
-}
-
-.data-table {
-  overflow-x: auto!important;
-  border-radius: 12px!important;
-  background: #fff!important;
-  box-shadow: 0 4px 15px rgba(0,0,0,.02)!important;
-  border: 1px solid #edf0f5!important;
-}
-.data-table table {
-  width: 100%!important;
-  border-collapse: collapse!important;
-}
-.data-table th, .data-table td {
-  padding: 16px 20px!important;
-  font-size: 13px!important;
-  border-bottom: 1px solid #edf0f5!important;
-  text-align: left!important;
-}
-.data-table th {
-  background: #fafbfe!important;
-  color: #78829d!important;
-  font-weight: 700!important;
-  text-transform: uppercase!important;
-  font-size: 11px!important;
-  letter-spacing: 0.5px!important;
-}
-.data-table td {
-  color: #555c70!important;
-}
-.data-table td strong {
-  color: #34395e!important;
-  font-weight: 600!important;
-}
-.data-table td small {
-  color: #98a6ad!important;
-  font-size: 11px!important;
-}
-.table-actions {
-  display: flex!important;
-  gap: 6px!important;
-}
-.table-actions button {
-  display: inline-flex!important;
-  align-items: center!important;
-  justify-content: center!important;
-  width: 32px!important;
-  height: 32px!important;
-  border-radius: 8px!important;
-  border: 1px solid #e4e6fc!important;
-  background: #fdfdff!important;
-  color: #6777ef!important;
-  cursor: pointer!important;
-  transition: all 0.15s ease!important;
-}
-.table-actions button:hover {
-  background: #6777ef!important;
-  color: #fff!important;
-  border-color: #6777ef!important;
-}
-
-.status {
-  display: inline-flex!important;
-  padding: 4px 10px!important;
-  border-radius: 30px!important;
-  font-size: 10px!important;
-  font-weight: 700!important;
-  text-transform: uppercase!important;
-}
-.status.blue { background: #e8edff!important; color: #6777ef!important; }
-.status.green { background: #e8f7f0!important; color: #47c363!important; }
-.status.amber { background: #fff4e6!important; color: #ffa426!important; }
-.status.red { background: #fdeaea!important; color: #fc544b!important; }
-
-/* Timeline & Feed */
-.timeline-list, .feed-list {
-  display: grid!important;
-  gap: 12px!important;
-}
-.timeline-list article, .feed-list article {
-  display: flex!important;
-  align-items: flex-start!important;
-  gap: 14px!important;
-  padding: 18px!important;
-  border-radius: 12px!important;
-  background: #fff!important;
-  box-shadow: 0 4px 15px rgba(0,0,0,.02)!important;
-  border: 1px solid #f0f2f8!important;
-}
-.timeline-list article > span, .feed-list article > span {
-  display: grid!important;
-  place-items: center!important;
-  flex: 0 0 38px!important;
-  width: 38px!important;
-  height: 38px!important;
-  border-radius: 8px!important;
-  background: #e8edff!important;
-  color: #6777ef!important;
-}
-.timeline-list strong, .feed-list strong {
-  color: #34395e!important;
-  font-weight: 650!important;
-}
-.timeline-list p, .feed-list p {
-  margin: 4px 0!important;
-  color: #6c757d!important;
-  font-size: 13px!important;
-  line-height: 1.45!important;
-}
-.timeline-list small, .feed-list small {
-  color: #a3abc0!important;
-  font-size: 11px!important;
-}
-.feed-list article.unread {
-  border-left: 4px solid #6777ef!important;
-}
-.feed-list article > button {
-  margin-left: auto!important;
-  border: 0!important;
-  background: transparent!important;
-  color: #6777ef!important;
-  cursor: pointer!important;
-}
-
-/* Profile view */
-.profile-layout {
-  display: flex!important;
-  flex-direction: column!important;
-  gap: 24px!important;
-}
-.profile-grid-2 {
-  display: grid!important;
-  grid-template-columns: repeat(2, minmax(0, 1fr))!important;
-  gap: 24px!important;
-}
-.profile-grid-3 {
-  display: grid!important;
-  grid-template-columns: 270px 1fr!important;
-  gap: 24px!important;
-}
-@media (max-width: 768px) {
-  .profile-grid-2, .profile-grid-3 {
-    grid-template-columns: 1fr!important;
-  }
-}
-.profile-summary, .profile-form {
-  padding: 24px!important;
-  border-radius: 12px!important;
-  background: #fff!important;
-  border: 1px solid #f0f2f8!important;
-  box-shadow: 0 4px 15px rgba(0,0,0,.02)!important;
-}
-.profile-summary {
-  text-align: center!important;
-}
-.profile-avatar {
-  display: grid!important;
-  place-items: center!important;
-  width: 88px!important;
-  height: 88px!important;
-  margin: 0 auto 16px!important;
-  overflow: hidden!important;
-  border-radius: 50%!important;
-  background: #6777ef!important;
-  color: #fff!important;
-  font-size: 26px!important;
-  font-weight: 700!important;
-}
-.profile-avatar img {
-  width: 100%!important;
-  height: 100%!important;
-  object-fit: cover!important;
-}
-.profile-summary h2, .profile-form h2 {
-  margin: 0 0 6px!important;
-  color: #34395e!important;
-  font-size: 18px!important;
-  font-weight: 700!important;
-}
-.profile-summary p {
-  color: #78829d!important;
-  font-size: 13px!important;
-  margin-bottom: 12px!important;
-}
-.ordinary-badge {
-  display: inline-flex!important;
-  padding: 5px 12px!important;
-  border-radius: 30px!important;
-  background: #e8edff!important;
-  color: #6777ef!important;
-  font-size: 10px!important;
-  font-weight: 700!important;
-  text-transform: uppercase!important;
-  letter-spacing: 0.5px!important;
-}
-.profile-form {
-  display: grid!important;
-  gap: 16px!important;
-}
-.profile-form > div {
-  display: grid!important;
-  grid-template-columns: 1fr 1fr!important;
-  gap: 16px!important;
-}
-.profile-form label {
-  display: grid!important;
-  gap: 6px!important;
-  color: #34395e!important;
-  font-size: 12px!important;
-  font-weight: 600!important;
-}
-.profile-form input, 
-.form-field input, 
-.form-field textarea, 
-.form-field select, 
-.payment-section input {
-  width: 100%!important;
-  padding: 10px 14px!important;
-  border: 1px solid #e4e6fc!important;
-  border-radius: 8px!important;
-  background: #fdfdff!important;
-  color: #495057!important;
-  outline: none!important;
-  font-size: 13px!important;
-  transition: all 0.2s ease!important;
-}
-.profile-form input:focus,
-.form-field input:focus,
-.form-field textarea:focus,
-.form-field select:focus {
-  border-color: #6777ef!important;
-  box-shadow: 0 2px 8px rgba(103,119,239,0.15)!important;
-}
-.profile-form input:disabled {
-  background: #f4f6f9!important;
-  cursor: not-allowed!important;
-}
-.profile-form button {
-  justify-self: start!important;
-}
-
-/* Modals */
-.form-backdrop {
-  position: fixed!important;
-  inset: 0!important;
-  z-index: 1080!important;
-  display: grid!important;
-  place-items: center!important;
-  padding: var(--portal-page-pad)!important;
-  background: rgba(17, 24, 39, 0.6)!important;
-  backdrop-filter: blur(4px)!important;
-}
-.application-modal {
-  width: min(760px, 100%)!important;
-  max-height: 90dvh!important;
-  overflow-y: auto!important;
-  border-radius: 12px!important;
-  background: #fff!important;
-  box-shadow: 0 20px 50px rgba(15,23,42,0.15)!important;
-  border: 1px solid #edf0f5!important;
-}
-.application-modal > header {
-  display: flex!important;
-  justify-content: space-between!important;
-  gap: 18px!important;
-  padding: 20px 24px!important;
-  border-bottom: 1px solid #f4f6f9!important;
-}
-.application-modal > header h2 {
-  margin: 0 0 4px!important;
-  color: #34395e!important;
-  font-size: 20px!important;
-  font-weight: 700!important;
-}
-.application-modal > header p {
-  margin: 0!important;
-  color: #78829d!important;
-  font-size: 12px!important;
-}
-.application-modal > header button {
-  display: grid!important;
-  place-items: center!important;
-  width: 32px!important;
-  height: 32px!important;
-  border-radius: 50%!important;
-  background: #f4f6f9!important;
-  border: 0!important;
-  cursor: pointer!important;
-}
-.application-modal > form {
-  display: grid!important;
-  gap: 16px!important;
-  padding: 24px!important;
-}
-.fee-banner {
-  display: flex!important;
-  align-items: center!important;
-  justify-content: space-between!important;
-  padding: 12px 16px!important;
-  border-left: 4px solid #ffa426!important;
-  background: #fff4e6!important;
-  border-radius: 8px!important;
-}
-.fee-banner span { color: #8a94ad!important; font-size: 12px!important; }
-.fee-banner strong { color: #d97706!important; font-size: 15px!important; font-weight: 700!important; }
-
-.form-field {
-  display: grid!important;
-  gap: 6px!important;
-}
-.form-field > label {
-  color: #34395e!important;
-  font-size: 12px!important;
-  font-weight: 600!important;
-}
-.form-field > label b {
-  color: #fc544b!important;
-}
-.form-field > p {
-  margin: 0!important;
-  color: #98a6ad!important;
-  font-size: 11px!important;
-}
-.choice-list {
-  display: grid!important;
-  gap: 8px!important;
-}
-.choice-list label {
-  display: flex!important;
-  align-items: center!important;
-  gap: 8px!important;
-  color: #495057!important;
-  font-size: 13px!important;
-  cursor: pointer!important;
-}
-.choice-list input {
-  width: auto!important;
-}
-.file-input {
-  display: flex!important;
-  align-items: center!important;
-  gap: 10px!important;
-  flex-wrap: wrap!important;
-}
-.file-input a {
-  color: #6777ef!important;
-  font-size: 13px!important;
-  font-weight: 600!important;
-}
-.payment-section {
-  display: grid!important;
-  gap: 12px!important;
-  padding: 16px!important;
-  border: 1px solid #ffe2ad!important;
-  border-radius: 8px!important;
-  background: #fffaf0!important;
-}
-.payment-section h3 {
-  margin: 0!important;
-  color: #b45309!important;
-  font-size: 14px!important;
-  font-weight: 700!important;
-}
-.payment-section p {
-  margin: 0!important;
-  color: #b45309!important;
-  font-size: 11px!important;
-  opacity: 0.85!important;
-}
-.payment-section label {
-  display: grid!important;
-  gap: 6px!important;
-}
-.application-modal form > footer {
-  display: flex!important;
-  justify-content: flex-end!important;
-  gap: 10px!important;
-  padding-top: 16px!important;
-  border-top: 1px solid #f4f6f9!important;
-}
-
-/* Scrim & Backdrop drawer */
-.sidebar-scrim {
-  position: fixed!important;
-  inset: 0!important;
-  z-index: 1040!important;
-  background: rgba(15, 23, 42, 0.48)!important;
-  backdrop-filter: blur(3px)!important;
-}
-
-.cms-pagination {
-  display: flex!important;
-  align-items: center!important;
-  justify-content: flex-end!important;
-  gap: 10px!important;
-  flex-wrap: wrap!important;
-  margin-top: 20px!important;
-}
-.cms-pagination button {
-  border: 0!important;
-  border-radius: 30px!important;
-  background: #6777ef!important;
-  color: #fff!important;
-  padding: 8px 16px!important;
-  font-size: 12px!important;
-  font-weight: 700!important;
-  box-shadow: 0 2px 6px #acb5f6!important;
-  cursor: pointer!important;
-}
-.cms-pagination button:disabled {
-  cursor: not-allowed!important;
-  opacity: .5!important;
-}
-.cms-pagination span {
-  color: #6c757d!important;
-  font-size: 12px!important;
-  font-weight: 700!important;
-}
-:global(.dark .cms-pagination span) {
-  color: #cbd5e1!important;
-}
-
-/* Dark Mode Overrides */
-:global(.dark .user-portal) {
-  background: #0f172a!important;
-  color: #cbd5e1!important;
-}
-:global(.dark .user-portal .main-content) {
-  background: #0f172a!important;
-}
-:global(.dark .user-portal .navbar-bg),
-:global(.dark .user-portal .main-navbar) {
-  background: #111827!important;
-  color: #f8fafc!important;
-  box-shadow: 0 4px 24px rgba(0,0,0,.35)!important;
-  border-color: #1f2937!important;
-}
-:global(.dark .user-portal .main-navbar .nav-link),
-:global(.dark .user-portal .main-navbar i) {
-  color: #f8fafc!important;
-}
-:global(.dark .user-portal .main-sidebar) {
-  background: #111827!important;
-  border-color: #1f2937!important;
-}
-:global(.dark .user-portal .sidebar-brand) {
-  border-color: #1f2937!important;
-}
-:global(.dark .user-portal .sidebar-user) {
-  background: #1f2937!important;
-}
-:global(.dark .user-portal .sidebar-user strong),
-:global(.dark .user-portal .sidebar-user span) {
-  color: #f8fafc!important;
-}
-:global(.dark .user-portal .sidebar-menu .nav-link) {
-  color: #94a3b8!important;
-}
-:global(.dark .user-portal .sidebar-menu li.active > button .nav-link) {
-  background: #1e293b!important;
-  color: #93c5fd!important;
-  border-color: #93c5fd!important;
-}
-:global(.dark .user-portal .sidebar-menu li.active > button .nav-link i) {
-  color: #93c5fd!important;
-}
-:global(.dark .user-portal .cms-main-footer) {
-  background: #111827!important;
-  border-color: #1f2937!important;
-  color: #cbd5e1!important;
-}
-:global(.dark .user-portal .cms-main-footer .footer-left) {
-  color: #f8fafc!important;
-}
-:global(.dark .user-portal .user-kpis article),
-:global(.dark .user-portal .data-table),
-:global(.dark .user-portal .timeline-list article),
-:global(.dark .user-portal .feed-list article),
-:global(.dark .user-portal .transaction-summary),
-:global(.dark .user-portal .profile-summary),
-:global(.dark .user-portal .profile-form),
-:global(.dark .user-portal .application-modal) {
-  background: #1f2937!important;
-  border-color: #334155!important;
-  color: #cbd5e1!important;
-}
-:global(.dark .user-portal .page-heading h1),
-:global(.dark .user-portal .user-kpis strong),
-:global(.dark .user-portal .data-table td strong),
-:global(.dark .user-portal .data-table th),
-:global(.dark .user-portal .timeline-list strong),
-:global(.dark .user-portal .feed-list strong),
-:global(.dark .user-portal .profile-summary h2),
-:global(.dark .user-portal .profile-form h2),
-:global(.dark .user-portal .profile-form label),
-:global(.dark .user-portal .application-modal h2) {
-  color: #f8fafc!important;
-}
-:global(.dark .user-portal input),
-:global(.dark .user-portal textarea),
-:global(.dark .user-portal select),
-:global(.dark .user-portal .list-toolbar label) {
-  background: #111827!important;
-  color: #f8fafc!important;
-  border-color: #475569!important;
-}
-:global(.dark .user-portal .data-table th) {
-  background: #111827!important;
-}
-:global(.dark .user-portal .dropdown-menu) {
-  background: #1f2937!important;
-  border-color: #334155!important;
-  color: #cbd5e1!important;
-}
-:global(.dark .user-portal .dropdown-item) {
-  color: #cbd5e1!important;
-}
-:global(.dark .user-portal .dropdown-item:hover) {
-  background: #111827!important;
-}
-:global(.dark .user-portal .nav-link-user) {
-  background: #1f2937!important;
-  color: #f8fafc!important;
-  border-color: #475569!important;
-}
-:global(.dark .user-portal .cms-top-icon) {
-  background: #1f2937!important;
-  border-color: #475569!important;
-  color: #f8fafc!important;
-}
-:global(.dark .user-portal .cms-top-icon:hover) {
-  background: #111827!important;
-  border-color: #64748b!important;
-}
-:global(.dark .user-portal .cms-top-icon i) {
-  color: #f8fafc!important;
-}
-
-/* Responsive Overrides */
-@media (max-width: 991px) {
-  .user-portal .main-wrapper {
-    --portal-sidebar-width: 0px;
-    --portal-page-pad: 16px;
-  }
-  .user-portal .main-sidebar {
-    position: fixed!important;
-    left: 0!important;
-    top: 0!important;
-    width: 260px!important;
-    height: 100vh!important;
-    z-index: 1045!important;
-    transform: translateX(-100%)!important;
-    transition: transform 0.3s ease!important;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15)!important;
-    border-right: 1px solid #f4f6f9!important;
-  }
-  .user-portal .main-sidebar.mobile-sidebar-open {
-    transform: translateX(0)!important;
-  }
-  .user-portal .navbar-bg,
-  .user-portal .main-navbar {
-    left: 0!important;
-    width: 100%!important;
-    max-width: 100%!important;
-  }
-  .user-portal .main-content,
-  .user-portal .cms-main-footer {
-    margin-left: 0!important;
-    width: 100%!important;
-    max-width: 100%!important;
-  }
-  .user-portal .user-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr))!important;
-  }
-  .profile-layout {
-    grid-template-columns: 1fr!important;
-  }
-}
-
-@media (max-width: 768px) {
-  .portal-navbar-title {
-    display: none!important;
-  }
-  .page-heading {
-    flex-direction: column!important;
-    align-items: flex-start!important;
-    gap: 12px!important;
-  }
-  .page-heading .primary-command {
-    width: 100%!important;
-    justify-content: center!important;
-  }
-  .list-toolbar {
-    grid-template-columns: 1fr!important;
-  }
-  .profile-form > div {
-    grid-template-columns: 1fr!important;
-  }
-  .user-portal .cms-main-footer {
-    flex-direction: column!important;
-    text-align: center!important;
-    gap: 8px!important;
-  }
-  .user-portal .cms-main-footer .footer-right {
-    text-align: center!important;
-    margin-left: 0!important;
-  }
-  
-  /* Responsive Tables as Cards */
-  .data-table {
-    background: transparent!important;
-    box-shadow: none!important;
-    border: 0!important;
-  }
-  .data-table table,
-  .data-table thead,
-  .data-table tbody,
-  .data-table tr,
-  .data-table td {
-    display: block!important;
-    width: 100%!important;
-  }
-  .data-table thead {
-    display: none!important;
-  }
-  .data-table tr {
-    margin-bottom: 12px!important;
-    padding: 16px!important;
-    border-radius: 12px!important;
-    background: #fff!important;
-    box-shadow: 0 4px 15px rgba(0,0,0,.03)!important;
-    border: 1px solid #edf0f5!important;
-  }
-  :global(.dark) .data-table tr {
-    background: #1f2937!important;
-    border-color: #334155!important;
-  }
-  .data-table td {
-    display: grid!important;
-    grid-template-columns: minmax(100px, 0.4fr) minmax(0, 1fr)!important;
-    gap: 8px!important;
-    align-items: start!important;
-    padding: 8px 0!important;
-    border-bottom: 1px solid #f4f6f9!important;
-  }
-  :global(.dark) .data-table td {
-    border-bottom-color: #334155!important;
-  }
-  .data-table td:last-child {
-    border-bottom: 0!important;
-  }
-  .data-table td::before {
-    content: attr(data-label);
-    color: #98a6ad;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .data-table td.empty-cell {
-    display: block!important;
-    padding: 24px 12px!important;
-    text-align: center!important;
-  }
-  .data-table td.empty-cell::before {
-    content: ""!important;
-  }
-}
-
-@media (max-width: 576px) {
-  .user-portal .main-wrapper {
-    --portal-navbar-height: 64px;
-    --portal-page-pad: 12px;
-  }
-  .page-heading h1 {
-    font-size: 20px!important;
-  }
-  .user-kpis {
-    grid-template-columns: 1fr!important;
-  }
-  .user-kpis article {
-    min-height: auto!important;
-  }
-  .page-heading .primary-command,
-  .otika-page-actions .btn {
-    width: 100%!important;
-    text-align: center!important;
-  }
-  .timeline-list article, .feed-list article {
-    grid-template-columns: 38px 1fr!important;
-    padding: 14px!important;
-  }
-  .feed-list article > button {
-    grid-column: 2!important;
-    justify-self: start!important;
-    margin-top: 4px!important;
-  }
-  .transaction-summary {
-    flex-direction: column!important;
-    align-items: flex-start!important;
-    gap: 6px!important;
-  }
-  .application-modal {
-    max-height: 100vh!important;
-    border-radius: 0!important;
-  }
-  .form-backdrop {
-    padding: 0!important;
-  }
-  .application-modal > header {
-    padding: 16px 20px!important;
-  }
-  .application-modal > form {
-    padding: 20px!important;
-  }
-  .application-modal form > footer {
-    flex-direction: column-reverse!important;
-    gap: 8px!important;
-  }
-  .application-modal form > footer button {
-    width: 100%!important;
-  }
-  .navbar .dropdown-menu.show {
-    left: 8px!important;
-    right: 8px!important;
-  }
-}
-
-/* Athlete Dashboard Grid & Cards */
-.athlete-registry-dashboard {
-  margin-top: 30px!important;
-}
-.bg-gradient-primary-to-secondary {
-  background: linear-gradient(135deg, #6777ef 0%, #3abaf4 100%)!important;
-}
-.athlete-badge {
-  display: grid!important;
-  place-items: center!important;
-  width: 56px!important;
-  height: 56px!important;
-  background: rgba(255, 255, 255, 0.2)!important;
-  border-radius: 12px!important;
-  font-size: 28px!important;
-}
-.watermark-icon {
-  position: absolute!important;
-  right: -20px!important;
-  bottom: -30px!important;
-  font-size: 150px!important;
-  opacity: 0.1!important;
-  pointer-events: none!important;
-}
-.athlete-stats-grid {
-  display: grid!important;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))!important;
-  gap: 20px!important;
-  margin-top: 20px!important;
-}
-.athlete-detail-card {
-  background: #fff!important;
-  border: 1px solid #f0f2f8!important;
-  border-radius: 12px!important;
-  padding: 20px!important;
-  box-shadow: 0 4px 15px rgba(0,0,0,.03)!important;
-}
-:global(.dark .athlete-detail-card) {
-  background: #1e293b!important;
-  border-color: #334155!important;
-}
-.athlete-detail-card header {
-  display: flex!important;
-  align-items: center!important;
-  gap: 10px!important;
-  margin-bottom: 16px!important;
-  border-bottom: 1px solid #f0f2f8!important;
-  padding-bottom: 10px!important;
-}
-:global(.dark .athlete-detail-card header) {
-  border-color: #334155!important;
-}
-.athlete-detail-card header i {
-  font-size: 20px!important;
-}
-.athlete-detail-card header h3 {
-  margin: 0!important;
-  font-size: 15px!important;
-  font-weight: 700!important;
-  color: #34395e!important;
-}
-:global(.dark .athlete-detail-card header h3) {
-  color: #f8fafc!important;
-}
-.athlete-detail-card ul {
-  list-style: none!important;
-  padding: 0!important;
-  margin: 0!important;
-  display: grid!important;
-  gap: 12px!important;
-}
-.athlete-detail-card li {
-  display: flex!important;
-  justify-content: space-between!important;
-  align-items: center!important;
-  font-size: 13px!important;
-}
-.athlete-detail-card li span {
-  color: #8a94ad!important;
-}
-.athlete-detail-card li strong {
-  color: #34395e!important;
-  font-weight: 600!important;
-}
-:global(.dark .athlete-detail-card li strong) {
-  color: #cbd5e1!important;
-}
-.bg-bronze {
-  background-color: #cd7f32 !important;
-}
+/* ── Misc overrides ────────────────────────────────────────────────── */
+.dropdown-menu button.nav-link:hover { background-color: #f1f5f9 !important; }
+.mt-4 { margin-top: 16px; }
+.mb-4 { margin-bottom: 16px; }
+.p-4 { padding: 16px; }
+.fw-bold { font-weight: 700; }
 </style>

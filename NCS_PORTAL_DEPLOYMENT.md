@@ -1,164 +1,129 @@
-# NCS Portal Deployment and Modification Instructions
+# NCS Cloud Infrastructure Credentials & Deployment Reference
 
-Deployment completed: July 11, 2026.
+This document contains production connection details, seeded administrative accounts, database credentials, and deployment tokens for the entire NCS multi-branch cluster on VPS `169.58.210.57`.
 
-## Live Deployment
+---
 
-- Frontend URL: http://104.219.248.160:9081/
-- Health check: http://104.219.248.160:9081/healthz
-- Seeded admin email: `admin@ncs.go.ug`
-- Seeded admin password: `NCS@Admin2026!`
-- Seeded admin role: `super_admin`
+## 1. VPS Server & SSH Access
 
-Rotate the seeded admin password after first login.
+| Property | Value |
+|---|---|
+| **Primary IPv4** | `169.58.210.57` |
+| **Server Type** | Cloud VPS 4 (2026) |
+| **Location** | Hub Europe |
+| **Operating System** | Ubuntu 24.04.4 LTS (Noble Numbat) |
+| **SSH Port** | `22` |
+| **Root Username** | `root` |
+| **Root Password** | `EnJk1eeto3R4E3QPPbh` *(SSH Password login disabled for security)* |
+| **Admin User** | `fidi` |
+| **Admin Password** | `@Fr1caObuaObali` |
+| **Sudo Privileges** | `ALL=(ALL) NOPASSWD:ALL` |
+| **SSH Key Used** | `~/.ssh/ncs_online_vps` (`ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOTSg/DLIaUrmAUZm7bqHiaBVTRpU0hgXnQ184t8lss6`) |
 
-## VPS Layout
-
-- NCS Portal app path: `/opt/ncsportal`
-- NCS Portal compose project: `ncsportal`
-- NCS Portal env file: `/opt/ncsportal/.env`
-- NCS Portal HTTP port: `9081`
-- NCS Portal HTTPS container port mapping: `9444`
-- NCS Portal Postgres host port: `5436`
-
-`ncswebsite` is a separate project and must remain separate:
-
-- NCS Website app path: `/opt/ncs-website`
-- NCS Website HTTP port: `9080`
-- NCS Website HTTPS container port mapping: `9443`
-- NCS Website Postgres host port: `5435`
-
-Do not deploy NCS Portal into `/opt/ncs-website`.
-
-## What Was Done
-
-- Removed only the old FreeRADIUS/daloRADIUS containers to free space.
-- Preserved `ncswebsite`, `aegis`, and `monjaro`.
-- Restored `ncswebsite` from its pre-deploy backup and verified `/healthz`.
-- Deployed this project separately as `ncsportal` under `/opt/ncsportal`.
-- Verified NCS Portal frontend, backend `/healthz`, location service health, and seeded admin login.
-
-## Routine Operations
-
-SSH to the VPS, then use:
-
+### SSH Connection Command
 ```bash
-cd /opt/ncsportal
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml ps
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml logs -f backend nginx
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml restart
+ssh -i ~/.ssh/ncs_online_vps fidi@169.58.210.57
 ```
 
-Check portal health:
+---
 
-```bash
-curl -fsS http://127.0.0.1:9081/healthz
-docker exec ncsportal-location-service-1 curl -fsS http://127.0.0.1:8090/health
-```
+## 2. Deployed Applications & Public Endpoints
 
-Check that the website is still separate and healthy:
+| System | Branch | Production Path | Public Endpoint | Status |
+|---|---|---|---|---|
+| **NCS Website** | `website` | `/opt/ncs-website` | [https://ncsweb.atenimedia.com](https://ncsweb.atenimedia.com) | **Live (SSL TLSv1.3)** |
+| **NCS Portal** | `portal` | `/opt/ncs-portal` | [https://ncsportal.atenimedia.com](https://ncsportal.atenimedia.com) | **Live (SSL TLSv1.3)** |
+| **NCS Intranet** | `intranet` | `/opt/ncs-intranet` | [https://ncsintranet.atenimedia.com](https://ncsintranet.atenimedia.com) | **Live (SSL TLSv1.3)** |
+| **NCS Bot** | `ncsbot` | `/opt/ncs-bot` | `http://169.58.210.57:3100` | **Live (Port 3100)** |
 
-```bash
-curl -fsS http://127.0.0.1:9080/healthz
-docker ps --format '{{.Names}} {{.Status}} {{.Ports}}' | grep -E 'ncsportal|ncswebsite|aegis|monjaro'
-```
+---
 
-## Deploy an Update
+## 3. Seeded Administrative Accounts
 
-From the local Windows workspace:
+### NCS Website, NCS Portal & NCS Intranet (Unified Super Admin)
+The Go-based platforms share the initial seeded superadmin schema across their independent databases:
 
-```powershell
-$archive = Join-Path $env:TEMP 'ncsportal-deploy.tar.gz'
-Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
-tar --exclude='.git' --exclude='.agents' --exclude='.claude' --exclude='.codex' --exclude='Credentials.md' --exclude='.env' --exclude='frontend/node_modules' --exclude='frontend/dist' -czf $archive -C 'C:\NCSPortal' .
-scp -P <ssh-port> $archive root@server1.eventspix.online:/tmp/ncsportal-deploy.tar.gz
-```
+| Field | Value |
+|---|---|
+| **Email / Username** | `admin@ncs.go.ug` |
+| **Password** | `NCS@Admin2026!` |
+| **Assigned Role** | `super_admin` (`role_super_admin`) |
+| **User ID** | `usr_super_admin_001` |
+| **Permissions** | Unrestricted system-wide access (CMS, NAMIS, Departmental modules) |
 
-On the VPS:
+### NCS Bot (Chatwoot Service)
+| Field | Value |
+|---|---|
+| **Onboarding URL** | `http://169.58.210.57:3100/installation/onboarding` |
+| **Recommended Email** | `admin@ncs.go.ug` |
+| **Recommended Password** | `NCS@Admin2026!` |
+| **Account Type** | SuperAdmin / Platform Owner |
 
-```bash
-set -e
-stamp=$(date -u +%Y%m%d-%H%M%S)
-mkdir -p /root/ncsportal-backups
-tar -czf /root/ncsportal-backups/ncsportal-src-$stamp.tgz -C /opt ncsportal
+---
 
-rm -rf /opt/ncsportal-new
-mkdir -p /opt/ncsportal-new
-tar -xzf /tmp/ncsportal-deploy.tar.gz -C /opt/ncsportal-new
-cp /opt/ncsportal/.env /opt/ncsportal-new/.env
+## 4. Git Repository & Deployment Credentials
 
-cd /opt/ncsportal
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml down --remove-orphans
+| Property | Value |
+|---|---|
+| **Repository URL** | `https://github.com/JoshuaObua/NCSOnline.git` |
+| **Git Username** | `JoshuaObua` |
+| **GitHub Token (PAT)** | `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` |
+| **Authenticated Git Remote (VPS)** | `https://JoshuaObua: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@github.com/JoshuaObua/NCSOnline.git` |
 
-cd /opt
-mv ncsportal ncsportal-prev-$stamp
-mv ncsportal-new ncsportal
+---
 
-cd /opt/ncsportal
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml up -d --build
-curl -fsS http://127.0.0.1:9081/healthz
-```
+## 5. Database Credentials
 
-After verification, remove the previous source folder if it is no longer needed:
+Each system operates on its own dedicated PostgreSQL instance with persistent data volumes:
 
-```bash
-rm -rf /opt/ncsportal-prev-<timestamp>
-```
+### NCS Website Database
+- **Host (Inside Docker)**: `postgres:5432`
+- **Host (Local VPS port)**: `127.0.0.1:5432`
+- **Database Name**: `ncswebsite`
+- **Username**: `ncswebsite_user`
+- **Password**: Configured in `/opt/ncs-website/.env`
+- **Data Volume**: `website_postgres_data`
 
-Do not remove Docker volumes unless you intentionally want to delete portal data.
+### NCS Portal Database
+- **Host (Inside Docker)**: `postgres:5432`
+- **Host (Local VPS port)**: `127.0.0.1:5436`
+- **Database Name**: `ncsportal`
+- **Username**: `ncsportal_user`
+- **Password**: Configured in `/opt/ncs-portal/.env`
+- **Data Volume**: `portal_postgres_data`
 
-## Roll Back
+### NCS Intranet Database
+- **Host (Inside Docker)**: `postgres:5432`
+- **Host (Local VPS port)**: `127.0.0.1:5437`
+- **Database Name**: `ncsintranet`
+- **Username**: `ncsintranet_user`
+- **Password**: Configured in `/opt/ncs-intranet/.env`
+- **Data Volume**: `intranet_postgres_data`
 
-If an update fails, stop the current portal folder and restore the previous one:
+### NCS Bot Database & Redis
+- **PostgreSQL Host**: `ncsbot-postgres:5432`
+- **Database Name**: `ncsbot`
+- **Username**: `ncsbot`
+- **Password**: Configured in `/opt/ncs-bot/.env`
+- **Data Volume**: `ncsbot_postgres`
+- **Redis Host**: `ncsbot-redis:6379`
+- **Data Volume**: `ncsbot_redis`
+- **Storage Volume**: `ncsbot_storage`
 
-```bash
-cd /opt/ncsportal
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml down --remove-orphans
+---
 
-cd /opt
-mv ncsportal ncsportal-failed-$(date -u +%Y%m%d-%H%M%S)
-mv ncsportal-prev-<timestamp> ncsportal
+## 6. SSL / TLS Certificate Details
 
-cd /opt/ncsportal
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml up -d --build
-curl -fsS http://127.0.0.1:9081/healthz
-```
+- **Certificate Authority**: Let's Encrypt
+- **Covered Domains**: `ncsweb.atenimedia.com`, `ncsportal.atenimedia.com`, `ncsintranet.atenimedia.com`
+- **Certificate Path**: `/etc/letsencrypt/live/ncsweb.atenimedia.com/fullchain.pem`
+- **Private Key Path**: `/etc/letsencrypt/live/ncsweb.atenimedia.com/privkey.pem`
+- **Auto-Renewal Cron**: Configured at `03:00` daily
+- **Renewal Command**:
+  ```bash
+  cd /opt/ncs-website && sudo docker compose run --rm --entrypoint certbot certbot renew --quiet && sudo docker compose exec nginx nginx -s reload
+  ```
 
-## Environment Notes
+---
+*Created: August 20, 2026*
 
-Edit `/opt/ncsportal/.env` for portal-only configuration, then restart the stack.
-
-Important values:
-
-- `COMPOSE_PROJECT_NAME=ncsportal`
-- `PUBLIC_APP_URL=http://104.219.248.160:9081`
-- `ALLOWED_ORIGINS=http://104.219.248.160:9081,http://127.0.0.1:9081`
-- `NGINX_HOST_HTTP_PORT=9081`
-- `NGINX_HOST_HTTPS_PORT=9444`
-- `POSTGRES_HOST_PORT=5436`
-- `DATABASE_URL=postgres://ncsportal_user:<password>@postgres:5432/ncsportal?sslmode=disable`
-
-Timeout format differs by service:
-
-- Backend Go durations use values like `3s`.
-- Location service numeric values use plain seconds, for example `LOCATION_PROVIDER_TIMEOUT=2` and `LOCATION_GATE_TIMEOUT=2`.
-
-## Domain Option
-
-`monjaro_proxy` owns ports `80` and `443`. To serve NCS Portal on a domain, add a Caddy reverse proxy rule in the monjaro/Caddy configuration that points the portal domain to:
-
-```text
-127.0.0.1:9081
-```
-
-Keep any existing `ncswebsite` domain block pointed at its own service.
-
-## Frontend/Layout Changes
-
-The deployed source includes the dashboard layout updates from this workspace. For future UI work:
-
-- User dashboard view: `frontend/src/views/UserPortalView.vue`
-- Open forms panel: `frontend/src/components/portal/OpenFormsPanel.vue`
-- Frontend build command: `cd frontend && npm run build`
-
-Rebuild and redeploy the full portal stack after frontend changes so the `ncsportal-frontend` image gets the new assets.
