@@ -221,9 +221,11 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import * as cms from '@/api/cms.js'
 
 const emit = defineEmits(['saved', 'cancel', 'message', 'error'])
+const router = useRouter()
 
 const roles = ref([])
 const saving = ref(false)
@@ -311,6 +313,9 @@ async function submitForm() {
 
 function handleCancel() {
   emit('cancel')
+  if (router) {
+    router.push({ path: '/portal', query: { section: 'manage-users' } })
+  }
 }
 </script>
 

@@ -11,7 +11,7 @@
         <button type="button" class="btn btn-outline" :disabled="loading" @click="loadUsers">
           <i class="icofont-refresh" :class="{ 'icofont-spin': loading }"></i> Refresh
         </button>
-        <button type="button" class="btn btn-primary" @click="$emit('navigate', 'users')">
+        <button id="btn-add-new-user" type="button" class="btn btn-primary btn-add-new-user" @click="goToCreateUser">
           <i class="icofont-plus-circle"></i> Add New User
         </button>
       </div>
@@ -372,11 +372,21 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
 import * as cms from '@/api/cms.js'
 import apiClient from '@/api/client.js'
 
 const emit = defineEmits(['message', 'error', 'navigate'])
+const router = useRouter()
+
+function goToCreateUser() {
+  emit('navigate', 'users')
+  if (router) {
+    router.push({ path: '/portal', query: { section: 'users' } })
+  }
+}
+
 
 const users = ref([])
 const roles = ref([])

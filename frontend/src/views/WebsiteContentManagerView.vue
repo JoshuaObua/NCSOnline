@@ -2499,6 +2499,17 @@ function syncCareerDepartment() {
   if (selected) careerForm.department = selected.name
   else if (!careerForm.department_id) careerForm.department = ''
 }
+
+watch(() => route.query.section, (newSection) => {
+  const target = newSection || 'overview'
+  if (target && target !== active.value && allowedPortalSectionIds.has(target)) {
+    if (canAccessSection(target)) {
+      active.value = target
+      if (['users', 'manage-users'].includes(target) && !users.value.length) loadUsers()
+    }
+  }
+}, { immediate: true })
+
 function selectSection(id) {
   if (!canAccessSection(id)) {
     setErr(new Error('You do not have permission to access that portal section.'))
@@ -2519,6 +2530,9 @@ function selectSection(id) {
     return
   }
   active.value = id
+  if (router.currentRoute.value.query.section !== id) {
+    router.replace({ path: '/portal', query: id === 'overview' ? {} : { section: id } })
+  }
   messagesOpen.value = false
   notificationsOpen.value = false
   profileOpen.value = false
