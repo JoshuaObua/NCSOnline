@@ -132,6 +132,12 @@
                     <span :class="item[col.key] ? 'badge bg-success-light text-success' : 'badge bg-danger-light text-danger'">{{ item[col.key] ? 'Yes' : 'No' }}</span>
                   </span>
                   <span v-else-if="col.type === 'date'">{{ formatDate(item[col.key]) }}</span>
+                  <span v-else-if="col.type === 'file_dropzone'">
+                    <span v-if="formatDocCount(item[col.key]) > 0" class="badge bg-primary-light text-primary">
+                      <i class="icofont-attachment"></i> {{ formatDocCount(item[col.key]) }} document(s)
+                    </span>
+                    <span v-else class="text-muted">-</span>
+                  </span>
                   <span v-else-if="col.type === 'json'">
                     <span class="json-summary" :title="JSON.stringify(item[col.key])">{{ formatJsonField(item[col.key]) }}</span>
                   </span>
@@ -239,6 +245,15 @@
               />
             </div>
 
+            <!-- Custom Dropzone Document Upload -->
+            <div v-else-if="field.type === 'file_dropzone'" class="searchable-select-field">
+              <DropzoneDocumentUpload
+                :id="`manager-${field.key}`"
+                v-model="formPayload[field.key]"
+                :required="field.required"
+              />
+            </div>
+
             <div v-else-if="field.type === 'boolean'" class="checkbox-container">
               <input type="checkbox" v-model="formPayload[field.key]" />
               <span>Enable / Active Protection</span>
@@ -282,6 +297,7 @@ import { registryResources } from '@/utils/namisRegistryConfig.js'
 import SearchableAgeCategorySelect from '@/components/ui/SearchableAgeCategorySelect.vue'
 import SearchableAthleteSelect from '@/components/ui/SearchableAthleteSelect.vue'
 import SearchableCompetitionSelect from '@/components/ui/SearchableCompetitionSelect.vue'
+import DropzoneDocumentUpload from '@/components/ui/DropzoneDocumentUpload.vue'
 
 const props = defineProps({
   userScope: { type: Array, default: () => [] },
@@ -796,6 +812,20 @@ function formatDate(val) {
   if (!val) return '-'
   const d = new Date(val)
   return isNaN(d.getTime()) ? val : d.toLocaleDateString('en-GB')
+}
+
+function formatDocCount(val) {
+  if (!val) return 0
+  if (Array.isArray(val)) return val.length
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val)
+      if (Array.isArray(parsed)) return parsed.length
+    } catch {
+      return val.split(',').filter(Boolean).length
+    }
+  }
+  return 0
 }
 
 // Helpers for reference name mappings

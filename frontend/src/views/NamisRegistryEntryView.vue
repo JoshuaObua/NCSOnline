@@ -77,6 +77,12 @@
             :loading="loadingReferences"
             placeholder="Search user by Name, NIN, or Email..."
           />
+          <DropzoneDocumentUpload
+            v-else-if="item.type === 'file_dropzone'"
+            :id="`registry-${item.key}`"
+            v-model="form[item.key]"
+            :required="item.required"
+          />
           <label v-else-if="item.type === 'boolean'" class="checkbox-field">
             <input :id="`registry-${item.key}`" v-model="form[item.key]" type="checkbox" />
             <span>Yes</span>
@@ -108,6 +114,7 @@ import SearchableAgeCategorySelect from '@/components/ui/SearchableAgeCategorySe
 import SearchableAthleteSelect from '@/components/ui/SearchableAthleteSelect.vue'
 import SearchableCompetitionSelect from '@/components/ui/SearchableCompetitionSelect.vue'
 import SearchableUserSelect from '@/components/ui/SearchableUserSelect.vue'
+import DropzoneDocumentUpload from '@/components/ui/DropzoneDocumentUpload.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -179,7 +186,7 @@ function initialiseForm() {
   for (const item of definition.value?.fields || []) form[item.key] = item.type === 'boolean' ? false : ''
   if (resource.value === 'equipment') form.unit = 'ITEM'
 }
-function isWide(item) { return ['textarea', 'json'].includes(item.type) || ['full_name','item_name','name','reference'].includes(item.key) }
+function isWide(item) { return ['textarea', 'json', 'file_dropzone'].includes(item.type) || ['full_name','item_name','name','reference'].includes(item.key) }
 function readable(value) { return String(value).toLowerCase().replaceAll('_', ' ').replace(/\b\w/g, char => char.toUpperCase()) }
 
 function extractArray(res) {
