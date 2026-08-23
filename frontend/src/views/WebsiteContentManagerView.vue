@@ -1878,6 +1878,27 @@ const routeOnlySections = [
 ]
 const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections, ...namisSections, ...routeOnlySections]
 const allowedPortalSectionIds = new Set(sections.map(section => section.id))
+
+function determineInitialActiveSection() {
+  const path = window.location.pathname
+  if (path && path.includes('/namis/') && path.endsWith('/new')) {
+    return 'namis-registry-new'
+  }
+  const params = new URLSearchParams(window.location.search)
+  const requested = params.get('section')
+  if (requested && allowedPortalSectionIds.has(requested)) {
+    return requested
+  }
+  if (params.get('code')) return 'storage'
+  return 'overview'
+}
+
+const initialSec = determineInitialActiveSection()
+if (initialSec) {
+  active.value = initialSec
+  if (initialSec.startsWith('namis-')) namisGroupOpen.value = true
+}
+
 const currentSection = computed(() => sections.find(s => s.id === active.value) || sections[0])
 
 const sectionPermissionMap = {
@@ -2399,17 +2420,13 @@ onMounted(() => {
     return
   }
   const params = new URLSearchParams(window.location.search)
-  // Returning from the Google Drive OAuth consent screen lands back on this
-  // same route with ?code=&state= — land on the Storage Settings tab so the
-  // admin sees the connect flow finish instead of the Overview tab.
-  if (router.currentRoute.value.name === 'NamisRegistryCreate') {
+  const path = window.location.pathname
+  if (router.currentRoute.value.name === 'NamisRegistryCreate' || route.name === 'NamisRegistryCreate' || (path && path.includes('/namis/') && path.endsWith('/new'))) {
     active.value = 'namis-registry-new'
     namisGroupOpen.value = true
   } else if (params.get('code')) {
     active.value = 'storage'
   } else {
-    // Restore the active panel from the URL (?section=) so a browser refresh
-    // keeps the admin on the same section instead of resetting to Overview.
     const requested = params.get('section')
     if (requested && requested !== active.value && sections.some(s => s.id === requested) && canAccessSection(requested)) {
       active.value = requested
@@ -2431,6 +2448,8 @@ onUnmounted(() => {
 // is shareable. router.replace avoids polluting history; existing query params
 // (e.g. the OAuth code/state) are preserved. Overview keeps a clean URL.
 watch(active, (id) => {
+  const path = window.location.pathname
+  if (route.name === 'NamisRegistryCreate' || (path && path.includes('/namis/') && path.endsWith('/new'))) return
   const currentQuery = router.currentRoute.value.query
   if ((currentQuery.section || 'overview') === id) return
   const query = { ...currentQuery }
@@ -2440,17 +2459,16 @@ watch(active, (id) => {
 })
 
 // Vue Router reuses this dashboard component when navigating from /portal to
-// /portal/namis/:resource/new. onMounted therefore does not run again, so keep
-// the visible panel synchronized with the named route explicitly.
+// /portal/namis/:resource/new. Synchronize visible panel with route explicitly.
 watch(
-  () => [route.name, route.params.resource, route.query.section],
-  ([name, , requestedSection]) => {
-    if (name === 'NamisRegistryCreate') {
+  () => [route.name, route.params.resource, route.query.section, route.path],
+  ([name, , requestedSection, path]) => {
+    if (name === 'NamisRegistryCreate' || (path && path.includes('/namis/') && path.endsWith('/new'))) {
       active.value = 'namis-registry-new'
       namisGroupOpen.value = true
       return
     }
-    if (name === 'PortalDashboard') {
+    if (name === 'PortalDashboard' || !name) {
       const requested = String(requestedSection || 'overview')
       active.value = sections.some(section => section.id === requested) && canAccessSection(requested)
         ? requested
@@ -2458,6 +2476,7 @@ watch(
       namisGroupOpen.value = active.value.startsWith('namis-')
     }
   },
+  { immediate: true },
 )
 
 function fields(short = [], long = []) {
