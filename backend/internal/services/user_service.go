@@ -195,9 +195,20 @@ func (s *UserService) AssignRole(ctx context.Context, userID, roleID, assignedBy
 	}
 
 	// Permission scoping check
-	globalAssign, err := s.users.HasAnyPermission(ctx, assignedBy, "users:roles")
+	globalAssign, err := s.users.HasAnyPermission(ctx, assignedBy, "users:roles", "users:write", "*", "users:assign")
 	if err != nil {
 		return fmt.Errorf("permission check: %w", err)
+	}
+	if !globalAssign {
+		roles, rErr := s.users.GetRoles(ctx, assignedBy)
+		if rErr == nil {
+			for _, r := range roles {
+				if r.Name == "super_admin" || r.Name == "admin" {
+					globalAssign = true
+					break
+				}
+			}
+		}
 	}
 
 	if !globalAssign {
@@ -242,9 +253,20 @@ func (s *UserService) RemoveRole(ctx context.Context, userID, roleID, actorID st
 	}
 
 	// Permission scoping check
-	globalAssign, err := s.users.HasAnyPermission(ctx, actorID, "users:roles")
+	globalAssign, err := s.users.HasAnyPermission(ctx, actorID, "users:roles", "users:write", "*", "users:assign")
 	if err != nil {
 		return fmt.Errorf("permission check: %w", err)
+	}
+	if !globalAssign {
+		roles, rErr := s.users.GetRoles(ctx, actorID)
+		if rErr == nil {
+			for _, r := range roles {
+				if r.Name == "super_admin" || r.Name == "admin" {
+					globalAssign = true
+					break
+				}
+			}
+		}
 	}
 
 	if !globalAssign {

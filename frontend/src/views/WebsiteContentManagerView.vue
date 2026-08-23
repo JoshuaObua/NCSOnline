@@ -231,7 +231,7 @@
         />
 
         <NamisRegistryEntryView
-          v-else-if="active === 'namis-registry-new'"
+          v-else-if="active === 'namis-registry-new' || route.name === 'NamisRegistryCreate' || (route.path && route.path.includes('/namis/'))"
         />
 
         <NamisManagerPanel

@@ -1432,9 +1432,47 @@ function formatDate(isoStr) {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 380px;
-  overflow-y: auto;
-  padding-right: 4px;
+  max-height: 55vh;
+  overflow-y: auto !important;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #6777ef #e2e8f0;
+}
+
+.roles-selection-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.roles-selection-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.roles-selection-list::-webkit-scrollbar-thumb {
+  background: #6777ef;
+  border-radius: 4px;
+}
+
+.roles-selection-list::-webkit-scrollbar-thumb:hover {
+  background: #4f46e5;
+}
+
+:global(html.dark) .roles-selection-list,
+:global(body.dark) .roles-selection-list,
+:global([data-theme="dark"]) .roles-selection-list {
+  scrollbar-color: #6366f1 #1e293b;
+}
+
+:global(html.dark) .roles-selection-list::-webkit-scrollbar-track,
+:global(body.dark) .roles-selection-list::-webkit-scrollbar-track,
+:global([data-theme="dark"]) .roles-selection-list::-webkit-scrollbar-track {
+  background: #0f172a !important;
+}
+
+:global(html.dark) .roles-selection-list::-webkit-scrollbar-thumb,
+:global(body.dark) .roles-selection-list::-webkit-scrollbar-thumb,
+:global([data-theme="dark"]) .roles-selection-list::-webkit-scrollbar-thumb {
+  background: #6366f1 !important;
 }
 
 .role-option-card {

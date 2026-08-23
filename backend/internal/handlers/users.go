@@ -279,13 +279,26 @@ func (h *UsersHandler) AssignRole(w http.ResponseWriter, r *http.Request) {
 	userID := chi.URLParam(r, "id")
 	assignerID, _ := r.Context().Value(models.CtxUserID).(string)
 	var req struct {
-		RoleID string `json:"role_id"`
+		RoleID   string `json:"role_id"`
+		RoleName string `json:"role_name"`
+		Role     string `json:"role"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.RoleID == "" {
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid request body")
+		return
+	}
+	targetRole := req.RoleID
+	if targetRole == "" {
+		targetRole = req.RoleName
+	}
+	if targetRole == "" {
+		targetRole = req.Role
+	}
+	if targetRole == "" {
 		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "role_id is required")
 		return
 	}
-	if err := h.svc.AssignRole(r.Context(), userID, req.RoleID, assignerID); err != nil {
+	if err := h.svc.AssignRole(r.Context(), userID, targetRole, assignerID); err != nil {
 		response.Err(w, http.StatusBadRequest, "ASSIGN_ROLE_FAILED", err.Error())
 		return
 	}
