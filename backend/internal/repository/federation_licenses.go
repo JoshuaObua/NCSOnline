@@ -104,9 +104,9 @@ func (r *FederationLicenseRepo) GetByID(ctx context.Context, id string) (*models
 	const q = `
 		SELECT fl.id, fl.federation_id,
 		       COALESCE(f.name, ''), COALESCE(f.acronym, ''), COALESCE(f.ncs_registration_number, ''),
-		       COALESCE(ca.image_url, ''),
-		       COALESCE(f_pres.full_name, ca.president, f.contact_person, ''),
-		       COALESCE(f_sec.full_name, ca.secretary, ''),
+		       COALESCE(ca.logo_url, ''),
+		       COALESCE(f_pres.full_name, f.contact_person, ''),
+		       COALESCE(f_sec.full_name, ''),
 		       fl.license_number, fl.license_type, fl.category,
 		       fl.issue_date, fl.expiry_date, fl.status,
 		       COALESCE(fl.conditions, ''), COALESCE(fl.document_url, ''),
@@ -118,7 +118,7 @@ func (r *FederationLicenseRepo) GetByID(ctx context.Context, id string) (*models
 		       fl.created_at, fl.updated_at
 		FROM federation_licenses fl
 		LEFT JOIN federations f ON f.id = fl.federation_id
-		LEFT JOIN cms_associations ca ON (ca.id = f.id OR LOWER(ca.name) = LOWER(f.name) OR (ca.acronym IS NOT NULL AND LOWER(ca.acronym) = LOWER(f.acronym)))
+		LEFT JOIN cms_associations ca ON (ca.id = f.id OR LOWER(ca.name) = LOWER(f.name) OR ca.slug = LOWER(f.acronym))
 		LEFT JOIN federation_officers f_pres ON (f_pres.federation_id = f.id AND f_pres.position = 'PRESIDENT' AND f_pres.is_active)
 		LEFT JOIN federation_officers f_sec ON (f_sec.federation_id = f.id AND f_sec.position = 'GENERAL_SECRETARY' AND f_sec.is_active)
 		LEFT JOIN users u_iss ON u_iss.id = fl.issued_by
@@ -144,9 +144,9 @@ func (r *FederationLicenseRepo) GetActiveLicenseByFederationID(ctx context.Conte
 	const q = `
 		SELECT fl.id, fl.federation_id,
 		       COALESCE(f.name, ''), COALESCE(f.acronym, ''), COALESCE(f.ncs_registration_number, ''),
-		       COALESCE(ca.image_url, ''),
-		       COALESCE(f_pres.full_name, ca.president, f.contact_person, ''),
-		       COALESCE(f_sec.full_name, ca.secretary, ''),
+		       COALESCE(ca.logo_url, ''),
+		       COALESCE(f_pres.full_name, f.contact_person, ''),
+		       COALESCE(f_sec.full_name, ''),
 		       fl.license_number, fl.license_type, fl.category,
 		       fl.issue_date, fl.expiry_date, fl.status,
 		       COALESCE(fl.conditions, ''), COALESCE(fl.document_url, ''),
@@ -158,7 +158,7 @@ func (r *FederationLicenseRepo) GetActiveLicenseByFederationID(ctx context.Conte
 		       fl.created_at, fl.updated_at
 		FROM federation_licenses fl
 		LEFT JOIN federations f ON f.id = fl.federation_id
-		LEFT JOIN cms_associations ca ON (ca.id = f.id OR LOWER(ca.name) = LOWER(f.name) OR (ca.acronym IS NOT NULL AND LOWER(ca.acronym) = LOWER(f.acronym)))
+		LEFT JOIN cms_associations ca ON (ca.id = f.id OR LOWER(ca.name) = LOWER(f.name) OR ca.slug = LOWER(f.acronym))
 		LEFT JOIN federation_officers f_pres ON (f_pres.federation_id = f.id AND f_pres.position = 'PRESIDENT' AND f_pres.is_active)
 		LEFT JOIN federation_officers f_sec ON (f_sec.federation_id = f.id AND f_sec.position = 'GENERAL_SECRETARY' AND f_sec.is_active)
 		LEFT JOIN users u_iss ON u_iss.id = fl.issued_by
@@ -202,7 +202,7 @@ func (r *FederationLicenseRepo) List(ctx context.Context, f ListLicensesFilter, 
 	}
 	if f.Search != "" {
 		s := "%" + strings.ToLower(f.Search) + "%"
-		where = append(where, fmt.Sprintf("(LOWER(fl.license_number) LIKE $%d OR LOWER(f.name) LIKE $%d OR LOWER(COALESCE(f.acronym, '')) LIKE $%d OR LOWER(COALESCE(f.ncs_registration_number, '')) LIKE $%d OR LOWER(COALESCE(f_pres.full_name, ca.president, f.contact_person, '')) LIKE $%d OR LOWER(COALESCE(f_sec.full_name, ca.secretary, '')) LIKE $%d)", idx, idx, idx, idx, idx, idx))
+		where = append(where, fmt.Sprintf("(LOWER(fl.license_number) LIKE $%d OR LOWER(f.name) LIKE $%d OR LOWER(COALESCE(f.acronym, '')) LIKE $%d OR LOWER(COALESCE(f.ncs_registration_number, '')) LIKE $%d OR LOWER(COALESCE(f_pres.full_name, f.contact_person, '')) LIKE $%d OR LOWER(COALESCE(f_sec.full_name, '')) LIKE $%d)", idx, idx, idx, idx, idx, idx))
 		args = append(args, s)
 		idx++
 	}
@@ -224,7 +224,7 @@ func (r *FederationLicenseRepo) List(ctx context.Context, f ListLicensesFilter, 
 		SELECT COUNT(*)
 		FROM federation_licenses fl
 		LEFT JOIN federations f ON f.id = fl.federation_id
-		LEFT JOIN cms_associations ca ON (ca.id = f.id OR LOWER(ca.name) = LOWER(f.name) OR (ca.acronym IS NOT NULL AND LOWER(ca.acronym) = LOWER(f.acronym)))
+		LEFT JOIN cms_associations ca ON (ca.id = f.id OR LOWER(ca.name) = LOWER(f.name) OR ca.slug = LOWER(f.acronym))
 		LEFT JOIN federation_officers f_pres ON (f_pres.federation_id = f.id AND f_pres.position = 'PRESIDENT' AND f_pres.is_active)
 		LEFT JOIN federation_officers f_sec ON (f_sec.federation_id = f.id AND f_sec.position = 'GENERAL_SECRETARY' AND f_sec.is_active)
 		WHERE %s
@@ -269,9 +269,9 @@ func (r *FederationLicenseRepo) List(ctx context.Context, f ListLicensesFilter, 
 	q := fmt.Sprintf(`
 		SELECT fl.id, fl.federation_id,
 		       COALESCE(f.name, ''), COALESCE(f.acronym, ''), COALESCE(f.ncs_registration_number, ''),
-		       COALESCE(ca.image_url, ''),
-		       COALESCE(f_pres.full_name, ca.president, f.contact_person, ''),
-		       COALESCE(f_sec.full_name, ca.secretary, ''),
+		       COALESCE(ca.logo_url, ''),
+		       COALESCE(f_pres.full_name, f.contact_person, ''),
+		       COALESCE(f_sec.full_name, ''),
 		       fl.license_number, fl.license_type, fl.category,
 		       fl.issue_date, fl.expiry_date, fl.status,
 		       COALESCE(fl.conditions, ''), COALESCE(fl.document_url, ''),
@@ -283,7 +283,7 @@ func (r *FederationLicenseRepo) List(ctx context.Context, f ListLicensesFilter, 
 		       fl.created_at, fl.updated_at
 		FROM federation_licenses fl
 		LEFT JOIN federations f ON f.id = fl.federation_id
-		LEFT JOIN cms_associations ca ON (ca.id = f.id OR LOWER(ca.name) = LOWER(f.name) OR (ca.acronym IS NOT NULL AND LOWER(ca.acronym) = LOWER(f.acronym)))
+		LEFT JOIN cms_associations ca ON (ca.id = f.id OR LOWER(ca.name) = LOWER(f.name) OR ca.slug = LOWER(f.acronym))
 		LEFT JOIN federation_officers f_pres ON (f_pres.federation_id = f.id AND f_pres.position = 'PRESIDENT' AND f_pres.is_active)
 		LEFT JOIN federation_officers f_sec ON (f_sec.federation_id = f.id AND f_sec.position = 'GENERAL_SECRETARY' AND f_sec.is_active)
 		LEFT JOIN users u_iss ON u_iss.id = fl.issued_by
