@@ -207,73 +207,25 @@
             </div>
 
             <!-- Custom Searchable Dropdown for Athletes -->
-            <div v-else-if="field.type === 'athlete_select'" class="searchable-select-container">
-              <div class="searchable-select-trigger" @click="toggleSelectDropdown(field.key)">
-                <span>{{ resolveAthleteName(formPayload[field.key]) || 'Select Registered Athlete' }}</span>
-                <i class="icofont-rounded-down"></i>
-              </div>
-              <div v-if="selectDropdownsOpen[field.key]" class="searchable-select-dropdown">
-                <input 
-                  type="text" 
-                  v-model="selectSearchQueries[field.key]" 
-                  placeholder="Type to filter..." 
-                  class="searchable-select-searchbox" 
-                  @click.stop
-                />
-                <div class="searchable-select-options">
-                  <div 
-                    class="searchable-select-option" 
-                    :class="{ selected: !formPayload[field.key] }"
-                    @click="selectDropdownOption(field.key, '')"
-                  >
-                    Select Registered Athlete
-                  </div>
-                  <div 
-                    v-for="ath in filteredAthletes(field.key)" 
-                    :key="ath.id" 
-                    class="searchable-select-option"
-                    :class="{ selected: formPayload[field.key] === ath.id }"
-                    @click="selectDropdownOption(field.key, ath.id)"
-                  >
-                    {{ ath.full_name }} ({{ ath.athlete_number }})
-                  </div>
-                </div>
-              </div>
+            <div v-else-if="field.type === 'athlete_select'" class="searchable-select-field">
+              <SearchableAthleteSelect
+                :id="`manager-${field.key}`"
+                v-model="formPayload[field.key]"
+                :athletes="athletesList"
+                :required="field.required"
+                placeholder="Search athlete by Name, NIN, Email, or Athlete Number..."
+              />
             </div>
 
             <!-- Custom Searchable Dropdown for Competitions -->
-            <div v-else-if="field.type === 'competition_select'" class="searchable-select-container">
-              <div class="searchable-select-trigger" @click="toggleSelectDropdown(field.key)">
-                <span>{{ resolveCompetitionName(formPayload[field.key]) || 'Select Competition' }}</span>
-                <i class="icofont-rounded-down"></i>
-              </div>
-              <div v-if="selectDropdownsOpen[field.key]" class="searchable-select-dropdown">
-                <input 
-                  type="text" 
-                  v-model="selectSearchQueries[field.key]" 
-                  placeholder="Type to filter..." 
-                  class="searchable-select-searchbox" 
-                  @click.stop
-                />
-                <div class="searchable-select-options">
-                  <div 
-                    class="searchable-select-option" 
-                    :class="{ selected: !formPayload[field.key] }"
-                    @click="selectDropdownOption(field.key, '')"
-                  >
-                    Select Competition
-                  </div>
-                  <div 
-                    v-for="comp in filteredCompetitions(field.key)" 
-                    :key="comp.id" 
-                    class="searchable-select-option"
-                    :class="{ selected: formPayload[field.key] === comp.id }"
-                    @click="selectDropdownOption(field.key, comp.id)"
-                  >
-                    {{ comp.name }} - {{ comp.venue }}
-                  </div>
-                </div>
-              </div>
+            <div v-else-if="field.type === 'competition_select'" class="searchable-select-field">
+              <SearchableCompetitionSelect
+                :id="`manager-${field.key}`"
+                v-model="formPayload[field.key]"
+                :competitions="competitionsList"
+                :required="field.required"
+                placeholder="Search competition by Name, Venue, or Level..."
+              />
             </div>
 
             <!-- Custom Searchable Dropdown for Age Categories -->
@@ -328,6 +280,8 @@ import {
 } from '@/api/nsmis.js'
 import { registryResources } from '@/utils/namisRegistryConfig.js'
 import SearchableAgeCategorySelect from '@/components/ui/SearchableAgeCategorySelect.vue'
+import SearchableAthleteSelect from '@/components/ui/SearchableAthleteSelect.vue'
+import SearchableCompetitionSelect from '@/components/ui/SearchableCompetitionSelect.vue'
 
 const props = defineProps({
   userScope: { type: Array, default: () => [] },

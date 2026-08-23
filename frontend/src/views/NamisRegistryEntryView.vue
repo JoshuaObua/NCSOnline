@@ -47,18 +47,36 @@
             placeholder="Search and select age category (e.g. U17, Senior, U20, Masters)..."
             @add-category="handleAddAgeCategory"
           />
-          <select v-else-if="item.type === 'athlete'" :id="`registry-${item.key}`" v-model="form[item.key]" :required="item.required" :disabled="loadingReferences">
-            <option value="">Select athlete</option>
-            <option v-for="option in athletes" :key="option.id" :value="option.id">{{ option.full_name }}{{ option.athlete_number ? ` (${option.athlete_number})` : '' }}</option>
-          </select>
-          <select v-else-if="item.type === 'competition'" :id="`registry-${item.key}`" v-model="form[item.key]" :required="item.required" :disabled="loadingReferences">
-            <option value="">Select competition</option>
-            <option v-for="option in competitions" :key="option.id" :value="option.id">{{ option.name }}{{ option.venue ? ` - ${option.venue}` : '' }}</option>
-          </select>
-          <select v-else-if="item.type === 'user'" :id="`registry-${item.key}`" v-model="form[item.key]" :required="item.required" :disabled="loadingReferences">
-            <option value="">Select user</option>
-            <option v-for="option in users" :key="option.id" :value="option.id">{{ option.first_name }} {{ option.last_name }} ({{ option.email }})</option>
-          </select>
+          <SearchableAthleteSelect
+            v-else-if="item.type === 'athlete'"
+            :id="`registry-${item.key}`"
+            v-model="form[item.key]"
+            :athletes="athletes"
+            :required="item.required"
+            :disabled="loadingReferences"
+            :loading="loadingReferences"
+            placeholder="Search athlete by Name, NIN, Email, or Athlete Number..."
+          />
+          <SearchableCompetitionSelect
+            v-else-if="item.type === 'competition'"
+            :id="`registry-${item.key}`"
+            v-model="form[item.key]"
+            :competitions="competitions"
+            :required="item.required"
+            :disabled="loadingReferences"
+            :loading="loadingReferences"
+            placeholder="Search competition by Name, Venue, or Level..."
+          />
+          <SearchableUserSelect
+            v-else-if="item.type === 'user'"
+            :id="`registry-${item.key}`"
+            v-model="form[item.key]"
+            :users="users"
+            :required="item.required"
+            :disabled="loadingReferences"
+            :loading="loadingReferences"
+            placeholder="Search user by Name, NIN, or Email..."
+          />
           <label v-else-if="item.type === 'boolean'" class="checkbox-field">
             <input :id="`registry-${item.key}`" v-model="form[item.key]" type="checkbox" />
             <span>Yes</span>
@@ -87,6 +105,9 @@ import apiClient from '@/api/client.js'
 import { registryResources } from '@/utils/namisRegistryConfig.js'
 import SearchableFederationSelect from '@/components/ui/SearchableFederationSelect.vue'
 import SearchableAgeCategorySelect from '@/components/ui/SearchableAgeCategorySelect.vue'
+import SearchableAthleteSelect from '@/components/ui/SearchableAthleteSelect.vue'
+import SearchableCompetitionSelect from '@/components/ui/SearchableCompetitionSelect.vue'
+import SearchableUserSelect from '@/components/ui/SearchableUserSelect.vue'
 
 const route = useRoute()
 const router = useRouter()
