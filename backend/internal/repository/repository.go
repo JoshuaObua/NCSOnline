@@ -37,28 +37,30 @@ type Repos struct {
 	Analytics     *AnalyticsRepo
 	Transactions       *TransactionRepo
 	FederationLicenses *FederationLicenseRepo
+	ClubAcademyLicenses *ClubAcademyLicenseRepo
 }
 
 func New(db *pgxpool.Pool) *Repos {
 	return &Repos{
-		Users:              &UserRepo{db},
-		Roles:              &RoleRepo{db},
-		Applications:       &ApplicationRepo{db},
-		Audit:              &AuditRepo{db},
-		Tokens:             &TokenRepo{db},
-		CMS:                &CMSRepo{db},
-		NSMIS:              &NSMISRepo{db},
-		USSD:               &USSDRepo{db: db},
-		Organisations:      &OrganisationRepo{db: db},
-		Notifications:      &NotificationRepo{db: db},
-		Operator:           &OperatorRepo{db: db},
-		Backups:            &BackupRepo{db: db},
-		Forms:              &FormRepo{db: db},
-		Departments:        &DepartmentRepo{db: db},
-		Security:           &SecurityRepo{db: db},
-		Analytics:          &AnalyticsRepo{db: db},
-		Transactions:       NewTransactionRepo(db),
-		FederationLicenses: NewFederationLicenseRepo(db),
+		Users:               &UserRepo{db},
+		Roles:               &RoleRepo{db},
+		Applications:        &ApplicationRepo{db},
+		Audit:               &AuditRepo{db},
+		Tokens:              &TokenRepo{db},
+		CMS:                 &CMSRepo{db},
+		NSMIS:               &NSMISRepo{db},
+		USSD:                &USSDRepo{db: db},
+		Organisations:       &OrganisationRepo{db: db},
+		Notifications:       &NotificationRepo{db: db},
+		Operator:            &OperatorRepo{db: db},
+		Backups:             &BackupRepo{db: db},
+		Forms:               &FormRepo{db: db},
+		Departments:         &DepartmentRepo{db: db},
+		Security:            &SecurityRepo{db: db},
+		Analytics:           &AnalyticsRepo{db: db},
+		Transactions:        NewTransactionRepo(db),
+		FederationLicenses:  NewFederationLicenseRepo(db),
+		ClubAcademyLicenses: NewClubAcademyLicenseRepo(db),
 	}
 }
 

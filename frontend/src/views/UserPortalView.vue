@@ -232,6 +232,99 @@
                   </div>
                 </div>
 
+                <!-- Club & Academy President / General Secretary Recognition & Operating License Dashboard Panel -->
+                <div v-if="(isClubLeader || clubLicenseData) && clubData" class="club-leader-dashboard mt-4">
+                  <div class="card border-0 shadow-sm text-white mb-4 overflow-hidden position-relative" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border-radius: 12px;">
+                    <div class="card-body p-4 position-relative z-index-1">
+                      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                          <div class="fed-icon-seal" style="width: 50px; height: 50px; border-radius: 12px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 26px; color: #fff;">
+                            <i class="icofont-certificate-alt-1"></i>
+                          </div>
+                          <div>
+                            <span class="badge bg-light text-primary text-uppercase mb-1" style="font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">
+                              {{ clubLeaderRole || 'Club / Academy Leadership' }}
+                            </span>
+                            <h3 class="mb-1 fw-bold text-white fs-4">{{ clubData.name }}</h3>
+                            <span class="small opacity-85 text-light">
+                              NCS Reg No: <strong>{{ clubData.club_number || clubData.id || 'NCS-ACA-001' }}</strong>
+                              <span v-if="clubData.acronym" class="ms-2">({{ clubData.acronym }})</span>
+                              <span v-if="clubData.district" class="ms-2">&middot; {{ clubData.district }}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                          <button
+                            v-if="clubLicenseData"
+                            type="button"
+                            class="btn btn-light text-primary fw-bold btn-sm px-3 shadow-sm"
+                            @click="printClubCertificate(clubLicenseData)"
+                          >
+                            <i class="icofont-print me-1"></i> Print Operating License
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- License Details Grid -->
+                  <div v-if="clubLicenseData" class="row g-3 mb-4">
+                    <div class="col-md-3">
+                      <div class="p-3 bg-white border rounded shadow-sm h-100">
+                        <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 11px;">Statutory License No</span>
+                        <strong class="text-dark fs-6 font-monospace">{{ clubLicenseData.license_number }}</strong>
+                        <small class="text-muted d-block mt-1">Official Identifier</small>
+                      </div>
+                    </div>
+
+                    <div class="col-md-3">
+                      <div class="p-3 bg-white border rounded shadow-sm h-100">
+                        <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 11px;">License Status</span>
+                        <span class="badge" :class="getLicStatusClass(clubLicenseData.status)" style="font-size: 11px; font-weight: 700;">
+                          {{ clubLicenseData.status }}
+                        </span>
+                        <small v-if="clubLicenseData.status === 'ACTIVE'" class="text-success d-block mt-1">
+                          <i class="icofont-check-circled"></i> Fully Accredited
+                        </small>
+                        <small v-else-if="clubLicenseData.status === 'REVOKED'" class="text-danger d-block mt-1">
+                          <i class="icofont-ban"></i> Permit Revoked
+                        </small>
+                      </div>
+                    </div>
+
+                    <div class="col-md-3">
+                      <div class="p-3 bg-white border rounded shadow-sm h-100">
+                        <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 11px;">Date Issued</span>
+                        <strong class="text-dark">{{ formatDate(clubLicenseData.issue_date) }}</strong>
+                        <small class="text-muted d-block mt-1">National Sports Act 2023</small>
+                      </div>
+                    </div>
+
+                    <div class="col-md-3">
+                      <div class="p-3 bg-white border rounded shadow-sm h-100">
+                        <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 11px;">Valid Until</span>
+                        <strong class="text-dark">{{ formatDate(clubLicenseData.expiry_date) }}</strong>
+                        <small class="text-muted d-block mt-1">
+                          <span v-if="clubLicenseData.extended_at" class="text-info">Extended Term</span>
+                          <span v-else>Standard Term</span>
+                        </small>
+                      </div>
+                    </div>
+
+                    <!-- Revocation Warning Alert if revoked -->
+                    <div v-if="clubLicenseData.status === 'REVOKED'" class="col-12">
+                      <div class="alert alert-danger mb-0 d-flex align-items-center gap-3">
+                        <i class="icofont-warning fs-3"></i>
+                        <div>
+                          <strong class="d-block">Operating Accreditation License Revoked</strong>
+                          <span>Reason: {{ clubLicenseData.revocation_reason || 'Compliance breach or statutory directive.' }} Please contact NCS Technical Secretariat.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Athlete Dashboard Extension Panel -->
                 <div v-if="isAthlete && athleteData" class="athlete-registry-dashboard mt-4">
                   <div class="card border-0 shadow-sm bg-gradient-primary-to-secondary text-white mb-4 overflow-hidden position-relative" style="border-radius: 12px;">
@@ -2209,6 +2302,7 @@ import {
 } from '@/api/forms.js'
 import { listNsmisDomain } from '@/api/nsmis.js'
 import { getFederationActiveLicense } from '@/api/federationLicenses.js'
+import { getClubActiveLicense } from '@/api/clubAcademyLicenses.js'
 import { mediaUrl } from '@/api/client.js'
 import OpenFormsPanel from '@/components/portal/OpenFormsPanel.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
@@ -2294,6 +2388,11 @@ const federationLeaderRole = ref('')
 const federationData = ref(null)
 const federationLicenseData = ref(null)
 
+const isClubLeader = ref(false)
+const clubLeaderRole = ref('')
+const clubData = ref(null)
+const clubLicenseData = ref(null)
+
 ensureOtikaStyles()
 
 const userRoles = computed(() => {
@@ -2307,6 +2406,7 @@ const isAdminOrGenSec = computed(() => {
 
 const userProfileLabel = computed(() => {
   if (isFederationLeader.value) return `${federationLeaderRole.value || 'Federation Executive'} Portal`
+  if (isClubLeader.value) return `${clubLeaderRole.value || 'Academy Executive'} Portal`
   const roles = userRoles.value
   if (roles.includes('athlete') || roles.includes('role_athlete')) return 'Athlete Portal'
   if (roles.includes('coach') || roles.includes('role_coach')) return 'Coach Portal'
@@ -2316,6 +2416,7 @@ const userProfileLabel = computed(() => {
 
 const userWorkspaceLabel = computed(() => {
   if (isFederationLeader.value && federationData.value?.name) return `${federationData.value.name} workspace`
+  if (isClubLeader.value && clubData.value?.name) return `${clubData.value.name} workspace`
   const roles = userRoles.value
   if (roles.includes('athlete') || roles.includes('role_athlete')) return 'Athlete workspace'
   if (roles.includes('coach') || roles.includes('role_coach')) return 'Coach workspace'
@@ -2619,6 +2720,23 @@ const userFiles = computed(() => {
     })
   }
 
+  if (clubLicenseData.value) {
+    filesList.push({
+      id: clubLicenseData.value.id,
+      title: `Operating Accreditation License - ${clubLicenseData.value.club_name || clubData.value?.name || 'Club/Academy'}`,
+      type: 'Operating License',
+      number: clubLicenseData.value.license_number,
+      issueDate: clubLicenseData.value.issue_date,
+      expiryDate: clubLicenseData.value.expiry_date,
+      status: clubLicenseData.value.status,
+      description: `Official operating and recognition license under National Sports Act 2023. Category: ${clubLicenseData.value.category || 'Sports Academy'}.`,
+      fileType: 'Official License',
+      downloadName: `NCS_Academy_License_${(clubLicenseData.value.license_number || '').replaceAll('/', '_')}.txt`,
+      category: 'Club & Academy Licensing',
+      licenseObj: clubLicenseData.value
+    })
+  }
+
   return filesList
 })
 
@@ -2728,9 +2846,107 @@ function printFederationCertificate(lic) {
   printWin.document.close()
 }
 
+function printClubCertificate(lic) {
+  if (!lic) return
+  const printWin = window.open('', '_blank', 'width=900,height=800')
+  if (!printWin) return
+
+  const issueDateStr = formatDate(lic.issue_date)
+  const expiryDateStr = formatDate(lic.expiry_date)
+
+  const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NCS Certificate of Accreditation - ${lic.license_number}</title>
+  <style>
+    @page { size: A4 landscape; margin: 10mm; }
+    body { font-family: "Georgia", "Times New Roman", serif; background: #fafafa; margin: 0; padding: 20px; color: #1e293b; }
+    .cert-frame { border: 8px double #1e3a8a; padding: 30px 40px; background: #fff; text-align: center; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+    .logo-row { margin-bottom: 12px; }
+    .logo-row img { max-height: 70px; }
+    .republic-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #1e3a8a; margin: 0; }
+    .ncs-title { font-size: 26px; font-weight: bold; color: #0f172a; margin: 6px 0 16px; text-transform: uppercase; letter-spacing: 1px; }
+    .cert-heading { font-size: 20px; font-style: italic; color: #475569; margin: 0 0 10px; }
+    .cert-body { font-size: 15px; color: #334155; margin: 0 auto 16px; max-width: 700px; line-height: 1.6; }
+    .academy-name { font-size: 28px; font-weight: bold; color: #0f172a; margin: 10px 0; text-decoration: underline; text-underline-offset: 6px; }
+    .reg-tag { font-size: 13px; color: #64748b; margin-bottom: 16px; }
+    .meta-box { display: flex; justify-content: space-around; margin: 24px auto; max-width: 650px; background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 6px; }
+    .meta-item strong { display: block; font-size: 14px; color: #1e3a8a; }
+    .meta-item span { font-size: 11px; color: #3b82f6; text-transform: uppercase; }
+    .conditions { font-size: 11px; font-style: italic; color: #64748b; margin: 14px auto; max-width: 600px; }
+    .signatures { display: flex; justify-content: space-between; margin-top: 40px; padding: 0 40px; }
+    .sig-line { width: 220px; border-top: 1px solid #334155; padding-top: 6px; font-size: 12px; font-weight: bold; text-align: center; }
+    .sig-title { font-size: 11px; color: #64748b; font-weight: normal; }
+  </style>
+</head>
+<body>
+  <div class="cert-frame">
+    <div class="logo-row">
+      <img src="/main-logo.png" alt="National Council of Sports" />
+    </div>
+    <div class="republic-title">Republic of Uganda</div>
+    <div class="ncs-title">National Council of Sports</div>
+    <div class="cert-heading">Certificate of Operating Accreditation & Licensing</div>
+    
+    <div class="cert-body">
+      This is to certify that under the provisions of the <strong>National Sports Act, 2023</strong>, the sports organisation:
+    </div>
+
+    <div class="academy-name">${lic.club_name || clubData.value?.name || 'Sports Club / Academy'}</div>
+    <div class="reg-tag">Academy / Club ID: <strong>${lic.club_number || clubData.value?.club_number || lic.club_id}</strong> &middot; Category: <strong>${lic.category || 'Sports Academy'}</strong></div>
+
+    <div class="meta-box">
+      <div class="meta-item">
+        <span>License Number</span>
+        <strong>${lic.license_number}</strong>
+      </div>
+      <div class="meta-item">
+        <span>Issue Date</span>
+        <strong>${issueDateStr}</strong>
+      </div>
+      <div class="meta-item">
+        <span>Valid Until</span>
+        <strong>${expiryDateStr}</strong>
+      </div>
+      <div class="meta-item">
+        <span>Status</span>
+        <strong style="color: ${lic.status === 'REVOKED' ? '#dc2626' : '#16a34a'};">${lic.status}</strong>
+      </div>
+    </div>
+
+    <div class="conditions">
+      ${lic.conditions || 'Granted subject to compliance with the National Sports Act 2023, youth safeguarding protocols, and athlete registry standards.'}
+    </div>
+
+    <div class="signatures">
+      <div class="sig-line">
+        General Secretary<br>
+        <span class="sig-title">National Council of Sports</span>
+      </div>
+      <div class="sig-line">
+        Director Technical & Regulations<br>
+        <span class="sig-title">National Council of Sports</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 400);
+    };
+  <\/script>
+</body>
+</html>`
+
+  printWin.document.write(html)
+  printWin.document.close()
+}
+
 function getFileIcon(category) {
   switch (category) {
     case 'Federation Recognition': return 'icofont-certificate'
+    case 'Club & Academy Licensing': return 'icofont-certificate-alt-1'
     case 'Athlete Registry': return 'icofont-runner-alt-1'
     case 'Coaches Registry': return 'icofont-whistle'
     case 'Technical Officials': return 'icofont-referee'
@@ -2744,6 +2960,7 @@ function getFileIcon(category) {
 function getFileIconClass(category) {
   switch (category) {
     case 'Federation Recognition': return 'bg-warning text-dark'
+    case 'Club & Academy Licensing': return 'bg-primary text-white'
     case 'Athlete Registry': return 'bg-primary text-white'
     case 'Coaches Registry': return 'bg-warning text-dark'
     case 'Technical Officials': return 'bg-info text-white'
@@ -3046,6 +3263,55 @@ async function loadSportsRegistryContext() {
       }
     } catch (e) {
       console.warn('Could not load federation leadership records:', e)
+    }
+
+    // Sports Club & Academy Leadership lookup (President, Director, Secretary, Manager)
+    try {
+      const clubsRes = await listNsmisDomain('clubs', { per_page: 200 })
+      const clubsList = asList(clubsRes)
+      const userEmail = String(profile.email || '').toLowerCase().trim()
+      const userName = fullName.value.toLowerCase().trim()
+
+      let matchClub = null
+      let matchClubRole = ''
+
+      for (const club of clubsList) {
+        if (club.email && String(club.email).toLowerCase().trim() === userEmail) {
+          matchClub = club
+          matchClubRole = 'Academy Director'
+          break
+        }
+        if (club.contact_person && String(club.contact_person).toLowerCase().trim() === userName) {
+          matchClub = club
+          matchClubRole = 'Academy President / Director'
+          break
+        }
+        if (club.president && String(club.president).toLowerCase().trim() === userName) {
+          matchClub = club
+          matchClubRole = 'Club / Academy President'
+          break
+        }
+        if (club.secretary && String(club.secretary).toLowerCase().trim() === userName) {
+          matchClub = club
+          matchClubRole = 'General Secretary'
+          break
+        }
+      }
+
+      if (matchClub) {
+        isClubLeader.value = true
+        clubLeaderRole.value = matchClubRole
+        clubData.value = matchClub
+
+        try {
+          const lic = await getClubActiveLicense(matchClub.id)
+          if (lic) {
+            clubLicenseData.value = lic
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('Could not load club/academy leadership records:', e)
     }
   }
 

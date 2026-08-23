@@ -162,6 +162,12 @@
                   <li v-for="item in visibleItems(federationSections)" :key="item.id" :class="{ active: active === item.id }"><button type="button" class="nav-link" @click="selectSection(item.id)">{{ item.label }}</button></li>
                 </ul>
               </li>
+              <li v-if="visibleItems(clubSections).length" class="dropdown" :class="{ active: clubsGroupOpen || groupHasActive(clubSections) }">
+                <button type="button" class="menu-toggle nav-link has-dropdown" @click="clubsGroupOpen = !clubsGroupOpen"><i class="icofont-home"></i><span>Clubs & Academies</span></button>
+                <ul class="dropdown-menu" :style="{ display: clubsGroupOpen ? 'block' : 'none' }">
+                  <li v-for="item in visibleItems(clubSections)" :key="item.id" :class="{ active: active === item.id }"><button type="button" class="nav-link" @click="selectSection(item.id)">{{ item.label }}</button></li>
+                </ul>
+              </li>
               <li v-if="visibleItems(sportsRuleSections).length" class="dropdown" :class="{ active: sportsRulesGroupOpen || groupHasActive(sportsRuleSections) }">
                 <button type="button" class="menu-toggle nav-link has-dropdown" @click="sportsRulesGroupOpen = !sportsRulesGroupOpen"><i class="icofont-read-book"></i><span>Sports Rules</span></button>
                 <ul class="dropdown-menu" :style="{ display: sportsRulesGroupOpen ? 'block' : 'none' }">
@@ -816,6 +822,20 @@
 
         <ManageFederationLicensesPanel
           v-else-if="active === 'manage-federation-licenses'"
+          @navigate="selectSection"
+          @message="setMsg"
+          @error="setErr"
+        />
+
+        <CreateClubAcademyLicensePanel
+          v-else-if="active === 'create-club-academy-licenses'"
+          @navigate="selectSection"
+          @message="setMsg"
+          @error="setErr"
+        />
+
+        <ManageClubAcademyLicensesPanel
+          v-else-if="active === 'manage-club-academy-licenses'"
           @navigate="selectSection"
           @message="setMsg"
           @error="setErr"
@@ -1717,6 +1737,8 @@ import NamisManagerPanel from '@/components/portal/NamisManagerPanel.vue'
 import ManageFederationsPanel from '@/components/portal/ManageFederationsPanel.vue'
 import CreateFederationLicensePanel from '@/components/portal/CreateFederationLicensePanel.vue'
 import ManageFederationLicensesPanel from '@/components/portal/ManageFederationLicensesPanel.vue'
+import CreateClubAcademyLicensePanel from '@/components/portal/CreateClubAcademyLicensePanel.vue'
+import ManageClubAcademyLicensesPanel from '@/components/portal/ManageClubAcademyLicensesPanel.vue'
 import FederationProfilePanel from '@/components/portal/FederationProfilePanel.vue'
 import FederationEditorPanel from '@/components/portal/FederationEditorPanel.vue'
 import FederationOfficialEditorPanel from '@/components/portal/FederationOfficialEditorPanel.vue'
@@ -1776,6 +1798,7 @@ const facilitiesGroupOpen = ref(false)
 const eventsGroupOpen = ref(false)
 const investGroupOpen = ref(false)
 const federationsGroupOpen = ref(false)
+const clubsGroupOpen = ref(false)
 const sportsRulesGroupOpen = ref(false)
 const pressReleasesGroupOpen = ref(false)
 const reportsGroupOpen = ref(false)
@@ -1885,6 +1908,10 @@ const federationSections = [
   { id:'create-federation-categories', label:'Create Federation Category', icon:'icofont-folder-open' },
   { id:'manage-federation-categories', label:'Manage Federation Categories', icon:'icofont-tags' },
 ]
+const clubSections = [
+  { id:'create-club-academy-licenses', label:'Create Academy License', icon:'icofont-certificate' },
+  { id:'manage-club-academy-licenses', label:'Manage Academy Licenses', icon:'icofont-license' },
+]
 const sportsRuleSections = []
 const pressReleaseSections = []
 const reportSections = []
@@ -1929,7 +1956,7 @@ const routeOnlySections = [
   { id: 'federation-profile', label: 'Federation Profile', icon: 'icofont-id-card' },
   { id: 'assign-user-role', label: 'Assign User Roles', icon: 'icofont-shield-alt' },
 ]
-const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections, ...namisSections, ...routeOnlySections]
+const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...clubSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections, ...namisSections, ...routeOnlySections]
 const allowedPortalSectionIds = new Set(sections.map(section => section.id))
 
 function determineInitialActiveSection() {
@@ -2032,6 +2059,8 @@ const sectionPermissionMap = {
   'federation-profile':['federations:read'],
   'create-federation-categories':['federation_categories:create'],
   'manage-federation-categories':['federation_categories:read'],
+  'create-club-academy-licenses':['clubs:licenses:create', 'clubs:create', 'clubs:write:any', 'dashboard:read'],
+  'manage-club-academy-licenses':['clubs:licenses:read', 'clubs:read', 'clubs:read:any', 'dashboard:read'],
   facts:['fun_facts:create'],
   'manage-facts':['fun_facts:read'],
   newsletter:['newsletter:read'],

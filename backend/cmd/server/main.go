@@ -440,6 +440,18 @@ func main() {
 				})
 				r.Get("/federations/{id}/license", h.FederationLicenses.GetFederationActiveLicense)
 
+				// ── Admin: Club & Academy Licenses & Accreditation ──
+				r.Route("/admin/club-academy-licenses", func(r chi.Router) {
+					r.Get("/", h.ClubAcademyLicenses.List)
+					r.Post("/", h.ClubAcademyLicenses.Create)
+					r.Get("/kpis", h.ClubAcademyLicenses.GetKPIs)
+					r.Get("/{id}", h.ClubAcademyLicenses.GetByID)
+					r.Post("/{id}/extend", h.ClubAcademyLicenses.Extend)
+					r.Post("/{id}/revoke", h.ClubAcademyLicenses.Revoke)
+					r.Post("/{id}/reinstate", h.ClubAcademyLicenses.Reinstate)
+				})
+				r.Get("/clubs/{id}/license", h.ClubAcademyLicenses.GetClubActiveLicense)
+
 				// ── Admin: dynamic form templates (department-scoped) ──
 				r.Route("/admin/forms", func(r chi.Router) {
 					r.Get("/", h.Forms.AdminListTemplates)
