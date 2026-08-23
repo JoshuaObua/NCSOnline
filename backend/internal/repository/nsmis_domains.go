@@ -356,7 +356,7 @@ func (r *NSMISRepo) ensureDomainUserProfile(ctx context.Context, tx pgx.Tx, reso
 
 	// 3. Assign role
 	if userIDStr != "" && roleName != "" {
-		_, _ = tx.Exec(ctx, `INSERT INTO user_roles (user_id, role_id, created_at)
+		_, _ = tx.Exec(ctx, `INSERT INTO user_roles (user_id, role_id, assigned_at)
 			SELECT $1, r.id, NOW() FROM roles r WHERE r.name=$2 ON CONFLICT DO NOTHING`, userIDStr, roleName)
 	}
 

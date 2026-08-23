@@ -85,7 +85,7 @@ BEGIN
     UPDATE athletes SET user_id = v_user_id WHERE id = rec.id;
 
     -- Assign athlete role to the user
-    INSERT INTO user_roles (user_id, role_id, created_at)
+    INSERT INTO user_roles (user_id, role_id, assigned_at)
     SELECT v_user_id, r.id, NOW() FROM roles r WHERE r.name = 'athlete'
     ON CONFLICT DO NOTHING;
   END LOOP;
@@ -130,7 +130,7 @@ BEGIN
 
     UPDATE technical_officials SET user_id = v_user_id WHERE id = rec.id;
 
-    INSERT INTO user_roles (user_id, role_id, created_at)
+    INSERT INTO user_roles (user_id, role_id, assigned_at)
     SELECT v_user_id, r.id, NOW() FROM roles r WHERE r.name = 'technical_official'
     ON CONFLICT DO NOTHING;
   END LOOP;
@@ -187,7 +187,7 @@ BEGIN
 
     UPDATE coaches SET user_id = v_user_id WHERE id = rec.id;
 
-    INSERT INTO user_roles (user_id, role_id, created_at)
+    INSERT INTO user_roles (user_id, role_id, assigned_at)
     SELECT v_user_id, r.id, NOW() FROM roles r WHERE r.name = 'coach'
     ON CONFLICT DO NOTHING;
   END LOOP;
@@ -240,7 +240,7 @@ BEGIN
 
     UPDATE federation_officers SET user_id = v_user_id WHERE id = rec.id;
 
-    INSERT INTO user_roles (user_id, role_id, created_at)
+    INSERT INTO user_roles (user_id, role_id, assigned_at)
     SELECT v_user_id, r.id, NOW() FROM roles r WHERE r.name IN ('federation_admin', 'federation_official')
     ON CONFLICT DO NOTHING;
   END LOOP;
