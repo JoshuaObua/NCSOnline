@@ -4008,90 +4008,32 @@ function cancel2FAEnrollment() {
   border-radius: 20px; font-size: 10px; font-weight: 700;
   padding: 2px 7px;
 }
-
-/* ── Mobile Sidebar & Scrim ────────────────────────────────────────── */
+/* ── Mobile Sidebar & Scrim Base ───────────────────────────────────── */
 .mobile-sidebar-open { transform: translateX(0); }
-@media (max-width: 991px) {
-  .btn-close-sidebar {
-    display: flex;
-  }
-  .main-sidebar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    bottom: 0 !important;
-    width: 280px !important;
-    padding-top: 0 !important;
-    transform: translateX(-100%);
-    box-shadow: none;
-    z-index: 1050;
-  }
-  .main-sidebar.mobile-sidebar-open {
-    transform: translateX(0) !important;
-    box-shadow: 0 0 40px rgba(0,0,0,0.3) !important;
-  }
-  .sidebar-scrim {
-    position: fixed;
-    inset: 0;
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(3px);
-    z-index: 1040;
-    animation: fadeInScrim 0.2s ease-out;
-  }
-  @keyframes fadeInScrim {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    padding: 16px 14px 40px !important;
-  }
-  .sidebar-mini .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-
-  .main-navbar {
-    padding: 0 12px;
-  }
-  .main-navbar .mr-3 {
-    margin-right: 6px;
-  }
-  .portal-navbar-title {
-    padding: 0 6px;
-  }
-  .portal-navbar-title small {
-    display: none;
-  }
-  .portal-navbar-title strong {
-    font-size: 14px;
-    max-width: 140px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+.sidebar-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 1040;
 }
 
-/* ── Main Content Area (100% Page Fit - No Horizontal Overflow) ───── */
+/* ── Main Content Area Base (Desktop) ──────────────────────────────── */
 .main-content {
   margin-top: 60px;
   margin-left: 250px;
   padding: 24px 30px 48px;
-  width: calc(100% - 250px) !important;
-  max-width: calc(100% - 250px) !important;
+  width: calc(100% - 250px);
+  max-width: calc(100% - 250px);
   min-height: calc(100vh - 60px);
   box-sizing: border-box !important;
   transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-x: hidden;
 }
 .sidebar-mini .main-content {
-  margin-left: 70px !important;
-  width: calc(100% - 70px) !important;
-  max-width: calc(100% - 70px) !important;
+  margin-left: 70px;
+  width: calc(100% - 70px);
+  max-width: calc(100% - 70px);
 }
 
 /* ── Section Structure ─────────────────────────────────────────────── */
@@ -6199,6 +6141,55 @@ footer.main-footer, .main-footer {
 }
 /* ── Comprehensive Mobile & Tablet Responsive Overrides ───────────── */
 @media (max-width: 991px) {
+  .btn-close-sidebar {
+    display: flex;
+  }
+  .main-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: 280px !important;
+    padding-top: 0 !important;
+    transform: translateX(-100%);
+    box-shadow: none;
+    z-index: 1050;
+  }
+  .main-sidebar.mobile-sidebar-open {
+    transform: translateX(0) !important;
+    box-shadow: 0 0 40px rgba(0,0,0,0.3) !important;
+  }
+
+  .main-content,
+  .sidebar-mini .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
+    padding: 16px 14px 40px !important;
+    box-sizing: border-box !important;
+  }
+
+  .main-navbar {
+    padding: 0 12px;
+  }
+  .main-navbar .mr-3 {
+    margin-right: 6px;
+  }
+  .portal-navbar-title {
+    padding: 0 6px;
+  }
+  .portal-navbar-title small {
+    display: none;
+  }
+  .portal-navbar-title strong {
+    font-size: 14px;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .section-header {
     margin-bottom: 16px !important;
   }
