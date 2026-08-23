@@ -80,10 +80,10 @@ CREATE INDEX IF NOT EXISTS idx_club_academy_license_logs_action ON club_academy_
 CREATE INDEX IF NOT EXISTS idx_club_academy_license_logs_created ON club_academy_license_logs(created_at);
 
 -- 4. Seed Permissions
-INSERT INTO permissions (id, name, resource, action, description, is_system)
+INSERT INTO permissions (id, name, resource, action, description)
 VALUES 
-  (gen_random_uuid()::TEXT, 'clubs.license.manage', 'clubs', 'manage_license', 'Create, extend, revoke, and manage club/academy statutory licenses', TRUE),
-  (gen_random_uuid()::TEXT, 'clubs.license.view',   'clubs', 'view_license',   'View club/academy statutory recognition licenses and audit history', TRUE)
+  (gen_random_uuid()::TEXT, 'clubs.license.manage', 'clubs', 'manage_license', 'Create, extend, revoke, and manage club/academy statutory licenses'),
+  (gen_random_uuid()::TEXT, 'clubs.license.view',   'clubs', 'view_license',   'View club/academy statutory recognition licenses and audit history')
 ON CONFLICT (name) DO NOTHING;
 
 -- Grant permissions to admin, super_admin, and club_manager roles
