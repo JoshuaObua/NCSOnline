@@ -855,7 +855,7 @@ function copyText(text) {
 // ── EXPORT & CERTIFICATE PRINT ─────────────────────────────────────────────
 
 function printCertificate(lic) {
-  const printWin = window.open('', '_blank', 'width=900,height=800')
+  const printWin = window.open('', '_blank', 'width=1000,height=850')
   if (!printWin) {
     Swal.fire('Popup Blocked', 'Please allow popups to preview and print the certificate.', 'warning')
     return
@@ -863,35 +863,58 @@ function printCertificate(lic) {
 
   const issueDateStr = formatDate(lic.issue_date)
   const expiryDateStr = formatDate(lic.expiry_date)
+  const issuerName = lic.issued_by_name || 'Dr. Bernard Ogwel (General Secretary)'
+  const safeFilename = `NCS_Federation_License_${String(lic.license_number || '').replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`
 
   const html = `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>NCS Certificate of Recognition - ${lic.license_number}</title>
+  ` + `<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"><` + `/script>` + `
   <style>
-    @page { size: A4 landscape; margin: 10mm; }
-    body { font-family: "Georgia", "Times New Roman", serif; background: #fafafa; margin: 0; padding: 20px; color: #1e293b; }
-    .cert-frame { border: 8px double #b45309; padding: 30px 40px; background: #fff; text-align: center; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
-    .logo-row { margin-bottom: 12px; }
-    .logo-row img { max-height: 70px; }
-    .republic-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #b45309; margin: 0; }
-    .ncs-title { font-size: 26px; font-weight: bold; color: #0f172a; margin: 6px 0 16px; text-transform: uppercase; letter-spacing: 1px; }
-    .cert-heading { font-size: 20px; font-style: italic; color: #475569; margin: 0 0 10px; }
-    .cert-body { font-size: 15px; color: #334155; margin: 0 auto 16px; max-width: 700px; line-height: 1.6; }
-    .fed-name { font-size: 28px; font-weight: bold; color: #1e3a8a; margin: 10px 0; text-decoration: underline; text-underline-offset: 6px; }
-    .reg-tag { font-size: 13px; color: #64748b; margin-bottom: 16px; }
-    .meta-box { display: flex; justify-content: space-around; margin: 24px auto; max-width: 650px; background: #fefce8; border: 1px solid #fef08a; padding: 12px; border-radius: 6px; }
-    .meta-item strong { display: block; font-size: 14px; color: #713f12; }
-    .meta-item span { font-size: 11px; color: #854d0e; text-transform: uppercase; }
-    .conditions { font-size: 11px; font-style: italic; color: #64748b; margin: 14px auto; max-width: 600px; }
-    .signatures { display: flex; justify-content: space-between; margin-top: 40px; padding: 0 40px; }
-    .sig-line { width: 220px; border-top: 1px solid #334155; padding-top: 6px; font-size: 12px; font-weight: bold; text-align: center; }
-    .sig-title { font-size: 11px; color: #64748b; font-weight: normal; }
+    @page { size: A4 landscape; margin: 8mm; }
+    * { box-sizing: border-box; }
+    body { font-family: "Georgia", "Times New Roman", serif; background: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
+    .cert-action-bar { display: flex; justify-content: center; gap: 12px; margin-bottom: 20px; }
+    .btn-cert { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: bold; border: none; cursor: pointer; transition: all 0.15s ease; }
+    .btn-primary { background: #1e3a8a; color: #fff; }
+    .btn-primary:hover { background: #1e40af; }
+    .btn-secondary { background: #0284c7; color: #fff; }
+    .btn-secondary:hover { background: #0369a1; }
+    .btn-close-cert { background: #e2e8f0; color: #475569; }
+    .btn-close-cert:hover { background: #cbd5e1; }
+    .cert-frame { border: 8px double #b45309; padding: 30px 40px; background: #fff; text-align: center; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.05); max-width: 960px; margin: 0 auto; }
+    .logo-row { margin-bottom: 10px; }
+    .logo-row img { max-height: 65px; }
+    .republic-title { font-size: 15px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #b45309; margin: 0; }
+    .ncs-title { font-size: 24px; font-weight: bold; color: #0f172a; margin: 4px 0 14px; text-transform: uppercase; letter-spacing: 1px; }
+    .cert-heading { font-size: 19px; font-style: italic; color: #475569; margin: 0 0 8px; }
+    .cert-body { font-size: 14px; color: #334155; margin: 0 auto 14px; max-width: 700px; line-height: 1.5; }
+    .fed-name { font-size: 26px; font-weight: bold; color: #1e3a8a; margin: 8px 0; text-decoration: underline; text-underline-offset: 5px; }
+    .reg-tag { font-size: 13px; color: #64748b; margin-bottom: 14px; }
+    .meta-box { display: flex; justify-content: space-around; margin: 18px auto; max-width: 680px; background: #fefce8; border: 1px solid #fef08a; padding: 10px; border-radius: 6px; }
+    .meta-item strong { display: block; font-size: 13px; color: #713f12; }
+    .meta-item span { font-size: 10px; color: #854d0e; text-transform: uppercase; }
+    .conditions { font-size: 11px; font-style: italic; color: #64748b; margin: 12px auto; max-width: 650px; }
+    .signatures { display: flex; justify-content: space-between; margin-top: 36px; padding: 0 30px; }
+    .sig-line { width: 230px; border-top: 1px solid #334155; padding-top: 6px; font-size: 12px; font-weight: bold; text-align: center; }
+    .sig-title { font-size: 10px; color: #64748b; font-weight: normal; }
+    @media print {
+      body { background: #fff; padding: 0; }
+      .no-print { display: none !important; }
+      .cert-frame { border: 8px double #b45309; box-shadow: none; max-width: 100%; }
+    }
   </style>
 </head>
 <body>
-  <div class="cert-frame">
+  <div class="no-print cert-action-bar">
+    <button class="btn-cert btn-primary" onclick="downloadPDF()">📥 Download PDF</button>
+    <button class="btn-cert btn-secondary" onclick="window.print()">🖨️ Print Certificate</button>
+    <button class="btn-cert btn-close-cert" onclick="window.close()">Close</button>
+  </div>
+
+  <div id="cert-to-print" class="cert-frame">
     <div class="logo-row">
       <img src="/main-logo.png" alt="National Council of Sports" />
     </div>
@@ -900,11 +923,11 @@ function printCertificate(lic) {
     <div class="cert-heading">Certificate of Statutory Recognition & Licensing</div>
     
     <div class="cert-body">
-      This is to certify that under the provisions of the <strong>National Sports Act, 2023</strong>, the national sports organisation:
+      This is to certify that under the provisions of the <strong>National Sports Act, 2023</strong>, the national sports governing body:
     </div>
 
     <div class="fed-name">${lic.federation_name}</div>
-    <div class="reg-tag">Registration Number: <strong>${lic.federation_reg_no || 'NCS-STATUTORY'}</strong> · Category: <strong>${lic.category || 'National Sports Federation'}</strong></div>
+    <div class="reg-tag">Registration Number: <strong>${lic.federation_reg_no || 'NCS-STATUTORY'}</strong> &middot; Category: <strong>${lic.category || 'National Sports Federation'}</strong></div>
 
     <div class="meta-box">
       <div class="meta-item">
@@ -931,21 +954,32 @@ function printCertificate(lic) {
 
     <div class="signatures">
       <div class="sig-line">
-        General Secretary<br>
-        <span class="sig-title">National Council of Sports</span>
+        ${issuerName}<br>
+        <span class="sig-title">General Secretary &middot; National Council of Sports</span>
       </div>
       <div class="sig-line">
-        Chairman / Board President<br>
-        <span class="sig-title">National Council of Sports</span>
+        ${lic.extended_by_name ? lic.extended_by_name + '<br><span class="sig-title">Extended Authority &middot; NCS Directorate</span>' : 'Board Chairman / Technical Director<br><span class="sig-title">National Council of Sports</span>'}
       </div>
     </div>
   </div>
 
-  <script>
-    window.onload = function() {
-      setTimeout(function() { window.print(); }, 400);
-    };
-  <\/script>
+  ` + `<script>
+    function downloadPDF() {
+      var element = document.getElementById('cert-to-print');
+      var opt = {
+        margin: [6, 6, 6, 6],
+        filename: '${safeFilename}',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+      };
+      if (window.html2pdf) {
+        window.html2pdf().set(opt).from(element).save();
+      } else {
+        window.print();
+      }
+    }
+  <` + `/script>
 </body>
 </html>`
 
