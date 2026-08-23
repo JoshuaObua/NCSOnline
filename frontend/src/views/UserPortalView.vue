@@ -247,10 +247,24 @@
                         <td data-label="Application"><strong>{{ item.title }}</strong><small>{{ item.source === 'custom' ? 'Custom form' : 'Standard form' }}</small></td>
                         <td data-label="Reference">{{ item.reference || 'Pending' }}</td>
                         <td data-label="Status"><span class="status" :class="statusClass(item.status)">{{ titleize(item.status) }}</span></td>
-                        <td data-label="Payment">{{ titleize(item.payment_status || 'not required') }}</td>
+                        <td data-label="Payment">
+                          <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="status" :class="paymentClass(item.payment_status)">{{ titleize(item.payment_status || 'not required') }}</span>
+                            <button
+                              v-if="canPayApplication(item)"
+                              type="button"
+                              class="btn-pay-action-pill"
+                              title="Make direct payment"
+                              @click="openDirectPaymentModal(item)"
+                            >
+                              <i class="icofont-credit-card"></i> Pay Now
+                            </button>
+                          </div>
+                        </td>
                         <td data-label="Updated">{{ formatDate(item.updated_at) }}</td>
                         <td data-label="Action">
                           <span class="table-actions">
+                            <button v-if="canPayApplication(item)" type="button" class="btn-pay-icon text-success" title="Pay application fee" @click="openDirectPaymentModal(item)"><i class="icofont-credit-card"></i></button>
                             <button type="button" title="View application" @click="viewApplication(item)"><i class="icofont-eye-alt"></i></button>
                             <button type="button" title="Download application form" @click="downloadApplication(item)"><i class="icofont-download"></i></button>
                             <button v-if="item.source === 'custom' && isEditableSubmission(item)" type="button" title="Edit application" @click="continueApplication(item)"><i class="icofont-rounded-right"></i></button>
@@ -1882,6 +1896,182 @@
       </div>
     </div>
 
+    <!-- Direct Application Payment Modal -->
+    <div v-if="paymentModalOpen" class="portal-modal-backdrop" @click.self="closeDirectPaymentModal">
+      <div class="portal-modal-card">
+        <div class="portal-modal-header">
+          <div class="d-flex align-items-center gap-3">
+            <span class="modal-header-icon">
+              <i class="icofont-credit-card"></i>
+            </span>
+            <div>
+              <h3 class="modal-title">Pay Application Fee</h3>
+              <p class="modal-subtitle">{{ paymentModalApp?.title || 'Online Application' }}</p>
+            </div>
+          </div>
+          <button type="button" class="btn-close-modal" @click="closeDirectPaymentModal">
+            <i class="icofont-close"></i>
+          </button>
+        </div>
+
+        <div class="portal-modal-body">
+          <!-- Fee summary banner -->
+          <div class="modal-fee-banner">
+            <div class="fee-meta">
+              <small>Required Application Fee</small>
+              <div class="fee-val">UGX {{ formatMoney(getAppPrice(paymentModalApp)) }}</div>
+            </div>
+            <div class="fee-ref">
+              <small>Ref / Submission</small>
+              <strong>{{ paymentModalApp?.reference || (paymentModalApp?.id ? paymentModalApp.id.slice(0, 8) : 'Pending') }}</strong>
+            </div>
+          </div>
+
+          <!-- Method Selector (Only rendered if multiple channels are allowed) -->
+          <div v-if="getAppAllowedMethods(paymentModalApp).length > 1" class="payment-method-selector-tabs mb-4">
+            <button
+              type="button"
+              class="selector-tab-btn"
+              :class="{ active: paymentModalMethod === 'MOBILE_MONEY' }"
+              @click="paymentModalMethod = 'MOBILE_MONEY'"
+            >
+              <i class="icofont-smart-phone"></i>
+              <div>
+                <strong>Mobile Money</strong>
+                <small>Instant USSD Prompt (MTN / Airtel)</small>
+              </div>
+            </button>
+            <button
+              type="button"
+              class="selector-tab-btn"
+              :class="{ active: paymentModalMethod === 'OVER_THE_COUNTER' }"
+              @click="paymentModalMethod = 'OVER_THE_COUNTER'"
+            >
+              <i class="icofont-bank-alt"></i>
+              <div>
+                <strong>Bank / Over Counter</strong>
+                <small>URA PRN / Bank Deposit Slip</small>
+              </div>
+            </button>
+          </div>
+
+          <!-- Alert / Error / Success Banners -->
+          <div v-if="paymentModalError" class="modal-alert-box alert-error mb-3">
+            <i class="icofont-warning-alt me-2"></i> {{ paymentModalError }}
+          </div>
+          <div v-if="paymentModalSuccess" class="modal-alert-box alert-success mb-3">
+            <i class="icofont-check-circled me-2"></i> {{ paymentModalSuccess }}
+          </div>
+
+          <!-- Mobile Money Flow -->
+          <div v-if="paymentModalMethod === 'MOBILE_MONEY' && !paymentModalSuccess" class="momo-flow-content">
+            <div v-if="!paymentModalTracking">
+              <div class="form-group mb-3">
+                <label class="form-label fw-bold">Mobile Money Phone Number</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light fw-bold"><i class="icofont-phone me-1"></i> +256</span>
+                  <input
+                    v-model="paymentModalPhone"
+                    type="tel"
+                    class="form-control"
+                    placeholder="770000000 or 0111777771"
+                  />
+                </div>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                  <small class="text-muted">Enter your registered MTN or Airtel Uganda phone number.</small>
+                  <span v-if="getCarrierName(paymentModalPhone)" class="carrier-tag" :class="getCarrierName(paymentModalPhone).toLowerCase()">
+                    {{ getCarrierName(paymentModalPhone) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Quick test numbers -->
+              <div class="sandbox-hints-box mb-4">
+                <span class="hints-label"><i class="icofont-info-circle"></i> Quick Test Numbers:</span>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button type="button" class="btn btn-xs btn-outline-success" @click="paymentModalPhone = '0111777771'">
+                    0111777771 (Success)
+                  </button>
+                  <button type="button" class="btn btn-xs btn-outline-danger" @click="paymentModalPhone = '0111777991'">
+                    0111777991 (Failed)
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="btn btn-primary w-100 py-3 fw-bold btn-momo-submit"
+                :disabled="paymentModalSubmitting"
+                @click="submitModalMoMoPayment"
+              >
+                <i v-if="paymentModalSubmitting" class="icofont-spinner-alt-3 animate-spin me-2"></i>
+                <i v-else class="icofont-smart-phone me-2"></i>
+                <span>Pay UGX {{ formatMoney(getAppPrice(paymentModalApp)) }} via Mobile Money</span>
+              </button>
+            </div>
+
+            <!-- Active USSD Tracking & Polling State -->
+            <div v-else class="ussd-tracking-card text-center py-4">
+              <div class="ussd-spinner-wrap mb-3">
+                <div class="pulsing-circle"></div>
+                <i class="icofont-smart-phone ussd-center-icon"></i>
+              </div>
+              <h4 class="fw-bold mb-2">USSD Prompt Sent!</h4>
+              <p class="text-muted max-w-sm mx-auto mb-3">
+                Please check your phone (<strong>{{ paymentModalPhone }}</strong>) and enter your Mobile Money PIN to approve the payment of <strong>UGX {{ formatMoney(getAppPrice(paymentModalApp)) }}</strong>.
+              </p>
+              <div class="tracking-progress-box mx-auto mb-3">
+                <span class="spinner-border spinner-border-sm text-primary me-2"></span>
+                <span>Awaiting payment approval... ({{ paymentModalCountdown }}s)</span>
+              </div>
+              <p class="text-xs text-muted">
+                Transaction Reference: <code>{{ paymentModalTxRef || 'NCS-TXN-PENDING' }}</code>
+              </p>
+            </div>
+          </div>
+
+          <!-- Over the Counter Flow -->
+          <div v-else-if="paymentModalMethod === 'OVER_THE_COUNTER' && !paymentModalSuccess" class="otc-flow-content">
+            <div class="form-group mb-3">
+              <label class="form-label fw-bold">URA Payment Registration Number (PRN)</label>
+              <input
+                v-model="paymentModalPRN"
+                type="text"
+                class="form-control"
+                placeholder="e.g. 224000123456"
+              />
+            </div>
+            <div class="form-group mb-4">
+              <label class="form-label fw-bold">Upload Bank Deposit Slip / Proof (PDF, PNG, JPG)</label>
+              <input
+                type="file"
+                class="form-control"
+                accept=".pdf,.png,.jpg,.jpeg"
+                @change="onModalFileSelected"
+              />
+            </div>
+            <button
+              type="button"
+              class="btn btn-primary w-100 py-3 fw-bold"
+              :disabled="paymentModalSubmitting"
+              @click="submitModalOTCProof"
+            >
+              <i v-if="paymentModalSubmitting" class="icofont-spinner-alt-3 animate-spin me-2"></i>
+              <i v-else class="icofont-upload me-2"></i>
+              <span>Submit Bank Deposit Proof</span>
+            </button>
+          </div>
+
+          <!-- Success State Action -->
+          <div v-if="paymentModalSuccess" class="text-center py-3">
+            <button type="button" class="btn btn-success px-4 py-2 fw-bold" @click="closeDirectPaymentModal">
+              <i class="icofont-check me-2"></i> Done / Continue
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 </template>
 
@@ -1893,7 +2083,13 @@ import { listMyAuditLogs } from '@/api/account.js'
 import { listMyLegacyApplications, listMyTransactions } from '@/api/applications.js'
 import { getMySecurity, enroll2FA, verify2FA, disable2FA, changePassword, listMySessions, revokeMySession, revokeOtherSessions } from '@/api/security.js'
 import * as cms from '@/api/cms.js'
-import { portalListOpenForms, portalListSubmissions } from '@/api/forms.js'
+import {
+  portalListOpenForms,
+  portalListSubmissions,
+  portalInitiateMoMoPayment,
+  portalGetPaymentStatus,
+  portalUploadPaymentProof,
+} from '@/api/forms.js'
 import { listNsmisDomain } from '@/api/nsmis.js'
 import { mediaUrl } from '@/api/client.js'
 import OpenFormsPanel from '@/components/portal/OpenFormsPanel.vue'
@@ -2736,6 +2932,181 @@ function viewApplication(item) {
 function downloadApplication(item) {
   downloadApplicationForm(item)
 }
+
+// --- Direct Application Payment Modal Functions ---
+const paymentModalOpen = ref(false)
+const paymentModalApp = ref(null)
+const paymentModalMethod = ref('MOBILE_MONEY')
+const paymentModalPhone = ref('')
+const paymentModalPRN = ref('')
+const paymentModalFile = ref(null)
+const paymentModalSubmitting = ref(false)
+const paymentModalError = ref('')
+const paymentModalSuccess = ref('')
+const paymentModalTracking = ref(false)
+const paymentModalCountdown = ref(90)
+const paymentModalPollingTimer = ref(null)
+const paymentModalCountdownTimer = ref(null)
+const paymentModalTxRef = ref('')
+
+function canPayApplication(item) {
+  if (item.source !== 'custom') return false
+  if (item.payment_status === 'PAID') return false
+  const fee = getAppPrice(item)
+  return fee > 0
+}
+
+function getAppPrice(item) {
+  if (!item) return 0
+  if (item.price_ugx && Number(item.price_ugx) > 0) return Number(item.price_ugx)
+  if (item.payment_amount_ugx && Number(item.payment_amount_ugx) > 0) return Number(item.payment_amount_ugx)
+  const template = openForms.value.find(f => f.id === item.template_id)
+  return template && Number(template.price_ugx) ? Number(template.price_ugx) : 0
+}
+
+function getAppAllowedMethods(item) {
+  if (!item) return ['OVER_THE_COUNTER', 'MOBILE_MONEY']
+  let methods = item.allowed_payment_methods
+  if (!methods || (Array.isArray(methods) && !methods.length)) {
+    const template = openForms.value.find(f => f.id === item.template_id)
+    methods = template?.allowed_payment_methods
+  }
+  if (typeof methods === 'string') {
+    try { methods = JSON.parse(methods) } catch { methods = [] }
+  }
+  if (!Array.isArray(methods) || !methods.length) {
+    return ['OVER_THE_COUNTER', 'MOBILE_MONEY']
+  }
+  return methods
+}
+
+function getCarrierName(phone) {
+  const clean = String(phone || '').replace(/[\s\-\+]/g, '')
+  if (clean.startsWith('0111') || clean.startsWith('256111')) return 'Sandbox Test'
+  if (clean.startsWith('077') || clean.startsWith('078') || clean.startsWith('076') || clean.startsWith('25677') || clean.startsWith('25678') || clean.startsWith('25676')) return 'MTN MoMo'
+  if (clean.startsWith('070') || clean.startsWith('075') || clean.startsWith('074') || clean.startsWith('25670') || clean.startsWith('25675') || clean.startsWith('25674')) return 'Airtel Money'
+  return ''
+}
+
+function openDirectPaymentModal(item) {
+  paymentModalApp.value = item
+  paymentModalError.value = ''
+  paymentModalSuccess.value = ''
+  paymentModalTracking.value = false
+  paymentModalTxRef.value = ''
+  paymentModalPRN.value = ''
+  paymentModalFile.value = null
+  paymentModalPhone.value = profile.phone || ''
+
+  const allowed = getAppAllowedMethods(item)
+  if (allowed.includes('MOBILE_MONEY')) {
+    paymentModalMethod.value = 'MOBILE_MONEY'
+  } else {
+    paymentModalMethod.value = 'OVER_THE_COUNTER'
+  }
+  paymentModalOpen.value = true
+}
+
+function closeDirectPaymentModal() {
+  if (paymentModalPollingTimer.value) {
+    clearInterval(paymentModalPollingTimer.value)
+    paymentModalPollingTimer.value = null
+  }
+  if (paymentModalCountdownTimer.value) {
+    clearInterval(paymentModalCountdownTimer.value)
+    paymentModalCountdownTimer.value = null
+  }
+  paymentModalOpen.value = false
+  paymentModalApp.value = null
+}
+
+function onModalFileSelected(event) {
+  const file = event.target?.files?.[0]
+  if (file) {
+    paymentModalFile.value = file
+  }
+}
+
+async function submitModalMoMoPayment() {
+  if (!paymentModalPhone.value.trim()) {
+    paymentModalError.value = 'Please enter your Mobile Money phone number.'
+    return
+  }
+  paymentModalError.value = ''
+  paymentModalSubmitting.value = true
+  try {
+    const res = await portalInitiateMoMoPayment(paymentModalApp.value.id, {
+      phone_number: paymentModalPhone.value.trim()
+    })
+    const data = res?.data || res || {}
+    paymentModalTxRef.value = data.transaction_reference || ''
+    paymentModalTracking.value = true
+    paymentModalCountdown.value = 90
+
+    if (paymentModalCountdownTimer.value) clearInterval(paymentModalCountdownTimer.value)
+    paymentModalCountdownTimer.value = setInterval(() => {
+      if (paymentModalCountdown.value > 0) {
+        paymentModalCountdown.value--
+      } else {
+        clearInterval(paymentModalCountdownTimer.value)
+      }
+    }, 1000)
+
+    if (paymentModalPollingTimer.value) clearInterval(paymentModalPollingTimer.value)
+    paymentModalPollingTimer.value = setInterval(async () => {
+      try {
+        const pollRes = await portalGetPaymentStatus(paymentModalApp.value.id)
+        const st = pollRes?.data || pollRes || {}
+        if (st.status === 'SUCCESS' || st.payment_status === 'PAID') {
+          clearInterval(paymentModalPollingTimer.value)
+          clearInterval(paymentModalCountdownTimer.value)
+          paymentModalPollingTimer.value = null
+          paymentModalCountdownTimer.value = null
+          paymentModalTracking.value = false
+          paymentModalSuccess.value = `Payment of UGX ${formatMoney(getAppPrice(paymentModalApp.value))} confirmed! Reference: ${st.transaction_reference || paymentModalTxRef.value}`
+          await loadPortal()
+        } else if (st.status === 'FAILED') {
+          clearInterval(paymentModalPollingTimer.value)
+          clearInterval(paymentModalCountdownTimer.value)
+          paymentModalPollingTimer.value = null
+          paymentModalCountdownTimer.value = null
+          paymentModalTracking.value = false
+          paymentModalError.value = st.status_message || 'Payment was declined or failed. Please retry.'
+        }
+      } catch (e) {
+        console.warn('Payment polling:', e)
+      }
+    }, 3000)
+  } catch (err) {
+    paymentModalError.value = err.response?.data?.message || err.response?.data?.error?.message || err.message || 'Failed to initiate Mobile Money payment'
+  } finally {
+    paymentModalSubmitting.value = false
+  }
+}
+
+async function submitModalOTCProof() {
+  if (!paymentModalPRN.value.trim() && !paymentModalFile.value) {
+    paymentModalError.value = 'Please enter a URA PRN or choose a bank slip file to upload.'
+    return
+  }
+  paymentModalError.value = ''
+  paymentModalSubmitting.value = true
+  try {
+    const formData = new FormData()
+    if (paymentModalPRN.value.trim()) formData.append('reference', paymentModalPRN.value.trim())
+    if (paymentModalFile.value) formData.append('file', paymentModalFile.value)
+    formData.append('amount', String(getAppPrice(paymentModalApp.value)))
+
+    await portalUploadPaymentProof(paymentModalApp.value.id, formData)
+    paymentModalSuccess.value = 'Bank deposit proof uploaded successfully for verification!'
+    await loadPortal()
+  } catch (err) {
+    paymentModalError.value = err.response?.data?.message || err.response?.data?.error?.message || err.message || 'Failed to upload payment proof'
+  } finally {
+    paymentModalSubmitting.value = false
+  }
+}
+
 async function refreshSubmissions() {
   const result = await portalListSubmissions({ page: 1, per_page: 200 })
   dynamicSubmissions.value = asList(result)
@@ -5121,6 +5492,352 @@ footer.main-footer, .main-footer {
   color: #cbd5e1 !important;
 }
 
+/* Pay Now Action Buttons */
+.btn-pay-action-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+.btn-pay-action-pill:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+}
+.btn-pay-icon {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+.btn-pay-icon:hover {
+  background: #ecfdf5;
+  color: #059669 !important;
+}
+
+/* Portal Payment Modal */
+.portal-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.portal-modal-card {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes modalPop {
+  0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.portal-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+}
+.modal-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.modal-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.modal-subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+.btn-close-modal {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #94a3b8;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.btn-close-modal:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.portal-modal-body {
+  padding: 24px;
+}
+
+/* Modal Fee Banner */
+.modal-fee-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.fee-meta small {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.5px;
+}
+.fee-val {
+  font-size: 20px;
+  font-weight: 800;
+  color: #047857;
+}
+.fee-ref small {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  display: block;
+}
+.fee-ref strong {
+  font-size: 12px;
+  color: #334155;
+}
+
+/* Payment Method Tabs */
+.payment-method-selector-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.selector-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+.selector-tab-btn i {
+  font-size: 24px;
+  color: #64748b;
+}
+.selector-tab-btn strong {
+  display: block;
+  font-size: 13px;
+  color: #1e293b;
+}
+.selector-tab-btn small {
+  font-size: 10px;
+  color: #64748b;
+}
+.selector-tab-btn.active {
+  background: #eff6ff;
+  border-color: #3b82f6;
+}
+.selector-tab-btn.active i {
+  color: #2563eb;
+}
+.selector-tab-btn.active strong {
+  color: #1d4ed8;
+}
+
+/* Carrier Tags */
+.carrier-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+.carrier-tag.mtn {
+  background: #fef08a;
+  color: #854d0e;
+}
+.carrier-tag.airtel {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.carrier-tag.sandbox {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* Alerts */
+.modal-alert-box {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.modal-alert-box.alert-error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+.modal-alert-box.alert-success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+/* Sandbox Hints */
+.sandbox-hints-box {
+  background: #f8fafc;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+}
+.hints-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  display: block;
+  margin-bottom: 6px;
+}
+.btn-xs {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+/* USSD Tracking Spinner */
+.ussd-tracking-card {
+  background: #fafbfc;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+}
+.ussd-spinner-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pulsing-circle {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.15);
+  animation: pulseAnim 1.6s infinite ease-out;
+}
+@keyframes pulseAnim {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+.ussd-center-icon {
+  font-size: 32px;
+  color: #2563eb;
+  position: relative;
+  z-index: 1;
+}
+.tracking-progress-box {
+  display: inline-flex;
+  align-items: center;
+  background: #ffffff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Dark Mode Overrides for Payment Modal */
+:global(.dark) .portal-modal-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+:global(.dark) .portal-modal-header {
+  background: #0f172a;
+  border-color: #334155;
+}
+:global(.dark) .modal-title {
+  color: #f8fafc;
+}
+:global(.dark) .modal-subtitle {
+  color: #94a3b8;
+}
+:global(.dark) .modal-fee-banner {
+  background: #0f172a;
+  border-color: #334155;
+}
+:global(.dark) .fee-val {
+  color: #34d399;
+}
+:global(.dark) .selector-tab-btn {
+  background: #0f172a;
+  border-color: #334155;
+}
+:global(.dark) .selector-tab-btn strong {
+  color: #f8fafc;
+}
+:global(.dark) .selector-tab-btn.active {
+  background: #1e3a8a;
+  border-color: #60a5fa;
+}
+:global(.dark) .selector-tab-btn.active strong {
+  color: #bfdbfe;
+}
+:global(.dark) .sandbox-hints-box {
+  background: #0f172a;
+  border-color: #334155;
+}
+:global(.dark) .ussd-tracking-card {
+  background: #0f172a;
+  border-color: #334155;
+}
+:global(.dark) .tracking-progress-box {
+  background: #1e293b;
+  color: #f8fafc;
+  border-color: #334155;
+}
 </style>
 
 

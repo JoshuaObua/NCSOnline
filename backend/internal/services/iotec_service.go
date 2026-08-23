@@ -69,14 +69,9 @@ type IoTecService struct {
 func NewIoTecService() *IoTecService {
 	baseURL := strings.TrimRight(getEnvFallback("IOTEC_BASE_URL", "https://pay.iotec.io"), "/")
 	authURL := strings.TrimRight(getEnvFallback("IOTEC_AUTH_URL", "https://id.iotec.io"), "/")
-	clientID := os.Getenv("IOTEC_CLIENT_ID")
-	clientSecret := os.Getenv("IOTEC_CLIENT_SECRET")
-	walletID := os.Getenv("IOTEC_WALLET_ID")
-
-	// Default fallback demo wallet if not yet configured in env
-	if walletID == "" {
-		walletID = "5e83b187-801e-410e-b76e-f491928547e0"
-	}
+	clientID := getEnvFallback("IOTEC_CLIENT_ID", "xmen-client")
+	clientSecret := getEnvFallback("IOTEC_CLIENT_SECRET", "LvEDsfLrKQjJ6fJsn3iwL71Lzf82ibVL3f6Jef5D")
+	walletID := getEnvFallback("IOTEC_WALLET_ID", "c9f41d7b-3784-42ca-9cfe-76f4244e9ed3")
 
 	return &IoTecService{
 		cfg: IoTecConfig{
@@ -191,8 +186,8 @@ func (s *IoTecService) InitiateCollection(ctx context.Context, req IoTecCollecti
 	}
 	req.Payer = cleanPhone
 
-	// Check for sandbox / offline mode simulation
-	if s.cfg.ClientID == "" || s.cfg.ClientSecret == "" || strings.HasPrefix(req.Payer, "0111") {
+	// Check for offline simulation mode only if credentials are unset
+	if s.cfg.ClientID == "" || s.cfg.ClientSecret == "" {
 		return s.simulateCollection(req)
 	}
 
@@ -239,8 +234,8 @@ func (s *IoTecService) GetStatus(ctx context.Context, requestID string, phone st
 		return nil, errors.New("request ID is required")
 	}
 
-	// Simulation for sandbox / test phone numbers
-	if s.cfg.ClientID == "" || s.cfg.ClientSecret == "" || strings.HasPrefix(phone, "0111") || strings.HasPrefix(requestID, "sim-") {
+	// Simulation only for offline fallback or simulated ids
+	if s.cfg.ClientID == "" || s.cfg.ClientSecret == "" || strings.HasPrefix(requestID, "sim-") {
 		return s.simulateStatus(requestID, phone)
 	}
 

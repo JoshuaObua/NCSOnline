@@ -135,6 +135,17 @@
             {{ form.description || 'Complete and submit this official application form online through the NCS portal.' }}
           </p>
 
+          <!-- Allowed Payment Methods indicator -->
+          <div v-if="Number(form.price_ugx) > 0" class="service-pay-methods">
+            <span class="pay-methods-tag"><i class="icofont-credit-card"></i> Pay via:</span>
+            <span v-if="hasPaymentMethod(form, 'MOBILE_MONEY')" class="pay-method-pill momo">
+              <i class="icofont-smart-phone"></i> Mobile Money
+            </span>
+            <span v-if="hasPaymentMethod(form, 'OVER_THE_COUNTER')" class="pay-method-pill otc">
+              <i class="icofont-bank-alt"></i> Bank Deposit
+            </span>
+          </div>
+
           <!-- Card Footer & Action Button -->
           <div class="service-card-footer">
             <button
@@ -248,10 +259,31 @@ function departmentLabel(value) {
   if (/(^|_)(super_?admin|admin|user)($|_)/i.test(String(value))) return 'NCS Central Secretariat'
   return String(value).trim()
 }
+function hasPaymentMethod(form, method) {
+  let methods = form.allowed_payment_methods
+  if (typeof methods === 'string') {
+    try { methods = JSON.parse(methods) } catch { methods = [] }
+  }
+  if (!Array.isArray(methods) || !methods.length) {
+    return true
+  }
+  return methods.includes(method)
+}
 const isPendingSubmission = item => item?.status && !['DRAFT', 'NEEDS_INFORMATION', 'APPROVED', 'REJECTED'].includes(item.status)
 </script>
 
 <style scoped>
+.service-pay-methods{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:10px 0 14px;padding:8px 10px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0}
+.pay-methods-tag{font-size:11px;font-weight:700;color:#64748b;display:flex;align-items:center;gap:4px}
+.pay-method-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700}
+.pay-method-pill.momo{background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+.pay-method-pill.otc{background:#fef3c7;color:#b45309;border:1px solid #fde68a}
+
+:global(.dark) .service-pay-methods{background:#0f172a;border-color:#334155}
+:global(.dark) .pay-methods-tag{color:#94a3b8}
+:global(.dark) .pay-method-pill.momo{background:#1e293b;color:#93c5fd;border-color:#3b82f6}
+:global(.dark) .pay-method-pill.otc{background:#1e293b;color:#fcd34d;border-color:#d97706}
+
 .open-forms-section {
   width: 100%;
   max-width: 100%;
