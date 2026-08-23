@@ -90,17 +90,95 @@
               </div>
               <div
                 v-else-if="['file', 'image'].includes(field.field_type)"
-                class="dropify-zone"
-                :class="{ filled: !!formAnswers[field.field_key], uploading: uploadingField === field.field_key }"
-                @dragover.prevent
-                @drop.prevent="dropFieldFile(field, $event)"
+                class="dropify-wrapper"
+                :class="{
+                  'has-preview': !!formAnswers[field.field_key],
+                  'is-uploading': uploadingField === field.field_key
+                }"
               >
-                <input :id="fieldId(field)" class="dropify-input" type="file" :accept="fieldAccept(field)" @change="uploadFieldFile(field, $event)" />
-                <span class="dropify-icon"><i :class="field.field_type === 'image' ? 'icofont-image' : 'icofont-upload-alt'"></i></span>
-                <strong>{{ uploadingField === field.field_key ? 'Uploading...' : (formAnswers[field.field_key] ? 'Attachment uploaded' : 'Drop file here or choose one') }}</strong>
-                <small>{{ field.field_type === 'image' ? 'Image files are accepted' : 'PDF, JPG, PNG, JPEG or configured file type' }}</small>
-                <a v-if="formAnswers[field.field_key]" :href="mediaUrl(formAnswers[field.field_key])" target="_blank" rel="noopener">Preview attachment</a>
-                <button v-if="formAnswers[field.field_key]" type="button" class="proof-clear" @click.stop="clearFieldFile(field)">Remove</button>
+                <div
+                  class="dropify-drop-area"
+                  @click="triggerFieldFileInput(field)"
+                  @dragover.prevent
+                  @drop.prevent="dropFieldFile(field, $event)"
+                >
+                  <input
+                    :id="fieldId(field)"
+                    :ref="el => setFieldInputRef(field.field_key, el)"
+                    class="dropify-file-input"
+                    type="file"
+                    :accept="fieldAccept(field)"
+                    @change="uploadFieldFile(field, $event)"
+                  />
+
+                  <!-- Uploading State Overlay -->
+                  <div v-if="uploadingField === field.field_key" class="dropify-loader">
+                    <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                    <span class="ms-2 fw-semibold">Uploading document...</span>
+                  </div>
+
+                  <!-- Filled / Resumed State Preview -->
+                  <div v-else-if="formAnswers[field.field_key]" class="dropify-preview-container">
+                    <div class="dropify-preview-card">
+                      <div class="preview-icon-wrapper">
+                        <img
+                          v-if="isImageFile(formAnswers[field.field_key]) || field.field_type === 'image'"
+                          :src="mediaUrl(formAnswers[field.field_key])"
+                          alt="Uploaded Attachment"
+                          class="preview-img-thumbnail"
+                        />
+                        <span v-else class="preview-doc-icon">
+                          <i class="icofont-file-pdf"></i>
+                        </span>
+                      </div>
+
+                      <div class="preview-meta-info">
+                        <span class="preview-status-tag"><i class="icofont-check-circled"></i> Attached Document</span>
+                        <h4 class="preview-file-name" :title="getFileName(formAnswers[field.field_key])">
+                          {{ getFileName(formAnswers[field.field_key]) }}
+                        </h4>
+                        <div class="preview-actions-bar">
+                          <a
+                            :href="mediaUrl(formAnswers[field.field_key])"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="btn-preview-link"
+                            @click.stop
+                          >
+                            <i class="icofont-eye-alt"></i> View File
+                          </a>
+                          <button
+                            type="button"
+                            class="btn-dropify-replace"
+                            @click.stop="triggerFieldFileInput(field)"
+                          >
+                            <i class="icofont-refresh"></i> Replace
+                          </button>
+                          <button
+                            type="button"
+                            class="btn-dropify-remove"
+                            @click.stop="clearFieldFile(field)"
+                          >
+                            <i class="icofont-trash"></i> Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Default Empty State -->
+                  <div v-else class="dropify-message">
+                    <span class="dropify-cloud-icon">
+                      <i :class="field.field_type === 'image' ? 'icofont-image' : 'icofont-cloud-upload'"></i>
+                    </span>
+                    <p class="dropify-primary-text">
+                      Drag and drop your file here or <span>browse</span>
+                    </p>
+                    <p class="dropify-hint-text">
+                      {{ field.field_type === 'image' ? 'Supports JPG, PNG, WEBP, GIF (Max 10MB)' : 'Supports PDF, JPG, PNG, DOCX (Max 25MB)' }}
+                    </p>
+                  </div>
+                </div>
               </div>
               <input
                 v-else
@@ -165,13 +243,6 @@
                     </div>
                   </label>
 
-                  <!-- Test Numbers Helper for Sandbox/Testing -->
-                  <div class="test-numbers-helper">
-                    <span><i class="icofont-info-circle"></i> Test Phone Numbers:</span>
-                    <button type="button" class="btn-test-num" @click="setTestPhone('0111777771')">0111777771 (Success)</button>
-                    <button type="button" class="btn-test-num" @click="setTestPhone('0111777991')">0111777991 (Fail)</button>
-                  </div>
-
                   <!-- Action / Status Controls -->
                   <div v-if="!momoPolling && !momoSuccess" class="momo-action-row">
                     <button
@@ -217,38 +288,110 @@
 
               <!-- Over the Counter Flow -->
               <div v-else-if="selectedPaymentMethod === 'OVER_THE_COUNTER'" class="counter-flow-card">
-                <p>Enter the URA PRN for a payment already made, or upload a scanned bank deposit receipt / proof file.</p>
-                <label>URA PRN (Payment Reference Number)
-                  <input
-                    v-model.trim="paymentReference"
-                    :disabled="!!paymentProofURL || uploadingPaymentProof"
-                    placeholder="Enter PRN generated from the URA portal"
-                    @input="clearPaymentProofFile"
-                  />
-                </label>
-                <div
-                  class="dropify-zone payment-proof-drop"
-                  :class="{ filled: !!paymentProofURL, uploading: uploadingPaymentProof, disabled: !!paymentReference }"
-                  @dragover.prevent
-                  @drop.prevent="dropPaymentProofFile"
-                >
-                  <input
-                    ref="paymentProofInput"
-                    class="dropify-input"
-                    type="file"
-                    accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
-                    :disabled="!!paymentReference || uploadingPaymentProof"
-                    @change="uploadPaymentProofFile"
-                  />
-                  <span class="dropify-icon"><i class="icofont-paperclip"></i></span>
-                  <strong>{{ uploadingPaymentProof ? 'Uploading proof...' : (paymentProofURL ? 'Payment proof uploaded' : 'Drop receipt or proof here') }}</strong>
-                  <small>PDF, PNG, JPG or JPEG</small>
-                  <a v-if="paymentProofURL" :href="mediaUrl(paymentProofURL)" target="_blank" rel="noopener">{{ paymentProofFileName || 'Preview proof' }}</a>
-                  <button v-if="paymentProofURL" type="button" class="proof-clear" :disabled="uploadingPaymentProof" @click.stop="clearPaymentProofFile">Remove</button>
+                <div class="bank-deposit-guide mb-3">
+                  <div class="guide-icon"><i class="icofont-bank-alt"></i></div>
+                  <div>
+                    <h4 class="mb-1 fw-bold">Bank Deposit / Over the Counter Payment</h4>
+                    <p class="mb-0 text-muted text-sm">
+                      Please deposit the application fee of <strong>UGX {{ formatMoney(form.price_ugx) }}</strong> at any authorized bank or NCS cashier counter, then upload the stamped deposit receipt below.
+                    </p>
+                  </div>
                 </div>
-                <label>Amount paid (UGX)
-                  <input v-model.number="paymentAmount" type="number" min="1" />
-                </label>
+
+                <div class="form-group mb-2">
+                  <label class="form-label fw-bold">Upload Stamped Bank Deposit Receipt / Proof <b class="text-danger">*</b></label>
+                  
+                  <div
+                    class="dropify-wrapper payment-proof-dropify"
+                    :class="{
+                      'has-preview': !!paymentProofURL,
+                      'is-uploading': uploadingPaymentProof
+                    }"
+                  >
+                    <div
+                      class="dropify-drop-area"
+                      @click="triggerPaymentProofInput"
+                      @dragover.prevent
+                      @drop.prevent="dropPaymentProofFile"
+                    >
+                      <input
+                        ref="paymentProofInput"
+                        class="dropify-file-input"
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                        @change="uploadPaymentProofFile"
+                      />
+
+                      <!-- Uploading State Overlay -->
+                      <div v-if="uploadingPaymentProof" class="dropify-loader">
+                        <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                        <span class="ms-2 fw-semibold">Uploading payment proof...</span>
+                      </div>
+
+                      <!-- Filled / Resumed State Preview -->
+                      <div v-else-if="paymentProofURL" class="dropify-preview-container">
+                        <div class="dropify-preview-card">
+                          <div class="preview-icon-wrapper">
+                            <img
+                              v-if="isImageFile(paymentProofURL)"
+                              :src="mediaUrl(paymentProofURL)"
+                              alt="Payment Proof"
+                              class="preview-img-thumbnail"
+                            />
+                            <span v-else class="preview-doc-icon">
+                              <i class="icofont-file-pdf"></i>
+                            </span>
+                          </div>
+
+                          <div class="preview-meta-info">
+                            <span class="preview-status-tag"><i class="icofont-check-circled"></i> Payment Receipt Attached</span>
+                            <h4 class="preview-file-name" :title="paymentProofFileName || getFileName(paymentProofURL)">
+                              {{ paymentProofFileName || getFileName(paymentProofURL) }}
+                            </h4>
+                            <div class="preview-actions-bar">
+                              <a
+                                :href="mediaUrl(paymentProofURL)"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="btn-preview-link"
+                                @click.stop
+                              >
+                                <i class="icofont-eye-alt"></i> View Receipt
+                              </a>
+                              <button
+                                type="button"
+                                class="btn-dropify-replace"
+                                @click.stop="triggerPaymentProofInput"
+                              >
+                                <i class="icofont-refresh"></i> Replace Receipt
+                              </button>
+                              <button
+                                type="button"
+                                class="btn-dropify-remove"
+                                @click.stop="clearPaymentProofFile"
+                              >
+                                <i class="icofont-trash"></i> Remove
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Default Empty State -->
+                      <div v-else class="dropify-message">
+                        <span class="dropify-cloud-icon">
+                          <i class="icofont-paperclip"></i>
+                        </span>
+                        <p class="dropify-primary-text">
+                          Drag and drop bank deposit slip here or <span>browse</span>
+                        </p>
+                        <p class="dropify-hint-text">
+                          Supports PDF, PNG, JPG or JPEG (Max 15MB)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </section>
           </section>
@@ -442,9 +585,22 @@ async function saveDraft(showMessage = true) {
   }
 }
 
-function setTestPhone(num) {
-  momoPhoneNumber.value = num
-  momoError.value = ''
+const fieldInputs = reactive({})
+function setFieldInputRef(key, el) { if (el) fieldInputs[key] = el }
+function triggerFieldFileInput(field) { if (fieldInputs[field.field_key]) fieldInputs[field.field_key].click() }
+function triggerPaymentProofInput() { if (paymentProofInput.value) paymentProofInput.value.click() }
+
+function getFileName(url) {
+  if (!url) return ''
+  const clean = String(url).split('?')[0]
+  const parts = clean.split('/')
+  const raw = parts[parts.length - 1] || 'Document'
+  try { return decodeURIComponent(raw) } catch { return raw }
+}
+
+function isImageFile(url) {
+  if (!url) return false
+  return /\.(png|jpe?g|webp|gif|svg)$/i.test(String(url).split('?')[0])
 }
 
 function onMomoPhoneInput() {
@@ -540,11 +696,12 @@ async function submitApplication() {
       if (selectedPaymentMethod.value === 'MOBILE_MONEY') {
         throw new Error('Please complete your Mobile Money payment before submitting.')
       }
-      if (!validPaymentProof()) throw new Error('Enter a URA PRN or upload one payment proof file, then enter the amount paid.')
+      if (!validPaymentProof()) throw new Error('Please upload your bank deposit receipt / payment proof before submitting.')
       await portalUploadPaymentProof(submission.id, {
-        payment_reference: paymentReference.value.trim(),
+        payment_reference: paymentProofFileName.value || getFileName(paymentProofURL.value) || 'BANK_DEPOSIT',
         payment_proof_url: paymentProofURL.value.trim(),
-        payment_amount_ugx: Number(paymentAmount.value),
+        payment_amount_ugx: Number(form.price_ugx),
+        payment_method: 'OVER_THE_COUNTER',
       })
     }
     await portalSubmit(submission.id)
@@ -589,7 +746,7 @@ async function uploadPaymentProofFile(event) {
 }
 
 async function dropPaymentProofFile(event) {
-  if (paymentReference.value || uploadingPaymentProof.value) return
+  if (uploadingPaymentProof.value) return
   const file = event.dataTransfer?.files?.[0]
   await uploadPaymentProofObject(file)
 }
@@ -603,7 +760,6 @@ async function uploadPaymentProofObject(file) {
     return
   }
   uploadingPaymentProof.value = true
-  paymentReference.value = ''
   try {
     const res = await cms.uploadMedia(file, 'application')
     const uploaded = unwrap(res)
@@ -635,10 +791,17 @@ function validateAllSteps() {
       return false
     }
   }
-  if (Number(form.price_ugx) > 0 && paymentRequired.value && !validPaymentProof()) {
-    currentStepIndex.value = steps.value.length - 1
-    formError.value = 'Enter a URA PRN or upload one payment proof file, then enter the amount paid.'
-    return false
+  if (Number(form.price_ugx) > 0 && paymentRequired.value) {
+    if (selectedPaymentMethod.value === 'MOBILE_MONEY' && !momoSuccess.value) {
+      currentStepIndex.value = steps.value.length - 1
+      formError.value = 'Please complete the Mobile Money payment on your phone before submitting.'
+      return false
+    }
+    if (selectedPaymentMethod.value === 'OVER_THE_COUNTER' && !validPaymentProof()) {
+      currentStepIndex.value = steps.value.length - 1
+      formError.value = 'Please upload your bank deposit receipt / payment proof before submitting.'
+      return false
+    }
   }
   return true
 }
@@ -717,9 +880,7 @@ function titleize(value) { return String(value || '').toLowerCase().replaceAll('
 .carrier-badge.airtel{background:#fee2e2;color:#991b1b}
 .carrier-badge.sandbox{background:#e0e7ff;color:#3730a3}
 
-.test-numbers-helper{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;background:#f8fafc;border-radius:4px;font-size:11.5px;color:#64748b}
-.btn-test-num{border:1px solid #cbd5e1;background:#fff;padding:2px 8px;border-radius:4px;font-size:11px;color:#334155;cursor:pointer;font-family:monospace}
-.btn-test-num:hover{background:#e2e8f0;color:#0f172a}
+
 
 .btn-momo-pay{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border:0;border-radius:30px;background:linear-gradient(135deg, #4f46e5, #6366f1);color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(79,70,229,0.3);transition:all 0.2s ease}
 .btn-momo-pay:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 16px rgba(79,70,229,0.4)}
@@ -757,10 +918,61 @@ function titleize(value) { return String(value || '').toLowerCase().replaceAll('
 :global(.dark) .phone-input-wrapper{background:#1e293b;border-color:#475569}
 :global(.dark) .phone-country-code{background:#334155;color:#f8fafc;border-color:#475569}
 :global(.dark) .phone-input-wrapper input{background:#1e293b!important;color:#f8fafc!important}
-:global(.dark) .test-numbers-helper{background:#1e293b;color:#cbd5e1}
-:global(.dark) .btn-test-num{background:#334155;color:#f8fafc;border-color:#475569}
 :global(.dark) .momo-status-tracker{background:#172554;border-color:#1e40af}
 :global(.dark) .tracker-info h4{color:#93c5fd}
 :global(.dark) .tracker-info p{color:#bfdbfe}
+
+/* ========================================================
+   DROPIFY COMPONENT STYLES
+   ======================================================== */
+.dropify-wrapper{position:relative;width:100%}
+.dropify-drop-area{position:relative;display:flex;align-items:center;justify-content:center;min-height:140px;padding:20px;background:#f8fafc;border:2px dashed #cbd5e1;border-radius:8px;cursor:pointer;transition:all .2s ease;text-align:center}
+.dropify-drop-area:hover{border-color:#6366f1;background:#f5f3ff}
+.dropify-wrapper.has-preview .dropify-drop-area{padding:10px;border-style:solid;border-color:#e2e8f0;background:#fafafa;cursor:default}
+.dropify-file-input{display:none}
+
+.dropify-loader{display:flex;align-items:center;justify-content:center;gap:10px;color:#4f46e5;font-size:13px}
+
+.dropify-message{display:flex;flex-direction:column;align-items:center;gap:6px}
+.dropify-cloud-icon{font-size:36px;color:#6366f1;line-height:1}
+.dropify-primary-text{margin:0;font-size:13px;font-weight:600;color:#334155}
+.dropify-primary-text span{color:#4f46e5;text-decoration:underline}
+.dropify-hint-text{margin:0;font-size:11px;color:#94a3b8}
+
+.dropify-preview-container{width:100%}
+.dropify-preview-card{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:12px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.04);width:100%;box-sizing:border-box}
+.preview-icon-wrapper{width:56px;height:56px;border-radius:6px;overflow:hidden;background:#f1f5f9;display:grid;place-items:center;flex-shrink:0;border:1px solid #e2e8f0}
+.preview-img-thumbnail{width:100%;height:100%;object-fit:cover}
+.preview-doc-icon{font-size:30px;color:#e11d48;display:grid;place-items:center}
+.preview-meta-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;text-align:left}
+.preview-status-tag{font-size:10px;font-weight:800;text-transform:uppercase;color:#16a34a;display:inline-flex;align-items:center;gap:3px}
+.preview-file-name{font-size:13px;font-weight:700;color:#1e293b;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.preview-actions-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px}
+.btn-preview-link{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:#eff6ff;color:#2563eb;font-size:11.5px;font-weight:700;border-radius:4px;text-decoration:none}
+.btn-preview-link:hover{background:#dbeafe;color:#1d4ed8}
+.btn-dropify-replace{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:#f8fafc;border:1px solid #cbd5e1;color:#475569;font-size:11.5px;font-weight:700;border-radius:4px;cursor:pointer}
+.btn-dropify-replace:hover{background:#f1f5f9;color:#0f172a}
+.btn-dropify-remove{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;background:#fef2f2;border:1px solid #fecaca;color:#dc2626;font-size:11.5px;font-weight:700;border-radius:4px;cursor:pointer}
+.btn-dropify-remove:hover{background:#fee2e2;color:#b91c1c}
+
+/* Bank deposit guide */
+.bank-deposit-guide{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px}
+.bank-deposit-guide .guide-icon{width:36px;height:36px;border-radius:50%;background:#e0e7ff;color:#4338ca;display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.text-sm{font-size:12px!important;line-height:1.4!important}
+
+/* Dark mode for Dropify */
+:global(.dark) .dropify-drop-area{background:#111827;border-color:#374151}
+:global(.dark) .dropify-drop-area:hover{border-color:#818cf8;background:#1e1b4b}
+:global(.dark) .dropify-wrapper.has-preview .dropify-drop-area{background:#111827;border-color:#374151}
+:global(.dark) .dropify-primary-text{color:#e2e8f0}
+:global(.dark) .dropify-primary-text span{color:#a5b4fc}
+:global(.dark) .dropify-hint-text{color:#94a3b8}
+:global(.dark) .dropify-preview-card{background:#1f2937;border-color:#374151}
+:global(.dark) .preview-icon-wrapper{background:#111827;border-color:#374151}
+:global(.dark) .preview-file-name{color:#f8fafc}
+:global(.dark) .btn-dropify-replace{background:#374151;border-color:#4b5563;color:#f8fafc}
+:global(.dark) .bank-deposit-guide{background:#1e293b;border-color:#374151}
+:global(.dark) .bank-deposit-guide h4{color:#f8fafc}
+:global(.dark) .bank-deposit-guide p{color:#cbd5e1!important}
 </style>
 
