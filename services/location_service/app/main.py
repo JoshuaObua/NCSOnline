@@ -152,25 +152,51 @@ def _open_reader() -> Reader | None:
     return _reader
 
 
+
 def platform_details(user_agent: str) -> tuple[str, str, str]:
     value = user_agent or ""
     lower = value.lower()
     parsed = parse_user_agent(value)
     device = "Mobile" if parsed.is_mobile else "Tablet" if parsed.is_tablet else "Desktop" if parsed.is_pc else "Bot" if parsed.is_bot else "Unknown"
-    browser = parsed.browser.family or "Unknown"
+
+    # Priority browser detection (Opera/Edge/Samsung MUST precede Chrome)
     if "postman" in lower:
         browser = "Postman"
     elif "insomnia" in lower:
         browser = "Insomnia"
-    elif "edg/" in lower:
-        browser = "Edge Mobile" if device == "Mobile" else "Edge"
-    elif "chrome/" in lower or "crios/" in lower:
-        browser = "Chrome Mobile" if device == "Mobile" else "Chrome"
+    elif "opr/" in lower or "opera" in lower or "opt/" in lower or "opios/" in lower:
+        browser = "Opera Mobile" if device in {"Mobile", "Tablet"} or "mobile" in lower or "android" in lower else "Opera"
+    elif "samsungbrowser/" in lower:
+        browser = "Samsung Internet"
+    elif "edg/" in lower or "edge/" in lower or "edga/" in lower or "edgios/" in lower:
+        browser = "Edge Mobile" if device in {"Mobile", "Tablet"} or "mobile" in lower else "Edge"
+    elif "brave" in lower:
+        browser = "Brave"
+    elif "vivaldi" in lower:
+        browser = "Vivaldi"
+    elif "ucbrowser" in lower or "ubrowser" in lower:
+        browser = "UC Browser"
     elif "firefox/" in lower or "fxios/" in lower:
-        browser = "Firefox Mobile" if device == "Mobile" else "Firefox"
-    elif "safari/" in lower and "chrome/" not in lower:
-        browser = "Mobile Safari" if device in {"Mobile", "Tablet"} else "Safari"
+        browser = "Firefox Mobile" if device in {"Mobile", "Tablet"} or "mobile" in lower else "Firefox"
+    elif "chrome/" in lower or "crios/" in lower:
+        browser = "Chrome Mobile" if device in {"Mobile", "Tablet"} or "mobile" in lower else "Chrome"
+    elif "safari/" in lower and "chrome/" not in lower and "crios/" not in lower:
+        browser = "Mobile Safari" if device in {"Mobile", "Tablet"} or "mobile" in lower else "Safari"
+    else:
+        browser = parsed.browser.family or "Unknown"
+
     platform = parsed.os.family or "Unknown"
+    if "android" in lower:
+        platform = "Android"
+    elif "iphone" in lower or "ipad" in lower or "ios" in lower:
+        platform = "iOS"
+    elif "windows nt 10" in lower or "windows nt 11" in lower or "windows 10" in lower or "windows 11" in lower:
+        platform = "Windows"
+    elif "mac os x" in lower or "macos" in lower:
+        platform = "macOS"
+    elif "linux" in lower:
+        platform = "Linux"
+
     if platform == "Other":
         platform = "Unknown"
     if browser == "Other":
@@ -214,36 +240,62 @@ def _merge_location(primary: dict[str, Any], fallback: dict[str, Any]) -> dict[s
 
 
 async def _provider_location(ip: str) -> dict[str, Any]:
-    if not PROVIDER_FALLBACK or not PROVIDER_URL:
+    if not PROVIDER_FALLBACK:
         return {}
-    try:
-        async with httpx.AsyncClient(timeout=PROVIDER_TIMEOUT) as client:
-            response = await client.get(PROVIDER_URL.format(ip=ip))
-            response.raise_for_status()
-            raw = response.json()
-        if raw.get("success") is False:
-            raise ValueError(raw.get("message") or "location provider lookup failed")
-        security = raw.get("security") or {}
-        connection = raw.get("connection") or {}
-        timezone = raw.get("timezone") or {}
-        timezone_id = timezone.get("id") if isinstance(timezone, dict) else str(timezone)
-        return {
-            "country": raw.get("country") or "Unknown",
-            "country_code": raw.get("country_code") or "",
-            "region": raw.get("region") or "",
-            "city": raw.get("city") or "",
-            "latitude": raw.get("latitude"),
-            "longitude": raw.get("longitude"),
-            "timezone": timezone_id or "",
-            "isp": connection.get("isp") or "",
-            "is_proxy": bool(security.get("proxy")),
-            "is_vpn": bool(security.get("vpn")),
-            "is_tor": bool(security.get("tor")),
-            "is_hosting": bool(security.get("hosting")),
-            "source": "provider",
-        }
-    except (httpx.HTTPError, ValueError, TypeError, json.JSONDecodeError):
-        return {}
+    urls = []
+    if PROVIDER_URL:
+        urls.append(PROVIDER_URL.format(ip=ip))
+    urls.extend([
+        f"https://ipwho.is/{ip}",
+        f"https://freeipapi.com/api/json/{ip}",
+    ])
+
+    for url in urls:
+        try:
+            async with httpx.AsyncClient(timeout=PROVIDER_TIMEOUT) as client:
+                response = await client.get(url)
+                if response.status_code != 200:
+                    continue
+                raw = response.json()
+            if raw.get("success") is False:
+                continue
+            
+            # Format 1: ipwho.is / standard
+            country = raw.get("country") or raw.get("countryName") or ""
+            if not country or country == "Unknown":
+                continue
+            
+            country_code = raw.get("country_code") or raw.get("countryCode") or ""
+            region = raw.get("region") or raw.get("regionName") or ""
+            city = raw.get("city") or raw.get("cityName") or ""
+            latitude = raw.get("latitude")
+            longitude = raw.get("longitude")
+            
+            timezone_raw = raw.get("timezone") or {}
+            timezone_id = timezone_raw.get("id") if isinstance(timezone_raw, dict) else str(timezone_raw)
+            
+            connection = raw.get("connection") or {}
+            isp = connection.get("isp") or raw.get("isp") or ""
+            
+            security = raw.get("security") or {}
+            return {
+                "country": country,
+                "country_code": country_code,
+                "region": region,
+                "city": city,
+                "latitude": latitude,
+                "longitude": longitude,
+                "timezone": timezone_id or "",
+                "isp": isp,
+                "is_proxy": bool(security.get("proxy")),
+                "is_vpn": bool(security.get("vpn")),
+                "is_tor": bool(security.get("tor")),
+                "is_hosting": bool(security.get("hosting")),
+                "source": "provider",
+            }
+        except Exception:
+            continue
+    return {}
 
 
 async def locate_ip(ip: str) -> dict[str, Any]:
@@ -267,7 +319,7 @@ async def locate_ip(ip: str) -> dict[str, Any]:
                 "timezone": record.location.time_zone or "",
                 "source": "geolite2",
             }
-            if not payload["city"] or not payload["region"] or not payload["timezone"]:
+            if not payload["city"] or not payload["region"] or not payload["timezone"] or payload["country"] == "Unknown":
                 payload = _merge_location(payload, await _provider_location(ip))
             _cache[ip] = (time.time() + CACHE_TTL, payload)
             return payload
@@ -277,12 +329,6 @@ async def locate_ip(ip: str) -> dict[str, Any]:
     if payload:
         _cache[ip] = (time.time() + CACHE_TTL, payload)
         return payload
-    return {"country": "Unknown", "country_code": "", "source": "unavailable"}
-
-
-@app.get("/health")
-def health() -> dict[str, Any]:
-    return {"status": "ok", "geo_database_available": DB_PATH.exists(), "fail_closed": FAIL_CLOSED}
 
 
 @app.get("/metrics")

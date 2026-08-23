@@ -783,6 +783,7 @@ func classifySeverity(eventStatus string, threatScore int, vpn bool) string {
 // parseBrowserOS returns (browser, osName) from a User-Agent string.
 func parseBrowserOS(ua string) (browser, osName string) {
 	lower := strings.ToLower(ua)
+	isMobile := strings.Contains(lower, "mobile") || strings.Contains(lower, "android") || strings.Contains(lower, "iphone") || strings.Contains(lower, "ipad")
 
 	// OS detection
 	switch {
@@ -790,6 +791,10 @@ func parseBrowserOS(ua string) (browser, osName string) {
 		osName = "Windows 11"
 	case strings.Contains(lower, "windows nt 10") || strings.Contains(lower, "windows 10"):
 		osName = "Windows 10/11"
+	case strings.Contains(lower, "windows nt 6.3"):
+		osName = "Windows 8.1"
+	case strings.Contains(lower, "windows nt 6.1"):
+		osName = "Windows 7"
 	case strings.Contains(lower, "windows"):
 		osName = "Windows"
 	case strings.Contains(lower, "android"):
@@ -800,6 +805,8 @@ func parseBrowserOS(ua string) (browser, osName string) {
 		osName = "iOS (iPad)"
 	case strings.Contains(lower, "mac os x") || strings.Contains(lower, "macos"):
 		osName = "macOS"
+	case strings.Contains(lower, "cros"):
+		osName = "Chrome OS"
 	case strings.Contains(lower, "ubuntu"):
 		osName = "Ubuntu"
 	case strings.Contains(lower, "linux"):
@@ -808,7 +815,7 @@ func parseBrowserOS(ua string) (browser, osName string) {
 		osName = "Unknown"
 	}
 
-	// Browser/client detection
+	// Browser/client detection (Priority: Opera, Samsung, Edge, Brave BEFORE Chrome and Safari)
 	switch {
 	case strings.Contains(lower, "postman"):
 		browser = "Postman"
@@ -824,25 +831,51 @@ func parseBrowserOS(ua string) (browser, osName string) {
 		browser = "Go/HTTP"
 	case strings.Contains(lower, "curl"):
 		browser = "curl"
+	case strings.Contains(lower, "opr/") || strings.Contains(lower, "opera") || strings.Contains(lower, "opt/") || strings.Contains(lower, "opios/"):
+		if isMobile {
+			browser = "Opera Mobile"
+		} else {
+			browser = "Opera"
+		}
+	case strings.Contains(lower, "samsungbrowser/"):
+		browser = "Samsung Internet"
+	case strings.Contains(lower, "edg/") || strings.Contains(lower, "edge/") || strings.Contains(lower, "edga/") || strings.Contains(lower, "edgios/"):
+		if isMobile {
+			browser = "Edge Mobile"
+		} else {
+			browser = "Edge"
+		}
 	case strings.Contains(lower, "brave"):
 		browser = "Brave"
-	case strings.Contains(lower, "edg/"):
-		browser = "Edge"
-	case strings.Contains(lower, "opr/") || strings.Contains(lower, "opera"):
-		browser = "Opera"
-	case strings.Contains(lower, "chrome") && !strings.Contains(lower, "chromium"):
-		browser = "Chrome"
+	case strings.Contains(lower, "vivaldi"):
+		browser = "Vivaldi"
+	case strings.Contains(lower, "ucbrowser") || strings.Contains(lower, "ubrowser"):
+		browser = "UC Browser"
+	case strings.Contains(lower, "firefox") || strings.Contains(lower, "fxios"):
+		if isMobile {
+			browser = "Firefox Mobile"
+		} else {
+			browser = "Firefox"
+		}
+	case strings.Contains(lower, "chrome") || strings.Contains(lower, "crios"):
+		if isMobile {
+			browser = "Chrome Mobile"
+		} else {
+			browser = "Chrome"
+		}
 	case strings.Contains(lower, "chromium"):
 		browser = "Chromium"
-	case strings.Contains(lower, "firefox"):
-		browser = "Firefox"
-	case strings.Contains(lower, "safari") && !strings.Contains(lower, "chrome"):
-		browser = "Safari"
+	case strings.Contains(lower, "safari") && !strings.Contains(lower, "chrome") && !strings.Contains(lower, "crios") && !strings.Contains(lower, "android"):
+		if isMobile {
+			browser = "Mobile Safari"
+		} else {
+			browser = "Safari"
+		}
 	default:
 		if ua == "" {
 			browser = "Unknown"
 		} else {
-			browser = "Other"
+			browser = "Web Browser"
 		}
 	}
 

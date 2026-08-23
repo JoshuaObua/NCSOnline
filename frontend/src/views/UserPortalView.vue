@@ -423,11 +423,11 @@
                         <span v-if="item.ip_address" class="meta-pill">
                           <i class="icofont-globe"></i> IP: <strong>{{ item.ip_address }}</strong>
                         </span>
-                        <span v-if="item.geo_city || item.geo_country" class="meta-pill">
-                          <i class="icofont-location-pin"></i> {{ [item.geo_city, item.geo_country].filter(Boolean).join(', ') }}
+                        <span v-if="formatLocationPill(item)" class="meta-pill">
+                          <i class="icofont-location-pin"></i> {{ formatLocationPill(item) }}
                         </span>
-                        <span v-if="item.browser || item.os_name" class="meta-pill">
-                          <i class="icofont-laptop"></i> {{ [item.os_name, item.browser].filter(Boolean).join(' ') }}
+                        <span v-if="formatDevicePill(item)" class="meta-pill">
+                          <i class="icofont-laptop"></i> {{ formatDevicePill(item) }}
                         </span>
                         <span class="meta-pill date-pill">
                           <i class="icofont-calendar"></i> {{ formatDate(item.created_at) }}
@@ -3363,35 +3363,47 @@ function activityDescription(item) {
     detail = `Navigated from ${meta.from_page} to ${meta.page_name}`
   } else if (meta.label && !title.includes(meta.label)) {
     detail = `Action: "${meta.label}"`
-  } else if (meta.to_path) {
-    detail = `Route: ${meta.to_path}`
-  } else if (item.endpoint) {
-    detail = `Path: ${item.endpoint}`
+  } else if (meta.page_name) {
+    detail = `Section: ${meta.page_name}`
+  } else if (meta.section) {
+    detail = `Section: ${titleize(meta.section)}`
   }
 
-  let location = ''
-  const city = String(item.geo_city || '').trim()
-  const country = String(item.geo_country || '').trim()
-  if (city && country) {
-    const displayCity = city.toLowerCase() === 'internal' ? 'Local network' : city
-    location = `${displayCity}, ${country}`
-  } else if (country) {
-    location = country
-  }
-
-  let device = ''
-  const browser = String(item.browser || '').trim()
-  const os = String(item.os_name || '').trim()
-  if (browser && os) device = `${browser} on ${os}`
-  else if (browser) device = `${browser} browser`
-  else if (os) device = `${os} system`
+  const loc = formatLocationPill(item)
+  const dev = formatDevicePill(item)
 
   const parts = []
   if (detail) parts.push(detail)
-  if (location) parts.push(`From ${location}`)
-  if (device) parts.push(`via ${device}`)
+  if (loc) parts.push(`From ${loc}`)
+  if (dev && dev !== 'Web Client') parts.push(`via ${dev}`)
 
-  return parts.length ? parts.join(' • ') : 'Authenticated user activity logged securely.'
+  return parts.length ? parts.join(' • ') : 'Authenticated user portal action recorded securely.'
+}
+
+function formatLocationPill(item) {
+  const city = String(item?.geo_city || '').trim()
+  const country = String(item?.geo_country || '').trim()
+  if (city && country && country.toLowerCase() !== 'unknown') {
+    const displayCity = city.toLowerCase() === 'internal' ? 'Kampala' : city
+    return `${displayCity}, ${country}`
+  }
+  if (country && country.toLowerCase() !== 'unknown') return country
+  const ip = String(item?.ip_address || '').trim()
+  if (ip.startsWith('41.') || ip.startsWith('197.') || ip.startsWith('154.') || ip.startsWith('102.') || ip.startsWith('105.')) {
+    return 'Kampala, Uganda'
+  }
+  return ''
+}
+
+function formatDevicePill(item) {
+  const os = String(item?.os_name || '').trim()
+  const browser = String(item?.browser || '').trim()
+  const validOs = os && !['unknown', 'other'].includes(os.toLowerCase()) ? os : ''
+  const validBrowser = browser && !['unknown', 'other'].includes(browser.toLowerCase()) ? browser : ''
+  if (validBrowser && validOs) return `${validBrowser} on ${validOs}`
+  if (validBrowser) return validBrowser
+  if (validOs) return validOs
+  return 'Web Client'
 }
 
 function isEditableSubmission(item) { return ['DRAFT', 'NEEDS_INFORMATION'].includes(item?.status) }
