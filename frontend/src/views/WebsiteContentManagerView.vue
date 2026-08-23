@@ -1704,7 +1704,15 @@ import { recordMenuNavigation } from '@/services/activityAudit.js'
 
 const router = useRouter()
 const route = useRoute()
-const active = ref('overview')
+const active = ref((() => {
+  const path = window.location.pathname
+  if (path && path.includes('/namis/')) return 'namis-registry-new'
+  const params = new URLSearchParams(window.location.search)
+  const sec = params.get('section')
+  if (sec) return sec
+  if (params.get('code')) return 'storage'
+  return 'overview'
+})())
 const applicationFilter = ref('')
 const message = ref('')
 const error = ref('')
@@ -1893,11 +1901,12 @@ function determineInitialActiveSection() {
   return 'overview'
 }
 
-const initialSec = determineInitialActiveSection()
-if (initialSec) {
-  active.value = initialSec
-  if (initialSec.startsWith('namis-')) namisGroupOpen.value = true
-}
+// Open the correct sidebar group when the page loads with a deep-linked section
+const initialSec = active.value
+if (initialSec.startsWith('namis-') || initialSec === 'namis-registry-new') namisGroupOpen.value = true
+if (initialSec === 'manage-users' || initialSec === 'users') usersGroupOpen.value = true
+if (initialSec === 'manage-roles' || initialSec === 'roles') rolesGroupOpen.value = true
+if (initialSec.startsWith('associations') || initialSec.startsWith('manage-feder') || initialSec.startsWith('create-feder')) federationsGroupOpen.value = true
 
 const currentSection = computed(() => sections.find(s => s.id === active.value) || sections[0])
 
