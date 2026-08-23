@@ -136,16 +136,10 @@ func normalizeFrontendActivity(input frontendActivityRequest) (*normalizedFronte
 	if kind == "" {
 		kind = strings.ToLower(cleanAuditText(input.Action, 40))
 	}
-	switch kind {
-	case "navigation", "navigate", "route":
-		kind = "navigation"
-	case "click", "interaction", "button":
-		kind = "click"
-	case "view", "page_view":
-		kind = "view"
-	default:
-		return nil, errors.New("Unsupported frontend activity type")
+	if kind == "" {
+		kind = "interaction"
 	}
+
 	page := cleanAuditText(input.PageName, 120)
 	if page == "" {
 		page = friendlyPathName(input.ToPath)
@@ -155,16 +149,21 @@ func normalizeFrontendActivity(input frontendActivityRequest) (*normalizedFronte
 	label := cleanAuditText(input.Label, 120)
 	section := cleanAuditText(input.Section, 80)
 	resource := cleanAuditText(input.Resource, 80)
-	if resource == "" {
-		resource = "Frontend Activity"
+	if resource == "" || resource == "Frontend Activity" {
+		if section != "" {
+			resource = strings.Title(strings.ReplaceAll(section, "-", " "))
+		} else if page != "" {
+			resource = page
+		} else {
+			resource = "Portal Activity"
+		}
 	}
-	resourceID := cleanAuditText(auditFirstNonEmpty(section, input.RouteName, page), 120)
+
+	resourceID := cleanAuditText(auditFirstNonEmpty(label, section, input.RouteName, page), 120)
 	if resourceID == "" {
 		resourceID = kind
 	}
-	if path == "" && kind != "click" {
-		return nil, errors.New("Destination path is required")
-	}
+
 	metadata := map[string]any{
 		"type":       kind,
 		"page":       page,
@@ -183,15 +182,86 @@ func normalizeFrontendActivity(input frontendActivityRequest) (*normalizedFronte
 		metadata[key] = value
 	}
 	payload, _ := json.Marshal(metadata)
-	action := "ui:" + kind
+
 	eventType := "UI_" + strings.ToUpper(kind)
-	if kind == "navigation" {
-		action = "ui:navigate"
-		eventType = "UI_NAVIGATION"
+	action := cleanAuditText(input.Action, 120)
+
+	// If action is generic, generate descriptive action
+	if action == "" || action == "navigate" || action == "navigation" || action == "click" || action == "interaction" || action == "ui:navigate" || action == "ui:click" {
+		switch kind {
+		case "navigation", "navigate", "route", "view", "page_view":
+			eventType = "UI_NAVIGATION"
+			if page != "" {
+				action = "Visited " + page
+			} else if section != "" {
+				action = "Visited " + strings.Title(strings.ReplaceAll(section, "-", " "))
+			} else {
+				action = "Visited Portal Page"
+			}
+		case "update_profile", "profile":
+			eventType = "PROFILE_UPDATE"
+			action = "Updated Profile Information"
+		case "upload_avatar", "avatar":
+			eventType = "PROFILE_AVATAR"
+			action = "Uploaded Profile Photo"
+		case "change_password", "password":
+			eventType = "SECURITY_PASSWORD"
+			action = "Changed Account Password"
+		case "security_2fa", "2fa":
+			eventType = "SECURITY_2FA"
+			action = "Configured Two-Factor Authentication"
+		case "update_preferences", "preferences":
+			eventType = "PREFERENCES_UPDATE"
+			action = "Saved Account Preferences"
+		case "download_document", "download_file":
+			eventType = "DOCUMENT_DOWNLOAD"
+			if label != "" {
+				action = "Downloaded " + label
+			} else {
+				action = "Downloaded Document"
+			}
+		case "save_draft":
+			eventType = "APPLICATION_DRAFT"
+			action = "Saved Application Draft"
+		case "submit_application":
+			eventType = "APPLICATION_SUBMIT"
+			action = "Submitted Application Form"
+		case "payment", "momo_payment":
+			eventType = "PAYMENT_INITIATE"
+			action = "Initiated Payment Request"
+		default: // clicks & generic interactions
+			eventType = "UI_INTERACTION"
+			if label != "" {
+				lowLabel := strings.ToLower(label)
+				lowSec := strings.ToLower(section)
+				lowPage := strings.ToLower(page)
+				if strings.Contains(lowLabel, "save") && (strings.Contains(lowSec, "profile") || strings.Contains(lowPage, "profile")) {
+					action = "Updated Profile Information"
+				} else if strings.Contains(lowLabel, "password") || strings.Contains(lowLabel, "security") {
+					action = "Updated Security Settings"
+				} else if strings.Contains(lowLabel, "save") && (strings.Contains(lowSec, "settings") || strings.Contains(lowPage, "settings")) {
+					action = "Updated Account Settings"
+				} else if strings.Contains(lowLabel, "submit") && (strings.Contains(lowLabel, "application") || strings.Contains(lowLabel, "form")) {
+					action = "Submitted Application Form"
+				} else if strings.Contains(lowLabel, "draft") {
+					action = "Saved Application Draft"
+				} else if strings.Contains(lowLabel, "pay") || strings.Contains(lowLabel, "momo") || strings.Contains(lowLabel, "mobile money") {
+					action = "Initiated Mobile Money Payment"
+				} else if strings.Contains(lowLabel, "upload") {
+					action = "Uploaded Document / File"
+				} else if strings.Contains(lowLabel, "logout") || strings.Contains(lowLabel, "sign out") {
+					action = "Logged Out of Portal"
+				} else {
+					action = "Clicked: " + label
+				}
+			} else if page != "" {
+				action = "Interacted with " + page
+			} else {
+				action = "Portal Interaction"
+			}
+		}
 	}
-	if kind == "click" && label != "" {
-		resourceID = label
-	}
+
 	return &normalizedFrontendActivity{
 		Action:         action,
 		EventType:      eventType,

@@ -25,16 +25,17 @@ export function recordNavigation(to, from) {
   lastNavigationKey = key
   lastNavigationAt = now
   const section = cleanLabel(to.query?.section || to.params?.resource || '')
+  const pageName = routePageName(to)
   recordActivityEvent({
     type: 'navigation',
-    action: 'navigate',
+    action: `Visited ${pageName}`,
     from_path: from.fullPath || from.path || '',
     to_path: to.fullPath || to.path || '',
     from_page: routePageName(from),
-    page_name: routePageName(to),
+    page_name: pageName,
     route_name: String(to.name || ''),
     section,
-    resource: 'Portal Navigation',
+    resource: section ? titleize(section) : pageName,
     metadata: {
       query_section: section,
       params_resource: cleanLabel(to.params?.resource || ''),
@@ -57,7 +58,7 @@ export function recordMenuNavigation({
   const toPath = sectionPath(basePath, targetSection)
   recordActivityEvent({
     type: 'navigation',
-    action: 'navigate',
+    action: `Visited ${pageLabel}`,
     from_path: previousSection ? sectionPath(basePath, previousSection) : '',
     to_path: toPath,
     page_name: pageLabel,
@@ -65,7 +66,7 @@ export function recordMenuNavigation({
     label: pageLabel,
     route_name: routeName,
     section: targetSection,
-    resource: 'Portal Menu',
+    resource: titleize(targetSection || 'Dashboard'),
     metadata: {
       portal,
       menu_label: pageLabel,
@@ -97,23 +98,69 @@ function installClickAuditor() {
     if (key === lastClickKey && now - lastClickAt < 1000) return
     lastClickKey = key
     lastClickAt = now
+
+    const currentSection = currentSectionFromPath(path)
+    const pageName = cleanLabel(document.title.replace(/ - NCS Uganda$/, '')) || 'Portal'
+    const action = determineClickAction(label, currentSection, pageName)
+
     recordActivityEvent({
       type: 'click',
-      action: 'click',
+      action,
       path,
-      page_name: cleanLabel(document.title.replace(/ - NCS Uganda$/, '')) || 'Portal',
+      page_name: pageName,
       label,
-      section: currentSectionFromPath(path),
-      resource: isPortalMenu ? 'Portal Menu' : 'Frontend Interaction',
+      section: currentSection,
+      resource: currentSection ? titleize(currentSection) : (isPortalMenu ? 'Portal Menu' : pageName),
       metadata: {
         portal_menu: isPortalMenu,
         menu_label: isPortalMenu ? label : '',
-        current_section: currentSectionFromPath(path),
+        current_section: currentSection,
         target_tag: target.tagName?.toLowerCase?.() || '',
         target_path: href ? cleanPath(href) : '',
       },
     })
   }, true)
+}
+
+function determineClickAction(label, section, pageName) {
+  const low = String(label || '').toLowerCase()
+  const lowSec = String(section || '').toLowerCase()
+  const lowPage = String(pageName || '').toLowerCase()
+
+  if (low.includes('save') && (lowSec.includes('profile') || lowPage.includes('profile'))) {
+    return 'Updated Profile Information'
+  }
+  if (low.includes('save') && (lowSec.includes('settings') || lowPage.includes('settings') || low.includes('preference'))) {
+    return 'Saved Account Preferences'
+  }
+  if (low.includes('password') || low.includes('change password')) {
+    return 'Updated Account Password'
+  }
+  if (low.includes('photo') || low.includes('avatar') || low.includes('camera')) {
+    return 'Uploaded Profile Photo'
+  }
+  if (low.includes('two-factor') || low.includes('2fa')) {
+    return 'Configured Two-Factor Authentication'
+  }
+  if (low.includes('submit')) {
+    return 'Submitted Application Form'
+  }
+  if (low.includes('draft')) {
+    return 'Saved Application Draft'
+  }
+  if (low.includes('pay') || low.includes('mobile money') || low.includes('momo')) {
+    return 'Initiated Mobile Money Payment'
+  }
+  if (low.includes('download')) {
+    return `Downloaded ${label.replace(/^Download\s+/i, '') || 'Document'}`
+  }
+  if (low.includes('logout') || low.includes('sign out')) {
+    return 'Logged Out of Portal'
+  }
+  if (low.includes('refresh')) {
+    return `Refreshed ${titleize(section || pageName || 'Data')}`
+  }
+  return `Clicked "${label}" on ${titleize(section || pageName || 'Portal')}`
 }
 
 function sanitizeActivityPayload(payload) {

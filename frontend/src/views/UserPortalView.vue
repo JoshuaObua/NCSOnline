@@ -342,10 +342,10 @@
                     <button
                       type="button"
                       class="category-pill"
-                      :class="{ active: activityCategoryFilter === 'AUTH' }"
-                      @click="activityCategoryFilter = 'AUTH'"
+                      :class="{ active: activityCategoryFilter === 'PROFILE' }"
+                      @click="activityCategoryFilter = 'PROFILE'"
                     >
-                      <i class="icofont-key"></i> Auth & Security
+                      <i class="icofont-user-alt-7"></i> Profile & Settings
                     </button>
                     <button
                       type="button"
@@ -358,10 +358,26 @@
                     <button
                       type="button"
                       class="category-pill"
-                      :class="{ active: activityCategoryFilter === 'PROFILE' }"
-                      @click="activityCategoryFilter = 'PROFILE'"
+                      :class="{ active: activityCategoryFilter === 'FINANCE' }"
+                      @click="activityCategoryFilter = 'FINANCE'"
                     >
-                      <i class="icofont-user-alt-7"></i> Profile & Account
+                      <i class="icofont-money"></i> Payments
+                    </button>
+                    <button
+                      type="button"
+                      class="category-pill"
+                      :class="{ active: activityCategoryFilter === 'AUTH' }"
+                      @click="activityCategoryFilter = 'AUTH'"
+                    >
+                      <i class="icofont-key"></i> Auth & Security
+                    </button>
+                    <button
+                      type="button"
+                      class="category-pill"
+                      :class="{ active: activityCategoryFilter === 'NAVIGATION' }"
+                      @click="activityCategoryFilter = 'NAVIGATION'"
+                    >
+                      <i class="icofont-compass"></i> Page Visits
                     </button>
                   </div>
                 </div>
@@ -2096,7 +2112,7 @@ import OpenFormsPanel from '@/components/portal/OpenFormsPanel.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
 import { downloadApplicationForm } from '@/utils/applicationDownload.js'
 import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
-import { recordMenuNavigation } from '@/services/activityAudit.js'
+import { recordMenuNavigation, recordActivityEvent } from '@/services/activityAudit.js'
 
 const router = useRouter()
 const portalSectionIds = [
@@ -2308,12 +2324,18 @@ const filteredActivities = computed(() => {
       if (activityCategoryFilter.value === 'AUTH' && cat !== 'AUTH') return false
       if (activityCategoryFilter.value === 'APPLICATIONS' && cat !== 'APPLICATION') return false
       if (activityCategoryFilter.value === 'PROFILE' && cat !== 'PROFILE') return false
+      if (activityCategoryFilter.value === 'FINANCE' && cat !== 'FINANCE') return false
+      if (activityCategoryFilter.value === 'NAVIGATION' && cat !== 'NAVIGATION') return false
     }
     const query = activitySearchQuery.value.trim().toLowerCase()
     if (query) {
       const matchText = [
         activityTitle(item),
         activityDescription(item),
+        getActivityCategory(item),
+        item.action,
+        item.resource,
+        item.endpoint,
         item.ip_address,
         item.geo_city,
         item.geo_country,
@@ -2330,15 +2352,21 @@ const activityStats = computed(() => {
   const items = activities.value
   let authCount = 0
   let appCount = 0
+  let profileCount = 0
+  let financeCount = 0
   items.forEach(item => {
     const cat = getActivityCategory(item)
     if (cat === 'AUTH') authCount++
     if (cat === 'APPLICATION') appCount++
+    if (cat === 'PROFILE') profileCount++
+    if (cat === 'FINANCE') financeCount++
   })
   const latest = items[0]?.created_at ? formatDate(items[0].created_at) : 'None'
   return {
     authCount,
     appCount,
+    profileCount,
+    financeCount,
     lastActive: latest
   }
 })
@@ -2550,6 +2578,20 @@ Generated on      : ${new Date().toLocaleString()}
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
   
+  recordActivityEvent({
+    type: 'download_document',
+    action: `Downloaded ${file.title || 'Document'}`,
+    page_name: 'Credential Wallet',
+    section: section.value || 'my-files',
+    resource: file.category || 'Documents',
+    label: `Download ${file.fileType || 'Certificate'}`,
+    metadata: {
+      document_title: file.title,
+      document_number: file.number,
+      category: file.category,
+    },
+  })
+
   setMsg(`Successfully downloaded ${file.title}`)
 }
 
@@ -2756,6 +2798,15 @@ async function revokeSession(sessionId) {
   try {
     await revokeMySession(sessionId)
     success.value = 'Session revoked successfully.'
+    recordActivityEvent({
+      type: 'revoke_session',
+      action: 'Revoked Active Login Session',
+      page_name: 'Account Settings',
+      section: 'settings',
+      resource: 'Active Sessions',
+      label: 'Revoke Session',
+      metadata: { session_id: sessionId }
+    })
     await loadSessions()
   } catch (err) {
     error.value = apiError(err, 'Could not revoke session.')
@@ -2770,6 +2821,14 @@ async function revokeAllOtherSessions() {
   try {
     await revokeOtherSessions()
     success.value = 'All other devices have been signed out.'
+    recordActivityEvent({
+      type: 'revoke_session',
+      action: 'Signed Out All Other Devices',
+      page_name: 'Account Settings',
+      section: 'settings',
+      resource: 'Active Sessions',
+      label: 'Sign Out All Other Devices'
+    })
     await loadSessions()
   } catch (err) {
     error.value = apiError(err, 'Could not revoke other sessions.')
@@ -2817,6 +2876,14 @@ async function savePreferences() {
     localStorage.setItem('ncs_pref_announcements', String(prefEmailAnnouncements.value))
     preferencesSaved.value = true
     success.value = 'Preferences saved successfully.'
+    recordActivityEvent({
+      type: 'update_preferences',
+      action: 'Saved Notification & Privacy Preferences',
+      page_name: 'Account Settings',
+      section: 'settings',
+      resource: 'Preferences',
+      label: 'Save Preferences'
+    })
     setTimeout(() => { preferencesSaved.value = false }, 3000)
   } catch (err) {
     error.value = 'Could not save preferences.'
@@ -2825,13 +2892,29 @@ async function savePreferences() {
   }
 }
 
+function parseAuditPayload(item) {
+  if (!item) return {}
+  if (item.payload_excerpt && typeof item.payload_excerpt === 'object') return item.payload_excerpt
+  if (typeof item.payload_excerpt === 'string') {
+    try { return JSON.parse(item.payload_excerpt) } catch {}
+  }
+  if (item.metadata && typeof item.metadata === 'object') return item.metadata
+  return {}
+}
+
 function getActivityCategory(item) {
+  if (!item) return 'SYSTEM'
+  const action = String(item.action || '').toLowerCase()
   const endpoint = String(item.endpoint || '').toLowerCase()
   const eventType = String(item.event_type || '').toUpperCase()
-  if (eventType.includes('AUTH') || endpoint.includes('/auth') || endpoint.includes('/2fa') || endpoint.includes('/security')) return 'AUTH'
-  if (endpoint.includes('/forms') || endpoint.includes('/submissions') || endpoint.includes('/applications')) return 'APPLICATION'
-  if (endpoint.includes('/transactions') || endpoint.includes('/payment')) return 'FINANCE'
-  if (endpoint.includes('/profile') || endpoint.includes('/users/me')) return 'PROFILE'
+  const meta = parseAuditPayload(item)
+  const metaSec = String(meta.section || '').toLowerCase()
+
+  if (eventType.includes('AUTH') || endpoint.includes('/auth') || action.includes('login') || action.includes('logout') || action.includes('sign in') || action.includes('sign out') || action.includes('password') || action.includes('2fa') || action.includes('security')) return 'AUTH'
+  if (action.includes('profile') || action.includes('avatar') || action.includes('photo') || action.includes('preference') || metaSec.includes('profile') || metaSec.includes('settings') || endpoint.includes('/profile') || endpoint.includes('/users/me') || endpoint.includes('/security')) return 'PROFILE'
+  if (action.includes('pay') || action.includes('momo') || action.includes('money') || action.includes('transaction') || endpoint.includes('/pay') || endpoint.includes('/transactions') || metaSec.includes('transactions')) return 'FINANCE'
+  if (action.includes('application') || action.includes('draft') || action.includes('submission') || action.includes('wizard') || action.includes('service') || action.includes('download') || endpoint.includes('/forms') || endpoint.includes('/submissions') || endpoint.includes('/applications') || metaSec.includes('apply') || metaSec.includes('applications') || metaSec.includes('my-files')) return 'APPLICATION'
+  if (eventType.includes('NAV') || action.includes('visited') || action.includes('navigate') || action.includes('viewed') || meta.type === 'navigation') return 'NAVIGATION'
   return 'SYSTEM'
 }
 
@@ -2841,7 +2924,8 @@ function getActivityIcon(item) {
     case 'AUTH': return 'icofont-key'
     case 'APPLICATION': return 'icofont-file-document'
     case 'FINANCE': return 'icofont-money'
-    case 'PROFILE': return 'icofont-ui-user'
+    case 'PROFILE': return 'icofont-user-alt-7'
+    case 'NAVIGATION': return 'icofont-compass'
     default: return 'icofont-history'
   }
 }
@@ -2849,11 +2933,12 @@ function getActivityIcon(item) {
 function getActivityTone(item) {
   const cat = getActivityCategory(item)
   switch (cat) {
-    case 'AUTH': return 'blue'
-    case 'APPLICATION': return 'amber'
+    case 'AUTH': return 'amber'
+    case 'APPLICATION': return 'blue'
     case 'FINANCE': return 'green'
     case 'PROFILE': return 'cyan'
-    default: return 'purple'
+    case 'NAVIGATION': return 'purple'
+    default: return 'secondary'
   }
 }
 
@@ -3130,6 +3215,18 @@ async function saveProfile() {
     Object.assign(profile, unwrap(res))
     localStorage.setItem('ncsms_user', JSON.stringify(profile))
     success.value = 'Your profile was updated.'
+    recordActivityEvent({
+      type: 'update_profile',
+      action: 'Updated Profile Information',
+      page_name: 'Profile',
+      section: 'profile',
+      resource: 'Profile Details',
+      label: 'Save profile',
+      metadata: {
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+      }
+    })
   } catch (err) { error.value = apiError(err, 'Could not update your profile.') }
   finally { savingProfile.value = false }
 }
@@ -3154,50 +3251,114 @@ const filteredAthleteMedals = computed(() => {
 function statusClass(status) { if (status === 'APPROVED' || status === 'COMPLETE') return 'green'; if (status === 'REJECTED') return 'red'; if (['NEEDS_INFORMATION', 'PENDING_PAYMENT'].includes(status)) return 'amber'; return 'blue' }
 function paymentClass(status) { return status === 'PAID' || status === 'VERIFIED' ? 'green' : ['REJECTED', 'VERIFICATION_FAILED'].includes(status) ? 'red' : 'amber' }
 function notificationIcon(item) { return item.icon_key ? `icofont-${item.icon_key}` : 'icofont-notification' }
+
 function activityTitle(item) {
+  if (!item) return 'Portal Activity'
+  const action = String(item.action || '').trim()
+  const resource = String(item.resource || '').trim()
+  const resourceId = String(item.resource_id || '').trim()
   const method = String(item.method || '').toUpperCase()
   const endpoint = String(item.endpoint || '').toLowerCase()
   const eventType = String(item.event_type || '').toUpperCase()
-  if (eventType === 'AUTH_LOGIN' || endpoint.includes('/auth/login')) return 'Logged In'
-  if (eventType === 'AUTH_LOGOUT' || endpoint.includes('/auth/logout')) return 'Logged Out'
-  if (endpoint.includes('/auth/register')) return 'Registered Account'
+  const meta = parseAuditPayload(item)
+  const metaPage = meta.page || meta.page_name || ''
+  const metaLabel = meta.label || ''
+  const metaSection = meta.section || ''
+
+  // 1. If action is already descriptive and human-readable
+  if (action && !['ui:click', 'ui:navigate', 'ui:interaction', 'click', 'navigation', 'navigate', 'interaction', 'UI'].includes(action)) {
+    if (action.startsWith('ui:')) {
+      const rest = action.slice(3)
+      return titleize(rest)
+    }
+    return action
+  }
+
+  // 2. High-priority auth & account endpoints
+  if (eventType === 'AUTH_LOGIN' || endpoint.includes('/auth/login')) return 'Logged In to Account'
+  if (eventType === 'AUTH_LOGOUT' || endpoint.includes('/auth/logout') || metaLabel.toLowerCase().includes('logout') || metaLabel.toLowerCase().includes('sign out')) return 'Logged Out of Portal'
+  if (endpoint.includes('/auth/register')) return 'Registered Portal Account'
   if (endpoint.includes('/auth/password/reset')) return 'Requested Password Reset'
-  if (endpoint.includes('/portal/forms/open')) return 'Viewed Services'
-  if (endpoint.includes('/portal/forms/')) return 'Started Application Draft'
-  if (endpoint.includes('/portal/submissions')) {
-    if (method === 'POST') return 'Created Application Draft'
-    return 'Listed Applications'
-  }
-  if (endpoint.includes('/applications')) {
-    if (method === 'POST') return 'Submitted Application'
-    return 'Viewed Applications List'
-  }
-  if (endpoint.includes('/transactions')) {
-    if (method === 'POST') return 'Uploaded Payment Proof'
-    return 'Viewed Payments List'
-  }
-  if (endpoint.includes('/notifications')) {
-    if (method === 'PUT' || method === 'POST') return 'Updated Notifications'
-    return 'Viewed Notifications'
-  }
-  if (endpoint.includes('/audit-logs')) return 'Viewed Security Audit Logs'
+  if (endpoint.includes('/account/password') || metaLabel.toLowerCase().includes('password')) return 'Changed Account Password'
+  if (endpoint.includes('/account/avatar') || metaLabel.toLowerCase().includes('photo') || metaLabel.toLowerCase().includes('avatar') || metaLabel.toLowerCase().includes('camera')) return 'Uploaded Profile Photo'
   if (endpoint.includes('/account/profile') || endpoint.includes('/users/me')) {
-    if (method === 'PUT' || method === 'POST' || method === 'PATCH') return 'Updated Profile'
+    if (['PUT', 'POST', 'PATCH'].includes(method)) return 'Updated Profile Information'
     return 'Viewed Profile Page'
   }
+
+  // 3. Applications & Forms
+  if (endpoint.includes('/portal/submissions') && endpoint.includes('/pay/momo')) return 'Initiated Mobile Money Payment'
+  if (endpoint.includes('/portal/submissions') && endpoint.includes('/pay/proof')) return 'Uploaded Bank Payment Proof'
+  if (endpoint.includes('/portal/submissions') && endpoint.includes('/submit')) return 'Submitted Form Application'
+  if (endpoint.includes('/portal/submissions') && (method === 'POST' || method === 'PUT')) return 'Saved Application Draft'
+  if (endpoint.includes('/portal/forms/open')) return 'Browsed Services Catalog'
+  if (endpoint.includes('/portal/forms/') || endpoint.includes('/dashboard/apply/')) return 'Opened Application Form Wizard'
+  if (endpoint.includes('/submissions') || endpoint.includes('/applications')) {
+    if (method === 'POST') return 'Submitted Application'
+    return 'Viewed My Applications List'
+  }
+  if (endpoint.includes('/media/upload')) return 'Uploaded Document Attachment'
+
+  // 4. Navigation & Page / Section Visits
+  if (action === 'ui:navigate' || eventType === 'UI_NAVIGATION' || meta.type === 'navigation') {
+    if (metaPage) return `Visited ${metaPage}`
+    if (metaSection) return `Visited ${titleize(metaSection)}`
+    if (endpoint.includes('section=profile')) return 'Visited Profile'
+    if (endpoint.includes('section=settings')) return 'Visited Account Settings'
+    if (endpoint.includes('section=applications')) return 'Visited My Applications'
+    if (endpoint.includes('section=apply')) return 'Visited Open Services'
+    if (endpoint.includes('section=activities')) return 'Visited My Activities & Audit Logs'
+    if (endpoint.includes('section=notifications')) return 'Visited Notification Center'
+    if (endpoint.includes('section=messages')) return 'Visited Messages Center'
+    if (endpoint.includes('section=transactions')) return 'Visited My Transactions'
+    if (endpoint.includes('section=my-files')) return 'Visited Credential Wallet & Files'
+    if (endpoint.includes('section=athlete-')) return `Visited Athlete ${titleize(endpoint.split('section=athlete-')[1] || 'Records')}`
+    if (resource && resource !== 'Frontend Activity' && resource !== 'Portal Navigation') return `Visited ${resource}`
+    return 'Visited Dashboard'
+  }
+
+  // 5. Clicks / Interactions
+  if (action === 'ui:click' || eventType === 'UI_INTERACTION' || eventType === 'UI_CLICK' || meta.type === 'click') {
+    const label = metaLabel || resourceId
+    if (label) {
+      const low = label.toLowerCase()
+      if (low.includes('save') && (metaSection === 'profile' || endpoint.includes('profile'))) return 'Updated Profile Information'
+      if (low.includes('save') && (metaSection === 'settings' || endpoint.includes('settings'))) return 'Updated Account Settings'
+      if (low.includes('password')) return 'Updated Password'
+      if (low.includes('2fa') || low.includes('two-factor')) return 'Configured Two-Factor Authentication'
+      if (low.includes('submit')) return 'Submitted Form Application'
+      if (low.includes('draft')) return 'Saved Application Draft'
+      if (low.includes('pay') || low.includes('momo') || low.includes('mobile money')) return 'Initiated Mobile Money Payment'
+      if (low.includes('upload')) return 'Uploaded File'
+      if (low.includes('download')) return `Downloaded ${label.replace(/^Download\s+/i, '') || 'Document'}`
+      if (low.includes('refresh')) return `Refreshed ${metaPage || titleize(metaSection) || 'Data'}`
+      if (low.includes('replace')) return 'Replaced Uploaded File'
+      if (low.includes('remove')) return 'Removed Uploaded File'
+      return `Clicked "${label}" on ${metaPage || titleize(metaSection) || 'Dashboard'}`
+    }
+    if (metaPage) return `Interacted with ${metaPage}`
+  }
+
+  if (resource && resource !== 'Frontend Activity') return `${resource} Activity`
   if (item.event_type) return titleize(item.event_type)
-  return 'Portal Interaction'
+  return 'Portal Activity'
 }
+
 function activityDescription(item) {
-  const endpoint = String(item.endpoint || '').toLowerCase()
-  let pageName = 'Dashboard'
-  if (endpoint.includes('/profile') || endpoint.includes('/users/me')) pageName = 'Profile page'
-  else if (endpoint.includes('/forms/open')) pageName = 'Apply page'
-  else if (endpoint.includes('/submissions') || endpoint.includes('/applications')) pageName = 'Applications page'
-  else if (endpoint.includes('/transactions')) pageName = 'Transactions page'
-  else if (endpoint.includes('/audit-logs')) pageName = 'Security page'
-  else if (endpoint.includes('/notifications')) pageName = 'Notifications center'
-  else if (endpoint.includes('/messages')) pageName = 'Messages center'
+  if (!item) return ''
+  const meta = parseAuditPayload(item)
+  const title = activityTitle(item)
+  
+  let detail = ''
+  if (meta.from_page && meta.page_name && meta.from_page !== meta.page_name) {
+    detail = `Navigated from ${meta.from_page} to ${meta.page_name}`
+  } else if (meta.label && !title.includes(meta.label)) {
+    detail = `Action: "${meta.label}"`
+  } else if (meta.to_path) {
+    detail = `Route: ${meta.to_path}`
+  } else if (item.endpoint) {
+    detail = `Path: ${item.endpoint}`
+  }
 
   let location = ''
   const city = String(item.geo_city || '').trim()
@@ -3207,26 +3368,23 @@ function activityDescription(item) {
     location = `${displayCity}, ${country}`
   } else if (country) {
     location = country
-  } else {
-    location = 'Unknown location'
   }
 
   let device = ''
   const browser = String(item.browser || '').trim()
   const os = String(item.os_name || '').trim()
-  if (browser && os) {
-    device = `on ${os} ${browser} browser`
-  } else if (browser) {
-    device = `on ${browser} browser`
-  } else if (os) {
-    device = `on ${os} system`
-  } else {
-    device = 'on web browser'
-  }
+  if (browser && os) device = `${browser} on ${os}`
+  else if (browser) device = `${browser} browser`
+  else if (os) device = `${os} system`
 
-  const ip = item.ip_address ? ` (IP: ${item.ip_address})` : ''
-  return `${pageName}, ${location}, ${device}${ip}`
+  const parts = []
+  if (detail) parts.push(detail)
+  if (location) parts.push(`From ${location}`)
+  if (device) parts.push(`via ${device}`)
+
+  return parts.length ? parts.join(' • ') : 'Authenticated user activity logged securely.'
 }
+
 function isEditableSubmission(item) { return ['DRAFT', 'NEEDS_INFORMATION'].includes(item?.status) }
 function isPendingSubmission(item) { return item?.status && !['DRAFT', 'NEEDS_INFORMATION', 'APPROVED', 'REJECTED'].includes(item.status) }
 
@@ -3243,6 +3401,16 @@ async function onAvatarFileSelected(e) {
     profile.avatar_url = unwrap(res).avatar_url || ''
     success.value = 'Profile photo updated successfully!'
     
+    recordActivityEvent({
+      type: 'upload_avatar',
+      action: 'Uploaded Profile Photo',
+      page_name: 'Profile',
+      section: 'profile',
+      resource: 'Profile Details',
+      label: 'Upload Photo',
+      metadata: { file_name: file.name }
+    })
+
     const stored = localStorage.getItem('ncsms_user')
     if (stored) {
       const parsed = JSON.parse(stored)
@@ -3271,6 +3439,14 @@ async function updatePassword() {
   try {
     await changePassword(passwordCurrent.value, passwordNew.value)
     success.value = 'Password changed successfully.'
+    recordActivityEvent({
+      type: 'change_password',
+      action: 'Changed Account Password',
+      page_name: 'Account Settings',
+      section: 'settings',
+      resource: 'Security Settings',
+      label: 'Update Password',
+    })
     passwordCurrent.value = ''
     passwordNew.value = ''
     passwordConfirm.value = ''
@@ -3306,6 +3482,14 @@ async function toggle2FA(e) {
       twofaEnabled.value = false
       showTwoFAVerify.value = false
       success.value = 'Two-factor authentication disabled.'
+      recordActivityEvent({
+        type: 'security_2fa',
+        action: 'Disabled Two-Factor Authentication (2FA)',
+        page_name: 'Account Settings',
+        section: 'settings',
+        resource: 'Security Settings',
+        label: 'Disable 2FA',
+      })
     } catch (err) {
       error.value = err.response?.data?.error?.message || 'Could not disable 2FA.'
     } finally {
@@ -3327,6 +3511,14 @@ async function confirm2FA() {
     twofaEnabled.value = true
     showTwoFAVerify.value = false
     success.value = 'Two-factor authentication successfully enabled!'
+    recordActivityEvent({
+      type: 'security_2fa',
+      action: 'Enabled Two-Factor Authentication (2FA)',
+      page_name: 'Account Settings',
+      section: 'settings',
+      resource: 'Security Settings',
+      label: 'Activate 2FA',
+    })
   } catch (err) {
     error.value = err.response?.data?.error?.message || 'Verification failed. Incorrect code.'
   } finally {
