@@ -228,11 +228,11 @@ func (r *FormRepo) UpdateTemplate(ctx context.Context, t *models.FormTemplate) e
 	}
 	const q = `UPDATE form_templates
 	           SET department_id=$2, title=$3, description=$4, sections=$5::jsonb, banner_image_url=$6,
-	               price_ugx=$7, status=$8, updated_at=NOW()
+	               price_ugx=$7, status=$8, slug=$9, updated_at=NOW()
 	           WHERE id=$1
 	           RETURNING updated_at`
 	return r.db.QueryRow(ctx, q,
-		t.ID, t.DepartmentID, t.Title, t.Description, string(sections), t.BannerImageURL, t.PriceUGX, t.Status,
+		t.ID, t.DepartmentID, t.Title, t.Description, string(sections), t.BannerImageURL, t.PriceUGX, t.Status, t.Slug,
 	).Scan(&t.UpdatedAt)
 }
 

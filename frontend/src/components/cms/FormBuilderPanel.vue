@@ -48,7 +48,12 @@
             <tr v-for="template in templates" :key="template.id">
               <td>
                 <strong>{{ template.title }}</strong>
-                <small>/{{ template.slug }}</small>
+                <div class="template-slug-row">
+                  <span class="slug-code">/{{ template.slug }}</span>
+                  <a :href="`/dashboard/apply/${template.slug}`" target="_blank" class="test-slug-btn" title="Open form in new tab">
+                    <i class="fas fa-external-link-alt"></i> Test
+                  </a>
+                </div>
               </td>
               <td>{{ template.department_name || departmentName(template.department_id) }}</td>
               <td><span class="status-badge" :class="statusClass(template.status)">{{ titleCase(template.status) }}</span></td>
@@ -90,7 +95,24 @@
             <div class="panel-heading"><h3>Form Details</h3></div>
             <div class="form-grid">
               <label>Title
-                <input v-model="editor.title" type="text" maxlength="255" placeholder="Application form title" />
+                <input v-model="editor.title" type="text" maxlength="255" placeholder="Application form title" @input="onTitleInput" />
+              </label>
+              <label>Form URL Slug
+                <div class="slug-input-wrapper">
+                  <span class="slug-prefix">/apply/</span>
+                  <input
+                    v-model="editor.slug"
+                    type="text"
+                    maxlength="120"
+                    placeholder="form-1-declaration-national-sport"
+                    @input="onSlugInput"
+                    @blur="normalizeEditorSlug"
+                  />
+                  <button v-if="editor.title" type="button" class="btn-slug-sync" title="Auto-generate slug from title" @click="autoGenerateSlug">
+                    <i class="fas fa-sync-alt"></i>
+                  </button>
+                </div>
+                <small class="slug-hint">Direct link: <code>/dashboard/apply/{{ editor.slug || 'slug' }}</code></small>
               </label>
               <label>Department
                 <select v-model="editor.department_id">
@@ -388,6 +410,7 @@ const submissionPage = ref(1)
 const submissionMeta = ref({})
 const submissionFilters = reactive({ template_id: '', status: '' })
 const review = reactive({ status: 'UNDER_REVIEW', notes: '' })
+const slugManuallyEdited = ref(false)
 
 const blankEditor = () => ({
   id: '',
@@ -402,6 +425,30 @@ const blankEditor = () => ({
   fields: [],
 })
 const editor = reactive(blankEditor())
+
+function onTitleInput() {
+  if (!editor.id && !slugManuallyEdited.value) {
+    editor.slug = slugifyFieldKey(editor.title)
+  }
+}
+
+function onSlugInput() {
+  slugManuallyEdited.value = true
+  editor.slug = slugifyFieldKey(editor.slug)
+}
+
+function autoGenerateSlug() {
+  editor.slug = slugifyFieldKey(editor.title)
+  slugManuallyEdited.value = true
+}
+
+function normalizeEditorSlug() {
+  if (!editor.slug && editor.title) {
+    editor.slug = slugifyFieldKey(editor.title)
+  } else if (editor.slug) {
+    editor.slug = slugifyFieldKey(editor.slug)
+  }
+}
 
 const submissionTotalPages = computed(() => Math.max(1, Math.ceil(Number(submissionMeta.value.total || 0) / Number(submissionMeta.value.per_page || 20))))
 const previewSections = computed(() => buildSectionSteps({ sections: editor.sections, fields: editor.fields }))
@@ -498,6 +545,7 @@ async function editTemplate(id) {
       sections,
       fields,
     })
+    slugManuallyEdited.value = !!editor.slug
     syncFieldsToSectionOrder()
     view.value = 'builder'
   } catch (error) {
@@ -510,6 +558,7 @@ function startCreate() {
   Object.assign(editor, blankEditor(), {
     department_id: departments.value.length === 1 ? departments.value[0].id : '',
   })
+  slugManuallyEdited.value = false
   newFieldType.value = 'short_text'
   clearError()
   view.value = 'builder'
@@ -778,5 +827,23 @@ onMounted(async () => {
 <style scoped>
 .form-builder{display:grid;gap:20px;min-width:0}.builder-tabs{display:flex;gap:6px;border-bottom:1px solid #e4e6fc}.builder-tabs button{display:inline-flex;align-items:center;gap:8px;border:0;border-bottom:3px solid transparent;background:transparent;color:#6c757d;padding:12px 16px;font-size:13px;font-weight:700}.builder-tabs button.active{border-bottom-color:#6777ef;color:#6777ef}.builder-alert{margin:0;border-radius:3px;background:#eef2ff;color:#4f46e5;padding:12px 16px;font-size:13px}.builder-alert.error{background:#fdeaea;color:#c53030}.builder-toolbar{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap}.builder-toolbar h2{margin:0;color:#34395e;font-size:20px}.builder-toolbar p{margin:5px 0 0;color:#6c757d;font-size:13px}.toolbar-actions,.add-field,.review-actions,.row-actions,.field-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.primary-action,.secondary-action,.danger-action,.back-action,.row-actions button,.field-actions button,.submission-detail header button,.pagination button{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:0;border-radius:4px;padding:9px 14px;font-size:12px;font-weight:700}.primary-action{background:#6777ef;color:#fff;box-shadow:0 2px 6px #acb5f6}.secondary-action,.back-action{background:#fff;color:#34395e;border:1px solid #e4e6fc}.danger-action,.remove-field{background:#fc544b!important;color:#fff!important}.back-action{margin-bottom:10px;padding-left:0;border:0}.primary-action:disabled,.secondary-action:disabled,.danger-action:disabled,.field-actions button:disabled,.pagination button:disabled{opacity:.45;cursor:not-allowed}.toolbar-actions select,.add-field select,.filter-panel select{min-width:150px}.table-panel,.settings-panel,.filter-panel,.preview-panel,.submission-detail{background:#fff;border-radius:3px;box-shadow:0 4px 25px rgba(0,0,0,.1);min-width:0}.table-panel{overflow:auto}table{width:100%;border-collapse:collapse;min-width:760px}th,td{text-align:left;padding:14px 16px;border-bottom:1px solid #f4f6f9;font-size:12px;vertical-align:middle}th{color:#34395e;font-weight:800;background:#fbfbfd}td{color:#6c757d}td strong{display:block;color:#34395e;font-size:13px}td small{display:block;margin-top:3px}.row-actions{justify-content:flex-end}.row-actions button,.field-actions button,.submission-detail header button,.pagination button{width:34px;height:34px;padding:0;background:#f4f6f9;color:#6777ef}.status-badge{display:inline-block;border-radius:20px;padding:5px 9px;background:#eef2ff;color:#6777ef;font-weight:700}.status-badge.success{background:#e8f7f0;color:#47c363}.status-badge.warning{background:#fff4e6;color:#d97706}.status-badge.danger{background:#fdeaea;color:#fc544b}.empty-state{padding:30px;text-align:center;color:#98a6ad}.editor-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,.75fr);gap:20px;align-items:start}.editor-column{display:grid;gap:20px;min-width:0}.settings-panel,.preview-panel,.submission-detail{padding:24px}.panel-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #f4f6f9;padding-bottom:14px;margin-bottom:18px}.panel-heading h3,.submission-detail h3,.answer-list h4{margin:0;color:#34395e;font-size:16px}.panel-heading p{margin:3px 0 0;color:#98a6ad;font-size:12px}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.form-grid.compact{padding:18px}.form-grid label,.field-label,.filter-panel label,.review-panel label{display:grid;gap:7px;color:#34395e;font-size:12px;font-weight:700;min-width:0}.form-grid .wide{grid-column:1/-1}.form-grid input,.form-grid select,.form-grid textarea,.toolbar-actions select,.add-field select,.filter-panel select,.review-panel select,.review-panel textarea,.preview-field input,.preview-field select,.preview-field textarea{width:100%;box-sizing:border-box;border:1px solid #e4e6fc;border-radius:3px;background:#fdfdff;color:#495057;padding:10px 13px;font:inherit;outline:none}.form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus,.filter-panel select:focus,.review-panel select:focus,.review-panel textarea:focus{border-color:#6777ef;box-shadow:0 2px 6px #acb5f6}.status-control{grid-column:1/-1;margin:0;padding:0;border:0}.status-control legend{margin-bottom:7px;color:#34395e;font-size:12px;font-weight:700}.status-control div{display:flex;flex-wrap:wrap;border:1px solid #e4e6fc;border-radius:4px;width:max-content;max-width:100%;overflow:hidden}.status-control button{border:0;border-right:1px solid #e4e6fc;background:#fff;color:#6c757d;padding:8px 12px;font-size:11px;font-weight:700}.status-control button:last-child{border-right:0}.status-control button.active{background:#6777ef;color:#fff}.fields-section{display:grid;gap:14px}.fields-heading{margin:0}.field-card{background:#fff;border:1px solid #e4e6fc;border-radius:4px;box-shadow:0 3px 15px rgba(0,0,0,.06);overflow:hidden}.field-card header{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fbfbfd;border-bottom:1px solid #f4f6f9}.field-card header strong{min-width:0;flex:1;color:#34395e;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.field-number{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#eef2ff;color:#6777ef;font-size:11px;font-weight:800}.required-toggle{display:flex!important;align-items:center;gap:8px!important}.required-toggle input{width:18px;height:18px;accent-color:#6777ef}.fields-empty{border:1px dashed #d9dcf2;background:#fff}.section-card{display:grid;gap:0;overflow:hidden;border:1px solid #dfe3fb;border-radius:4px;background:#fff;box-shadow:0 4px 18px rgba(0,0,0,.06)}.section-card-header{display:flex;align-items:center;gap:10px;padding:13px 15px;background:#f6f7ff;border-bottom:1px solid #e7e9ff}.section-card-header strong{min-width:0;flex:1;color:#34395e;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.section-number{display:inline-flex;align-items:center;justify-content:center;min-width:62px;height:27px;border-radius:20px;background:#6777ef;color:#fff;font-size:11px;font-weight:800}.section-settings{border-bottom:1px solid #f4f6f9}.section-field-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#fbfbfd;border-bottom:1px solid #f4f6f9;color:#98a6ad;font-size:12px;font-weight:700}.section-field-card{margin:12px 16px}.section-card>.fields-empty{margin:12px 16px}.preview-step-list{display:flex;flex-wrap:wrap;gap:6px}.preview-step-list span{display:inline-flex;border-radius:20px;background:#eef2ff;color:#6777ef;padding:5px 9px;font-size:10px;font-weight:800}.preview-section{display:grid;gap:10px;border-top:1px solid #f4f6f9;padding-top:14px}.preview-section>small{color:#6777ef;font-size:10px;font-weight:800;text-transform:uppercase}.preview-section h4{margin:0;color:#34395e;font-size:15px}.preview-section>p{margin:0;color:#6c757d;font-size:12px;line-height:1.5}.preview-panel{position:sticky;top:92px;overflow:hidden;padding:0}.preview-banner{aspect-ratio:16/6;background:#f4f6f9}.preview-banner img{width:100%;height:100%;object-fit:cover}.preview-body{display:grid;gap:15px;padding:22px}.preview-kicker{text-transform:uppercase;color:#6777ef;font-size:10px;font-weight:800}.preview-body h3{margin:0;color:#34395e;font-size:20px}.preview-body>p{margin:0;color:#6c757d;font-size:12px;line-height:1.6}.fee-notice{background:#fff4e6;color:#b45309;padding:10px 12px;border-radius:3px;font-size:12px;font-weight:700}.preview-field{display:grid;gap:6px}.preview-field>label{color:#34395e;font-size:12px;font-weight:700}.preview-field>label span{color:#fc544b}.preview-field small,.preview-options small{color:#98a6ad;font-size:11px}.preview-options{display:grid;gap:7px}.preview-options label{display:flex;align-items:center;gap:7px;color:#6c757d;font-size:12px}.preview-options input{width:15px;height:15px}.filter-panel{display:grid;grid-template-columns:repeat(2,minmax(180px,300px));gap:16px;padding:18px}.submissions-layout{display:grid;gap:20px;align-items:start}.submissions-layout.detailed{grid-template-columns:minmax(0,1.45fr) minmax(320px,.75fr)}.clickable-row{cursor:pointer}.clickable-row:hover td{background:#f8f9ff}.pagination{display:flex;align-items:center;justify-content:center;gap:12px;padding:14px}.pagination span{font-size:12px;color:#6c757d}.submission-detail{position:sticky;top:92px;display:grid;gap:20px}.submission-detail header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.submission-detail header span{color:#98a6ad;font-size:11px;text-transform:uppercase;font-weight:800}.submission-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0}.submission-meta div{min-width:0}.submission-meta dt{color:#98a6ad;font-size:10px;font-weight:800;text-transform:uppercase}.submission-meta dd{margin:3px 0 0;color:#34395e;font-size:12px;overflow-wrap:anywhere}.answer-list,.review-panel{display:grid;gap:12px;border-top:1px solid #f4f6f9;padding-top:18px}.answer-list>div{display:grid;gap:4px}.answer-list strong{color:#34395e;font-size:12px}.answer-list span{color:#6c757d;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}.review-actions{justify-content:flex-end}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 :global(.dark .form-builder) .builder-toolbar h2,:global(.dark .form-builder) .panel-heading h3,:global(.dark .form-builder) .submission-detail h3,:global(.dark .form-builder) .answer-list h4,:global(.dark .form-builder) td strong,:global(.dark .form-builder) th,:global(.dark .form-builder) .field-card header strong,:global(.dark .form-builder) .preview-body h3,:global(.dark .form-builder) .preview-field>label,:global(.dark .form-builder) .submission-meta dd,:global(.dark .form-builder) .answer-list strong,:global(.dark .form-builder) label,:global(.dark .form-builder) legend{color:#f8fafc!important}:global(.dark .form-builder) .table-panel,:global(.dark .form-builder) .settings-panel,:global(.dark .form-builder) .filter-panel,:global(.dark .form-builder) .preview-panel,:global(.dark .form-builder) .submission-detail,:global(.dark .form-builder) .field-card,:global(.dark .form-builder) .fields-empty{background:#1f2937;border-color:#334155}:global(.dark .form-builder) th,:global(.dark .form-builder) .field-card header{background:#111827;border-color:#334155}:global(.dark .form-builder) td,:global(.dark .form-builder) .panel-heading,:global(.dark .form-builder) .answer-list,:global(.dark .form-builder) .review-panel{border-color:#334155}:global(.dark .form-builder) input,:global(.dark .form-builder) select,:global(.dark .form-builder) textarea,:global(.dark .form-builder) .secondary-action,:global(.dark .form-builder) .status-control button{background:#0f172a!important;color:#f8fafc!important;border-color:#475569!important}
+.template-slug-row{display:flex;align-items:center;gap:8px;margin-top:4px}
+.slug-code{font-family:monospace;font-size:11px;padding:2px 6px;border-radius:4px;background:#eef2ff;color:#6777ef;font-weight:700}
+.test-slug-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:#98a6ad;text-decoration:none;transition:color 0.2s}
+.test-slug-btn:hover{color:#6777ef}
+.slug-input-wrapper{display:flex;align-items:center;position:relative;border:1px solid #e4e6fc;border-radius:3px;background:#fdfdff;overflow:hidden}
+.slug-input-wrapper:focus-within{border-color:#6777ef;box-shadow:0 2px 6px #acb5f6}
+.slug-prefix{padding:10px 10px 10px 12px;color:#98a6ad;font-size:12px;font-weight:700;background:#f8f9ff;border-right:1px solid #e4e6fc;user-select:none}
+.slug-input-wrapper input{border:0!important;box-shadow:none!important;border-radius:0!important;padding:10px 12px!important;flex:1}
+.btn-slug-sync{border:0;background:transparent;color:#98a6ad;padding:0 12px;cursor:pointer;transition:color 0.2s}
+.btn-slug-sync:hover{color:#6777ef}
+.slug-hint{margin-top:4px;color:#98a6ad;font-size:11px}
+.slug-hint code{background:#eef2ff;color:#6777ef;padding:1px 4px;border-radius:3px;font-size:10.5px}
+
+:global(.dark .form-builder) .slug-code{background:#1e293b;color:#93c5fd}
+:global(.dark .form-builder) .slug-input-wrapper{background:#0f172a;border-color:#475569}
+:global(.dark .form-builder) .slug-prefix{background:#1e293b;border-color:#475569;color:#94a3b8}
+:global(.dark .form-builder) .slug-hint code{background:#1e293b;color:#93c5fd}
+
 @media(max-width:1180px){.editor-layout,.submissions-layout.detailed{grid-template-columns:1fr}.preview-panel,.submission-detail{position:static}.preview-panel{max-width:720px}}@media(max-width:700px){.form-grid,.filter-panel,.submission-meta{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.builder-toolbar{align-items:flex-start}.toolbar-actions,.add-field{width:100%}.toolbar-actions>*{flex:1 1 150px}.builder-tabs{overflow:auto}.builder-tabs button{white-space:nowrap}.settings-panel,.submission-detail{padding:18px}.form-grid.compact{padding:14px}.field-card header{align-items:flex-start;flex-wrap:wrap}.field-card header strong{flex-basis:calc(100% - 46px)}.field-actions{width:100%;justify-content:flex-end}}
 </style>

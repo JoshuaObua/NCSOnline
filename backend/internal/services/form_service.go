@@ -45,6 +45,7 @@ func (s *FormService) UserDepartmentIDs(ctx context.Context, userID string) ([]s
 
 type SaveTemplateInput struct {
 	DepartmentID   string
+	Slug           string
 	Title          string
 	Description    string
 	Sections       json.RawMessage
@@ -124,8 +125,18 @@ func (s *FormService) CreateTemplate(ctx context.Context, userID string, isSuper
 	if err != nil {
 		return nil, err
 	}
-	base := slugify(in.Title)
-	slug := base + "-" + uuid.NewString()[:6]
+	var slug string
+	if strings.TrimSpace(in.Slug) != "" {
+		slug = slugify(in.Slug)
+		// Check uniqueness
+		other, err := s.forms.GetTemplateBySlug(ctx, slug)
+		if err == nil && other != nil {
+			return nil, fmt.Errorf("form slug %q is already in use by another form", slug)
+		}
+	} else {
+		base := slugify(in.Title)
+		slug = base + "-" + uuid.NewString()[:6]
+	}
 	uid := userID
 	t := &models.FormTemplate{
 		DepartmentID:   in.DepartmentID,
@@ -163,6 +174,16 @@ func (s *FormService) UpdateTemplate(ctx context.Context, id, userID string, isS
 			return nil, err
 		}
 		existing.DepartmentID = in.DepartmentID
+	}
+	if strings.TrimSpace(in.Slug) != "" {
+		newSlug := slugify(in.Slug)
+		if newSlug != existing.Slug {
+			other, err := s.forms.GetTemplateBySlug(ctx, newSlug)
+			if err == nil && other != nil && other.ID != existing.ID {
+				return nil, fmt.Errorf("form slug %q is already in use by another form", newSlug)
+			}
+			existing.Slug = newSlug
+		}
 	}
 	if strings.TrimSpace(in.Title) != "" {
 		existing.Title = strings.TrimSpace(in.Title)

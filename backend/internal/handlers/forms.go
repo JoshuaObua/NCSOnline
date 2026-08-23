@@ -45,6 +45,7 @@ func (h *FormsHandler) ListDepartments(w http.ResponseWriter, r *http.Request) {
 
 type formTemplateRequest struct {
 	DepartmentID   string                 `json:"department_id"`
+	Slug           string                 `json:"slug"`
 	Title          string                 `json:"title"`
 	Description    string                 `json:"description"`
 	Sections       json.RawMessage        `json:"sections"`
@@ -68,6 +69,7 @@ type formTemplateReqField struct {
 func (req formTemplateRequest) toServiceInput(includeFields bool) services.SaveTemplateInput {
 	in := services.SaveTemplateInput{
 		DepartmentID:   req.DepartmentID,
+		Slug:           req.Slug,
 		Title:          req.Title,
 		Description:    req.Description,
 		Sections:       req.Sections,

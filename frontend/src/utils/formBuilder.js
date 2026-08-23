@@ -141,6 +141,7 @@ export function buildTemplatePayload(form = {}) {
 
   return {
     department_id: form.department_id || '',
+    slug: String(form.slug || '').trim(),
     title: String(form.title || '').trim(),
     description: String(form.description || '').trim(),
     banner_image_url: form.banner_image_url || '',
