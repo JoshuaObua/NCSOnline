@@ -425,6 +425,8 @@ func main() {
 
 				r.Get("/admin/transactions", h.Forms.AdminListTransactions)
 				r.Get("/admin/transactions/kpis", h.Forms.AdminGetTransactionKPIs)
+				r.Get("/admin/transactions/{id}", h.Forms.AdminGetTransactionByID)
+				r.Post("/admin/transactions/{id}/sync", h.Forms.AdminSyncTransaction)
 
 				// ── Admin: dynamic form templates (department-scoped) ──
 				r.Route("/admin/forms", func(r chi.Router) {

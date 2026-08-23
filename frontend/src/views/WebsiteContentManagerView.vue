@@ -389,6 +389,12 @@
           @error="setErr"
         />
 
+        <ManageTransactionsPanel
+          v-else-if="active === 'transactions'"
+          @message="setMsg"
+          @error="setErr"
+        />
+
         <section v-else-if="active === 'analytics'" class="otika-dashboard">
           <div class="row">
             <div v-for="card in dashboardStatCards" :key="`analytics-${card.label}`" class="col-xl-3 col-lg-6 col-md-6 col-sm-6 col-xs-12">
@@ -1689,6 +1695,7 @@ import StorageSettingsPanel from '@/components/cms/StorageSettingsPanel.vue'
 import FormBuilderPanel from '@/components/cms/FormBuilderPanel.vue'
 import AdminApplicationsPanel from '@/components/portal/AdminApplicationsPanel.vue'
 import AdminDashboardPanel from '@/components/portal/AdminDashboardPanel.vue'
+import ManageTransactionsPanel from '@/components/portal/ManageTransactionsPanel.vue'
 import ManageUsersPanel from '@/components/portal/ManageUsersPanel.vue'
 import CreateUserPanel from '@/components/portal/CreateUserPanel.vue'
 import AssignUserRolePanel from '@/components/portal/AssignUserRolePanel.vue'
@@ -1828,6 +1835,7 @@ const investmentRequests = computed(() => inboundSubmissions.value.filter(item =
 const topSections = [
   { id:'overview', label:'Dashboard', icon:'icofont-dashboard-web' },
   { id:'applications', label:'Applications', icon:'icofont-file-document' },
+  { id:'transactions', label:'Transactions', icon:'icofont-money-bag' },
 ]
 const homepageSections = []
 const slideshowSections = []
@@ -1937,6 +1945,7 @@ const currentSection = computed(() => {
 const sectionPermissionMap = {
   overview:['dashboard:read'],
   applications:['applications:admin:read'],
+  transactions:['dashboard:read','applications:admin:read'],
   analytics:['analytics:read','dashboard:read'],
   homepage:['homepage:read','homepage:update'],
   'homepage-about':['homepage:read','homepage:update'],

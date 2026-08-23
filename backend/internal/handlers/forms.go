@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -433,6 +434,8 @@ func (h *FormsHandler) AdminListTransactions(w http.ResponseWriter, r *http.Requ
 		Search:        q.Get("search"),
 		StartDate:     q.Get("start_date"),
 		EndDate:       q.Get("end_date"),
+		SortBy:        q.Get("sort_by"),
+		SortOrder:     q.Get("sort_order"),
 	}
 
 	// CSV Export requested
@@ -444,21 +447,31 @@ func (h *FormsHandler) AdminListTransactions(w http.ResponseWriter, r *http.Requ
 			response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 			return
 		}
-		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Type", "text/csv; charset=utf-8")
 		w.Header().Set("Content-Disposition", "attachment;filename=ncs_transactions.csv")
 		w.WriteHeader(http.StatusOK)
 
-		_, _ = w.Write([]byte("Reference,Application,Applicant Name,Applicant Email,Phone Number,Method,Amount (UGX),Status,Date\n"))
+		// UTF-8 BOM for Microsoft Excel compatibility
+		_, _ = w.Write([]byte("\xEF\xBB\xBF"))
+		_, _ = w.Write([]byte("Reference,Application/Service,Payer Name,Payer Email,Phone Number,Payment Method,Provider,Amount (UGX),Status,Status Details,Date\n"))
 		for _, tx := range list {
-			line := strings.ReplaceAll(tx.TransactionReference, ",", " ") + "," +
-				strings.ReplaceAll(tx.TemplateTitle, ",", " ") + "," +
-				strings.ReplaceAll(tx.ApplicantName, ",", " ") + "," +
-				strings.ReplaceAll(tx.ApplicantEmail, ",", " ") + "," +
-				strings.ReplaceAll(tx.PhoneNumber, ",", " ") + "," +
-				tx.PaymentMethod + "," +
-				strconv.FormatFloat(tx.AmountUGX, 'f', 2, 64) + "," +
-				tx.Status + "," +
-				tx.CreatedAt.Format("2006-01-02 15:04:05") + "\n"
+			appTitle := tx.TemplateTitle
+			if appTitle == "" {
+				appTitle = tx.SubmissionReference
+			}
+			line := fmt.Sprintf(`"%s","%s","%s","%s","%s","%s","%s",%.2f,"%s","%s","%s"`+"\n",
+				strings.ReplaceAll(tx.TransactionReference, `"`, `""`),
+				strings.ReplaceAll(appTitle, `"`, `""`),
+				strings.ReplaceAll(tx.ApplicantName, `"`, `""`),
+				strings.ReplaceAll(tx.ApplicantEmail, `"`, `""`),
+				strings.ReplaceAll(tx.PhoneNumber, `"`, `""`),
+				strings.ReplaceAll(tx.PaymentMethod, `"`, `""`),
+				strings.ReplaceAll(tx.Provider, `"`, `""`),
+				tx.AmountUGX,
+				strings.ReplaceAll(tx.Status, `"`, `""`),
+				strings.ReplaceAll(tx.StatusMessage, `"`, `""`),
+				tx.CreatedAt.Format("2006-01-02 15:04:05"),
+			)
 			_, _ = w.Write([]byte(line))
 		}
 		return
@@ -470,6 +483,36 @@ func (h *FormsHandler) AdminListTransactions(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	response.JSONPaged(w, http.StatusOK, list, &response.Meta{Page: p.Page, PerPage: p.PerPage, Total: int64(total)})
+}
+
+// GET /api/v1/admin/transactions/{id}
+func (h *FormsHandler) AdminGetTransactionByID(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	tx, err := h.svc.GetTransactionByID(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Transaction not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+	response.JSON(w, http.StatusOK, tx)
+}
+
+// POST /api/v1/admin/transactions/{id}/sync
+func (h *FormsHandler) AdminSyncTransaction(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	tx, err := h.svc.SyncSingleTransaction(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			response.Err(w, http.StatusNotFound, "NOT_FOUND", "Transaction not found")
+			return
+		}
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+	response.JSON(w, http.StatusOK, tx)
 }
 
 // GET /api/v1/admin/transactions/kpis

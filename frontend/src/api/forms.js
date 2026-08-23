@@ -54,6 +54,10 @@ export const adminListTransactions = (params = {}) => {
   const qs = new URLSearchParams(params).toString()
   return apiClient.get(`/api/v1/admin/transactions${qs ? '?' + qs : ''}`).then(r => r.data)
 }
+export const adminGetTransaction = (id) =>
+  apiClient.get(`/api/v1/admin/transactions/${id}`).then(r => r.data?.data ?? r.data)
+export const adminSyncTransaction = (id) =>
+  apiClient.post(`/api/v1/admin/transactions/${id}/sync`).then(r => r.data?.data ?? r.data)
 export const adminGetTransactionKPIs = () =>
   apiClient.get('/api/v1/admin/transactions/kpis').then(r => r.data?.data ?? r.data)
 

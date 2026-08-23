@@ -769,6 +769,33 @@ func (s *FormService) ListTransactions(ctx context.Context, f repository.ListTra
 	return s.txs.List(ctx, f, p)
 }
 
+func (s *FormService) GetTransactionByID(ctx context.Context, id string) (*models.PaymentTransaction, error) {
+	return s.txs.GetByID(ctx, id)
+}
+
+func (s *FormService) SyncSingleTransaction(ctx context.Context, id string) (*models.PaymentTransaction, error) {
+	tx, err := s.txs.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if tx.Provider == "IOTEC" && tx.ProviderRequestID != nil && *tx.ProviderRequestID != "" {
+		statusResp, err := s.iotec.GetStatus(ctx, *tx.ProviderRequestID, tx.PhoneNumber)
+		if err == nil && statusResp != nil {
+			rawBytes, _ := json.Marshal(statusResp)
+			if strings.EqualFold(statusResp.Status, "Success") {
+				_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusSuccess, statusResp.StatusMessage, rawBytes)
+				if tx.SubmissionID != nil && *tx.SubmissionID != "" {
+					_ = s.forms.SetPaymentPaidDirect(ctx, *tx.SubmissionID, models.PaymentMethodMoMo, tx.TransactionReference, tx.AmountUGX)
+					_ = s.forms.CreateSubmissionNotification(ctx, tx.UserID, "payment_success", "Payment confirmed", fmt.Sprintf("Your payment for transaction %s was confirmed.", tx.TransactionReference), "check-circled")
+				}
+			} else if strings.EqualFold(statusResp.Status, "Failed") {
+				_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusFailed, statusResp.StatusMessage, rawBytes)
+			}
+		}
+	}
+	return s.txs.GetByID(ctx, id)
+}
+
 func (s *FormService) GetTransactionKPIs(ctx context.Context, userID string) (*repository.TransactionKPIs, error) {
 	return s.txs.GetKPIs(ctx, userID)
 }

@@ -30,6 +30,8 @@ type ListTransactionsFilter struct {
 	Search        string
 	StartDate     string
 	EndDate       string
+	SortBy        string
+	SortOrder     string
 }
 
 type TransactionKPIs struct {
@@ -105,9 +107,11 @@ func (r *TransactionRepo) GetByID(ctx context.Context, id string) (*models.Payme
 		SELECT pt.id, pt.transaction_reference, pt.submission_id,
 		       COALESCE(fs.submission_reference, ''), pt.template_id,
 		       COALESCE(ft.title, ''), pt.user_id,
-		       COALESCE(u.first_name || ' ' || u.last_name, ''),
-		       COALESCE(u.email, ''), pt.payment_method, pt.provider,
-		       pt.provider_request_id, COALESCE(pt.phone_number, ''),
+		       COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), fs.answers->>'full_name', fs.answers->>'applicant_name', 'System User'),
+		       COALESCE(NULLIF(u.email, ''), fs.answers->>'email', fs.answers->>'email_address', ''),
+		       pt.payment_method, pt.provider,
+		       pt.provider_request_id,
+		       COALESCE(NULLIF(pt.phone_number, ''), u.phone, fs.answers->>'phone', fs.answers->>'phone_number', ''),
 		       pt.amount_ugx, pt.currency, pt.status, COALESCE(pt.status_message, ''),
 		       pt.raw_response, pt.created_at, pt.updated_at, pt.completed_at
 		FROM payment_transactions pt
@@ -125,9 +129,11 @@ func (r *TransactionRepo) GetLatestBySubmissionID(ctx context.Context, submissio
 		SELECT pt.id, pt.transaction_reference, pt.submission_id,
 		       COALESCE(fs.submission_reference, ''), pt.template_id,
 		       COALESCE(ft.title, ''), pt.user_id,
-		       COALESCE(u.first_name || ' ' || u.last_name, ''),
-		       COALESCE(u.email, ''), pt.payment_method, pt.provider,
-		       pt.provider_request_id, COALESCE(pt.phone_number, ''),
+		       COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), fs.answers->>'full_name', fs.answers->>'applicant_name', 'System User'),
+		       COALESCE(NULLIF(u.email, ''), fs.answers->>'email', fs.answers->>'email_address', ''),
+		       pt.payment_method, pt.provider,
+		       pt.provider_request_id,
+		       COALESCE(NULLIF(pt.phone_number, ''), u.phone, fs.answers->>'phone', fs.answers->>'phone_number', ''),
 		       pt.amount_ugx, pt.currency, pt.status, COALESCE(pt.status_message, ''),
 		       pt.raw_response, pt.created_at, pt.updated_at, pt.completed_at
 		FROM payment_transactions pt
@@ -169,17 +175,17 @@ func (r *TransactionRepo) List(ctx context.Context, f ListTransactionsFilter, p 
 	}
 	if f.Search != "" {
 		search := "%" + strings.ToLower(f.Search) + "%"
-		where = append(where, fmt.Sprintf("(LOWER(pt.transaction_reference) LIKE $%d OR LOWER(COALESCE(fs.submission_reference, '')) LIKE $%d OR LOWER(COALESCE(ft.title, '')) LIKE $%d OR LOWER(COALESCE(pt.phone_number, '')) LIKE $%d OR LOWER(COALESCE(u.email, '')) LIKE $%d OR LOWER(COALESCE(u.first_name || ' ' || u.last_name, '')) LIKE $%d)", idx, idx, idx, idx, idx, idx))
+		where = append(where, fmt.Sprintf("(LOWER(pt.transaction_reference) LIKE $%d OR LOWER(COALESCE(fs.submission_reference, '')) LIKE $%d OR LOWER(COALESCE(ft.title, '')) LIKE $%d OR LOWER(COALESCE(pt.phone_number, '')) LIKE $%d OR LOWER(COALESCE(u.email, '')) LIKE $%d OR LOWER(COALESCE(u.first_name || ' ' || u.last_name, '')) LIKE $%d OR LOWER(COALESCE(fs.answers->>'full_name', '')) LIKE $%d OR LOWER(COALESCE(fs.answers->>'applicant_name', '')) LIKE $%d)", idx, idx, idx, idx, idx, idx, idx, idx))
 		args = append(args, search)
 		idx++
 	}
 	if f.StartDate != "" {
-		where = append(where, fmt.Sprintf("pt.created_at >= $%d", idx))
+		where = append(where, fmt.Sprintf("pt.created_at >= $%d::timestamptz", idx))
 		args = append(args, f.StartDate)
 		idx++
 	}
 	if f.EndDate != "" {
-		where = append(where, fmt.Sprintf("pt.created_at <= $%d", idx))
+		where = append(where, fmt.Sprintf("pt.created_at <= $%d::timestamptz", idx))
 		args = append(args, f.EndDate)
 		idx++
 	}
@@ -211,14 +217,37 @@ func (r *TransactionRepo) List(ctx context.Context, f ListTransactionsFilter, p 
 		}
 	}
 
+	orderCol := "pt.created_at"
+	switch strings.ToLower(f.SortBy) {
+	case "amount", "amount_ugx":
+		orderCol = "pt.amount_ugx"
+	case "status":
+		orderCol = "pt.status"
+	case "reference", "transaction_reference":
+		orderCol = "pt.transaction_reference"
+	case "applicant", "applicant_name", "name", "payer":
+		orderCol = "COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), fs.answers->>'full_name', fs.answers->>'applicant_name')"
+	case "method", "payment_method":
+		orderCol = "pt.payment_method"
+	case "date", "created_at":
+		orderCol = "pt.created_at"
+	}
+
+	orderDir := "DESC"
+	if strings.EqualFold(f.SortOrder, "asc") {
+		orderDir = "ASC"
+	}
+
 	args = append(args, limit, offset)
 	q := fmt.Sprintf(`
 		SELECT pt.id, pt.transaction_reference, pt.submission_id,
 		       COALESCE(fs.submission_reference, ''), pt.template_id,
 		       COALESCE(ft.title, ''), pt.user_id,
-		       COALESCE(u.first_name || ' ' || u.last_name, ''),
-		       COALESCE(u.email, ''), pt.payment_method, pt.provider,
-		       pt.provider_request_id, COALESCE(pt.phone_number, ''),
+		       COALESCE(NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), fs.answers->>'full_name', fs.answers->>'applicant_name', 'System User'),
+		       COALESCE(NULLIF(u.email, ''), fs.answers->>'email', fs.answers->>'email_address', ''),
+		       pt.payment_method, pt.provider,
+		       pt.provider_request_id,
+		       COALESCE(NULLIF(pt.phone_number, ''), u.phone, fs.answers->>'phone', fs.answers->>'phone_number', ''),
 		       pt.amount_ugx, pt.currency, pt.status, COALESCE(pt.status_message, ''),
 		       pt.raw_response, pt.created_at, pt.updated_at, pt.completed_at
 		FROM payment_transactions pt
@@ -226,9 +255,9 @@ func (r *TransactionRepo) List(ctx context.Context, f ListTransactionsFilter, p 
 		LEFT JOIN form_templates ft ON ft.id = pt.template_id
 		LEFT JOIN users u ON u.id = pt.user_id
 		WHERE %s
-		ORDER BY pt.created_at DESC
+		ORDER BY %s %s
 		LIMIT $%d OFFSET $%d
-	`, whereClause, idx, idx+1)
+	`, whereClause, orderCol, orderDir, idx, idx+1)
 
 	rows, err := r.db.Query(ctx, q, args...)
 	if err != nil {
