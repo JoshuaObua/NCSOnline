@@ -803,9 +803,10 @@ async function loadTransactions() {
       status: txFilters.status || undefined,
       payment_method: txFilters.payment_method || undefined,
     })
-    const data = res?.data || res || {}
-    transactions.value = data.items || data.data || []
-    txMeta.value = data.meta || {}
+    const items = Array.isArray(res?.data) ? res.data : (res?.data?.items || res?.items || [])
+    const meta = res?.meta || res?.data?.meta || {}
+    transactions.value = items
+    txMeta.value = meta
   } catch (error) {
     handleError(error)
   } finally {
