@@ -8,33 +8,82 @@ import (
 
 // ── User ─────────────────────────────────────────────────────────
 
+type AthleteProfileSummary struct {
+	ID                 string `json:"id"`
+	AthleteNumber      string `json:"athlete_number"`
+	FullName           string `json:"full_name"`
+	Discipline         string `json:"discipline"`
+	Club               string `json:"club,omitempty"`
+	District           string `json:"district,omitempty"`
+	Region             string `json:"region,omitempty"`
+	NationalTeamStatus string `json:"national_team_status,omitempty"`
+	Status             string `json:"status"`
+	FederationID       string `json:"federation_id,omitempty"`
+	FederationName     string `json:"federation_name,omitempty"`
+}
+
+type OfficialProfileSummary struct {
+	ID             string `json:"id"`
+	FullName       string `json:"full_name"`
+	OfficialType   string `json:"official_type"`
+	Level          string `json:"level"`
+	Certification  string `json:"certification"`
+	Status         string `json:"status"`
+	FederationID   string `json:"federation_id,omitempty"`
+	FederationName string `json:"federation_name,omitempty"`
+}
+
+type CoachProfileSummary struct {
+	ID                 string `json:"id"`
+	FullName           string `json:"full_name"`
+	CertificationLevel string `json:"certification_level"`
+	LicenseNumber      string `json:"license_number"`
+	Status             string `json:"status"`
+	FederationID       string `json:"federation_id,omitempty"`
+	FederationName     string `json:"federation_name,omitempty"`
+}
+
+type OfficerProfileSummary struct {
+	ID             string `json:"id"`
+	FullName       string `json:"full_name"`
+	Position       string `json:"position"`
+	PositionLabel  string `json:"position_label,omitempty"`
+	IsActive       bool   `json:"is_active"`
+	FederationID   string `json:"federation_id,omitempty"`
+	FederationName string `json:"federation_name,omitempty"`
+}
+
 type User struct {
-	ID                string     `json:"id"`
-	Email             string     `json:"email"`
-	PasswordHash      string     `json:"-"`
-	PinHash           string     `json:"-"`
-	PinChangeRequired bool       `json:"pin_change_required"`
-	FirstName         string     `json:"first_name"`
-	LastName          string     `json:"last_name"`
-	Phone             string     `json:"phone,omitempty"`
-	NIN               string     `json:"nin,omitempty"`
-	AvatarURL         string     `json:"avatar_url,omitempty"`
-	AuthProvider      string     `json:"auth_provider,omitempty"`
-	GoogleSub         string     `json:"-"`
-	IsActive          bool       `json:"is_active"`
-	AccountStatus     string     `json:"account_status"`
-	StatusReason      string     `json:"status_reason,omitempty"`
-	FraudFlag         bool       `json:"fraud_flag"`
-	FraudReason       string     `json:"fraud_reason,omitempty"`
-	SuspendedUntil    *time.Time `json:"suspended_until,omitempty"`
-	StatusChangedAt   *time.Time `json:"status_changed_at,omitempty"`
-	IsEmailVerified   bool       `json:"is_email_verified"`
-	EmailVerifiedAt   *time.Time `json:"email_verified_at,omitempty"`
-	LastLoginAt       *time.Time `json:"last_login_at,omitempty"`
-	AuthInvalidBefore *time.Time `json:"-"`
-	CreatedAt         time.Time  `json:"created_at"`
-	UpdatedAt         time.Time  `json:"updated_at"`
-	Roles             []Role     `json:"roles,omitempty"`
+	ID                       string                  `json:"id"`
+	Email                    string                  `json:"email"`
+	PasswordHash             string                  `json:"-"`
+	PinHash                  string                  `json:"-"`
+	PinChangeRequired        bool                    `json:"pin_change_required"`
+	FirstName                string                  `json:"first_name"`
+	LastName                 string                  `json:"last_name"`
+	Phone                    string                  `json:"phone,omitempty"`
+	NIN                      string                  `json:"nin,omitempty"`
+	AvatarURL                string                  `json:"avatar_url,omitempty"`
+	AuthProvider             string                  `json:"auth_provider,omitempty"`
+	GoogleSub                string                  `json:"-"`
+	IsActive                 bool                    `json:"is_active"`
+	AccountStatus            string                  `json:"account_status"`
+	StatusReason             string                  `json:"status_reason,omitempty"`
+	FraudFlag                bool                    `json:"fraud_flag"`
+	FraudReason              string                  `json:"fraud_reason,omitempty"`
+	SuspendedUntil           *time.Time              `json:"suspended_until,omitempty"`
+	StatusChangedAt          *time.Time              `json:"status_changed_at,omitempty"`
+	IsEmailVerified          bool                    `json:"is_email_verified"`
+	EmailVerifiedAt          *time.Time              `json:"email_verified_at,omitempty"`
+	LastLoginAt              *time.Time              `json:"last_login_at,omitempty"`
+	AuthInvalidBefore        *time.Time              `json:"-"`
+	CreatedAt                time.Time               `json:"created_at"`
+	UpdatedAt                time.Time               `json:"updated_at"`
+	Roles                    []Role                  `json:"roles,omitempty"`
+	AthleteProfile           *AthleteProfileSummary  `json:"athlete_profile,omitempty"`
+	OfficialProfile          *OfficialProfileSummary `json:"official_profile,omitempty"`
+	CoachProfile             *CoachProfileSummary    `json:"coach_profile,omitempty"`
+	FederationOfficerProfile *OfficerProfileSummary  `json:"federation_officer_profile,omitempty"`
 }
 
 // HasPIN reports whether the user has set a screen-lock PIN.

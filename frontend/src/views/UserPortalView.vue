@@ -2677,22 +2677,22 @@ async function loadSportsRegistryContext() {
   const hasAthleteRole = roles.includes('athlete') || roles.includes('role_athlete')
 
   try {
-    const athletesRes = await listNsmisDomain('athletes', { search: profile.email })
+    const athletesRes = await listNsmisDomain('athletes', { search: profile.email || profile.id })
     const athletesList = asList(athletesRes)
-    let match = athletesList.find(ath => String(ath.email_address || '').toLowerCase() === String(profile.email || '').toLowerCase())
+    let match = athletesList.find(ath => ath.user_id === profile.id || (ath.email_address && String(ath.email_address).toLowerCase() === String(profile.email || '').toLowerCase()))
     
-    // If not matched by email, try matching by NIN
+    // If not matched by user_id or email, try matching by NIN
     if (!match && profile.nin) {
       const ninRes = await listNsmisDomain('athletes', { search: profile.nin })
       const ninList = asList(ninRes)
       match = ninList.find(ath => String(ath.national_id_passport || '').trim().toLowerCase() === String(profile.nin || '').trim().toLowerCase())
     }
 
-    if (match || hasAthleteRole) {
+    if (match || hasAthleteRole || profile.athlete_profile) {
       isAthlete.value = true
-      if (match) {
-        athleteData.value = match
-        const athleteId = match.id
+      if (match || profile.athlete_profile) {
+        athleteData.value = match || profile.athlete_profile
+        const athleteId = (match || profile.athlete_profile).id
         const [medicalRes, safeguardingRes, antidopingRes, nationalTeamRes, resultsRes, medalsRes, talentRes, clubsRes] = await Promise.allSettled([
           listNsmisDomain('medical-records', { search: athleteId }),
           listNsmisDomain('safeguarding-records', { search: athleteId }),
@@ -2730,12 +2730,13 @@ async function loadSportsRegistryContext() {
         }
         if (talentRes.status === 'fulfilled') {
           const talItems = asList(talentRes.value)
-          athleteTalent.value = talItems.filter(r => r.athlete_id === athleteId || (r.athlete_name && match.full_name && r.athlete_name.toLowerCase() === match.full_name.toLowerCase()))
+          athleteTalent.value = talItems.filter(r => r.athlete_id === athleteId || (r.athlete_name && (match || profile.athlete_profile).full_name && r.athlete_name.toLowerCase() === (match || profile.athlete_profile).full_name.toLowerCase()))
         }
         if (clubsRes.status === 'fulfilled') {
           const clubsList = asList(clubsRes.value)
-          if (match.club) {
-            athleteClubDetails.value = clubsList.find(c => c.name === match.club || c.acronym === match.club || c.id === match.club) || null
+          const clubName = (match || profile.athlete_profile).club
+          if (clubName) {
+            athleteClubDetails.value = clubsList.find(c => c.name === clubName || c.acronym === clubName || c.id === clubName) || null
           }
         }
       }
@@ -2746,9 +2747,9 @@ async function loadSportsRegistryContext() {
 
   // Coaches lookup
   try {
-    const coachesRes = await listNsmisDomain('coaches', { search: profile.email })
+    const coachesRes = await listNsmisDomain('coaches', { search: profile.id || profile.email })
     const coachesList = asList(coachesRes)
-    const matchCoach = coachesList.find(c => String(c.email || '').toLowerCase() === String(profile.email || '').toLowerCase())
+    const matchCoach = coachesList.find(c => c.user_id === profile.id || (c.email && String(c.email).toLowerCase() === String(profile.email || '').toLowerCase())) || profile.coach_profile
     if (matchCoach) {
       isCoach.value = true
       coachData.value = matchCoach
@@ -2757,10 +2758,10 @@ async function loadSportsRegistryContext() {
 
   // Officials lookup
   try {
-    const officialsRes = await listNsmisDomain('technical-officials', { search: profile.email })
+    const officialsRes = await listNsmisDomain('technical-officials', { search: profile.id || profile.email })
     const officialsList = asList(officialsRes)
     const nameKey = fullName.value.toLowerCase().trim()
-    const matchOfficial = officialsList.find(o => String(o.full_name || '').toLowerCase().trim() === nameKey)
+    const matchOfficial = officialsList.find(o => o.user_id === profile.id || (o.full_name && String(o.full_name).toLowerCase().trim() === nameKey)) || profile.official_profile
     if (matchOfficial) {
       isOfficial.value = true
       officialData.value = matchOfficial

@@ -150,6 +150,20 @@ func (r *NSMISRepo) SaveDomain(ctx context.Context, resource, id, actorID string
 			return nil, ErrNotFound
 		}
 	}
+
+	tx, e := r.db.Begin(ctx)
+	if e != nil {
+		return nil, e
+	}
+	defer tx.Rollback(ctx)
+
+	// Ensure linked user account exists and role is assigned
+	if resource == "athletes" || resource == "technical-officials" || resource == "coaches" || resource == "federation-officers" {
+		if linkedUID := r.ensureDomainUserProfile(ctx, tx, resource, payload); linkedUID != "" {
+			payload["user_id"] = linkedUID
+		}
+	}
+
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -186,11 +200,6 @@ func (r *NSMISRepo) SaveDomain(ctx context.Context, resource, id, actorID string
 			extraCols = ",assigned_by"
 			extraVals = ",$2"
 		}
-		tx, e := r.db.Begin(ctx)
-		if e != nil {
-			return nil, e
-		}
-		defer tx.Rollback(ctx)
 		q := "INSERT INTO " + d.table + " (" + strings.Join(cols, ",") + extraCols + ") VALUES (" + strings.Join(vals, ",") + extraVals + ") RETURNING to_jsonb(" + d.table + ".*)"
 		queryArgs := []interface{}{raw}
 		if extraCols != "" {
@@ -205,7 +214,7 @@ func (r *NSMISRepo) SaveDomain(ctx context.Context, resource, id, actorID string
 		if resource == "athletes" {
 			var row map[string]interface{}
 			_ = json.Unmarshal(out, &row)
-			_, e = tx.Exec(ctx, `INSERT INTO athlete_affiliations(athlete_id,federation_id,starts_on) VALUES($1,$2,CURRENT_DATE)`, row["id"], payload["federation_id"])
+			_, e = tx.Exec(ctx, `INSERT INTO athlete_affiliations(athlete_id,federation_id,starts_on) VALUES($1,$2,CURRENT_DATE) ON CONFLICT DO NOTHING`, row["id"], payload["federation_id"])
 			if e != nil {
 				return nil, e
 			}
@@ -222,7 +231,7 @@ func (r *NSMISRepo) SaveDomain(ctx context.Context, resource, id, actorID string
 			scope = d.federationExpr
 		}
 		q := "UPDATE " + d.table + " t SET " + strings.Join(sets, ",") + ",updated_at=NOW() WHERE t.id=$2 AND (" + scope + ") RETURNING to_jsonb(t.*)"
-		e := r.db.QueryRow(ctx, q, raw, id, allowedFederations).Scan(&out)
+		e := tx.QueryRow(ctx, q, raw, id, allowedFederations).Scan(&out)
 		if e == pgx.ErrNoRows {
 			return nil, ErrNotFound
 		}
@@ -230,6 +239,9 @@ func (r *NSMISRepo) SaveDomain(ctx context.Context, resource, id, actorID string
 			if isDuplicate(e) {
 				return nil, ErrDuplicate
 			}
+			return nil, e
+		}
+		if e = tx.Commit(ctx); e != nil {
 			return nil, e
 		}
 	}
@@ -258,4 +270,95 @@ func (r *NSMISRepo) DeleteDomain(ctx context.Context, resource, id string, scope
 		return ErrNotFound
 	}
 	return nil
+}
+
+func (r *NSMISRepo) ensureDomainUserProfile(ctx context.Context, tx pgx.Tx, resource string, payload map[string]interface{}) string {
+	userIDStr := ""
+	if u, exists := payload["user_id"]; exists && u != nil && strings.TrimSpace(fmt.Sprint(u)) != "" && strings.TrimSpace(fmt.Sprint(u)) != "<nil>" {
+		userIDStr = strings.TrimSpace(fmt.Sprint(u))
+	}
+
+	var roleName string
+	var fullNameStr, emailStr, phoneStr, ninStr string
+
+	switch resource {
+	case "athletes":
+		roleName = "athlete"
+		fullNameStr = strings.TrimSpace(fmt.Sprint(payload["full_name"]))
+		emailStr = strings.TrimSpace(fmt.Sprint(payload["email_address"]))
+		phoneStr = strings.TrimSpace(fmt.Sprint(payload["phone_contact"]))
+		ninStr = strings.TrimSpace(fmt.Sprint(payload["national_id_passport"]))
+	case "technical-officials":
+		roleName = "technical_official"
+		fullNameStr = strings.TrimSpace(fmt.Sprint(payload["full_name"]))
+		ninStr = strings.TrimSpace(fmt.Sprint(payload["nin"]))
+	case "coaches":
+		roleName = "coach"
+		fullNameStr = strings.TrimSpace(fmt.Sprint(payload["full_name"]))
+		emailStr = strings.TrimSpace(fmt.Sprint(payload["email"]))
+		phoneStr = strings.TrimSpace(fmt.Sprint(payload["phone"]))
+		ninStr = strings.TrimSpace(fmt.Sprint(payload["nin"]))
+	case "federation-officers":
+		roleName = "federation_official"
+		fullNameStr = strings.TrimSpace(fmt.Sprint(payload["full_name"]))
+		emailStr = strings.TrimSpace(fmt.Sprint(payload["email"]))
+		phoneStr = strings.TrimSpace(fmt.Sprint(payload["phone"]))
+		ninStr = strings.TrimSpace(fmt.Sprint(payload["nin"]))
+	default:
+		return userIDStr
+	}
+
+	if emailStr == "<nil>" {
+		emailStr = ""
+	}
+	if phoneStr == "<nil>" {
+		phoneStr = ""
+	}
+	if ninStr == "<nil>" {
+		ninStr = ""
+	}
+	if fullNameStr == "<nil>" {
+		fullNameStr = ""
+	}
+
+	// 1. Try finding existing user if not given
+	if userIDStr == "" {
+		if emailStr != "" {
+			_ = tx.QueryRow(ctx, `SELECT id FROM users WHERE LOWER(email)=LOWER($1) AND deleted_at IS NULL LIMIT 1`, emailStr).Scan(&userIDStr)
+		}
+		if userIDStr == "" && ninStr != "" {
+			_ = tx.QueryRow(ctx, `SELECT id FROM users WHERE LOWER(nin)=LOWER($1) AND deleted_at IS NULL LIMIT 1`, ninStr).Scan(&userIDStr)
+		}
+		if userIDStr == "" && phoneStr != "" {
+			_ = tx.QueryRow(ctx, `SELECT id FROM users WHERE phone=$1 AND deleted_at IS NULL LIMIT 1`, phoneStr).Scan(&userIDStr)
+		}
+	}
+
+	// 2. If still no user exists, create one
+	if userIDStr == "" && fullNameStr != "" {
+		newUID := uuid.NewString()
+		firstName := fullNameStr
+		lastName := strings.Title(roleName)
+		if idx := strings.Index(fullNameStr, " "); idx > 0 {
+			firstName = fullNameStr[:idx]
+			lastName = strings.TrimSpace(fullNameStr[idx+1:])
+		}
+		userEmail := emailStr
+		if userEmail == "" {
+			userEmail = fmt.Sprintf("%s.%s@ncs.go.ug", strings.ReplaceAll(roleName, "_", "."), strings.ToLower(newUID[:8]))
+		}
+		_, _ = tx.Exec(ctx, `INSERT INTO users (id, email, password_hash, first_name, last_name, phone, nin, is_active, account_status, created_at, updated_at)
+			VALUES ($1, $2, '$2a$10$vI8aWBnW3fID.ZQ4/zo1G.q1ypeuoGziWawK3eaD036Gfu7yQXO6G', $3, $4, $5, $6, TRUE, 'ACTIVE', NOW(), NOW())
+			ON CONFLICT (email) DO NOTHING`,
+			newUID, userEmail, firstName, lastName, phoneStr, ninStr)
+		_ = tx.QueryRow(ctx, `SELECT id FROM users WHERE LOWER(email)=LOWER($1) LIMIT 1`, userEmail).Scan(&userIDStr)
+	}
+
+	// 3. Assign role
+	if userIDStr != "" && roleName != "" {
+		_, _ = tx.Exec(ctx, `INSERT INTO user_roles (user_id, role_id, created_at)
+			SELECT $1, r.id, NOW() FROM roles r WHERE r.name=$2 ON CONFLICT DO NOTHING`, userIDStr, roleName)
+	}
+
+	return userIDStr
 }

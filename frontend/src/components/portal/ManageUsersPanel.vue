@@ -69,6 +69,14 @@
           <option value="ACTIVE">Active</option>
           <option value="SUSPENDED">Suspended / Inactive</option>
         </select>
+        <select v-model="profileCategoryFilter" class="filter-select" @change="filterUsers">
+          <option value="ALL">All User Profiles</option>
+          <option value="ATHLETE">Athletes Only</option>
+          <option value="OFFICIAL">Technical Officials Only</option>
+          <option value="COACH">Coaches Only</option>
+          <option value="FEDERATION">Federation Officers Only</option>
+          <option value="ADMIN">Administrators Only</option>
+        </select>
         <select v-model="roleFilter" class="filter-select" @change="filterUsers">
           <option value="ALL">All Roles</option>
           <option v-for="r in roles" :key="r.id || r.name" :value="r.name">{{ r.name }}</option>
@@ -93,6 +101,7 @@
           <thead>
             <tr>
               <th>User</th>
+              <th>Registry Profile</th>
               <th>Status</th>
               <th>Roles</th>
               <th>Created Date</th>
@@ -118,6 +127,41 @@
                     <span class="user-email"><i class="icofont-ui-email"></i> {{ user.email }}</span>
                     <span v-if="user.phone" class="user-phone"><i class="icofont-ui-touch-phone"></i> {{ user.phone }}</span>
                   </div>
+                </div>
+              </td>
+
+              <!-- Registry Profile -->
+              <td class="profile-cell">
+                <div v-if="user.athlete_profile" class="profile-badge athlete-profile-badge d-flex align-items-center gap-2">
+                  <span class="badge-icon-wrap bg-primary-light text-primary p-2 rounded"><i class="icofont-runner-alt-1 fs-5"></i></span>
+                  <div>
+                    <strong class="d-block text-dark font-weight-bold" style="font-size: 13px;">Athlete: {{ user.athlete_profile.discipline }}</strong>
+                    <span class="text-muted d-block small" style="font-size: 11px;">ID: {{ user.athlete_profile.athlete_number }} {{ user.athlete_profile.club ? '· ' + user.athlete_profile.club : '' }}</span>
+                  </div>
+                </div>
+                <div v-else-if="user.official_profile" class="profile-badge official-profile-badge d-flex align-items-center gap-2">
+                  <span class="badge-icon-wrap bg-warning-light text-dark p-2 rounded"><i class="icofont-whistle fs-5"></i></span>
+                  <div>
+                    <strong class="d-block text-dark font-weight-bold" style="font-size: 13px;">Official: {{ user.official_profile.official_type }}</strong>
+                    <span class="text-muted d-block small" style="font-size: 11px;">Level {{ user.official_profile.level }} {{ user.official_profile.federation_name ? '· ' + user.official_profile.federation_name : '' }}</span>
+                  </div>
+                </div>
+                <div v-else-if="user.coach_profile" class="profile-badge coach-profile-badge d-flex align-items-center gap-2">
+                  <span class="badge-icon-wrap bg-success-light text-success p-2 rounded"><i class="icofont-certificate-alt-1 fs-5"></i></span>
+                  <div>
+                    <strong class="d-block text-dark font-weight-bold" style="font-size: 13px;">Coach: Level {{ user.coach_profile.certification_level }}</strong>
+                    <span class="text-muted d-block small" style="font-size: 11px;">Lic: {{ user.coach_profile.license_number }}</span>
+                  </div>
+                </div>
+                <div v-else-if="user.federation_officer_profile" class="profile-badge officer-profile-badge d-flex align-items-center gap-2">
+                  <span class="badge-icon-wrap bg-info-light text-info p-2 rounded"><i class="icofont-building-alt fs-5"></i></span>
+                  <div>
+                    <strong class="d-block text-dark font-weight-bold" style="font-size: 13px;">{{ user.federation_officer_profile.position }}</strong>
+                    <span class="text-muted d-block small" style="font-size: 11px;">{{ user.federation_officer_profile.federation_name || 'Federation' }}</span>
+                  </div>
+                </div>
+                <div v-else class="text-muted small">
+                  <i class="icofont-user-alt-7"></i> Standard User
                 </div>
               </td>
 
@@ -326,6 +370,7 @@ const localMessage = ref('')
 const searchQuery = ref('')
 const statusFilter = ref('ALL')
 const roleFilter = ref('ALL')
+const profileCategoryFilter = ref('ALL')
 
 const activeUser = ref(null)
 const showResetModal = ref(false)
@@ -387,6 +432,7 @@ function filterUsers() {
   const query = (searchQuery.value || '').trim().toLowerCase()
   const status = statusFilter.value
   const role = roleFilter.value
+  const profileCat = profileCategoryFilter.value
 
   filteredUsers.value = users.value.filter(user => {
     // 1. Text search
@@ -395,7 +441,9 @@ function filterUsers() {
       const email = (user.email || '').toLowerCase()
       const phone = (user.phone || '').toLowerCase()
       const nin = (user.nin || '').toLowerCase()
-      if (!name.includes(query) && !email.includes(query) && !phone.includes(query) && !nin.includes(query)) {
+      const athleteNum = (user.athlete_profile?.athlete_number || '').toLowerCase()
+      const discipline = (user.athlete_profile?.discipline || '').toLowerCase()
+      if (!name.includes(query) && !email.includes(query) && !phone.includes(query) && !nin.includes(query) && !athleteNum.includes(query) && !discipline.includes(query)) {
         return false
       }
     }
@@ -404,7 +452,25 @@ function filterUsers() {
     if (status === 'ACTIVE' && !user.is_active) return false
     if (status === 'SUSPENDED' && user.is_active) return false
 
-    // 3. Role filter
+    // 3. Profile category filter
+    if (profileCat === 'ATHLETE') {
+      const hasRole = (user.roles || []).some(r => (r.name || r) === 'athlete')
+      if (!user.athlete_profile && !hasRole) return false
+    } else if (profileCat === 'OFFICIAL') {
+      const hasRole = (user.roles || []).some(r => (r.name || r) === 'technical_official')
+      if (!user.official_profile && !hasRole) return false
+    } else if (profileCat === 'COACH') {
+      const hasRole = (user.roles || []).some(r => (r.name || r) === 'coach')
+      if (!user.coach_profile && !hasRole) return false
+    } else if (profileCat === 'FEDERATION') {
+      const hasRole = (user.roles || []).some(r => String(r.name || r).includes('federation'))
+      if (!user.federation_officer_profile && !hasRole) return false
+    } else if (profileCat === 'ADMIN') {
+      const hasRole = (user.roles || []).some(r => ['super_admin', 'admin', 'portal_operator'].includes(r.name || r))
+      if (!hasRole) return false
+    }
+
+    // 4. Role filter
     if (role !== 'ALL') {
       const userRoles = (user.roles || []).map(r => r.name || r)
       if (!userRoles.includes(role)) return false
@@ -418,6 +484,7 @@ function resetFilters() {
   searchQuery.value = ''
   statusFilter.value = 'ALL'
   roleFilter.value = 'ALL'
+  profileCategoryFilter.value = 'ALL'
   filterUsers()
 }
 

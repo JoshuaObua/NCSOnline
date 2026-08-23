@@ -104,7 +104,124 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}
+	if err == nil {
+		r.enrichUsersWithProfiles(ctx, []*models.User{u})
+	}
 	return u, err
+}
+
+func (r *UserRepo) enrichUsersWithProfiles(ctx context.Context, users []*models.User) {
+	if len(users) == 0 {
+		return
+	}
+	userIDs := make([]string, len(users))
+	userMap := make(map[string]*models.User, len(users))
+	for i, u := range users {
+		userIDs[i] = u.ID
+		userMap[u.ID] = u
+	}
+
+	// 1. Roles
+	roleRows, err := r.db.Query(ctx, `SELECT ur.user_id, r.id, r.name, r.description, r.is_system, r.created_at 
+		FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = ANY($1)`, userIDs)
+	if err == nil {
+		defer roleRows.Close()
+		for roleRows.Next() {
+			var uid string
+			var role models.Role
+			if err := roleRows.Scan(&uid, &role.ID, &role.Name, &role.Description, &role.IsSystem, &role.CreatedAt); err == nil {
+				if u, ok := userMap[uid]; ok {
+					u.Roles = append(u.Roles, role)
+				}
+			}
+		}
+	}
+
+	// 2. Athlete Profiles
+	athleteRows, err := r.db.Query(ctx, `
+		SELECT a.user_id, a.id, a.athlete_number, a.full_name, a.discipline, COALESCE(a.club,''), 
+		       COALESCE(a.district,''), COALESCE(a.region,''), COALESCE(a.national_team_status,'NO'), a.status,
+		       COALESCE(aa.federation_id,''), COALESCE(f.name,'')
+		FROM athletes a
+		LEFT JOIN athlete_affiliations aa ON aa.athlete_id = a.id AND aa.is_active AND aa.ends_on IS NULL
+		LEFT JOIN federations f ON f.id = aa.federation_id
+		WHERE a.user_id = ANY($1) AND a.deleted_at IS NULL`, userIDs)
+	if err == nil {
+		defer athleteRows.Close()
+		for athleteRows.Next() {
+			var uid string
+			ap := &models.AthleteProfileSummary{}
+			if err := athleteRows.Scan(&uid, &ap.ID, &ap.AthleteNumber, &ap.FullName, &ap.Discipline, &ap.Club,
+				&ap.District, &ap.Region, &ap.NationalTeamStatus, &ap.Status, &ap.FederationID, &ap.FederationName); err == nil {
+				if u, ok := userMap[uid]; ok {
+					u.AthleteProfile = ap
+				}
+			}
+		}
+	}
+
+	// 3. Technical Official Profiles
+	officialRows, err := r.db.Query(ctx, `
+		SELECT o.user_id, o.id, o.full_name, o.official_type, o.level, o.certification, o.status,
+		       COALESCE(o.federation_id,''), COALESCE(f.name,'')
+		FROM technical_officials o
+		LEFT JOIN federations f ON f.id = o.federation_id
+		WHERE o.user_id = ANY($1)`, userIDs)
+	if err == nil {
+		defer officialRows.Close()
+		for officialRows.Next() {
+			var uid string
+			op := &models.OfficialProfileSummary{}
+			if err := officialRows.Scan(&uid, &op.ID, &op.FullName, &op.OfficialType, &op.Level, &op.Certification, &op.Status,
+				&op.FederationID, &op.FederationName); err == nil {
+				if u, ok := userMap[uid]; ok {
+					u.OfficialProfile = op
+				}
+			}
+		}
+	}
+
+	// 4. Coach Profiles
+	coachRows, err := r.db.Query(ctx, `
+		SELECT c.user_id, c.id, c.full_name, c.certification_level, c.license_number, c.status,
+		       COALESCE(c.federation_id,''), COALESCE(f.name,'')
+		FROM coaches c
+		LEFT JOIN federations f ON f.id = c.federation_id
+		WHERE c.user_id = ANY($1)`, userIDs)
+	if err == nil {
+		defer coachRows.Close()
+		for coachRows.Next() {
+			var uid string
+			cp := &models.CoachProfileSummary{}
+			if err := coachRows.Scan(&uid, &cp.ID, &cp.FullName, &cp.CertificationLevel, &cp.LicenseNumber, &cp.Status,
+				&cp.FederationID, &cp.FederationName); err == nil {
+				if u, ok := userMap[uid]; ok {
+					u.CoachProfile = cp
+				}
+			}
+		}
+	}
+
+	// 5. Federation Officer Profiles
+	officerRows, err := r.db.Query(ctx, `
+		SELECT fo.user_id, fo.id, fo.full_name, fo.position, COALESCE(fo.position_label,''), fo.is_active,
+		       COALESCE(fo.federation_id,''), COALESCE(f.name,'')
+		FROM federation_officers fo
+		LEFT JOIN federations f ON f.id = fo.federation_id
+		WHERE fo.user_id = ANY($1)`, userIDs)
+	if err == nil {
+		defer officerRows.Close()
+		for officerRows.Next() {
+			var uid string
+			fop := &models.OfficerProfileSummary{}
+			if err := officerRows.Scan(&uid, &fop.ID, &fop.FullName, &fop.Position, &fop.PositionLabel, &fop.IsActive,
+				&fop.FederationID, &fop.FederationName); err == nil {
+				if u, ok := userMap[uid]; ok {
+					u.FederationOfficerProfile = fop
+				}
+			}
+		}
+	}
 }
 
 func (r *UserRepo) GetByEmail(ctx context.Context, email string) (*models.User, error) {
@@ -148,10 +265,7 @@ func (r *UserRepo) GetByGoogleSub(ctx context.Context, googleSub string) (*model
 }
 
 func (r *UserRepo) LinkGoogleIdentity(ctx context.Context, userID, googleSub, avatarURL string) error {
-	const q = `UPDATE users
-	           SET google_sub=$2, avatar_url=$3, auth_provider=CASE WHEN auth_provider='' THEN 'google' ELSE auth_provider END,
-	               is_email_verified=TRUE, email_verified_at=COALESCE(email_verified_at, NOW()), updated_at=NOW()
-	           WHERE id=$1 AND deleted_at IS NULL`
+	const q = `UPDATE users SET google_sub=$2, avatar_url=COALESCE(NULLIF(avatar_url,''), $3), auth_provider='google', updated_at=NOW() WHERE id=$1`
 	_, err := r.db.Exec(ctx, q, userID, googleSub, avatarURL)
 	return err
 }
@@ -217,6 +331,9 @@ func (r *UserRepo) List(ctx context.Context, p *models.PaginationParams, federat
 			return nil, 0, err
 		}
 		users = append(users, u)
+	}
+	if len(users) > 0 {
+		r.enrichUsersWithProfiles(ctx, users)
 	}
 	return users, total, rows.Err()
 }
