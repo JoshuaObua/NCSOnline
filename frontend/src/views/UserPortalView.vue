@@ -230,7 +230,6 @@
               </template>
 
               <template v-else-if="section === 'apply'">
-                <header class="page-heading"><div><p>Apply Now</p><h1>Open application forms</h1><span>Choose a service to begin or continue your application.</span></div></header>
                 <OpenFormsPanel :forms="openForms" :submissions="dynamicSubmissions" :loading="loading" expanded @start="startApplication" />
               </template>
 
