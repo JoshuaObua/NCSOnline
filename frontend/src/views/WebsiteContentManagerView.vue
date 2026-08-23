@@ -1325,9 +1325,20 @@
           v-else-if="active === 'manage-users'"
           @create-user="onAddUser"
           @edit-user="onEditUser"
+          @assign-roles="handleOpenAssignRoles"
           @navigate="selectSection"
           @message="setMsg"
           @error="setErr"
+        />
+
+        <AssignUserRolePanel
+          v-else-if="active === 'assign-user-role'"
+          :user-id="selectedUserIdForRoles"
+          :initial-user="selectedUserForRoles"
+          @back="selectSection('manage-users')"
+          @message="setMsg"
+          @error="setErr"
+          @updated="handleUserRoleUpdated"
         />
 
         <section v-else-if="active === 'roles'" class="cms-panel">
@@ -1680,6 +1691,7 @@ import AdminApplicationsPanel from '@/components/portal/AdminApplicationsPanel.v
 import AdminDashboardPanel from '@/components/portal/AdminDashboardPanel.vue'
 import ManageUsersPanel from '@/components/portal/ManageUsersPanel.vue'
 import CreateUserPanel from '@/components/portal/CreateUserPanel.vue'
+import AssignUserRolePanel from '@/components/portal/AssignUserRolePanel.vue'
 import NamisManagerPanel from '@/components/portal/NamisManagerPanel.vue'
 import ManageFederationsPanel from '@/components/portal/ManageFederationsPanel.vue'
 import FederationProfilePanel from '@/components/portal/FederationProfilePanel.vue'
@@ -1720,6 +1732,8 @@ const active = ref((() => {
 const applicationFilter = ref('')
 const message = ref('')
 const error = ref('')
+const selectedUserIdForRoles = ref('')
+const selectedUserForRoles = ref(null)
 const apiAvailable = ref(null)
 const sidebarCollapsed = ref(localStorage.getItem('ncsms_sidebar_collapsed') === 'true')
 const homepageGroupOpen = ref(false)
@@ -1887,6 +1901,7 @@ const namisSections = [
 const routeOnlySections = [
   { id: 'namis-registry-new', label: 'Add Sports Registry Record', icon: 'icofont-plus-circle' },
   { id: 'federation-profile', label: 'Federation Profile', icon: 'icofont-id-card' },
+  { id: 'assign-user-role', label: 'Assign User Roles', icon: 'icofont-shield-alt' },
 ]
 const sections = [...topSections, ...homepageSections, ...slideshowSections, ...blogSections, ...staticPageSections, ...projectSections, ...caseStudySections, ...faqSections, ...resourceSections, ...careerSections, ...teamSections, ...councilSections, ...roleSections, ...userSections, ...facilitySections, ...eventSections, ...investSections, ...federationSections, ...sportsRuleSections, ...pressReleaseSections, ...reportSections, ...speechSections, ...funFactSections, ...newsletterSections, ...contentSections, ...profileSections, ...namisSections, ...routeOnlySections]
 const allowedPortalSectionIds = new Set(sections.map(section => section.id))
@@ -1966,6 +1981,7 @@ const sectionPermissionMap = {
   'manage-roles':['roles:read'],
   users:['users:create', 'users:write:own'],
   'manage-users':['users:read', 'users:read:own'],
+  'assign-user-role':['users:roles', 'users:write', 'users:roles:own', 'roles:assign', 'roles:read'],
   facilities:['facilities:create'],
   'manage-facilities':['facilities:read'],
   'create-facility-regions':['facilities:create'],
@@ -2632,7 +2648,16 @@ watch(() => [route.query.section, route.path, route.name], ([newSection, path, n
           if (found) editingUserModel.value = JSON.parse(JSON.stringify(found))
         }
       }
-      if (['users', 'manage-users'].includes(target) && !users.value.length) loadUsers()
+      if (target === 'assign-user-role' && route.query.id) {
+        selectedUserIdForRoles.value = route.query.id
+        if (!selectedUserForRoles.value || selectedUserForRoles.value.id !== route.query.id) {
+          cms.adminGetUser(route.query.id).then(res => {
+            const data = res.data?.data || res.data
+            if (data) selectedUserForRoles.value = data
+          }).catch(e => console.warn('Could not load user for role assignment:', e))
+        }
+      }
+      if (['users', 'manage-users', 'assign-user-role'].includes(target) && !users.value.length) loadUsers()
       if (['manage-federation-officials', 'create-federation-officials'].includes(target) && !federationOfficials.value.length) loadFederationOfficials()
     }
   }
@@ -3167,6 +3192,26 @@ function onAddUser() {
   if (router.currentRoute.value.query.section !== 'users') {
     router.replace({ path: '/portal', query: { section: 'users' } })
   }
+}
+
+function handleOpenAssignRoles(targetUser) {
+  if (targetUser) {
+    selectedUserIdForRoles.value = targetUser.id
+    selectedUserForRoles.value = targetUser
+  }
+  selectSection('assign-user-role')
+  if (targetUser?.id) {
+    router.replace({ path: '/portal', query: { section: 'assign-user-role', id: targetUser.id } }).catch(() => {})
+  }
+}
+
+function handleUserRoleUpdated(updatedUser) {
+  if (updatedUser) {
+    selectedUserForRoles.value = updatedUser
+    const idx = users.value.findIndex(u => u.id === updatedUser.id)
+    if (idx !== -1) users.value[idx] = updatedUser
+  }
+  loadUsers()
 }
 
 function onEditUser(user) {

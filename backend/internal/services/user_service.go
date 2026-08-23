@@ -262,7 +262,7 @@ func (s *UserService) AssignRole(ctx context.Context, userID, roleID, assignedBy
 			return ErrProtectedAccount
 		}
 	}
-	return s.users.AssignRole(ctx, userID, roleID, assignedBy)
+	return s.users.AssignRole(ctx, userID, role.ID, assignedBy)
 }
 
 func (s *UserService) RemoveRole(ctx context.Context, userID, roleID, actorID string) error {
@@ -313,7 +313,7 @@ func (s *UserService) RemoveRole(ctx context.Context, userID, roleID, actorID st
 	if role.Name == "super_admin" {
 		return ErrProtectedAccount
 	}
-	return s.users.RemoveRole(ctx, userID, roleID)
+	return s.users.RemoveRole(ctx, userID, role.ID)
 }
 
 func (s *UserService) ResetPassword(ctx context.Context, userID, newPassword string) error {

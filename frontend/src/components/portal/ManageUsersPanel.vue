@@ -151,7 +151,7 @@
                     </button>
                   </span>
                   <span v-if="!(user.roles || []).length" class="no-roles-badge">No roles</span>
-                  <button type="button" class="btn-icon-link" title="Manage roles" @click="openRolesModal(user)">
+                  <button type="button" class="btn-icon-link" title="Manage roles" @click="handleAssignRoles(user)">
                     <i class="icofont-plus-circle"></i>
                   </button>
                 </div>
@@ -197,8 +197,8 @@
                   <button
                     type="button"
                     class="action-btn btn-roles"
-                    title="Manage roles"
-                    @click="openRolesModal(user)"
+                    title="Manage roles on dedicated page"
+                    @click="handleAssignRoles(user)"
                   >
                     <i class="icofont-shield"></i> Roles
                   </button>
@@ -289,103 +289,6 @@
         </div>
       </div>
     </div>
-
-    <!-- =====================================================================
-         MODAL 4: MANAGE ROLES MODAL
-         ===================================================================== -->
-    <div v-if="showRolesModal" class="modal-backdrop" @click.self="showRolesModal = false">
-      <div class="modal-dialog modal-dialog-lg roles-modal-dialog">
-        <!-- Sticky header -->
-        <header class="modal-header">
-          <div>
-            <h3><i class="icofont-shield-alt"></i> Manage Roles</h3>
-            <span class="modal-subhead">{{ activeUser?.first_name }} {{ activeUser?.last_name }} &mdash; {{ activeUser?.email }}</span>
-          </div>
-          <button type="button" class="modal-close" @click="showRolesModal = false">&times;</button>
-        </header>
-
-        <!-- Currently assigned roles summary -->
-        <div v-if="(activeUser?.roles || []).length" class="assigned-roles-summary">
-          <span class="assigned-label"><i class="icofont-check-circled"></i> Assigned:</span>
-          <span
-            v-for="r in (activeUser?.roles || [])"
-            :key="r.id || r.name"
-            class="assigned-role-chip"
-          >
-            {{ r.name || r }}
-            <button
-              type="button"
-              class="chip-revoke-btn"
-              :disabled="savingRole === r.id"
-              title="Revoke"
-              @click="toggleRoleAssignment(activeUser, resolveRoleObject(r))"
-            >
-              <i v-if="savingRole === r.id" class="icofont-spinner icofont-spin"></i>
-              <i v-else class="icofont-close-line"></i>
-            </button>
-          </span>
-        </div>
-        <div v-else class="assigned-roles-summary assigned-empty">
-          <i class="icofont-info-circle"></i> No roles assigned yet
-        </div>
-
-        <!-- Scrollable roles list -->
-        <div class="roles-selection-list">
-          <div
-            v-for="role in roles"
-            :key="role.id"
-            class="role-option-card"
-            :class="{ 'is-assigned': userHasRole(activeUser, role) }"
-          >
-            <div class="role-option-info">
-              <div class="role-title-row">
-                <strong class="role-name">{{ role.name }}</strong>
-                <span v-if="role.is_system" class="system-pill">System Role</span>
-              </div>
-              <p class="role-desc">{{ role.description || 'Custom administrative role' }}</p>
-            </div>
-            <div class="role-action-col">
-              <button
-                v-if="userHasRole(activeUser, role)"
-                type="button"
-                class="role-toggle-btn btn-remove-role"
-                :disabled="!!savingRole"
-                @click="toggleRoleAssignment(activeUser, role)"
-              >
-                <i v-if="savingRole === role.id" class="icofont-spinner icofont-spin"></i>
-                <span v-else><i class="icofont-minus-circle"></i> Revoke</span>
-              </button>
-              <div v-else class="role-btn-group">
-                <button
-                  type="button"
-                  class="role-toggle-btn btn-add-role"
-                  :disabled="!!savingRole"
-                  @click="toggleRoleAssignment(activeUser, role)"
-                >
-                  <i v-if="savingRole === role.id" class="icofont-spinner icofont-spin"></i>
-                  <span v-else><i class="icofont-plus-circle"></i> Assign</span>
-                </button>
-                <button
-                  v-if="(activeUser?.roles || []).length > 0"
-                  type="button"
-                  class="role-toggle-btn btn-reassign-role"
-                  :disabled="!!savingRole"
-                  title="Replace ALL current roles with this role"
-                  @click="reassignUserRole(activeUser, role)"
-                >
-                  <i class="icofont-refresh"></i> Reassign
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sticky footer -->
-        <footer class="modal-footer roles-modal-footer">
-          <button type="button" class="btn btn-primary" @click="showRolesModal = false">Done</button>
-        </footer>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -396,8 +299,12 @@ import Swal from 'sweetalert2'
 import * as cms from '@/api/cms.js'
 import apiClient from '@/api/client.js'
 
-const emit = defineEmits(['create-user', 'edit-user', 'message', 'error', 'navigate'])
+const emit = defineEmits(['create-user', 'edit-user', 'assign-roles', 'message', 'error', 'navigate'])
 const router = useRouter()
+
+function handleAssignRoles(user) {
+  emit('assign-roles', user)
+}
 
 function handleCreateUser() {
   emit('create-user')
