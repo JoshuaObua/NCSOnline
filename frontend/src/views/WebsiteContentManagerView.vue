@@ -224,14 +224,14 @@
         <p v-if="message" class="cms-message">{{ message }}</p>
         <p v-if="error" class="cms-error">{{ error }}</p>
 
-        <AdminDashboardPanel
-          v-if="active === 'overview'"
-          @open-applications="openApplications"
-          @open-forms="selectSection('form-builder')"
+        <NamisRegistryEntryView
+          v-if="isNamisCreateRoute || active === 'namis-registry-new'"
         />
 
-        <NamisRegistryEntryView
-          v-else-if="active === 'namis-registry-new' || route.name === 'NamisRegistryCreate' || (route.path && route.path.includes('/namis/'))"
+        <AdminDashboardPanel
+          v-else-if="active === 'overview'"
+          @open-applications="openApplications"
+          @open-forms="selectSection('form-builder')"
         />
 
         <NamisManagerPanel
@@ -1704,6 +1704,10 @@ import { recordMenuNavigation } from '@/services/activityAudit.js'
 
 const router = useRouter()
 const route = useRoute()
+const isNamisCreateRoute = computed(() => {
+  const path = route.path || window.location.pathname
+  return route.name === 'NamisRegistryCreate' || (path && path.includes('/namis/') && path.endsWith('/new'))
+})
 const active = ref((() => {
   const path = window.location.pathname
   if (path && path.includes('/namis/')) return 'namis-registry-new'
@@ -1908,7 +1912,12 @@ if (initialSec === 'manage-users' || initialSec === 'users') usersGroupOpen.valu
 if (initialSec === 'manage-roles' || initialSec === 'roles') rolesGroupOpen.value = true
 if (initialSec.startsWith('associations') || initialSec.startsWith('manage-feder') || initialSec.startsWith('create-feder')) federationsGroupOpen.value = true
 
-const currentSection = computed(() => sections.find(s => s.id === active.value) || sections[0])
+const currentSection = computed(() => {
+  if (isNamisCreateRoute.value) {
+    return { id: 'namis-registry-new', label: 'Add Sports Registry Record', icon: 'icofont-plus-circle' }
+  }
+  return sections.find(s => s.id === active.value) || sections[0]
+})
 
 const sectionPermissionMap = {
   overview:['dashboard:read'],
@@ -2598,7 +2607,12 @@ function syncCareerDepartment() {
   else if (!careerForm.department_id) careerForm.department = ''
 }
 
-watch(() => route.query.section, (newSection) => {
+watch(() => [route.query.section, route.path, route.name], ([newSection, path, name]) => {
+  if (name === 'NamisRegistryCreate' || (path && path.includes('/namis/'))) {
+    active.value = 'namis-registry-new'
+    namisGroupOpen.value = true
+    return
+  }
   const target = newSection || 'overview'
   if (target && target !== active.value && allowedPortalSectionIds.has(target)) {
     if (canAccessSection(target)) {
