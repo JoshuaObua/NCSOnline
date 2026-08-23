@@ -75,26 +75,51 @@ func (u *Uploader) Upload(ctx context.Context, in UploadInput) (*UploadResult, e
 	if in.Reader == nil {
 		return nil, errors.New("reader is required")
 	}
+	data, err := io.ReadAll(in.Reader)
+	if err != nil {
+		return nil, err
+	}
+	in.Reader = bytes.NewReader(data)
+
 	provider := u.providerFor(in.Scope)
+	var res *UploadResult
 	switch provider {
+	case "google_drive":
+		res, err = u.uploadGoogleDrive(ctx, in)
+	case "s3":
+		res, err = u.uploadS3(ctx, in)
+	case "supabase":
+		res, err = u.uploadSupabase(ctx, in)
 	case "local":
 		return u.uploadLocal(in)
-	case "google_drive":
-		return u.uploadGoogleDrive(ctx, in)
-	case "s3":
-		return u.uploadS3(ctx, in)
-	case "supabase":
-		return u.uploadSupabase(ctx, in)
 	default:
-		return nil, fmt.Errorf("unsupported storage provider %q", provider)
+		in.Reader = bytes.NewReader(data)
+		return u.uploadLocal(in)
 	}
+
+	if err != nil {
+		slog.Warn("remote storage upload failed; falling back to local storage", "provider", provider, "scope", in.Scope, "error", err)
+		in.Reader = bytes.NewReader(data)
+		return u.uploadLocal(in)
+	}
+	return res, nil
 }
 
 func (u *Uploader) providerFor(scope Scope) string {
+	prov := u.settings.PublicProvider
 	if scope == ScopeApplication {
-		return u.settings.ApplicationProvider
+		prov = u.settings.ApplicationProvider
 	}
-	return u.settings.PublicProvider
+	if prov == "s3" && (u.settings.S3Bucket == "" || u.settings.S3AccessKeyID == "" || u.settings.S3SecretAccessKey == "") {
+		return "local"
+	}
+	if prov == "google_drive" && !u.settings.GoogleDriveConnected() {
+		return "local"
+	}
+	if prov == "supabase" && !u.settings.SupabaseConfigured() {
+		return "local"
+	}
+	return prov
 }
 
 func (u *Uploader) uploadLocal(in UploadInput) (*UploadResult, error) {

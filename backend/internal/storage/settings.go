@@ -45,8 +45,8 @@ var allowedProviders = map[string]bool{"local": true, "google_drive": true, "s3"
 
 func DefaultSettings() Settings {
 	return Settings{
-		PublicProvider:        "google_drive",
-		ApplicationProvider:   "s3",
+		PublicProvider:        "local",
+		ApplicationProvider:   "local",
 		LocalPublicPath:       "/app/uploads",
 		LocalPublicURLPrefix:  "/uploads",
 		LocalAppPath:          "/app/uploads/applications",
@@ -70,8 +70,8 @@ func ParseSettings(raw []byte) (Settings, error) {
 }
 
 func (s *Settings) Normalize() {
-	s.PublicProvider = normalizeProvider(s.PublicProvider, "google_drive", allowedProviders)
-	s.ApplicationProvider = normalizeProvider(s.ApplicationProvider, "s3", allowedProviders)
+	s.PublicProvider = normalizeProvider(s.PublicProvider, "local", allowedProviders)
+	s.ApplicationProvider = normalizeProvider(s.ApplicationProvider, "local", allowedProviders)
 	if strings.TrimSpace(s.LocalPublicPath) == "" {
 		s.LocalPublicPath = "/app/uploads"
 	}
@@ -109,48 +109,45 @@ func (s Settings) Redacted() Settings {
 	return s
 }
 
-// SupabaseConfigured reports whether a service role key has been saved.
-// The key itself is never sent back to the client (see Redacted), so the
-// admin UI needs this boolean to know a key is already on file.
-func (s Settings) SupabaseConfigured() bool {
-	return strings.TrimSpace(s.SupabaseServiceKey) != ""
-}
-
-// GoogleDriveConnected reports whether a refresh token has been obtained via
-// the OAuth connect flow, i.e. uploads can actually authenticate.
-func (s Settings) GoogleDriveConnected() bool {
-	return strings.TrimSpace(s.GoogleDriveRefreshToken) != ""
-}
-
-func (s Settings) MergeSecrets(existing Settings) Settings {
-	if strings.TrimSpace(s.GoogleDriveClientSecret) == "" {
-		s.GoogleDriveClientSecret = existing.GoogleDriveClientSecret
+func (s Settings) MergeSecrets(previous Settings) Settings {
+	if s.GoogleDriveClientID == "" {
+		s.GoogleDriveClientID = previous.GoogleDriveClientID
 	}
-	// The refresh token is only ever set internally by the OAuth connect
-	// callback, never by the settings form, so preserve it here — unless the
-	// client ID/secret changed, in which case the old token belongs to a
-	// different OAuth app and can no longer be used; force a reconnect.
-	if s.GoogleDriveClientID == existing.GoogleDriveClientID && s.GoogleDriveClientSecret == existing.GoogleDriveClientSecret {
-		s.GoogleDriveRefreshToken = existing.GoogleDriveRefreshToken
+	if s.GoogleDriveClientSecret == "" {
+		s.GoogleDriveClientSecret = previous.GoogleDriveClientSecret
 	}
-	if strings.TrimSpace(s.S3AccessKeyID) == "" || strings.HasPrefix(s.S3AccessKeyID, "********") {
-		s.S3AccessKeyID = existing.S3AccessKeyID
+	if s.GoogleDriveRefreshToken == "" {
+		s.GoogleDriveRefreshToken = previous.GoogleDriveRefreshToken
 	}
-	if strings.TrimSpace(s.S3SecretAccessKey) == "" {
-		s.S3SecretAccessKey = existing.S3SecretAccessKey
+	if s.S3AccessKeyID == "" || strings.Contains(s.S3AccessKeyID, "****") {
+		s.S3AccessKeyID = previous.S3AccessKeyID
 	}
-	if strings.TrimSpace(s.SupabaseServiceKey) == "" {
-		s.SupabaseServiceKey = existing.SupabaseServiceKey
+	if s.S3SecretAccessKey == "" {
+		s.S3SecretAccessKey = previous.S3SecretAccessKey
+	}
+	if s.SupabaseServiceKey == "" {
+		s.SupabaseServiceKey = previous.SupabaseServiceKey
 	}
 	return s
 }
 
+// SupabaseConfigured reports whether a service role key has been saved.
+func (s Settings) SupabaseConfigured() bool {
+	return strings.TrimSpace(s.SupabaseServiceKey) != ""
+}
+
+// GoogleDriveConnected reports whether a refresh token has been obtained.
+func (s Settings) GoogleDriveConnected() bool {
+	return strings.TrimSpace(s.GoogleDriveRefreshToken) != ""
+}
+
 func redact(value string) string {
-	if value == "" {
+	val := strings.TrimSpace(value)
+	if val == "" {
 		return ""
 	}
-	if len(value) <= 4 {
-		return "********"
+	if len(val) <= 4 {
+		return "****"
 	}
-	return "********" + value[len(value)-4:]
+	return val[:2] + strings.Repeat("*", len(val)-4) + val[len(val)-2:]
 }
