@@ -3,7 +3,10 @@
     <!-- Header -->
     <div class="cms-panel-head d-flex align-items-center justify-content-between flex-wrap gap-3">
       <div>
-        <h2 class="mb-1"><i class="icofont-certificate-alt-1 text-primary me-2"></i> Club & Academy Licenses</h2>
+        <h2 class="mb-1">
+          <i :class="mode === 'academy' ? 'icofont-graduate-alt' : 'icofont-certificate-alt-1'" class="text-primary me-2"></i>
+          {{ pageTitle }}
+        </h2>
         <p class="text-muted small mb-0">Manage statutory licenses, compliance records, lifecycle status, and immutable audit logs.</p>
       </div>
       <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -13,8 +16,8 @@
         <button type="button" class="btn btn-outline-danger btn-sm" @click="printAuditReport">
           <i class="icofont-printer me-1"></i> Print Directory
         </button>
-        <button type="button" class="btn btn-primary btn-sm" @click="$emit('navigate', 'create-club-academy-licenses')">
-          <i class="icofont-plus-circle me-1"></i> Issue New License
+        <button type="button" class="btn btn-primary btn-sm" @click="$emit('navigate', targetCreateSection)">
+          <i class="icofont-plus-circle me-1"></i> Issue {{ mode === 'academy' ? 'Academy' : (mode === 'club' ? 'Club' : 'New') }} License
         </button>
       </div>
     </div>
@@ -537,7 +540,26 @@ import {
   reinstateClubAcademyLicense,
 } from '@/api/clubAcademyLicenses.js'
 
+const props = defineProps({
+  mode: {
+    type: String,
+    default: 'all' // 'club', 'academy', or 'all'
+  }
+})
+
 const emit = defineEmits(['navigate', 'message', 'error'])
+
+const pageTitle = computed(() => {
+  if (props.mode === 'club') return 'Sports Club Licenses'
+  if (props.mode === 'academy') return 'Youth Sports Academy Licenses'
+  return 'Club & Academy Licenses'
+})
+
+const targetCreateSection = computed(() => {
+  if (props.mode === 'club') return 'create-club-licenses'
+  if (props.mode === 'academy') return 'create-academy-licenses'
+  return 'create-club-academy-licenses'
+})
 
 const licenses = ref([])
 const kpis = ref({})

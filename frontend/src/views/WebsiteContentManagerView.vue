@@ -827,15 +827,69 @@
           @error="setErr"
         />
 
+        <!-- Create Academy -->
+        <NamisRegistryEntryView
+          v-else-if="active === 'create-academy'"
+          initial-resource="clubs"
+          forced-category="SPORTS_ACADEMY"
+        />
+
+        <!-- Create Club -->
+        <NamisRegistryEntryView
+          v-else-if="active === 'create-club'"
+          initial-resource="clubs"
+          forced-category="SENIOR_CLUB"
+        />
+
+        <!-- Manage Academies -->
+        <NamisManagerPanel
+          v-else-if="active === 'manage-academies'"
+          tab="clubs"
+          forced-category-filter="ACADEMY"
+          :user-scope="storedUser.scope || []"
+          :user-permissions="Array.from(currentPermissionNames)"
+        />
+
+        <!-- Manage Clubs -->
+        <NamisManagerPanel
+          v-else-if="active === 'manage-clubs'"
+          tab="clubs"
+          forced-category-filter="CLUB"
+          :user-scope="storedUser.scope || []"
+          :user-permissions="Array.from(currentPermissionNames)"
+        />
+
+        <!-- Create Club License -->
         <CreateClubAcademyLicensePanel
-          v-else-if="active === 'create-club-academy-licenses'"
+          v-else-if="active === 'create-club-licenses'"
+          mode="club"
           @navigate="selectSection"
           @message="setMsg"
           @error="setErr"
         />
 
+        <!-- Create Academy License -->
+        <CreateClubAcademyLicensePanel
+          v-else-if="active === 'create-academy-licenses' || active === 'create-club-academy-licenses'"
+          mode="academy"
+          @navigate="selectSection"
+          @message="setMsg"
+          @error="setErr"
+        />
+
+        <!-- Manage Club Licenses -->
         <ManageClubAcademyLicensesPanel
-          v-else-if="active === 'manage-club-academy-licenses'"
+          v-else-if="active === 'manage-club-licenses'"
+          mode="club"
+          @navigate="selectSection"
+          @message="setMsg"
+          @error="setErr"
+        />
+
+        <!-- Manage Academy Licenses -->
+        <ManageClubAcademyLicensesPanel
+          v-else-if="active === 'manage-academy-licenses' || active === 'manage-club-academy-licenses'"
+          mode="academy"
           @navigate="selectSection"
           @message="setMsg"
           @error="setErr"
@@ -1909,8 +1963,14 @@ const federationSections = [
   { id:'manage-federation-categories', label:'Manage Federation Categories', icon:'icofont-tags' },
 ]
 const clubSections = [
-  { id:'create-club-academy-licenses', label:'Create Academy License', icon:'icofont-certificate' },
-  { id:'manage-club-academy-licenses', label:'Manage Academy Licenses', icon:'icofont-license' },
+  { id:'create-academy', label:'Create Academy', icon:'icofont-plus-circle' },
+  { id:'create-club', label:'Create Club', icon:'icofont-building-alt' },
+  { id:'manage-academies', label:'Manage Academies', icon:'icofont-graduate-alt' },
+  { id:'manage-clubs', label:'Manage Clubs', icon:'icofont-list' },
+  { id:'create-club-licenses', label:'Create Club License', icon:'icofont-certificate' },
+  { id:'create-academy-licenses', label:'Create Academy License', icon:'icofont-certificate-alt-1' },
+  { id:'manage-club-licenses', label:'Manage Club Licenses', icon:'icofont-license' },
+  { id:'manage-academy-licenses', label:'Manage Academy Licenses', icon:'icofont-license' },
 ]
 const sportsRuleSections = []
 const pressReleaseSections = []
@@ -1979,6 +2039,7 @@ if (initialSec.startsWith('namis-') || initialSec === 'namis-registry-new') nami
 if (initialSec === 'manage-users' || initialSec === 'users') usersGroupOpen.value = true
 if (initialSec === 'manage-roles' || initialSec === 'roles') rolesGroupOpen.value = true
 if (initialSec.startsWith('associations') || initialSec.startsWith('manage-feder') || initialSec.startsWith('create-feder')) federationsGroupOpen.value = true
+if (initialSec.startsWith('create-academy') || initialSec.startsWith('create-club') || initialSec.startsWith('manage-academ') || initialSec.startsWith('manage-club') || initialSec.includes('club-academy')) clubsGroupOpen.value = true
 
 const currentSection = computed(() => {
   if (isNamisCreateRoute.value) {
@@ -2059,6 +2120,14 @@ const sectionPermissionMap = {
   'federation-profile':['federations:read'],
   'create-federation-categories':['federation_categories:create'],
   'manage-federation-categories':['federation_categories:read'],
+  'create-academy':['clubs:create', 'clubs:write:any', 'dashboard:read'],
+  'create-club':['clubs:create', 'clubs:write:any', 'dashboard:read'],
+  'manage-academies':['clubs:read', 'clubs:read:any', 'dashboard:read'],
+  'manage-clubs':['clubs:read', 'clubs:read:any', 'dashboard:read'],
+  'create-club-licenses':['clubs:licenses:create', 'clubs:create', 'clubs:write:any', 'dashboard:read'],
+  'create-academy-licenses':['clubs:licenses:create', 'clubs:create', 'clubs:write:any', 'dashboard:read'],
+  'manage-club-licenses':['clubs:licenses:read', 'clubs:read', 'clubs:read:any', 'dashboard:read'],
+  'manage-academy-licenses':['clubs:licenses:read', 'clubs:read', 'clubs:read:any', 'dashboard:read'],
   'create-club-academy-licenses':['clubs:licenses:create', 'clubs:create', 'clubs:write:any', 'dashboard:read'],
   'manage-club-academy-licenses':['clubs:licenses:read', 'clubs:read', 'clubs:read:any', 'dashboard:read'],
   facts:['fun_facts:create'],
