@@ -807,6 +807,20 @@
           />
         </section>
 
+        <CreateFederationLicensePanel
+          v-else-if="active === 'create-federation-licenses'"
+          @navigate="selectSection"
+          @message="setMsg"
+          @error="setErr"
+        />
+
+        <ManageFederationLicensesPanel
+          v-else-if="active === 'manage-federation-licenses'"
+          @navigate="selectSection"
+          @message="setMsg"
+          @error="setErr"
+        />
+
         <section v-else-if="active === 'create-federation-officials'" class="cms-panel">
           <FederationOfficialEditorPanel
             :initial-model="editingFederationOfficialModel"
@@ -1701,6 +1715,8 @@ import CreateUserPanel from '@/components/portal/CreateUserPanel.vue'
 import AssignUserRolePanel from '@/components/portal/AssignUserRolePanel.vue'
 import NamisManagerPanel from '@/components/portal/NamisManagerPanel.vue'
 import ManageFederationsPanel from '@/components/portal/ManageFederationsPanel.vue'
+import CreateFederationLicensePanel from '@/components/portal/CreateFederationLicensePanel.vue'
+import ManageFederationLicensesPanel from '@/components/portal/ManageFederationLicensesPanel.vue'
 import FederationProfilePanel from '@/components/portal/FederationProfilePanel.vue'
 import FederationEditorPanel from '@/components/portal/FederationEditorPanel.vue'
 import FederationOfficialEditorPanel from '@/components/portal/FederationOfficialEditorPanel.vue'
@@ -1862,6 +1878,8 @@ const investSections = []
 const federationSections = [
   { id:'associations', label:'Add New Federation', icon:'icofont-plus-circle' },
   { id:'manage-federations', label:'Manage Federations', icon:'icofont-list' },
+  { id:'create-federation-licenses', label:'Create Federation License', icon:'icofont-certificate' },
+  { id:'manage-federation-licenses', label:'Manage Federation Licenses', icon:'icofont-license' },
   { id:'create-federation-officials', label:'Add Federation Official', icon:'icofont-user-plus' },
   { id:'manage-federation-officials', label:'Manage Federation Officials', icon:'icofont-users-social' },
   { id:'create-federation-categories', label:'Create Federation Category', icon:'icofont-folder-open' },
@@ -2007,6 +2025,8 @@ const sectionPermissionMap = {
   'manage-invest-categories':['investment_categories:read'],
   associations:['federations:create'],
   'manage-federations':['federations:read'],
+  'create-federation-licenses':['federations:licenses:create', 'federations:create', 'dashboard:read'],
+  'manage-federation-licenses':['federations:licenses:read', 'federations:read', 'dashboard:read'],
   'create-federation-officials':['federations:create', 'federations:write'],
   'manage-federation-officials':['federations:read'],
   'federation-profile':['federations:read'],

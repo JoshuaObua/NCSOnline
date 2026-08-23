@@ -25,9 +25,10 @@ type Handlers struct {
 	Backups       *BackupsHandler
 	Forms         *FormsHandler
 	Security      *SecurityHandler
-	Updates       *UpdatesHandler
-	UpdatesSvc    *services.UpdatesService
-	Analytics     *AnalyticsHandler
+	Updates            *UpdatesHandler
+	UpdatesSvc         *services.UpdatesService
+	Analytics          *AnalyticsHandler
+	FederationLicenses *FederationLicenseHandler
 }
 
 // New constructs all handlers and returns them alongside the repos (needed by main for audit middleware).
@@ -48,6 +49,7 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 	secSvc := services.NewSecurityService(repos.Security, repos.Users)
 	updSvc := services.NewUpdatesService(db)
 	deployer := services.NewDeployer()
+	fedLicSvc := services.NewFederationLicenseService(repos.FederationLicenses)
 
 	return &Handlers{
 		Auth:         &AuthHandler{svc: authSvc, users: repos.Users, cfg: cfg, cms: repos.CMS},
@@ -58,18 +60,19 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 			users: repos.Users, apps: repos.Applications, forms: repos.Forms,
 			nsmis: repos.NSMIS, organisations: repos.Organisations,
 		},
-		Audit:         &AuditHandler{repo: repos.Audit},
-		CMS:           &CMSHandler{repo: repos.CMS},
-		NSMIS:         &NSMISHandler{repo: repos.NSMIS, cfg: cfg},
-		USSD:          &USSDHandler{service: ussdSvc, callbackSecret: cfg.USSDCallbackSecret},
-		Organisations: &OrganisationsHandler{repo: repos.Organisations},
-		Operator:      NewOperatorHandler(repos.Operator, state),
-		SystemState:   state,
-		Backups:       &BackupsHandler{repo: repos.Backups, cfg: cfg},
-		Forms:         &FormsHandler{svc: formSvc},
-		Security:      &SecurityHandler{svc: secSvc, users: repos.Users, audit: repos.Audit, tokens: repos.Tokens, cfg: cfg},
-		Updates:       &UpdatesHandler{svc: updSvc, deployer: deployer, backups: repos.Backups},
-		UpdatesSvc:    updSvc,
-		Analytics:     NewAnalyticsHandler(repos.Analytics, cfg),
+		Audit:              &AuditHandler{repo: repos.Audit},
+		CMS:                &CMSHandler{repo: repos.CMS},
+		NSMIS:              &NSMISHandler{repo: repos.NSMIS, cfg: cfg},
+		USSD:               &USSDHandler{service: ussdSvc, callbackSecret: cfg.USSDCallbackSecret},
+		Organisations:      &OrganisationsHandler{repo: repos.Organisations},
+		Operator:           NewOperatorHandler(repos.Operator, state),
+		SystemState:        state,
+		Backups:            &BackupsHandler{repo: repos.Backups, cfg: cfg},
+		Forms:              &FormsHandler{svc: formSvc},
+		Security:           &SecurityHandler{svc: secSvc, users: repos.Users, audit: repos.Audit, tokens: repos.Tokens, cfg: cfg},
+		Updates:            &UpdatesHandler{svc: updSvc, deployer: deployer, backups: repos.Backups},
+		UpdatesSvc:         updSvc,
+		Analytics:          NewAnalyticsHandler(repos.Analytics, cfg),
+		FederationLicenses: NewFederationLicenseHandler(fedLicSvc, repos.Users),
 	}, repos
 }

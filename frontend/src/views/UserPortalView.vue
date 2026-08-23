@@ -140,6 +140,98 @@
                   @view-all="select('apply')"
                 />
 
+                <!-- Federation President / Secretary Recognition License Dashboard Panel -->
+                <div v-if="(isFederationLeader || federationLicenseData) && federationData" class="federation-leader-dashboard mt-4">
+                  <div class="card border-0 shadow-sm text-white mb-4 overflow-hidden position-relative" style="background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%); border-radius: 12px;">
+                    <div class="card-body p-4 position-relative z-index-1">
+                      <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                          <div class="fed-icon-seal" style="width: 50px; height: 50px; border-radius: 12px; background: rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 26px; color: #f59e0b;">
+                            <i class="icofont-certificate-alt-1"></i>
+                          </div>
+                          <div>
+                            <span class="badge bg-warning text-dark text-uppercase mb-1" style="font-size: 10px; font-weight: 700; letter-spacing: 0.5px;">
+                              {{ federationLeaderRole || 'Federation Leadership Portal' }}
+                            </span>
+                            <h3 class="mb-1 fw-bold text-white fs-4">{{ federationData.name }}</h3>
+                            <span class="small opacity-85 text-light">
+                              NCS Reg No: <strong>{{ federationData.ncs_registration_number || federationData.registration_number || 'NCS-STATUTORY' }}</strong>
+                              <span v-if="federationData.acronym" class="ms-2">({{ federationData.acronym }})</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                          <button
+                            v-if="federationLicenseData"
+                            type="button"
+                            class="btn btn-warning text-dark fw-bold btn-sm px-3 shadow-sm"
+                            @click="printFederationCertificate(federationLicenseData)"
+                          >
+                            <i class="icofont-print me-1"></i> Print Recognition Certificate
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- License Details Grid -->
+                  <div v-if="federationLicenseData" class="row g-3 mb-4">
+                    <div class="col-md-3">
+                      <div class="p-3 bg-white border rounded shadow-sm h-100">
+                        <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 11px;">Official License No</span>
+                        <strong class="text-dark fs-6 font-monospace">{{ federationLicenseData.license_number }}</strong>
+                        <small class="text-muted d-block mt-1">Statutory Identifier</small>
+                      </div>
+                    </div>
+
+                    <div class="col-md-3">
+                      <div class="p-3 bg-white border rounded shadow-sm h-100">
+                        <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 11px;">License Status</span>
+                        <span class="badge" :class="getLicStatusClass(federationLicenseData.status)" style="font-size: 11px; font-weight: 700;">
+                          {{ federationLicenseData.status }}
+                        </span>
+                        <small v-if="federationLicenseData.status === 'ACTIVE'" class="text-success d-block mt-1">
+                          <i class="icofont-check-circled"></i> Fully Recognized
+                        </small>
+                        <small v-else-if="federationLicenseData.status === 'REVOKED'" class="text-danger d-block mt-1">
+                          <i class="icofont-ban"></i> Recognition Suspended
+                        </small>
+                      </div>
+                    </div>
+
+                    <div class="col-md-3">
+                      <div class="p-3 bg-white border rounded shadow-sm h-100">
+                        <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 11px;">Issue Date</span>
+                        <strong class="text-dark">{{ formatDate(federationLicenseData.issue_date) }}</strong>
+                        <small class="text-muted d-block mt-1">National Sports Act 2023</small>
+                      </div>
+                    </div>
+
+                    <div class="col-md-3">
+                      <div class="p-3 bg-white border rounded shadow-sm h-100">
+                        <span class="text-muted small d-block text-uppercase fw-semibold" style="font-size: 11px;">Valid Until</span>
+                        <strong class="text-dark">{{ formatDate(federationLicenseData.expiry_date) }}</strong>
+                        <small class="text-muted d-block mt-1">
+                          <span v-if="federationLicenseData.extended_at" class="text-info">Extended</span>
+                          <span v-else>Standard Term</span>
+                        </small>
+                      </div>
+                    </div>
+
+                    <!-- Revocation Warning Alert if revoked -->
+                    <div v-if="federationLicenseData.status === 'REVOKED'" class="col-12">
+                      <div class="alert alert-danger mb-0 d-flex align-items-center gap-3">
+                        <i class="icofont-warning fs-3"></i>
+                        <div>
+                          <strong class="d-block">Statutory Recognition License Revoked</strong>
+                          <span>Reason: {{ federationLicenseData.revocation_reason || 'Compliance violation or statutory directive.' }} Please contact NCS Secretariat for rectification.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Athlete Dashboard Extension Panel -->
                 <div v-if="isAthlete && athleteData" class="athlete-registry-dashboard mt-4">
                   <div class="card border-0 shadow-sm bg-gradient-primary-to-secondary text-white mb-4 overflow-hidden position-relative" style="border-radius: 12px;">
@@ -2116,6 +2208,7 @@ import {
   portalUploadPaymentProof,
 } from '@/api/forms.js'
 import { listNsmisDomain } from '@/api/nsmis.js'
+import { getFederationActiveLicense } from '@/api/federationLicenses.js'
 import { mediaUrl } from '@/api/client.js'
 import OpenFormsPanel from '@/components/portal/OpenFormsPanel.vue'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
@@ -2196,6 +2289,10 @@ const isCoach = ref(false)
 const coachData = ref(null)
 const isOfficial = ref(false)
 const officialData = ref(null)
+const isFederationLeader = ref(false)
+const federationLeaderRole = ref('')
+const federationData = ref(null)
+const federationLicenseData = ref(null)
 
 ensureOtikaStyles()
 
@@ -2209,6 +2306,7 @@ const isAdminOrGenSec = computed(() => {
 })
 
 const userProfileLabel = computed(() => {
+  if (isFederationLeader.value) return `${federationLeaderRole.value || 'Federation Executive'} Portal`
   const roles = userRoles.value
   if (roles.includes('athlete') || roles.includes('role_athlete')) return 'Athlete Portal'
   if (roles.includes('coach') || roles.includes('role_coach')) return 'Coach Portal'
@@ -2217,6 +2315,7 @@ const userProfileLabel = computed(() => {
 })
 
 const userWorkspaceLabel = computed(() => {
+  if (isFederationLeader.value && federationData.value?.name) return `${federationData.value.name} workspace`
   const roles = userRoles.value
   if (roles.includes('athlete') || roles.includes('role_athlete')) return 'Athlete workspace'
   if (roles.includes('coach') || roles.includes('role_coach')) return 'Coach workspace'
@@ -2503,11 +2602,135 @@ const userFiles = computed(() => {
     })
   }
 
+  if (federationLicenseData.value) {
+    filesList.push({
+      id: federationLicenseData.value.id,
+      title: `Statutory Recognition License - ${federationLicenseData.value.federation_name || federationData.value?.name || 'Federation'}`,
+      type: 'Statutory License',
+      number: federationLicenseData.value.license_number,
+      issueDate: federationLicenseData.value.issue_date,
+      expiryDate: federationLicenseData.value.expiry_date,
+      status: federationLicenseData.value.status,
+      description: `Official statutory license of recognition under the National Sports Act 2023. Category: ${federationLicenseData.value.category || 'National Sports Federation'}.`,
+      fileType: 'Official License',
+      downloadName: `NCS_Federation_License_${(federationLicenseData.value.license_number || '').replaceAll('/', '_')}.txt`,
+      category: 'Federation Recognition',
+      licenseObj: federationLicenseData.value
+    })
+  }
+
   return filesList
 })
 
+function getLicStatusClass(status) {
+  const s = String(status || '').toUpperCase()
+  if (s === 'ACTIVE') return 'bg-success text-white'
+  if (s === 'EXTENDED') return 'bg-info text-white'
+  if (s === 'REVOKED') return 'bg-danger text-white'
+  if (s === 'EXPIRED') return 'bg-warning text-dark'
+  return 'bg-secondary text-white'
+}
+
+function printFederationCertificate(lic) {
+  if (!lic) return
+  const printWin = window.open('', '_blank', 'width=900,height=800')
+  if (!printWin) return
+
+  const issueDateStr = formatDate(lic.issue_date)
+  const expiryDateStr = formatDate(lic.expiry_date)
+
+  const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NCS Certificate of Recognition - ${lic.license_number}</title>
+  <style>
+    @page { size: A4 landscape; margin: 10mm; }
+    body { font-family: "Georgia", "Times New Roman", serif; background: #fafafa; margin: 0; padding: 20px; color: #1e293b; }
+    .cert-frame { border: 8px double #b45309; padding: 30px 40px; background: #fff; text-align: center; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+    .logo-row { margin-bottom: 12px; }
+    .logo-row img { max-height: 70px; }
+    .republic-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #b45309; margin: 0; }
+    .ncs-title { font-size: 26px; font-weight: bold; color: #0f172a; margin: 6px 0 16px; text-transform: uppercase; letter-spacing: 1px; }
+    .cert-heading { font-size: 20px; font-style: italic; color: #475569; margin: 0 0 10px; }
+    .cert-body { font-size: 15px; color: #334155; margin: 0 auto 16px; max-width: 700px; line-height: 1.6; }
+    .fed-name { font-size: 28px; font-weight: bold; color: #1e3a8a; margin: 10px 0; text-decoration: underline; text-underline-offset: 6px; }
+    .reg-tag { font-size: 13px; color: #64748b; margin-bottom: 16px; }
+    .meta-box { display: flex; justify-content: space-around; margin: 24px auto; max-width: 650px; background: #fefce8; border: 1px solid #fef08a; padding: 12px; border-radius: 6px; }
+    .meta-item strong { display: block; font-size: 14px; color: #713f12; }
+    .meta-item span { font-size: 11px; color: #854d0e; text-transform: uppercase; }
+    .conditions { font-size: 11px; font-style: italic; color: #64748b; margin: 14px auto; max-width: 600px; }
+    .signatures { display: flex; justify-content: space-between; margin-top: 40px; padding: 0 40px; }
+    .sig-line { width: 220px; border-top: 1px solid #334155; padding-top: 6px; font-size: 12px; font-weight: bold; text-align: center; }
+    .sig-title { font-size: 11px; color: #64748b; font-weight: normal; }
+  </style>
+</head>
+<body>
+  <div class="cert-frame">
+    <div class="logo-row">
+      <img src="/main-logo.png" alt="National Council of Sports" />
+    </div>
+    <div class="republic-title">Republic of Uganda</div>
+    <div class="ncs-title">National Council of Sports</div>
+    <div class="cert-heading">Certificate of Statutory Recognition & Licensing</div>
+    
+    <div class="cert-body">
+      This is to certify that under the provisions of the <strong>National Sports Act, 2023</strong>, the national sports organisation:
+    </div>
+
+    <div class="fed-name">${lic.federation_name || federationData.value?.name || 'National Sports Federation'}</div>
+    <div class="reg-tag">Registration Number: <strong>${lic.federation_reg_no || federationData.value?.ncs_registration_number || 'NCS-STATUTORY'}</strong> · Category: <strong>${lic.category || 'National Sports Federation'}</strong></div>
+
+    <div class="meta-box">
+      <div class="meta-item">
+        <span>License Number</span>
+        <strong>${lic.license_number}</strong>
+      </div>
+      <div class="meta-item">
+        <span>Issue Date</span>
+        <strong>${issueDateStr}</strong>
+      </div>
+      <div class="meta-item">
+        <span>Valid Until</span>
+        <strong>${expiryDateStr}</strong>
+      </div>
+      <div class="meta-item">
+        <span>Status</span>
+        <strong style="color: ${lic.status === 'REVOKED' ? '#dc2626' : '#16a34a'};">${lic.status}</strong>
+      </div>
+    </div>
+
+    <div class="conditions">
+      ${lic.conditions || 'Granted subject to compliance with the National Sports Act 2023, anti-doping protocols, and financial transparency regulations.'}
+    </div>
+
+    <div class="signatures">
+      <div class="sig-line">
+        General Secretary<br>
+        <span class="sig-title">National Council of Sports</span>
+      </div>
+      <div class="sig-line">
+        Chairman / Board President<br>
+        <span class="sig-title">National Council of Sports</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 400);
+    };
+  <\/script>
+</body>
+</html>`
+
+  printWin.document.write(html)
+  printWin.document.close()
+}
+
 function getFileIcon(category) {
   switch (category) {
+    case 'Federation Recognition': return 'icofont-certificate'
     case 'Athlete Registry': return 'icofont-runner-alt-1'
     case 'Coaches Registry': return 'icofont-whistle'
     case 'Technical Officials': return 'icofont-referee'
@@ -2520,6 +2743,7 @@ function getFileIcon(category) {
 
 function getFileIconClass(category) {
   switch (category) {
+    case 'Federation Recognition': return 'bg-warning text-dark'
     case 'Athlete Registry': return 'bg-primary text-white'
     case 'Coaches Registry': return 'bg-warning text-dark'
     case 'Technical Officials': return 'bg-info text-white'
@@ -2756,18 +2980,74 @@ async function loadSportsRegistryContext() {
     }
   } catch (e) {}
 
-  // Officials lookup
-  try {
-    const officialsRes = await listNsmisDomain('technical-officials', { search: profile.id || profile.email })
-    const officialsList = asList(officialsRes)
-    const nameKey = fullName.value.toLowerCase().trim()
-    const matchOfficial = officialsList.find(o => o.user_id === profile.id || (o.full_name && String(o.full_name).toLowerCase().trim() === nameKey)) || profile.official_profile
-    if (matchOfficial) {
-      isOfficial.value = true
-      officialData.value = matchOfficial
+    // Officials lookup
+    try {
+      const officialsRes = await listNsmisDomain('technical-officials', { search: profile.id || profile.email })
+      const officialsList = asList(officialsRes)
+      const nameKey = fullName.value.toLowerCase().trim()
+      const matchOfficial = officialsList.find(o => o.user_id === profile.id || (o.full_name && String(o.full_name).toLowerCase().trim() === nameKey)) || profile.official_profile
+      if (matchOfficial) {
+        isOfficial.value = true
+        officialData.value = matchOfficial
+      }
+    } catch (e) {}
+
+    // Federation Leadership & Executive lookup (President, General Secretary, Officials)
+    try {
+      const fedsRes = await listNsmisDomain('federations', { per_page: 200 })
+      const fedsList = asList(fedsRes)
+      const userEmail = String(profile.email || '').toLowerCase().trim()
+      const userName = fullName.value.toLowerCase().trim()
+
+      let matchFed = null
+      let matchRole = ''
+
+      for (const fed of fedsList) {
+        if (fed.email && String(fed.email).toLowerCase().trim() === userEmail) {
+          matchFed = fed
+          matchRole = 'Federation Executive'
+          break
+        }
+        if (fed.president && String(fed.president).toLowerCase().trim() === userName) {
+          matchFed = fed
+          matchRole = 'Federation President'
+          break
+        }
+        if (fed.secretary && String(fed.secretary).toLowerCase().trim() === userName) {
+          matchFed = fed
+          matchRole = 'General Secretary'
+          break
+        }
+      }
+
+      if (!matchFed) {
+        try {
+          const officersRes = await listNsmisDomain('federation-officials', { per_page: 200 })
+          const officersList = asList(officersRes)
+          const officer = officersList.find(o => o.user_id === profile.id || (o.email && String(o.email).toLowerCase().trim() === userEmail) || (o.full_name && String(o.full_name).toLowerCase().trim() === userName))
+          if (officer) {
+            matchFed = fedsList.find(f => f.id === officer.federation_id) || { id: officer.federation_id, name: officer.federation_name }
+            matchRole = officer.position || 'Federation Official'
+          }
+        } catch (e) {}
+      }
+
+      if (matchFed) {
+        isFederationLeader.value = true
+        federationLeaderRole.value = matchRole
+        federationData.value = matchFed
+
+        try {
+          const lic = await getFederationActiveLicense(matchFed.id)
+          if (lic) {
+            federationLicenseData.value = lic
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('Could not load federation leadership records:', e)
     }
-  } catch (e) {}
-}
+  }
 
 async function loadActivities(page = 1) {
   activityPage.value = page

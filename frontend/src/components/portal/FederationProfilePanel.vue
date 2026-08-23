@@ -230,8 +230,16 @@
         <div class="grid-2-col">
           <!-- Official Recognition Certificate -->
           <div class="profile-section-card">
-            <div class="card-head">
+            <div class="card-head d-flex align-items-center justify-content-between">
               <h3><i class="icofont-certificate-alt-2"></i> Statutory Recognition License</h3>
+              <button
+                v-if="activeLicense"
+                type="button"
+                class="btn btn-sm btn-outline-primary"
+                @click="printLicenseCertificate(activeLicense)"
+              >
+                <i class="icofont-print"></i> Print Certificate
+              </button>
             </div>
             <div class="card-body">
               <div class="license-badge-box">
@@ -240,24 +248,38 @@
                 </div>
                 <div class="license-info-col">
                   <h4>Certificate of National Recognition</h4>
-                  <p class="license-num">NCS Registration: <strong>{{ registrationNumber }}</strong></p>
-                  <p class="license-status-line">Status: <span class="badge-status success">Active / Fully Recognized</span></p>
+                  <p class="license-num">
+                    License No: <strong>{{ activeLicense?.license_number || ('NCS/FED-LIC/2026/' + registrationNumber) }}</strong>
+                  </p>
+                  <p class="license-status-line">
+                    Status:
+                    <span
+                      class="badge-status"
+                      :class="activeLicense?.status === 'REVOKED' ? 'danger' : 'success'"
+                    >
+                      {{ activeLicense?.status || 'ACTIVE' }}
+                    </span>
+                  </p>
                   <small class="text-muted">Issued under Section 32 of the National Sports Act 2023.</small>
                 </div>
               </div>
 
               <div class="license-timeline mt-4">
                 <div class="timeline-row">
-                  <span class="timeline-label">Initial Recognition:</span>
-                  <span class="timeline-val">01 July 2024</span>
+                  <span class="timeline-label">Issue Date:</span>
+                  <span class="timeline-val">{{ formatDate(activeLicense?.issue_date || federation.created_at) }}</span>
                 </div>
                 <div class="timeline-row">
-                  <span class="timeline-label">License Validity:</span>
-                  <span class="timeline-val">Permanent / Subject to Annual Reporting</span>
+                  <span class="timeline-label">License Expiry / Renewal:</span>
+                  <span class="timeline-val">{{ formatDate(activeLicense?.expiry_date) || 'Annual Statutory Renewal' }}</span>
                 </div>
                 <div class="timeline-row">
-                  <span class="timeline-label">Annual Accountability Status:</span>
-                  <span class="timeline-val text-success"><i class="icofont-check-circled"></i> Compliant for FY 2025/2026</span>
+                  <span class="timeline-label">Recognition Category:</span>
+                  <span class="timeline-val">{{ activeLicense?.category || federation.category || 'Tier 1 National Sports Federation' }}</span>
+                </div>
+                <div v-if="activeLicense?.conditions" class="timeline-row">
+                  <span class="timeline-label">Conditions:</span>
+                  <span class="timeline-val text-muted small">{{ activeLicense.conditions }}</span>
                 </div>
               </div>
             </div>
@@ -587,6 +609,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { listNsmisDomain } from '@/api/nsmis.js'
+import { getFederationActiveLicense } from '@/api/federationLicenses.js'
 import apiClient from '@/api/client.js'
 
 const props = defineProps({
@@ -615,6 +638,7 @@ const athletes = ref([])
 const disbursements = ref([])
 const financialReports = ref([])
 const equipment = ref([])
+const activeLicense = ref(null)
 
 const registrationNumber = computed(() => {
   if (federation.value?.ncs_registration_number) return federation.value.ncs_registration_number
@@ -654,6 +678,116 @@ function formatWebsite(url) {
 
 function formatCurrency(val) {
   return new Intl.NumberFormat('en-UG').format(Number(val || 0))
+}
+
+function formatDate(val) {
+  if (!val) return '-'
+  try {
+    return new Date(val).toLocaleDateString('en-UG', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  } catch {
+    return String(val)
+  }
+}
+
+function printLicenseCertificate(lic) {
+  if (!lic) return
+  const printWin = window.open('', '_blank', 'width=900,height=800')
+  if (!printWin) return
+
+  const issueDateStr = formatDate(lic.issue_date)
+  const expiryDateStr = formatDate(lic.expiry_date)
+
+  const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>NCS Certificate of Recognition - ${lic.license_number}</title>
+  <style>
+    @page { size: A4 landscape; margin: 10mm; }
+    body { font-family: "Georgia", "Times New Roman", serif; background: #fafafa; margin: 0; padding: 20px; color: #1e293b; }
+    .cert-frame { border: 8px double #b45309; padding: 30px 40px; background: #fff; text-align: center; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+    .logo-row { margin-bottom: 12px; }
+    .logo-row img { max-height: 70px; }
+    .republic-title { font-size: 16px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #b45309; margin: 0; }
+    .ncs-title { font-size: 26px; font-weight: bold; color: #0f172a; margin: 6px 0 16px; text-transform: uppercase; letter-spacing: 1px; }
+    .cert-heading { font-size: 20px; font-style: italic; color: #475569; margin: 0 0 10px; }
+    .cert-body { font-size: 15px; color: #334155; margin: 0 auto 16px; max-width: 700px; line-height: 1.6; }
+    .fed-name { font-size: 28px; font-weight: bold; color: #1e3a8a; margin: 10px 0; text-decoration: underline; text-underline-offset: 6px; }
+    .reg-tag { font-size: 13px; color: #64748b; margin-bottom: 16px; }
+    .meta-box { display: flex; justify-content: space-around; margin: 24px auto; max-width: 650px; background: #fefce8; border: 1px solid #fef08a; padding: 12px; border-radius: 6px; }
+    .meta-item strong { display: block; font-size: 14px; color: #713f12; }
+    .meta-item span { font-size: 11px; color: #854d0e; text-transform: uppercase; }
+    .conditions { font-size: 11px; font-style: italic; color: #64748b; margin: 14px auto; max-width: 600px; }
+    .signatures { display: flex; justify-content: space-between; margin-top: 40px; padding: 0 40px; }
+    .sig-line { width: 220px; border-top: 1px solid #334155; padding-top: 6px; font-size: 12px; font-weight: bold; text-align: center; }
+    .sig-title { font-size: 11px; color: #64748b; font-weight: normal; }
+  </style>
+</head>
+<body>
+  <div class="cert-frame">
+    <div class="logo-row">
+      <img src="/main-logo.png" alt="National Council of Sports" />
+    </div>
+    <div class="republic-title">Republic of Uganda</div>
+    <div class="ncs-title">National Council of Sports</div>
+    <div class="cert-heading">Certificate of Statutory Recognition & Licensing</div>
+    
+    <div class="cert-body">
+      This is to certify that under the provisions of the <strong>National Sports Act, 2023</strong>, the national sports organisation:
+    </div>
+
+    <div class="fed-name">${lic.federation_name || federation.value?.name || 'National Sports Federation'}</div>
+    <div class="reg-tag">Registration Number: <strong>${lic.federation_reg_no || registrationNumber.value}</strong> · Category: <strong>${lic.category || federation.value?.category || 'National Sports Federation'}</strong></div>
+
+    <div class="meta-box">
+      <div class="meta-item">
+        <span>License Number</span>
+        <strong>${lic.license_number}</strong>
+      </div>
+      <div class="meta-item">
+        <span>Issue Date</span>
+        <strong>${issueDateStr}</strong>
+      </div>
+      <div class="meta-item">
+        <span>Valid Until</span>
+        <strong>${expiryDateStr}</strong>
+      </div>
+      <div class="meta-item">
+        <span>Status</span>
+        <strong style="color: ${lic.status === 'REVOKED' ? '#dc2626' : '#16a34a'};">${lic.status}</strong>
+      </div>
+    </div>
+
+    <div class="conditions">
+      ${lic.conditions || 'Granted subject to compliance with the National Sports Act 2023, anti-doping protocols, and financial transparency regulations.'}
+    </div>
+
+    <div class="signatures">
+      <div class="sig-line">
+        General Secretary<br>
+        <span class="sig-title">National Council of Sports</span>
+      </div>
+      <div class="sig-line">
+        Chairman / Board President<br>
+        <span class="sig-title">National Council of Sports</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() { window.print(); }, 400);
+    };
+  <\/script>
+</body>
+</html>`
+
+  printWin.document.write(html)
+  printWin.document.close()
 }
 
 function extractItems(res) {
@@ -720,6 +854,13 @@ async function loadFederationData() {
     if (eqRes.status === 'fulfilled') {
       const all = extractItems(eqRes.value)
       equipment.value = all.filter(item => item.federation_id === fedId)
+    }
+
+    try {
+      const lic = await getFederationActiveLicense(fedId)
+      if (lic) activeLicense.value = lic
+    } catch (e) {
+      console.warn('No active federation license loaded:', e)
     }
   } catch (err) {
     console.error('Error loading federation profile:', err)

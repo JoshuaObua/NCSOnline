@@ -428,6 +428,18 @@ func main() {
 				r.Get("/admin/transactions/{id}", h.Forms.AdminGetTransactionByID)
 				r.Post("/admin/transactions/{id}/sync", h.Forms.AdminSyncTransaction)
 
+				// ── Admin: Federation Licenses & Compliance ──
+				r.Route("/admin/federation-licenses", func(r chi.Router) {
+					r.Get("/", h.FederationLicenses.List)
+					r.Post("/", h.FederationLicenses.Create)
+					r.Get("/kpis", h.FederationLicenses.GetKPIs)
+					r.Get("/{id}", h.FederationLicenses.GetByID)
+					r.Post("/{id}/extend", h.FederationLicenses.Extend)
+					r.Post("/{id}/revoke", h.FederationLicenses.Revoke)
+					r.Post("/{id}/reinstate", h.FederationLicenses.Reinstate)
+				})
+				r.Get("/federations/{id}/license", h.FederationLicenses.GetFederationActiveLicense)
+
 				// ── Admin: dynamic form templates (department-scoped) ──
 				r.Route("/admin/forms", func(r chi.Router) {
 					r.Get("/", h.Forms.AdminListTemplates)
