@@ -367,6 +367,7 @@ func main() {
 
 				// Admin/federation profile needs read access to roles list (for assignment UI)
 				r.Get("/admin/roles-list", h.Roles.List)
+				r.Get("/admin/roles", h.Roles.List)
 			})
 
 			r.Group(func(r chi.Router) {

@@ -497,7 +497,7 @@ func (r *RoleRepo) GetByID(ctx context.Context, id string) (*models.Role, error)
 		FROM roles r
 		LEFT JOIN role_permissions rp ON rp.role_id = r.id
 		LEFT JOIN permissions p ON p.id = rp.permission_id
-		WHERE r.id = $1
+		WHERE r.id = $1 OR r.name = $1
 		ORDER BY p.resource, p.action`
 	rows, err := r.db.Query(ctx, q, id)
 	if err != nil {

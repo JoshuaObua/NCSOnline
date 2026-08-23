@@ -309,15 +309,36 @@
               </div>
               <div class="role-action-col">
                 <button
+                  v-if="userHasRole(activeUser, role)"
                   type="button"
-                  class="role-toggle-btn"
-                  :class="userHasRole(activeUser, role) ? 'btn-remove-role' : 'btn-add-role'"
-                  :disabled="savingRole === role.id"
+                  class="role-toggle-btn btn-remove-role"
+                  :disabled="savingRole === (role.id || role.name)"
                   @click="toggleRoleAssignment(activeUser, role)"
                 >
-                  <i v-if="savingRole === role.id" class="icofont-spinner icofont-spin"></i>
-                  <span v-else>{{ userHasRole(activeUser, role) ? 'Revoke Role' : 'Assign Role' }}</span>
+                  <i v-if="savingRole === (role.id || role.name)" class="icofont-spinner icofont-spin"></i>
+                  <span v-else><i class="icofont-minus-circle"></i> Revoke Role</span>
                 </button>
+                <div v-else class="role-btn-group">
+                  <button
+                    type="button"
+                    class="role-toggle-btn btn-add-role"
+                    :disabled="savingRole === (role.id || role.name)"
+                    @click="toggleRoleAssignment(activeUser, role)"
+                  >
+                    <i v-if="savingRole === (role.id || role.name)" class="icofont-spinner icofont-spin"></i>
+                    <span v-else><i class="icofont-plus-circle"></i> Assign Role</span>
+                  </button>
+                  <button
+                    v-if="(activeUser?.roles || []).length > 0"
+                    type="button"
+                    class="role-toggle-btn btn-reassign-role"
+                    :disabled="savingRole === (role.id || role.name)"
+                    title="Replace current roles with this role"
+                    @click="reassignUserRole(activeUser, role)"
+                  >
+                    <i class="icofont-refresh"></i> Reassign
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -546,14 +567,15 @@ function userHasRole(user, role) {
 
 async function toggleRoleAssignment(user, role) {
   const isAssigned = userHasRole(user, role)
-  savingRole.value = role.id
+  const roleId = role.id || role.name || role
+  savingRole.value = roleId
   try {
     if (isAssigned) {
-      await cms.adminRemoveUserRole(user.id, role.id)
-      notifySuccess(`Role '${role.name}' revoked from ${user.email}.`)
+      await cms.adminRemoveUserRole(user.id, roleId)
+      notifySuccess(`Role '${role.name || role}' revoked from ${user.email}.`)
     } else {
-      await cms.adminAssignUserRole(user.id, role.id)
-      notifySuccess(`Role '${role.name}' assigned to ${user.email}.`)
+      await cms.adminAssignUserRole(user.id, roleId)
+      notifySuccess(`Role '${role.name || role}' assigned to ${user.email}.`)
     }
     // Refresh user in list
     const res = await cms.adminGetUser(user.id)
@@ -568,6 +590,38 @@ async function toggleRoleAssignment(user, role) {
     }
   } catch (err) {
     localError.value = err.response?.data?.error?.message || err.message || 'Failed to update role.'
+    emit('error', localError.value)
+  } finally {
+    savingRole.value = ''
+  }
+}
+
+async function reassignUserRole(user, role) {
+  const roleId = role.id || role.name || role
+  savingRole.value = roleId
+  try {
+    const currentRoles = [...(user.roles || [])]
+    for (const r of currentRoles) {
+      const curId = typeof r === 'object' ? (r.id || r.name) : r
+      if (curId && curId !== roleId) {
+        try { await cms.adminRemoveUserRole(user.id, curId) } catch (e) { console.warn('Could not revoke previous role:', e) }
+      }
+    }
+    await cms.adminAssignUserRole(user.id, roleId)
+    notifySuccess(`Role for ${user.email} reassigned to '${role.name || role}'.`)
+
+    const res = await cms.adminGetUser(user.id)
+    const updated = res.data?.data || res.data
+    const idx = users.value.findIndex(u => u.id === user.id)
+    if (idx !== -1 && updated) {
+      users.value[idx] = updated
+      activeUser.value = updated
+      filterUsers()
+    } else {
+      await loadUsers()
+    }
+  } catch (err) {
+    localError.value = err.response?.data?.error?.message || err.message || 'Failed to reassign role.'
     emit('error', localError.value)
   } finally {
     savingRole.value = ''
@@ -1586,6 +1640,32 @@ function formatDate(isoStr) {
 :global(body.dark) .role-name,
 :global([data-theme="dark"]) .role-name {
   color: #f8fafc !important;
+}
+
+.role-btn-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-reassign-role {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.btn-reassign-role:hover:not(:disabled) {
+  background: #f59e0b;
+  color: #ffffff;
 }
 
 :global(html.dark) .btn-outline,

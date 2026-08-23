@@ -399,7 +399,9 @@ export function adminDeleteCouncil(id) { return apiClient.delete(`/api/v1/admin/
 
 // ── Admin RBAC / Roles ────────────────────────────────────────────────
 
-export function adminListRoles() { return apiClient.get('/api/v1/admin/roles') }
+export function adminListRoles() {
+  return apiClient.get('/api/v1/admin/roles-list').catch(() => apiClient.get('/api/v1/admin/roles'))
+}
 export function adminGetRole(id) { return apiClient.get(`/api/v1/admin/roles/${id}`) }
 export function adminCreateRole(data) { return apiClient.post('/api/v1/admin/roles', data) }
 export function adminUpdateRole(id, data) { return apiClient.put(`/api/v1/admin/roles/${id}`, data) }
