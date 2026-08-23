@@ -76,6 +76,10 @@ func (r *TransactionRepo) Create(ctx context.Context, tx *models.PaymentTransact
 }
 
 func (r *TransactionRepo) UpdateStatus(ctx context.Context, id, status, statusMsg string, rawResp []byte) error {
+	return r.UpdateStatusWithProvider(ctx, id, "", status, statusMsg, rawResp)
+}
+
+func (r *TransactionRepo) UpdateStatusWithProvider(ctx context.Context, id, providerReqID, status, statusMsg string, rawResp []byte) error {
 	if len(rawResp) == 0 {
 		rawResp = []byte("{}")
 	}
@@ -88,10 +92,11 @@ func (r *TransactionRepo) UpdateStatus(ctx context.Context, id, status, statusMs
 	const q = `
 		UPDATE payment_transactions
 		SET status = $2, status_message = $3, raw_response = $4::jsonb,
-		    updated_at = NOW(), completed_at = COALESCE($5, completed_at)
+		    provider_request_id = COALESCE(NULLIF($5, ''), provider_request_id),
+		    updated_at = NOW(), completed_at = COALESCE($6, completed_at)
 		WHERE id = $1
 	`
-	_, err := r.db.Exec(ctx, q, id, status, statusMsg, string(rawResp), completedAt)
+	_, err := r.db.Exec(ctx, q, id, status, statusMsg, string(rawResp), providerReqID, completedAt)
 	return err
 }
 

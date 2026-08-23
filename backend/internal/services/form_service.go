@@ -687,14 +687,14 @@ func (s *FormService) InitiateMoMoPayment(ctx context.Context, submissionID, use
 	}
 	if strings.EqualFold(colResp.Status, "Success") {
 		tx.Status = models.TxStatusSuccess
-		_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusSuccess, tx.StatusMessage, rawBytes)
+		_ = s.txs.UpdateStatusWithProvider(ctx, tx.ID, colResp.ID, models.TxStatusSuccess, tx.StatusMessage, rawBytes)
 		_ = s.forms.SetPaymentPaidDirect(ctx, sub.ID, models.PaymentMethodMoMo, tx.TransactionReference, tx.AmountUGX)
 		_ = s.forms.CreateSubmissionNotification(ctx, sub.UserID, "payment_success", "Payment successful", fmt.Sprintf("Your mobile money payment of UGX %.0f for %s has been confirmed.", tx.AmountUGX, tmpl.Title), "check-circled")
 	} else if strings.EqualFold(colResp.Status, "Failed") {
 		tx.Status = models.TxStatusFailed
-		_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusFailed, tx.StatusMessage, rawBytes)
+		_ = s.txs.UpdateStatusWithProvider(ctx, tx.ID, colResp.ID, models.TxStatusFailed, tx.StatusMessage, rawBytes)
 	} else {
-		_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusPending, tx.StatusMessage, rawBytes)
+		_ = s.txs.UpdateStatusWithProvider(ctx, tx.ID, colResp.ID, models.TxStatusPending, tx.StatusMessage, rawBytes)
 	}
 
 	return s.txs.GetByID(ctx, tx.ID)
