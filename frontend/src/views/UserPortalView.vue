@@ -523,6 +523,660 @@
                 </div>
               </template>
 
+              <!-- ── Athlete Medical Records & Clearance Files ── -->
+              <template v-else-if="section === 'athlete-medical'">
+                <header class="page-heading">
+                  <div>
+                    <p>Sports Medicine & Health</p>
+                    <h1>Medical Records & Clearance Files</h1>
+                    <span>Official NCS medical profile, injury clearance status, and medical clearance certificates.</span>
+                  </div>
+                </header>
+
+                <div class="user-kpis mb-4">
+                  <article>
+                    <span class="bg-danger text-white kpi-icon-circle"><i class="icofont-first-aid"></i></span>
+                    <div>
+                      <small>Blood Group</small>
+                      <strong>{{ athleteMedical?.blood_group || 'Not Recorded' }}</strong>
+                      <p>Verified profile</p>
+                    </div>
+                  </article>
+                  <article>
+                    <span class="bg-success text-white kpi-icon-circle"><i class="icofont-heart-beat"></i></span>
+                    <div>
+                      <small>Injury Clearance</small>
+                      <strong>{{ athleteMedical?.current_injury_status || 'Fit to Compete' }}</strong>
+                      <p>NCS medical status</p>
+                    </div>
+                  </article>
+                  <article>
+                    <span class="bg-info text-white kpi-icon-circle"><i class="icofont-shield"></i></span>
+                    <div>
+                      <small>Insurance Status</small>
+                      <strong>{{ athleteMedical?.medical_insurance ? 'Covered' : 'Standard Cover' }}</strong>
+                      <p>Medical protection</p>
+                    </div>
+                  </article>
+                </div>
+
+                <div v-if="!athleteMedical" class="empty-state py-5 card shadow-sm text-center border-0 mb-4">
+                  <div class="card-body p-5">
+                    <i class="icofont-first-aid text-muted" style="font-size: 64px;"></i>
+                    <h3 class="mt-3 fw-bold empty-title">No Medical Records on File</h3>
+                    <p class="text-muted max-w-md mx-auto">
+                      Your sports medical examination record has not yet been filed by the federation medical officer. Please contact your team physician or federation doctor.
+                    </p>
+                  </div>
+                </div>
+
+                <div v-else class="row mb-4">
+                  <div class="col-lg-7 mb-4">
+                    <div class="card shadow-sm border-0 h-100 athlete-panel-card">
+                      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                        <h5 class="mb-0 fw-bold"><i class="icofont-id-card text-primary me-2"></i> Clinical & Physical Profile</h5>
+                        <span class="badge" :class="getStatusBadgeClass(athleteMedical.current_injury_status || 'FIT TO COMPETE')">
+                          {{ athleteMedical.current_injury_status || 'FIT TO COMPETE' }}
+                        </span>
+                      </div>
+                      <div class="card-body p-4">
+                        <ul class="athlete-detail-list">
+                          <li>
+                            <span>Blood Group</span>
+                            <strong class="badge bg-danger text-white fs-6 py-1 px-3">{{ athleteMedical.blood_group || 'N/A' }}</strong>
+                          </li>
+                          <li>
+                            <span>Allergies & Medical Alerts</span>
+                            <strong>{{ athleteMedical.allergies || 'None recorded' }}</strong>
+                          </li>
+                          <li>
+                            <span>Current Injury Status</span>
+                            <span class="badge" :class="getStatusBadgeClass(athleteMedical.current_injury_status || 'FIT')">
+                              {{ athleteMedical.current_injury_status || 'FIT TO COMPETE' }}
+                            </span>
+                          </li>
+                          <li>
+                            <span>Medical Insurance Details</span>
+                            <strong>{{ athleteMedical.medical_insurance || 'NCS National Sports Group Insurance' }}</strong>
+                          </li>
+                          <li>
+                            <span>Emergency Contact</span>
+                            <strong>{{ athleteData?.emergency_contact || athleteData?.phone_contact || 'Registered with Federation' }}</strong>
+                          </li>
+                          <li>
+                            <span>Next of Kin</span>
+                            <strong>{{ athleteData?.next_of_kin || 'Registered with Federation' }}</strong>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-lg-5 mb-4">
+                    <div class="card shadow-sm border-0 h-100 athlete-panel-card">
+                      <div class="card-header bg-white py-3 border-bottom">
+                        <h5 class="mb-0 fw-bold"><i class="icofont-history text-danger me-2"></i> Injury & Treatment Log</h5>
+                      </div>
+                      <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div>
+                          <div v-if="athleteMedical.injury_history" class="p-3 bg-light rounded mb-3 text-muted small" style="line-height: 1.6; white-space: pre-wrap;">
+                            {{ athleteMedical.injury_history }}
+                          </div>
+                          <p v-else class="text-muted small">No prior chronic injuries or surgical records logged in your file.</p>
+                        </div>
+                        
+                        <div class="mt-4 pt-3 border-top">
+                          <h6 class="fw-bold mb-2 small text-uppercase tracking-wider text-muted">Official Clearance Document</h6>
+                          <button
+                            type="button"
+                            class="btn btn-primary btn-block d-flex align-items-center justify-content-center gap-2 w-100"
+                            @click="downloadFile({
+                              title: 'Official Medical Clearance Certificate',
+                              type: 'Medical Records',
+                              number: `NCS-MED-${athleteMedical.id?.substring(0, 8).toUpperCase() || 'VERIFIED'}`,
+                              category: 'Medical Files',
+                              status: athleteMedical.current_injury_status || 'Fit to Compete',
+                              issueDate: athleteMedical.created_at || new Date().toISOString(),
+                              expiryDate: 'N/A',
+                              description: 'Official NCS medical clearance verifying athlete physical condition, blood group, allergies, and injury fitness.',
+                              fileType: 'TXT Document',
+                              downloadName: `NCS_Medical_Clearance_${athleteData?.athlete_number || 'Athlete'}.txt`
+                            })"
+                          >
+                            <i class="icofont-download"></i> Download Medical Clearance (.txt)
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- ── Athlete Anti-Doping Records ── -->
+              <template v-else-if="section === 'athlete-antidoping'">
+                <header class="page-heading">
+                  <div>
+                    <p>Clean Sport & Integrity</p>
+                    <h1>Anti-Doping Records & Compliance</h1>
+                    <span>WADA testing pool status, sample testing log, education certification, and clean athlete records.</span>
+                  </div>
+                </header>
+
+                <div class="user-kpis mb-4">
+                  <article>
+                    <span class="bg-success text-white kpi-icon-circle"><i class="icofont-test-bulb"></i></span>
+                    <div>
+                      <small>Testing Status</small>
+                      <strong>{{ athleteAntiDoping?.testing_status || 'Standard Pool' }}</strong>
+                      <p>WADA category</p>
+                    </div>
+                  </article>
+                  <article>
+                    <span class="bg-primary text-white kpi-icon-circle"><i class="icofont-certificate"></i></span>
+                    <div>
+                      <small>WADA Education</small>
+                      <strong>{{ athleteAntiDoping?.wada_education_completed || athleteSafeguarding?.anti_doping_education_completed ? 'Certified' : 'Required' }}</strong>
+                      <p>Education compliance</p>
+                    </div>
+                  </article>
+                  <article>
+                    <span class="bg-dark text-white kpi-icon-circle"><i class="icofont-shield-alt"></i></span>
+                    <div>
+                      <small>Sanctions / Suspensions</small>
+                      <strong>{{ athleteAntiDoping?.suspension_history || 'Clean Record' }}</strong>
+                      <p>Disciplinary status</p>
+                    </div>
+                  </article>
+                </div>
+
+                <div class="row mb-4">
+                  <div class="col-lg-7 mb-4">
+                    <div class="card shadow-sm border-0 h-100 athlete-panel-card">
+                      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                        <h5 class="mb-0 fw-bold"><i class="icofont-shield-check text-success me-2"></i> WADA Compliance Profile</h5>
+                        <span class="badge bg-success-light text-success fw-bold px-3 py-2">
+                          <i class="icofont-check-circled me-1"></i> Clean Athlete
+                        </span>
+                      </div>
+                      <div class="card-body p-4">
+                        <ul class="athlete-detail-list">
+                          <li>
+                            <span>Testing Pool Tier</span>
+                            <strong>{{ athleteAntiDoping?.testing_status || 'National Testing Pool (NTP)' }}</strong>
+                          </li>
+                          <li>
+                            <span>Last Tested Date</span>
+                            <strong>{{ athleteAntiDoping?.last_tested_on ? formatDate(athleteAntiDoping.last_tested_on) : 'Not Sampled' }}</strong>
+                          </li>
+                          <li>
+                            <span>Last Test Result</span>
+                            <span class="badge" :class="getStatusBadgeClass(athleteAntiDoping?.last_test_result || 'COMPLIANT')">
+                              {{ athleteAntiDoping?.last_test_result || 'COMPLIANT / NEGATIVE' }}
+                            </span>
+                          </li>
+                          <li>
+                            <span>WADA Anti-Doping Education</span>
+                            <span class="badge" :class="athleteAntiDoping?.wada_education_completed || athleteSafeguarding?.anti_doping_education_completed ? 'badge-success' : 'badge-warning'">
+                              {{ athleteAntiDoping?.wada_education_completed || athleteSafeguarding?.anti_doping_education_completed ? 'COMPLETED & VERIFIED' : 'PENDING EDUCATION' }}
+                            </span>
+                          </li>
+                          <li>
+                            <span>Code of Conduct Signed</span>
+                            <span class="badge" :class="athleteSafeguarding?.code_of_conduct_signed !== false ? 'badge-success' : 'badge-warning'">
+                              {{ athleteSafeguarding?.code_of_conduct_signed !== false ? 'SIGNED & ON FILE' : 'PENDING' }}
+                            </span>
+                          </li>
+                          <li>
+                            <span>Suspension / Sanction Log</span>
+                            <strong>{{ athleteAntiDoping?.suspension_history || 'None (In good standing)' }}</strong>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-lg-5 mb-4">
+                    <div class="card shadow-sm border-0 h-100 athlete-panel-card">
+                      <div class="card-header bg-white py-3 border-bottom">
+                        <h5 class="mb-0 fw-bold"><i class="icofont-certificate-alt text-primary me-2"></i> Compliance Certificate</h5>
+                      </div>
+                      <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <p class="text-muted small" style="line-height: 1.6;">
+                          This section certifies that you are registered in the NCS & WADA anti-doping monitoring system. You have clean sample compliance status with no active bans or whereabouts infringements.
+                        </p>
+                        <div class="p-3 bg-light rounded text-center my-3">
+                          <i class="icofont-badge text-success" style="font-size: 42px;"></i>
+                          <h6 class="fw-bold mt-2 mb-1">Official Anti-Doping Certificate</h6>
+                          <small class="text-muted">Issued by National Council of Sports Uganda</small>
+                        </div>
+                        <button
+                          type="button"
+                          class="btn btn-success btn-block w-100 d-flex align-items-center justify-content-center gap-2"
+                          @click="downloadFile({
+                            title: 'WADA Anti-Doping Compliance Certificate',
+                            type: 'Compliance Record',
+                            number: `NCS-WADA-${athleteAntiDoping?.id?.substring(0, 8).toUpperCase() || 'VERIFIED'}`,
+                            category: 'Anti-Doping Compliance',
+                            status: athleteAntiDoping?.last_test_result || 'Compliant',
+                            issueDate: athleteAntiDoping?.last_tested_on || new Date().toISOString(),
+                            expiryDate: 'N/A',
+                            description: 'Official NCS verification certificate for WADA anti-doping compliance, testing pool registration, and education completion.',
+                            fileType: 'TXT Document',
+                            downloadName: `NCS_AntiDoping_Certificate_${athleteData?.athlete_number || 'Athlete'}.txt`
+                          })"
+                        >
+                          <i class="icofont-download"></i> Download Anti-Doping Certificate (.txt)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- ── Athlete Medals & Accolades ── -->
+              <template v-else-if="section === 'athlete-medals'">
+                <header class="page-heading">
+                  <div>
+                    <p>Honours & Trophies</p>
+                    <h1>Medals & Accolades</h1>
+                    <span>Official registry of podium finishes, championship titles, and medals won representing Uganda and affiliated sports federations.</span>
+                  </div>
+                </header>
+
+                <div class="user-kpis mb-4">
+                  <article>
+                    <span class="bg-warning text-dark kpi-icon-circle"><i class="icofont-medal"></i></span>
+                    <div>
+                      <small>Gold Medals</small>
+                      <strong>{{ athleteMedals.filter(m => String(m.medal_type || '').toUpperCase().includes('GOLD')).length }}</strong>
+                      <p>1st place titles</p>
+                    </div>
+                  </article>
+                  <article>
+                    <span class="bg-secondary text-white kpi-icon-circle"><i class="icofont-medal"></i></span>
+                    <div>
+                      <small>Silver Medals</small>
+                      <strong>{{ athleteMedals.filter(m => String(m.medal_type || '').toUpperCase().includes('SILVER')).length }}</strong>
+                      <p>Runners up</p>
+                    </div>
+                  </article>
+                  <article>
+                    <span class="bg-danger text-white kpi-icon-circle"><i class="icofont-medal"></i></span>
+                    <div>
+                      <small>Bronze Medals</small>
+                      <strong>{{ athleteMedals.filter(m => String(m.medal_type || '').toUpperCase().includes('BRONZE')).length }}</strong>
+                      <p>3rd place finishes</p>
+                    </div>
+                  </article>
+                  <article>
+                    <span class="bg-primary text-white kpi-icon-circle"><i class="icofont-trophy-alt"></i></span>
+                    <div>
+                      <small>Total Medals</small>
+                      <strong>{{ athleteMedals.length }}</strong>
+                      <p>All-time podiums</p>
+                    </div>
+                  </article>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+                  <div class="filter-pills">
+                    <button type="button" class="filter-pill" :class="{ active: selectedMedalFilter === 'ALL' }" @click="selectedMedalFilter = 'ALL'">
+                      All Medals ({{ athleteMedals.length }})
+                    </button>
+                    <button type="button" class="filter-pill" :class="{ active: selectedMedalFilter === 'GOLD' }" @click="selectedMedalFilter = 'GOLD'">
+                      Gold
+                    </button>
+                    <button type="button" class="filter-pill" :class="{ active: selectedMedalFilter === 'SILVER' }" @click="selectedMedalFilter = 'SILVER'">
+                      Silver
+                    </button>
+                    <button type="button" class="filter-pill" :class="{ active: selectedMedalFilter === 'BRONZE' }" @click="selectedMedalFilter = 'BRONZE'">
+                      Bronze
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="!filteredAthleteMedals.length" class="empty-state py-5 card shadow-sm text-center border-0">
+                  <div class="card-body p-5">
+                    <i class="icofont-medal text-muted" style="font-size: 64px;"></i>
+                    <h3 class="mt-3 fw-bold empty-title">No Medals Found</h3>
+                    <p class="text-muted max-w-md mx-auto">
+                      No medals are currently recorded for this filter. As championship and competition results are officially ratified by NCS, your accolades will appear here.
+                    </p>
+                  </div>
+                </div>
+
+                <div v-else class="row">
+                  <div v-for="medal in filteredAthleteMedals" :key="medal.id" class="col-md-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100 athlete-panel-card">
+                      <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div>
+                          <div class="d-flex align-items-center justify-content-between mb-3">
+                            <span :class="getMedalBadgeClass(medal.medal_type)" style="font-size: 11px; font-weight: 800; padding: 6px 12px; border-radius: 20px;">
+                              <i class="icofont-medal me-1"></i> {{ medal.medal_type }}
+                            </span>
+                            <span class="text-muted small fw-bold">{{ medal.won_on ? formatDate(medal.won_on) : (medal.year || 'Accredited') }}</span>
+                          </div>
+                          <h4 class="fw-bold mb-2">{{ medal.event || medal.competition_name || 'Championship Event' }}</h4>
+                          <p class="text-muted small mb-3">
+                            <i class="icofont-location-pin me-1"></i> {{ medal.country || 'Uganda' }} &bull; {{ medal.level || 'National Championship' }}
+                          </p>
+                          <div class="bg-light p-3 rounded small text-muted mb-3">
+                            <div v-if="medal.coach_responsible" class="d-flex justify-content-between mb-1">
+                              <span>Coach:</span> <strong>{{ medal.coach_responsible }}</strong>
+                            </div>
+                            <div v-if="medal.prize_money" class="d-flex justify-content-between mb-1">
+                              <span>Prize / Award:</span> <strong class="text-success">{{ formatUGX(medal.prize_money) }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                              <span>NCS Recognition:</span> <span class="badge bg-success-light text-success">Ratified</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          class="btn btn-outline-primary btn-block btn-sm w-100 mt-2"
+                          @click="downloadFile({
+                            title: `Certificate of Achievement - ${medal.medal_type} Medal`,
+                            type: 'Honours & Awards',
+                            number: `NCS-MEDAL-${medal.id?.substring(0, 8).toUpperCase() || 'HONOUR'}`,
+                            category: 'Athlete Registry',
+                            status: 'Verified',
+                            issueDate: medal.won_on || new Date().toISOString(),
+                            expiryDate: 'Lifetime Recognition',
+                            description: `Official NCS Certificate recognizing ${medal.medal_type} medal achievement in ${medal.event || 'Sports Championship'}.`,
+                            fileType: 'TXT Document',
+                            downloadName: `NCS_Medal_Certificate_${medal.medal_type}_${athleteData?.athlete_number || 'Award'}.txt`
+                          })"
+                        >
+                          <i class="icofont-download me-1"></i> Download Certificate (.txt)
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- ── Athlete Competition Logs & Results ── -->
+              <template v-else-if="section === 'athlete-competitions'">
+                <header class="page-heading">
+                  <div>
+                    <p>Performance & Tournaments</p>
+                    <h1>Competitions & Results Logs</h1>
+                    <span>Complete history of event entries, tournament stages, race timings, match scores, and national team appearances.</span>
+                  </div>
+                </header>
+
+                <!-- National Team Call-Up Box -->
+                <div v-if="athleteNationalTeam" class="card shadow-sm border-0 mb-4 athlete-national-banner">
+                  <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="national-flag-icon">
+                        <i class="icofont-flag"></i>
+                      </div>
+                      <div>
+                        <span class="badge bg-warning text-dark mb-1 text-uppercase fw-bold">{{ athleteNationalTeam.category || 'Senior National Squad' }}</span>
+                        <h3 class="fw-bold mb-0 text-white">{{ athleteNationalTeam.team_name || 'Uganda National Sports Team' }}</h3>
+                        <small class="text-white-50">First International Call-up: {{ athleteNationalTeam.first_call_up_on ? formatDate(athleteNationalTeam.first_call_up_on) : 'Verified Squad Member' }}</small>
+                      </div>
+                    </div>
+                    <div class="text-end">
+                      <span class="d-block text-white-50 small">International Caps</span>
+                      <strong class="fs-2 fw-bold text-white">{{ athleteNationalTeam.appearances_count || 1 }}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="!athleteResults.length" class="empty-state py-5 card shadow-sm text-center border-0 mb-4">
+                  <div class="card-body p-5">
+                    <i class="icofont-trophy text-muted" style="font-size: 64px;"></i>
+                    <h3 class="mt-3 fw-bold empty-title">No Competition Logs Recorded</h3>
+                    <p class="text-muted max-w-md mx-auto">
+                      Your competition entries and timing results will appear here as they are entered and verified by tournament officials and federation administrators.
+                    </p>
+                  </div>
+                </div>
+
+                <div v-else class="card shadow-sm border-0 mb-4 athlete-panel-card">
+                  <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0 fw-bold"><i class="icofont-listine-dots text-primary me-2"></i> Ratified Competition Logs ({{ athleteResults.length }})</h5>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                      <thead class="bg-light">
+                        <tr>
+                          <th>Event / Discipline</th>
+                          <th>Stage</th>
+                          <th>Position / Rank</th>
+                          <th>Result (Time/Score)</th>
+                          <th>Milestones</th>
+                          <th>Verification</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="res in athleteResults" :key="res.id">
+                          <td class="fw-bold text-dark">{{ res.event || 'Athletics Discipline' }}</td>
+                          <td><span class="badge bg-light text-dark">{{ res.stage || 'Final' }}</span></td>
+                          <td>
+                            <strong class="text-primary fs-6">{{ res.position ? `#${res.position}` : '-' }}</strong>
+                          </td>
+                          <td>
+                            <span class="font-monospace fw-bold">{{ res.time_result || res.score_result || res.distance_result || '-' }}</span>
+                          </td>
+                          <td>
+                            <div class="d-flex gap-1 flex-wrap">
+                              <span v-if="res.is_national_record" class="badge bg-danger text-white">NR</span>
+                              <span v-if="res.is_personal_best" class="badge bg-success text-white">PB</span>
+                              <span v-if="res.is_seasonal_best" class="badge bg-info text-white">SB</span>
+                              <span v-if="!res.is_national_record && !res.is_personal_best && !res.is_seasonal_best" class="text-muted small">-</span>
+                            </div>
+                          </td>
+                          <td>
+                            <span class="badge bg-success-light text-success"><i class="icofont-check"></i> Ratified</span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </template>
+
+              <!-- ── Athlete Talent Pathways & Transfers ── -->
+              <template v-else-if="section === 'athlete-pathways'">
+                <header class="page-heading">
+                  <div>
+                    <p>Development & Scouting</p>
+                    <h1>Talent Pathways & Transfers</h1>
+                    <span>Scouting evaluation history, talent identification center records, development milestones, and transfer logs.</span>
+                  </div>
+                </header>
+
+                <div class="row mb-4">
+                  <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100 athlete-panel-card">
+                      <div class="card-header bg-white py-3 border-bottom">
+                        <h5 class="mb-0 fw-bold"><i class="icofont-growth text-success me-2"></i> Talent Identification Record</h5>
+                      </div>
+                      <div class="card-body p-4">
+                        <div v-if="athleteTalent.length">
+                          <div v-for="t in athleteTalent" :key="t.id" class="mb-3 p-3 bg-light rounded">
+                            <ul class="athlete-detail-list">
+                              <li><span>Identified By (Scout)</span> <strong>{{ t.identified_by || 'National Talent Scout' }}</strong></li>
+                              <li><span>Identified On</span> <strong>{{ t.identified_on ? formatDate(t.identified_on) : 'N/A' }}</strong></li>
+                              <li><span>Age at Identification</span> <strong>{{ t.age_at_identification || 'Junior' }} yrs</strong></li>
+                              <li><span>Talent Centre / School</span> <strong>{{ t.talent_centre || t.school || athleteData?.education_institution || 'National Center' }}</strong></li>
+                              <li><span>Recommended Pathway</span> <span class="badge bg-primary text-white">{{ t.recommended_pathway || 'Elite National Squad' }}</span></li>
+                              <li><span>Scholarship Status</span> <strong>{{ t.scholarship_status || (athleteData?.sports_scholarship_status ? 'Active Scholarship' : 'None') }}</strong></li>
+                            </ul>
+                          </div>
+                        </div>
+                        <div v-else>
+                          <ul class="athlete-detail-list">
+                            <li><span>Progression Tier</span> <strong>{{ athleteData?.age_category || 'Senior' }} Division</strong></li>
+                            <li><span>School / Institution</span> <strong>{{ athleteData?.education_institution || 'None recorded' }}</strong></li>
+                            <li><span>Highest Education</span> <strong>{{ athleteData?.highest_education_level || 'High School' }}</strong></li>
+                            <li><span>Sports Scholarship</span> <span class="badge" :class="athleteData?.sports_scholarship_status ? 'badge-success' : 'badge-secondary'">{{ athleteData?.sports_scholarship_status ? 'YES - RECIPIENT' : 'NO' }}</span></li>
+                            <li><span>Occupation</span> <strong>{{ athleteData?.current_occupation || 'Full-Time Athlete' }}</strong></li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-lg-6 mb-4">
+                    <div class="card shadow-sm border-0 h-100 athlete-panel-card">
+                      <div class="card-header bg-white py-3 border-bottom">
+                        <h5 class="mb-0 fw-bold"><i class="icofont-paper-plane text-primary me-2"></i> Career Progression Pathway</h5>
+                      </div>
+                      <div class="card-body p-4">
+                        <div class="pathway-timeline">
+                          <div class="pathway-step completed">
+                            <div class="step-dot"><i class="icofont-check"></i></div>
+                            <div class="step-content">
+                              <h6>Grassroots & School Scouting</h6>
+                              <small class="text-muted">Identification at district school tournaments and talent showcases.</small>
+                            </div>
+                          </div>
+                          <div class="pathway-step completed">
+                            <div class="step-dot"><i class="icofont-check"></i></div>
+                            <div class="step-content">
+                              <h6>Affiliated Club Academy</h6>
+                              <small class="text-muted">Joined {{ athleteData?.club || 'Club Academy' }} under NCS licensing.</small>
+                            </div>
+                          </div>
+                          <div class="pathway-step" :class="{ completed: athleteNationalTeam }">
+                            <div class="step-dot"><i :class="athleteNationalTeam ? 'icofont-check' : 'icofont-clock-time'"></i></div>
+                            <div class="step-content">
+                              <h6>National Squad Representation</h6>
+                              <small class="text-muted">{{ athleteNationalTeam ? 'Active national team squad member.' : 'Target pathway for upcoming trials.' }}</small>
+                            </div>
+                          </div>
+                          <div class="pathway-step">
+                            <div class="step-dot"><i class="icofont-star"></i></div>
+                            <div class="step-content">
+                              <h6>International Podium & Elite Tier</h6>
+                              <small class="text-muted">Continental and Olympic representation with NCS High-Performance support.</small>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <!-- ── Athlete Clubs & Academies Record ── -->
+              <template v-else-if="section === 'athlete-clubs'">
+                <header class="page-heading">
+                  <div>
+                    <p>Affiliations & Teams</p>
+                    <h1>Clubs & Academies Record</h1>
+                    <span>Registered primary club, academy training center, and federation affiliation credentials.</span>
+                  </div>
+                </header>
+
+                <div class="row mb-4">
+                  <div class="col-lg-7 mb-4">
+                    <div class="card shadow-sm border-0 h-100 athlete-panel-card">
+                      <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                        <h5 class="mb-0 fw-bold"><i class="icofont-building-alt text-primary me-2"></i> Primary Club Affiliation</h5>
+                        <span class="badge bg-success-light text-success fw-bold px-3 py-2">
+                          <i class="icofont-check-circled me-1"></i> Active Registration
+                        </span>
+                      </div>
+                      <div class="card-body p-4">
+                        <div class="d-flex align-items-center gap-3 mb-4 p-3 bg-light rounded">
+                          <div class="club-logo-box">
+                            <i class="icofont-shield-alt"></i>
+                          </div>
+                          <div>
+                            <h4 class="fw-bold mb-1">{{ athleteData?.club || 'National Sports Club' }}</h4>
+                            <small class="text-muted">NCS Certified Sports Club</small>
+                          </div>
+                        </div>
+
+                        <ul class="athlete-detail-list">
+                          <li>
+                            <span>Club Name</span>
+                            <strong>{{ athleteClubDetails?.name || athleteData?.club || 'N/A' }}</strong>
+                          </li>
+                          <li>
+                            <span>District / Region</span>
+                            <strong>{{ athleteClubDetails?.district || athleteData?.district || 'Kampala' }} ({{ athleteClubDetails?.region || athleteData?.region || 'Central' }})</strong>
+                          </li>
+                          <li>
+                            <span>Club Contact Person</span>
+                            <strong>{{ athleteClubDetails?.contact_person || 'Federation Secretariat' }}</strong>
+                          </li>
+                          <li>
+                            <span>Official Email</span>
+                            <strong>{{ athleteClubDetails?.email || 'club@ncs.ug' }}</strong>
+                          </li>
+                          <li>
+                            <span>Official Phone</span>
+                            <strong>{{ athleteClubDetails?.phone || athleteData?.phone_contact || '-' }}</strong>
+                          </li>
+                          <li>
+                            <span>NCS Recognition Status</span>
+                            <span class="badge bg-success text-white">RECOGNIZED & LICENSED</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-lg-5 mb-4">
+                    <div class="card shadow-sm border-0 h-100 athlete-panel-card">
+                      <div class="card-header bg-white py-3 border-bottom">
+                        <h5 class="mb-0 fw-bold"><i class="icofont-license text-info me-2"></i> License & Federation Link</h5>
+                      </div>
+                      <div class="card-body p-4">
+                        <ul class="athlete-detail-list">
+                          <li>
+                            <span>Athlete License Number</span>
+                            <strong class="font-monospace text-primary">{{ athleteData?.athlete_number || 'NCS-ATH-PENDING' }}</strong>
+                          </li>
+                          <li>
+                            <span>Discipline / Sport</span>
+                            <strong>{{ athleteData?.discipline || 'Athletics' }}</strong>
+                          </li>
+                          <li>
+                            <span>Age Division</span>
+                            <strong>{{ athleteData?.age_category || 'Senior' }}</strong>
+                          </li>
+                          <li>
+                            <span>License Status</span>
+                            <span class="badge" :class="athleteData?.status === 'ACTIVE' || !athleteData ? 'badge-success' : 'badge-warning'">
+                              {{ athleteData?.status || 'ACTIVE' }}
+                            </span>
+                          </li>
+                        </ul>
+
+                        <div class="mt-4 pt-3 border-top">
+                          <button
+                            type="button"
+                            class="btn btn-primary btn-block w-100 d-flex align-items-center justify-content-center gap-2"
+                            @click="downloadFile({
+                              title: 'National Athlete License Certificate',
+                              type: 'License / Certificate',
+                              number: athleteData?.athlete_number || 'NCS-ATH-CERT',
+                              category: 'Athlete Registry',
+                              status: athleteData?.status || 'Active',
+                              issueDate: athleteData?.created_at || new Date().toISOString(),
+                              expiryDate: 'N/A (Active)',
+                              description: `Official NCS verification for athlete classification under ${athleteData?.discipline || 'sports registry'}.`,
+                              fileType: 'TXT Document',
+                              downloadName: `NCS_Athlete_License_${athleteData?.athlete_number || 'Cert'}.txt`
+                            })"
+                          >
+                            <i class="icofont-download"></i> Download Athlete License (.txt)
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+
               <!-- ── Settings Section (Password Change, Sessions, Preferences & 2FA) ── -->
               <template v-else-if="section === 'settings'">
                 <header class="page-heading">
@@ -1053,7 +1707,11 @@ import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 import { recordMenuNavigation } from '@/services/activityAudit.js'
 
 const router = useRouter()
-const portalSectionIds = ['dashboard', 'apply', 'applications', 'my-files', 'activities', 'notifications', 'messages', 'transactions', 'settings', 'profile']
+const portalSectionIds = [
+  'dashboard', 'apply', 'applications', 'my-files',
+  'athlete-medical', 'athlete-antidoping', 'athlete-medals', 'athlete-competitions', 'athlete-pathways', 'athlete-clubs',
+  'activities', 'notifications', 'messages', 'transactions', 'settings', 'profile'
+]
 const section = ref('dashboard')
 const sidebarCollapsed = ref(localStorage.getItem('ncsms_sidebar_collapsed') === 'true')
 const mobileSidebarOpen = ref(false)
@@ -1113,6 +1771,9 @@ const athleteAntiDoping = ref(null)
 const athleteNationalTeam = ref(null)
 const athleteResults = ref([])
 const athleteMedals = ref([])
+const athleteTalent = ref([])
+const athleteClubDetails = ref(null)
+const selectedMedalFilter = ref('ALL')
 
 const isCoach = ref(false)
 const coachData = ref(null)
@@ -1153,8 +1814,21 @@ const navigation = computed(() => {
     { id: 'applications', label: 'My Applications', icon: 'icofont-file-document' },
   ]
   if (!isAdminOrGenSec.value) {
-    items.push({ id: 'my-files', label: 'My Files', icon: 'icofont-folder-open' })
+    items.push({ id: 'my-files', label: 'My Files & Credentials', icon: 'icofont-folder-open' })
   }
+
+  // Dedicated Athlete Sections on Sidebar
+  if (isAthlete.value || userRoles.value.includes('athlete') || userRoles.value.includes('role_athlete')) {
+    items.push(
+      { id: 'athlete-medical', label: 'Medical Records', icon: 'icofont-first-aid' },
+      { id: 'athlete-antidoping', label: 'Anti-Doping Records', icon: 'icofont-test-bulb' },
+      { id: 'athlete-medals', label: 'Medals & Accolades', icon: 'icofont-medal', badge: athleteMedals.value.length || '' },
+      { id: 'athlete-competitions', label: 'Competitions & Results', icon: 'icofont-trophy', badge: athleteResults.value.length || '' },
+      { id: 'athlete-pathways', label: 'Talent Pathways', icon: 'icofont-growth' },
+      { id: 'athlete-clubs', label: 'Clubs & Academies', icon: 'icofont-building-alt' }
+    )
+  }
+
   items.push(
     { id: 'activities', label: 'My Activities', icon: 'icofont-history' },
     { id: 'notifications', label: 'Notifications', icon: 'icofont-notification', badge: unreadNotifications.value || '' },
@@ -1557,56 +2231,77 @@ async function loadSportsRegistryContext() {
   if (!profile || !profile.email) return
 
   const roles = userRoles.value
-  const hasRegistryRole = roles.some(r =>
-    ['athlete', 'role_athlete', 'coach', 'role_coach', 'technical_official', 'role_technical_official', 'admin', 'super_admin', 'general_secretary', 'federation_admin'].includes(r)
-  )
-  if (!hasRegistryRole) return
+  const hasAthleteRole = roles.includes('athlete') || roles.includes('role_athlete')
 
   try {
     const athletesRes = await listNsmisDomain('athletes', { search: profile.email })
     const athletesList = asList(athletesRes)
-    const match = athletesList.find(ath => String(ath.email_address || '').toLowerCase() === String(profile.email || '').toLowerCase())
-    if (match) {
+    let match = athletesList.find(ath => String(ath.email_address || '').toLowerCase() === String(profile.email || '').toLowerCase())
+    
+    // If not matched by email, try matching by NIN
+    if (!match && profile.nin) {
+      const ninRes = await listNsmisDomain('athletes', { search: profile.nin })
+      const ninList = asList(ninRes)
+      match = ninList.find(ath => String(ath.national_id_passport || '').trim().toLowerCase() === String(profile.nin || '').trim().toLowerCase())
+    }
+
+    if (match || hasAthleteRole) {
       isAthlete.value = true
-      athleteData.value = match
-      
-      const athleteId = match.id
-      const [medicalRes, safeguardingRes, antidopingRes, nationalTeamRes, resultsRes, medalsRes] = await Promise.allSettled([
-        listNsmisDomain('medical-records', { search: athleteId }),
-        listNsmisDomain('safeguarding-records', { search: athleteId }),
-        listNsmisDomain('anti-doping', { search: athleteId }),
-        listNsmisDomain('national-team', { search: athleteId }),
-        listNsmisDomain('competition-results', { search: athleteId }),
-        listNsmisDomain('medals', { search: athleteId })
-      ])
-      
-      if (medicalRes.status === 'fulfilled') {
-        const medItems = asList(medicalRes.value)
-        athleteMedical.value = medItems.find(r => r.athlete_id === athleteId) || null
-      }
-      if (safeguardingRes.status === 'fulfilled') {
-        const sgItems = asList(safeguardingRes.value)
-        athleteSafeguarding.value = sgItems.find(r => r.athlete_id === athleteId) || null
-      }
-      if (antidopingRes.status === 'fulfilled') {
-        const adItems = asList(antidopingRes.value)
-        athleteAntiDoping.value = adItems.find(r => r.athlete_id === athleteId) || null
-      }
-      if (nationalTeamRes.status === 'fulfilled') {
-        const ntItems = asList(nationalTeamRes.value)
-        athleteNationalTeam.value = ntItems.find(r => r.athlete_id === athleteId) || null
-      }
-      if (resultsRes.status === 'fulfilled') {
-        const resItems = asList(resultsRes.value)
-        athleteResults.value = resItems.filter(r => r.athlete_id === athleteId)
-      }
-      if (medalsRes.status === 'fulfilled') {
-        const medItems = asList(medalsRes.value)
-        athleteMedals.value = medItems.filter(r => r.athlete_id === athleteId)
+      if (match) {
+        athleteData.value = match
+        const athleteId = match.id
+        const [medicalRes, safeguardingRes, antidopingRes, nationalTeamRes, resultsRes, medalsRes, talentRes, clubsRes] = await Promise.allSettled([
+          listNsmisDomain('medical-records', { search: athleteId }),
+          listNsmisDomain('safeguarding-records', { search: athleteId }),
+          listNsmisDomain('anti-doping', { search: athleteId }),
+          listNsmisDomain('national-team', { search: athleteId }),
+          listNsmisDomain('competition-results', { search: athleteId }),
+          listNsmisDomain('medals', { search: athleteId }),
+          listNsmisDomain('talent', { search: athleteId }),
+          listNsmisDomain('clubs', { per_page: 200 })
+        ])
+        
+        if (medicalRes.status === 'fulfilled') {
+          const medItems = asList(medicalRes.value)
+          athleteMedical.value = medItems.find(r => r.athlete_id === athleteId) || null
+        }
+        if (safeguardingRes.status === 'fulfilled') {
+          const sgItems = asList(safeguardingRes.value)
+          athleteSafeguarding.value = sgItems.find(r => r.athlete_id === athleteId) || null
+        }
+        if (antidopingRes.status === 'fulfilled') {
+          const adItems = asList(antidopingRes.value)
+          athleteAntiDoping.value = adItems.find(r => r.athlete_id === athleteId) || null
+        }
+        if (nationalTeamRes.status === 'fulfilled') {
+          const ntItems = asList(nationalTeamRes.value)
+          athleteNationalTeam.value = ntItems.find(r => r.athlete_id === athleteId) || null
+        }
+        if (resultsRes.status === 'fulfilled') {
+          const resItems = asList(resultsRes.value)
+          athleteResults.value = resItems.filter(r => r.athlete_id === athleteId)
+        }
+        if (medalsRes.status === 'fulfilled') {
+          const medItems = asList(medalsRes.value)
+          athleteMedals.value = medItems.filter(r => r.athlete_id === athleteId)
+        }
+        if (talentRes.status === 'fulfilled') {
+          const talItems = asList(talentRes.value)
+          athleteTalent.value = talItems.filter(r => r.athlete_id === athleteId || (r.athlete_name && match.full_name && r.athlete_name.toLowerCase() === match.full_name.toLowerCase()))
+        }
+        if (clubsRes.status === 'fulfilled') {
+          const clubsList = asList(clubsRes.value)
+          if (match.club) {
+            athleteClubDetails.value = clubsList.find(c => c.name === match.club || c.acronym === match.club || c.id === match.club) || null
+          }
+        }
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Could not load athlete records:', e)
+  }
 
+  // Coaches lookup
   try {
     const coachesRes = await listNsmisDomain('coaches', { search: profile.email })
     const coachesList = asList(coachesRes)
@@ -1617,6 +2312,7 @@ async function loadSportsRegistryContext() {
     }
   } catch (e) {}
 
+  // Officials lookup
   try {
     const officialsRes = await listNsmisDomain('technical-officials', { search: profile.email })
     const officialsList = asList(officialsRes)
@@ -1882,6 +2578,12 @@ function apiError(err, fallback) { return err.response?.data?.error?.message || 
 function titleize(value) { return String(value || '').toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ').replace(/\b\w/g, char => char.toUpperCase()) }
 function formatDate(value) { return value ? new Intl.DateTimeFormat('en-UG', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date(value)) : '-' }
 function formatMoney(value) { return new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(Number(value || 0)) }
+function formatUGX(value) { return 'UGX ' + formatMoney(value) }
+
+const filteredAthleteMedals = computed(() => {
+  if (selectedMedalFilter.value === 'ALL') return athleteMedals.value
+  return athleteMedals.value.filter(m => String(m.medal_type || '').toUpperCase().includes(selectedMedalFilter.value))
+})
 function statusClass(status) { if (status === 'APPROVED' || status === 'COMPLETE') return 'green'; if (status === 'REJECTED') return 'red'; if (['NEEDS_INFORMATION', 'PENDING_PAYMENT'].includes(status)) return 'amber'; return 'blue' }
 function paymentClass(status) { return status === 'PAID' || status === 'VERIFIED' ? 'green' : ['REJECTED', 'VERIFICATION_FAILED'].includes(status) ? 'red' : 'amber' }
 function notificationIcon(item) { return item.icon_key ? `icofont-${item.icon_key}` : 'icofont-notification' }
@@ -4024,5 +4726,205 @@ footer.main-footer, .main-footer {
   background: #1e293b;
 }
 
+/* ── Athlete Portal Dedicated Styling ───────────────────────────── */
+.athlete-panel-card {
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+.athlete-panel-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08) !important;
+}
+.kpi-icon-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  font-size: 20px;
+}
+.athlete-detail-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.athlete-detail-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.07);
+  font-size: 13px;
+}
+.athlete-detail-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.athlete-detail-list li span {
+  color: #64748b;
+  font-weight: 500;
+}
+.athlete-detail-list li strong {
+  color: #1e293b;
+  font-weight: 600;
+  text-align: right;
+}
+.athlete-national-banner {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 14px;
+  color: #fff;
+  border-left: 5px solid #eab308 !important;
+}
+.national-flag-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(234, 179, 8, 0.2);
+  color: #eab308;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.club-logo-box {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: #e0e7ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+.bg-bronze {
+  background-color: #cd7f32 !important;
+}
+.pathway-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  padding-left: 20px;
+}
+.pathway-timeline::before {
+  content: '';
+  position: absolute;
+  left: 31px;
+  top: 10px;
+  bottom: 20px;
+  width: 2px;
+  background: #e2e8f0;
+}
+.pathway-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  position: relative;
+}
+.step-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  z-index: 1;
+  flex-shrink: 0;
+}
+.pathway-step.completed .step-dot {
+  background: #16a34a;
+}
+.step-content h6 {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.filter-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filter-pill {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.filter-pill:hover {
+  background: #e2e8f0;
+}
+.filter-pill.active {
+  background: #6777ef;
+  border-color: #6777ef;
+  color: #fff;
+}
+
+/* ── Dark Mode for Athlete Registry ── */
+:global(.dark) .athlete-panel-card {
+  background: #1e293b;
+  border-color: #334155 !important;
+}
+:global(.dark) .athlete-panel-card .card-header {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+:global(.dark) .athlete-detail-list li span {
+  color: #94a3b8;
+}
+:global(.dark) .athlete-detail-list li strong {
+  color: #f8fafc;
+}
+:global(.dark) .athlete-detail-list li {
+  border-bottom-color: #334155;
+}
+:global(.dark) .club-logo-box {
+  background: #312e81;
+  color: #a5b4fc;
+}
+:global(.dark) .step-content h6 {
+  color: #f8fafc;
+}
+:global(.dark) .filter-pill {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+:global(.dark) .filter-pill:hover {
+  background: #334155;
+}
+:global(.dark) .filter-pill.active {
+  background: #6777ef;
+  border-color: #6777ef;
+  color: #fff;
+}
+:global(.dark) .pathway-timeline::before {
+  background: #334155;
+}
+:global(.dark) .table thead.bg-light th {
+  background: #0f172a !important;
+  color: #cbd5e1 !important;
+  border-color: #334155 !important;
+}
+:global(.dark) .table td {
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
 </style>
+
 

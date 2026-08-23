@@ -44,8 +44,11 @@ func domainPermission(resource string, write bool) []string {
 	return []string{
 		permResource + ":read:own",
 		permResource + ":read:any",
+		"athletes:read:own",
+		"athletes:read:any",
 		"reports:read:own",
 		"reports:read:any",
+		"dashboard:read",
 	}
 }
 
