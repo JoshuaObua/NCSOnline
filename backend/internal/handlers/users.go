@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
@@ -162,6 +163,11 @@ func (h *UsersHandler) Create(w http.ResponseWriter, r *http.Request) {
 			response.Err(w, http.StatusConflict, "EMAIL_TAKEN", "Email is already registered")
 			return
 		}
+		// NIN duplicate surfaces as a plain error string from the service
+		if strings.Contains(err.Error(), "NIN") && strings.Contains(err.Error(), "already registered") {
+			response.Err(w, http.StatusConflict, "NIN_TAKEN", err.Error())
+			return
+		}
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
 		return
 	}
@@ -213,6 +219,10 @@ func (h *UsersHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
+		if strings.Contains(err.Error(), "NIN") && strings.Contains(err.Error(), "already registered") {
+			response.Err(w, http.StatusConflict, "NIN_TAKEN", err.Error())
+			return
+		}
 		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", "Could not update user")
 		return
 	}

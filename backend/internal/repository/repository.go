@@ -268,6 +268,28 @@ func (r *UserRepo) Update(ctx context.Context, u *models.User) error {
 	return err
 }
 
+// CheckNINUnique returns ErrDuplicate if another user (not excludeUserID) already has the given NIN.
+// Pass excludeUserID = "" when creating a new user.
+func (r *UserRepo) CheckNINUnique(ctx context.Context, nin, excludeUserID string) error {
+	if nin == "" {
+		return nil // NIN is optional; empty NIN is always allowed
+	}
+	const q = `SELECT EXISTS(
+		SELECT 1 FROM users
+		WHERE nin = $1
+		  AND deleted_at IS NULL
+		  AND ($2 = '' OR id != $2)
+	)`
+	var exists bool
+	if err := r.db.QueryRow(ctx, q, nin, excludeUserID).Scan(&exists); err != nil {
+		return fmt.Errorf("nin uniqueness check: %w", err)
+	}
+	if exists {
+		return ErrDuplicate
+	}
+	return nil
+}
+
 func (r *UserRepo) UpdatePassword(ctx context.Context, userID, hash string) error {
 	const q = `UPDATE users SET password_hash=$2, auth_invalid_before=date_trunc('second', NOW()), updated_at=NOW()
 	           WHERE id=$1 AND deleted_at IS NULL`

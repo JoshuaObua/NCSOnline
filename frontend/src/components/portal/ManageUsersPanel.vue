@@ -135,10 +135,20 @@
                   <span
                     v-for="role in user.roles || []"
                     :key="role.id || role.name"
-                    class="role-pill"
+                    class="role-pill role-pill-revokable"
                     :class="getRolePillClass(role.name || role)"
                   >
                     {{ role.name || role }}
+                    <button
+                      type="button"
+                      class="revoke-inline-btn"
+                      title="Revoke this role"
+                      :disabled="savingRole === role.id"
+                      @click.stop="quickRevokeRole(user, role)"
+                    >
+                      <i v-if="savingRole === role.id" class="icofont-spinner icofont-spin"></i>
+                      <i v-else class="icofont-close-line"></i>
+                    </button>
                   </span>
                   <span v-if="!(user.roles || []).length" class="no-roles-badge">No roles</span>
                   <button type="button" class="btn-icon-link" title="Manage roles" @click="openRolesModal(user)">
@@ -284,69 +294,96 @@
          MODAL 4: MANAGE ROLES MODAL
          ===================================================================== -->
     <div v-if="showRolesModal" class="modal-backdrop" @click.self="showRolesModal = false">
-      <div class="modal-dialog modal-dialog-lg">
+      <div class="modal-dialog modal-dialog-lg roles-modal-dialog">
+        <!-- Sticky header -->
         <header class="modal-header">
           <div>
-            <h3><i class="icofont-shield-alt"></i> Assign Roles</h3>
-            <span class="modal-subhead">{{ activeUser?.first_name }} {{ activeUser?.last_name }} ({{ activeUser?.email }})</span>
+            <h3><i class="icofont-shield-alt"></i> Manage Roles</h3>
+            <span class="modal-subhead">{{ activeUser?.first_name }} {{ activeUser?.last_name }} &mdash; {{ activeUser?.email }}</span>
           </div>
           <button type="button" class="modal-close" @click="showRolesModal = false">&times;</button>
         </header>
-        <div class="modal-content-body">
-          <div class="roles-selection-list">
-            <div
-              v-for="role in roles"
-              :key="role.id"
-              class="role-option-card"
-              :class="{ 'is-assigned': userHasRole(activeUser, role) }"
+
+        <!-- Currently assigned roles summary -->
+        <div v-if="(activeUser?.roles || []).length" class="assigned-roles-summary">
+          <span class="assigned-label"><i class="icofont-check-circled"></i> Assigned:</span>
+          <span
+            v-for="r in (activeUser?.roles || [])"
+            :key="r.id || r.name"
+            class="assigned-role-chip"
+          >
+            {{ r.name || r }}
+            <button
+              type="button"
+              class="chip-revoke-btn"
+              :disabled="savingRole === r.id"
+              title="Revoke"
+              @click="toggleRoleAssignment(activeUser, resolveRoleObject(r))"
             >
-              <div class="role-option-info">
-                <div class="role-title-row">
-                  <strong class="role-name">{{ role.name }}</strong>
-                  <span v-if="role.is_system" class="system-pill">System Role</span>
-                </div>
-                <p class="role-desc">{{ role.description || 'Custom administrative role' }}</p>
+              <i v-if="savingRole === r.id" class="icofont-spinner icofont-spin"></i>
+              <i v-else class="icofont-close-line"></i>
+            </button>
+          </span>
+        </div>
+        <div v-else class="assigned-roles-summary assigned-empty">
+          <i class="icofont-info-circle"></i> No roles assigned yet
+        </div>
+
+        <!-- Scrollable roles list -->
+        <div class="roles-selection-list">
+          <div
+            v-for="role in roles"
+            :key="role.id"
+            class="role-option-card"
+            :class="{ 'is-assigned': userHasRole(activeUser, role) }"
+          >
+            <div class="role-option-info">
+              <div class="role-title-row">
+                <strong class="role-name">{{ role.name }}</strong>
+                <span v-if="role.is_system" class="system-pill">System Role</span>
               </div>
-              <div class="role-action-col">
+              <p class="role-desc">{{ role.description || 'Custom administrative role' }}</p>
+            </div>
+            <div class="role-action-col">
+              <button
+                v-if="userHasRole(activeUser, role)"
+                type="button"
+                class="role-toggle-btn btn-remove-role"
+                :disabled="!!savingRole"
+                @click="toggleRoleAssignment(activeUser, role)"
+              >
+                <i v-if="savingRole === role.id" class="icofont-spinner icofont-spin"></i>
+                <span v-else><i class="icofont-minus-circle"></i> Revoke</span>
+              </button>
+              <div v-else class="role-btn-group">
                 <button
-                  v-if="userHasRole(activeUser, role)"
                   type="button"
-                  class="role-toggle-btn btn-remove-role"
-                  :disabled="savingRole === (role.id || role.name)"
+                  class="role-toggle-btn btn-add-role"
+                  :disabled="!!savingRole"
                   @click="toggleRoleAssignment(activeUser, role)"
                 >
-                  <i v-if="savingRole === (role.id || role.name)" class="icofont-spinner icofont-spin"></i>
-                  <span v-else><i class="icofont-minus-circle"></i> Revoke Role</span>
+                  <i v-if="savingRole === role.id" class="icofont-spinner icofont-spin"></i>
+                  <span v-else><i class="icofont-plus-circle"></i> Assign</span>
                 </button>
-                <div v-else class="role-btn-group">
-                  <button
-                    type="button"
-                    class="role-toggle-btn btn-add-role"
-                    :disabled="savingRole === (role.id || role.name)"
-                    @click="toggleRoleAssignment(activeUser, role)"
-                  >
-                    <i v-if="savingRole === (role.id || role.name)" class="icofont-spinner icofont-spin"></i>
-                    <span v-else><i class="icofont-plus-circle"></i> Assign Role</span>
-                  </button>
-                  <button
-                    v-if="(activeUser?.roles || []).length > 0"
-                    type="button"
-                    class="role-toggle-btn btn-reassign-role"
-                    :disabled="savingRole === (role.id || role.name)"
-                    title="Replace current roles with this role"
-                    @click="reassignUserRole(activeUser, role)"
-                  >
-                    <i class="icofont-refresh"></i> Reassign
-                  </button>
-                </div>
+                <button
+                  v-if="(activeUser?.roles || []).length > 0"
+                  type="button"
+                  class="role-toggle-btn btn-reassign-role"
+                  :disabled="!!savingRole"
+                  title="Replace ALL current roles with this role"
+                  @click="reassignUserRole(activeUser, role)"
+                >
+                  <i class="icofont-refresh"></i> Reassign
+                </button>
               </div>
             </div>
           </div>
-
-          <footer class="modal-footer">
-            <button type="button" class="btn btn-primary" @click="showRolesModal = false">Done</button>
-          </footer>
         </div>
+
+        <!-- Sticky footer -->
+        <footer class="modal-footer roles-modal-footer">
+          <button type="button" class="btn btn-primary" @click="showRolesModal = false">Done</button>
+        </footer>
       </div>
     </div>
   </div>
@@ -565,16 +602,36 @@ function userHasRole(user, role) {
   return (user.roles || []).some(item => (item.id && item.id === role.id) || (item.name || item) === role.name)
 }
 
+// Resolve a role object (which may be a partial {id, name} or just name string) to the full role from the roles list
+function resolveRoleObject(roleOrName) {
+  if (!roleOrName) return null
+  const name = typeof roleOrName === 'object' ? (roleOrName.name || '') : roleOrName
+  const id = typeof roleOrName === 'object' ? (roleOrName.id || '') : ''
+  return roles.value.find(r => r.id === id || r.name === name) || roleOrName
+}
+
+async function quickRevokeRole(user, role) {
+  const fullRole = resolveRoleObject(role)
+  if (!fullRole) return
+  await toggleRoleAssignment(user, fullRole)
+}
+
 async function toggleRoleAssignment(user, role) {
   const isAssigned = userHasRole(user, role)
-  const roleId = role.id || role.name || role
-  savingRole.value = roleId
+  // Always use UUID as the key and for the API call
+  const roleUUID = role.id
+  if (!roleUUID) {
+    localError.value = `Cannot resolve UUID for role '${role.name || role}'. Please refresh and try again.`
+    return
+  }
+  savingRole.value = roleUUID
+  localError.value = ''
   try {
     if (isAssigned) {
-      await cms.adminRemoveUserRole(user.id, roleId)
+      await cms.adminRemoveUserRole(user.id, roleUUID)
       notifySuccess(`Role '${role.name || role}' revoked from ${user.email}.`)
     } else {
-      await cms.adminAssignUserRole(user.id, roleId)
+      await cms.adminAssignUserRole(user.id, roleUUID)
       notifySuccess(`Role '${role.name || role}' assigned to ${user.email}.`)
     }
     // Refresh user in list
@@ -597,17 +654,22 @@ async function toggleRoleAssignment(user, role) {
 }
 
 async function reassignUserRole(user, role) {
-  const roleId = role.id || role.name || role
-  savingRole.value = roleId
+  const roleUUID = role.id
+  if (!roleUUID) {
+    localError.value = `Cannot resolve UUID for role '${role.name || role}'.`
+    return
+  }
+  savingRole.value = roleUUID
+  localError.value = ''
   try {
     const currentRoles = [...(user.roles || [])]
     for (const r of currentRoles) {
-      const curId = typeof r === 'object' ? (r.id || r.name) : r
-      if (curId && curId !== roleId) {
+      const curId = typeof r === 'object' ? (r.id || '') : ''
+      if (curId && curId !== roleUUID) {
         try { await cms.adminRemoveUserRole(user.id, curId) } catch (e) { console.warn('Could not revoke previous role:', e) }
       }
     }
-    await cms.adminAssignUserRole(user.id, roleId)
+    await cms.adminAssignUserRole(user.id, roleUUID)
     notifySuccess(`Role for ${user.email} reassigned to '${role.name || role}'.`)
 
     const res = await cms.adminGetUser(user.id)
@@ -1250,13 +1312,35 @@ function formatDate(isoStr) {
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
-  overflow-y: auto;
+  overflow: hidden;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   animation: modalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Roles modal uses flex-column layout so header/footer are sticky */
+.roles-modal-dialog {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.roles-modal-dialog .modal-header {
+  flex-shrink: 0;
+}
+
+.roles-modal-dialog .roles-selection-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 12px 20px;
+}
+
+.roles-modal-dialog .roles-modal-footer {
+  flex-shrink: 0;
+}
+
 .modal-dialog-lg {
-  max-width: 640px;
+  max-width: 660px;
 }
 
 @keyframes modalFadeIn {
@@ -1431,10 +1515,10 @@ function formatDate(isoStr) {
 .roles-selection-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   max-height: 55vh;
   overflow-y: auto !important;
-  padding-right: 6px;
+  padding: 14px 20px;
   scrollbar-width: thin;
   scrollbar-color: #6777ef #e2e8f0;
 }
@@ -1547,6 +1631,127 @@ function formatDate(isoStr) {
 .btn-remove-role:hover {
   background: #dc2626;
   color: #ffffff;
+}
+
+/* Assigned roles summary bar inside modal */
+.assigned-roles-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.assigned-empty {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.assigned-label {
+  font-weight: 700;
+  color: #059669;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.assigned-role-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 10px;
+  background: #ede9fe;
+  border: 1px solid #c4b5fd;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5b21b6;
+}
+
+.chip-revoke-btn {
+  border: none;
+  background: transparent;
+  color: #7c3aed;
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+
+.chip-revoke-btn:hover:not(:disabled) {
+  color: #dc2626;
+}
+
+/* Inline revoke button inside role pills in the table */
+.role-pill-revokable {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding-right: 5px;
+}
+
+.revoke-inline-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.6;
+  padding: 0 1px;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+
+.revoke-inline-btn:hover:not(:disabled) {
+  opacity: 1;
+  color: #dc2626;
+}
+
+.roles-modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Dark mode for new elements */
+:global(html.dark) .assigned-roles-summary,
+:global(body.dark) .assigned-roles-summary,
+:global([data-theme="dark"]) .assigned-roles-summary {
+  background: #0f172a !important;
+  border-bottom-color: #334155 !important;
+}
+
+:global(html.dark) .assigned-role-chip,
+:global(body.dark) .assigned-role-chip,
+:global([data-theme="dark"]) .assigned-role-chip {
+  background: #2e1065 !important;
+  border-color: #4c1d95 !important;
+  color: #c4b5fd !important;
+}
+
+:global(html.dark) .roles-modal-footer,
+:global(body.dark) .roles-modal-footer,
+:global([data-theme="dark"]) .roles-modal-footer {
+  background: #1e293b !important;
+  border-top-color: #334155 !important;
+}
+
+/* Dark mode for modal-dialog */
+:global(html.dark) .roles-modal-dialog .modal-header,
+:global(body.dark) .roles-modal-dialog .modal-header,
+:global([data-theme="dark"]) .roles-modal-dialog .modal-header {
+  background: #1e293b !important;
 }
 
 /* =====================================================================

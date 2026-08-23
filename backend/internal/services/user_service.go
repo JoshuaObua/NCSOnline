@@ -45,6 +45,14 @@ func (s *UserService) Create(ctx context.Context, in CreateUserInput) (*models.U
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
 
+	// Enforce NIN uniqueness before inserting
+	if err := s.users.CheckNINUnique(ctx, in.NIN, ""); err != nil {
+		if errors.Is(err, repository.ErrDuplicate) {
+			return nil, fmt.Errorf("NIN '%s' is already registered to another user", in.NIN)
+		}
+		return nil, fmt.Errorf("nin check: %w", err)
+	}
+
 	u := &models.User{
 		ID:            uuid.NewString(),
 		Email:         in.Email,
@@ -130,6 +138,17 @@ func (s *UserService) Update(ctx context.Context, id string, in UpdateUserInput)
 	if err != nil {
 		return nil, err
 	}
+
+	// Enforce NIN uniqueness when changing NIN
+	if in.NIN != "" && in.NIN != user.NIN {
+		if err := s.users.CheckNINUnique(ctx, in.NIN, id); err != nil {
+			if errors.Is(err, repository.ErrDuplicate) {
+				return nil, fmt.Errorf("NIN '%s' is already registered to another user", in.NIN)
+			}
+			return nil, fmt.Errorf("nin check: %w", err)
+		}
+	}
+
 	user.FirstName = in.FirstName
 	user.LastName = in.LastName
 	if in.Email != "" {
