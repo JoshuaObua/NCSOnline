@@ -939,6 +939,21 @@ func classifyRequestClient(r *http.Request) string {
 	return parseClientType(r.UserAgent())
 }
 
+// ParseBrowserOS returns (browser, osName) from a User-Agent string.
+func ParseBrowserOS(ua string) (browser, osName string) {
+	return parseBrowserOS(ua)
+}
+
+// ParseDeviceType classifies the device as Mobile, Tablet, Desktop, Bot.
+func ParseDeviceType(ua string) string {
+	return parseDeviceType(ua)
+}
+
+// FormatDeviceInfo merges platform, deviceType, browser, clientType into a clean string.
+func FormatDeviceInfo(platform, deviceType, browser, clientType string) string {
+	return formatDeviceInfo(platform, deviceType, browser, clientType)
+}
+
 func parseDeviceType(ua string) string {
 	lower := strings.ToLower(ua)
 	switch {

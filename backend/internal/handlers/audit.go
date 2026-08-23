@@ -101,6 +101,11 @@ func (h *AuditHandler) RecordFrontendActivity(w http.ResponseWriter, r *http.Req
 	userID, _ := r.Context().Value(models.CtxUserID).(string)
 	userEmail, _ := r.Context().Value(models.CtxUserEmail).(string)
 	uid := userID
+	ua := r.UserAgent()
+	browser, osName := middleware.ParseBrowserOS(ua)
+	deviceType := middleware.ParseDeviceType(ua)
+	deviceInfo := middleware.FormatDeviceInfo(osName, deviceType, browser, "Browser")
+
 	entry := &models.AuditLog{
 		ID:              uuid.NewString(),
 		UserID:          &uid,
@@ -113,10 +118,12 @@ func (h *AuditHandler) RecordFrontendActivity(w http.ResponseWriter, r *http.Req
 		Endpoint:        normalized.Endpoint,
 		IPAddress:       requestIP(r),
 		ForwardedIP:     r.Header.Get("X-Forwarded-For"),
-		UserAgent:       r.UserAgent(),
+		UserAgent:       ua,
+		Browser:         browser,
+		OSName:          osName,
 		ClientType:      "Browser",
-		DeviceInfo:      "Web UI",
-		Platform:        "Web UI",
+		DeviceInfo:      deviceInfo,
+		Platform:        osName,
 		ResponseCode:    http.StatusOK,
 		ResponseTimeMs:  0,
 		EventType:       normalized.EventType,
