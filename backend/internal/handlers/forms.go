@@ -44,15 +44,16 @@ func (h *FormsHandler) ListDepartments(w http.ResponseWriter, r *http.Request) {
 // ── Admin: form templates ────────────────────────────────────────
 
 type formTemplateRequest struct {
-	DepartmentID   string                 `json:"department_id"`
-	Slug           string                 `json:"slug"`
-	Title          string                 `json:"title"`
-	Description    string                 `json:"description"`
-	Sections       json.RawMessage        `json:"sections"`
-	BannerImageURL string                 `json:"banner_image_url"`
-	PriceUGX       float64                `json:"price_ugx"`
-	Status         string                 `json:"status"`
-	Fields         []formTemplateReqField `json:"fields"`
+	DepartmentID          string                 `json:"department_id"`
+	Slug                  string                 `json:"slug"`
+	Title                 string                 `json:"title"`
+	Description           string                 `json:"description"`
+	Sections              json.RawMessage        `json:"sections"`
+	BannerImageURL        string                 `json:"banner_image_url"`
+	PriceUGX              float64                `json:"price_ugx"`
+	AllowedPaymentMethods []string               `json:"allowed_payment_methods"`
+	Status                string                 `json:"status"`
+	Fields                []formTemplateReqField `json:"fields"`
 }
 
 type formTemplateReqField struct {
@@ -68,14 +69,15 @@ type formTemplateReqField struct {
 
 func (req formTemplateRequest) toServiceInput(includeFields bool) services.SaveTemplateInput {
 	in := services.SaveTemplateInput{
-		DepartmentID:   req.DepartmentID,
-		Slug:           req.Slug,
-		Title:          req.Title,
-		Description:    req.Description,
-		Sections:       req.Sections,
-		BannerImageURL: req.BannerImageURL,
-		PriceUGX:       req.PriceUGX,
-		Status:         req.Status,
+		DepartmentID:          req.DepartmentID,
+		Slug:                  req.Slug,
+		Title:                 req.Title,
+		Description:           req.Description,
+		Sections:              req.Sections,
+		BannerImageURL:        req.BannerImageURL,
+		PriceUGX:              req.PriceUGX,
+		AllowedPaymentMethods: req.AllowedPaymentMethods,
+		Status:                req.Status,
 	}
 	if includeFields {
 		in.Fields = make([]*models.FormField, len(req.Fields))
@@ -353,6 +355,138 @@ func (h *FormsHandler) PortalUploadPaymentProof(w http.ResponseWriter, r *http.R
 		return
 	}
 	response.JSONMsg(w, http.StatusOK, "Payment proof recorded. Awaiting verification.")
+}
+
+// POST /api/v1/portal/forms/submissions/{id}/pay/momo
+func (h *FormsHandler) PortalInitiateMoMoPayment(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	id := chi.URLParam(r, "id")
+	var req struct {
+		PhoneNumber string `json:"phone_number"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "Invalid JSON body")
+		return
+	}
+	req.PhoneNumber = strings.TrimSpace(req.PhoneNumber)
+	if req.PhoneNumber == "" {
+		response.Err(w, http.StatusBadRequest, "BAD_REQUEST", "phone_number is required")
+		return
+	}
+
+	tx, err := h.svc.InitiateMoMoPayment(r.Context(), id, userID, req.PhoneNumber)
+	if err != nil && tx == nil {
+		h.writeServiceErr(w, err)
+		return
+	}
+	response.JSON(w, http.StatusOK, tx)
+}
+
+// GET /api/v1/portal/forms/submissions/{id}/pay/status
+func (h *FormsHandler) PortalGetSubmissionPaymentStatus(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	id := chi.URLParam(r, "id")
+
+	tx, err := h.svc.CheckSubmissionPaymentStatus(r.Context(), id, userID)
+	if err != nil {
+		h.writeServiceErr(w, err)
+		return
+	}
+	response.JSON(w, http.StatusOK, tx)
+}
+
+// GET /api/v1/transactions
+func (h *FormsHandler) ListUserTransactions(w http.ResponseWriter, r *http.Request) {
+	userID, _ := r.Context().Value(models.CtxUserID).(string)
+	q := r.URL.Query()
+	page, _ := strconv.Atoi(q.Get("page"))
+	perPage, _ := strconv.Atoi(q.Get("per_page"))
+	p := &models.PaginationParams{Page: page, PerPage: perPage}
+
+	filter := repository.ListTransactionsFilter{
+		UserID:        userID,
+		Status:        q.Get("status"),
+		PaymentMethod: q.Get("payment_method"),
+		Search:        q.Get("search"),
+		StartDate:     q.Get("start_date"),
+		EndDate:       q.Get("end_date"),
+	}
+
+	list, total, err := h.svc.ListTransactions(r.Context(), filter, p)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+	response.JSONPaged(w, http.StatusOK, list, &response.Meta{Page: p.Page, PerPage: p.PerPage, Total: int64(total)})
+}
+
+// GET /api/v1/admin/transactions
+func (h *FormsHandler) AdminListTransactions(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	page, _ := strconv.Atoi(q.Get("page"))
+	perPage, _ := strconv.Atoi(q.Get("per_page"))
+	p := &models.PaginationParams{Page: page, PerPage: perPage}
+
+	filter := repository.ListTransactionsFilter{
+		Status:        q.Get("status"),
+		PaymentMethod: q.Get("payment_method"),
+		Search:        q.Get("search"),
+		StartDate:     q.Get("start_date"),
+		EndDate:       q.Get("end_date"),
+	}
+
+	// CSV Export requested
+	if strings.EqualFold(q.Get("export"), "csv") {
+		p.PerPage = 10000
+		p.Page = 1
+		list, _, err := h.svc.ListTransactions(r.Context(), filter, p)
+		if err != nil {
+			response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "text/csv")
+		w.Header().Set("Content-Disposition", "attachment;filename=ncs_transactions.csv")
+		w.WriteHeader(http.StatusOK)
+
+		_, _ = w.Write([]byte("Reference,Application,Applicant Name,Applicant Email,Phone Number,Method,Amount (UGX),Status,Date\n"))
+		for _, tx := range list {
+			line := strings.ReplaceAll(tx.TransactionReference, ",", " ") + "," +
+				strings.ReplaceAll(tx.TemplateTitle, ",", " ") + "," +
+				strings.ReplaceAll(tx.ApplicantName, ",", " ") + "," +
+				strings.ReplaceAll(tx.ApplicantEmail, ",", " ") + "," +
+				strings.ReplaceAll(tx.PhoneNumber, ",", " ") + "," +
+				tx.PaymentMethod + "," +
+				strconv.FormatFloat(tx.AmountUGX, 'f', 2, 64) + "," +
+				tx.Status + "," +
+				tx.CreatedAt.Format("2006-01-02 15:04:05") + "\n"
+			_, _ = w.Write([]byte(line))
+		}
+		return
+	}
+
+	list, total, err := h.svc.ListTransactions(r.Context(), filter, p)
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+	response.JSONPaged(w, http.StatusOK, list, &response.Meta{Page: p.Page, PerPage: p.PerPage, Total: int64(total)})
+}
+
+// GET /api/v1/admin/transactions/kpis
+func (h *FormsHandler) AdminGetTransactionKPIs(w http.ResponseWriter, r *http.Request) {
+	kpis, err := h.svc.GetTransactionKPIs(r.Context(), "")
+	if err != nil {
+		response.Err(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error())
+		return
+	}
+	response.JSON(w, http.StatusOK, kpis)
+}
+
+// POST /api/v1/payments/iotec/callback
+func (h *FormsHandler) IoTecWebhookCallback(w http.ResponseWriter, r *http.Request) {
+	// Acknowledge webhook
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(`{"status":"received"}`))
 }
 
 // ── error mapper ─────────────────────────────────────────────────

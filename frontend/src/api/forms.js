@@ -42,6 +42,20 @@ export const portalSubmit = (id) =>
   apiClient.post(`/api/v1/portal/submissions/${id}/submit`).then(r => r.data?.data ?? r.data)
 export const portalUploadPaymentProof = (id, payload = {}) =>
   apiClient.post(`/api/v1/portal/submissions/${id}/payment-proof`, payload).then(r => r.data)
+export const portalInitiateMoMoPayment = (id, phoneNumber) =>
+  apiClient.post(`/api/v1/portal/submissions/${id}/pay/momo`, { phone_number: phoneNumber }).then(r => r.data?.data ?? r.data)
+export const portalGetPaymentStatus = (id) =>
+  apiClient.get(`/api/v1/portal/submissions/${id}/pay/status`).then(r => r.data?.data ?? r.data)
+
+// ── Transactions ───────────────────────────────────────────────
+export const listMyTransactions = (params = {}) =>
+  apiClient.get('/api/v1/transactions', { params }).then(r => r.data)
+export const adminListTransactions = (params = {}) => {
+  const qs = new URLSearchParams(params).toString()
+  return apiClient.get(`/api/v1/admin/transactions${qs ? '?' + qs : ''}`).then(r => r.data)
+}
+export const adminGetTransactionKPIs = () =>
+  apiClient.get('/api/v1/admin/transactions/kpis').then(r => r.data?.data ?? r.data)
 
 export const FIELD_TYPES = [
   { value: 'short_text', label: 'Short Text',     icon: 'text' },

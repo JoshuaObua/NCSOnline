@@ -25,10 +25,15 @@ type FormService struct {
 	forms *repository.FormRepo
 	depts *repository.DepartmentRepo
 	audit *repository.AuditRepo
+	txs   *repository.TransactionRepo
+	iotec *IoTecService
 }
 
-func NewFormService(forms *repository.FormRepo, depts *repository.DepartmentRepo, audit *repository.AuditRepo) *FormService {
-	return &FormService{forms: forms, depts: depts, audit: audit}
+func NewFormService(forms *repository.FormRepo, depts *repository.DepartmentRepo, audit *repository.AuditRepo, txs *repository.TransactionRepo, iotec *IoTecService) *FormService {
+	if iotec == nil {
+		iotec = NewIoTecService()
+	}
+	return &FormService{forms: forms, depts: depts, audit: audit, txs: txs, iotec: iotec}
 }
 
 // ── Departments ──────────────────────────────────────────────────
@@ -44,15 +49,16 @@ func (s *FormService) UserDepartmentIDs(ctx context.Context, userID string) ([]s
 // ── Template authoring (admin) ───────────────────────────────────
 
 type SaveTemplateInput struct {
-	DepartmentID   string
-	Slug           string
-	Title          string
-	Description    string
-	Sections       json.RawMessage
-	BannerImageURL string
-	PriceUGX       float64
-	Status         string
-	Fields         []*models.FormField
+	DepartmentID          string
+	Slug                  string
+	Title                 string
+	Description           string
+	Sections              json.RawMessage
+	BannerImageURL        string
+	PriceUGX              float64
+	AllowedPaymentMethods []string
+	Status                string
+	Fields                []*models.FormField
 }
 
 var slugInvalid = regexp.MustCompile(`[^a-z0-9]+`)
@@ -137,17 +143,26 @@ func (s *FormService) CreateTemplate(ctx context.Context, userID string, isSuper
 		base := slugify(in.Title)
 		slug = base + "-" + uuid.NewString()[:6]
 	}
+
+	payMethodsBytes := []byte(`["OVER_THE_COUNTER","MOBILE_MONEY"]`)
+	if len(in.AllowedPaymentMethods) > 0 {
+		if b, err := json.Marshal(in.AllowedPaymentMethods); err == nil {
+			payMethodsBytes = b
+		}
+	}
+
 	uid := userID
 	t := &models.FormTemplate{
-		DepartmentID:   in.DepartmentID,
-		Slug:           slug,
-		Title:          strings.TrimSpace(in.Title),
-		Description:    in.Description,
-		Sections:       sections,
-		BannerImageURL: in.BannerImageURL,
-		PriceUGX:       in.PriceUGX,
-		Status:         st,
-		CreatedBy:      &uid,
+		DepartmentID:          in.DepartmentID,
+		Slug:                  slug,
+		Title:                 strings.TrimSpace(in.Title),
+		Description:           in.Description,
+		Sections:              sections,
+		BannerImageURL:        in.BannerImageURL,
+		PriceUGX:              in.PriceUGX,
+		AllowedPaymentMethods: json.RawMessage(payMethodsBytes),
+		Status:                st,
+		CreatedBy:             &uid,
 	}
 	if err := s.forms.CreateTemplate(ctx, t); err != nil {
 		return nil, err
@@ -200,6 +215,15 @@ func (s *FormService) UpdateTemplate(ctx context.Context, id, userID string, isS
 	}
 	existing.BannerImageURL = in.BannerImageURL
 	existing.PriceUGX = in.PriceUGX
+	if in.AllowedPaymentMethods != nil {
+		if len(in.AllowedPaymentMethods) > 0 {
+			if b, err := json.Marshal(in.AllowedPaymentMethods); err == nil {
+				existing.AllowedPaymentMethods = json.RawMessage(b)
+			}
+		} else {
+			existing.AllowedPaymentMethods = json.RawMessage(`["OVER_THE_COUNTER","MOBILE_MONEY"]`)
+		}
+	}
 	if in.Status != "" {
 		st, err := validateStatus(in.Status)
 		if err != nil {
@@ -582,3 +606,170 @@ func generateSubmissionReference(slug string) string {
 	}
 	return fmt.Sprintf("NCS-%d-%s-%s", time.Now().Year(), prefix, strings.ToUpper(uuid.NewString()[:6]))
 }
+
+// ── Mobile Money Payments & ioTec Integration ────────────────────
+
+func (s *FormService) InitiateMoMoPayment(ctx context.Context, submissionID, userID, phoneNumber string) (*models.PaymentTransaction, error) {
+	sub, err := s.forms.GetSubmission(ctx, submissionID)
+	if err != nil {
+		return nil, err
+	}
+	if sub.UserID != userID {
+		return nil, ErrNotOwner
+	}
+	if sub.PaymentStatus == "PAID" {
+		return nil, errors.New("application payment has already been completed")
+	}
+
+	tmpl, err := s.forms.GetTemplate(ctx, sub.TemplateID, false)
+	if err != nil {
+		return nil, err
+	}
+	if tmpl.PriceUGX <= 0 {
+		return nil, errors.New("this form is free of charge; no payment required")
+	}
+
+	cleanPhone := strings.TrimSpace(phoneNumber)
+	cleanPhone = strings.ReplaceAll(cleanPhone, " ", "")
+	cleanPhone = strings.ReplaceAll(cleanPhone, "-", "")
+	if cleanPhone == "" {
+		return nil, errors.New("phone number is required for mobile money payment")
+	}
+
+	txRef := fmt.Sprintf("NCS-TXN-%s-%s", time.Now().Format("20060102"), strings.ToUpper(uuid.NewString()[:8]))
+
+	tx := &models.PaymentTransaction{
+		ID:                   uuid.NewString(),
+		TransactionReference: txRef,
+		SubmissionID:         &sub.ID,
+		TemplateID:           &tmpl.ID,
+		UserID:               userID,
+		PaymentMethod:        models.PaymentMethodMoMo,
+		Provider:             "IOTEC",
+		PhoneNumber:          cleanPhone,
+		AmountUGX:            tmpl.PriceUGX,
+		Currency:             "UGX",
+		Status:               models.TxStatusPending,
+		StatusMessage:        "Initiating Mobile Money collection request...",
+		RawResponse:          json.RawMessage("{}"),
+	}
+
+	if err := s.txs.Create(ctx, tx); err != nil {
+		return nil, fmt.Errorf("failed to record payment transaction: %w", err)
+	}
+
+	// Initiate ioTec collection
+	colReq := IoTecCollectionRequest{
+		Category:   "MobileMoney",
+		Currency:   "UGX",
+		ExternalID: tx.TransactionReference,
+		Payer:      cleanPhone,
+		PayerName:  sub.ApplicantName,
+		PayerNote:  fmt.Sprintf("Payment for %s", tmpl.Title),
+		Amount:     tmpl.PriceUGX,
+		PayeeNote:  fmt.Sprintf("Submission %s", sub.ID),
+	}
+
+	colResp, err := s.iotec.InitiateCollection(ctx, colReq)
+	if err != nil {
+		msg := fmt.Sprintf("Payment initiation failed: %v", err)
+		_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusFailed, msg, nil)
+		tx.Status = models.TxStatusFailed
+		tx.StatusMessage = msg
+		return tx, err
+	}
+
+	rawBytes, _ := json.Marshal(colResp)
+	tx.ProviderRequestID = &colResp.ID
+	tx.StatusMessage = colResp.StatusMessage
+	if tx.StatusMessage == "" {
+		tx.StatusMessage = "USSD push sent. Awaiting customer PIN authorization."
+	}
+	if strings.EqualFold(colResp.Status, "Success") {
+		tx.Status = models.TxStatusSuccess
+		_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusSuccess, tx.StatusMessage, rawBytes)
+		_ = s.forms.SetPaymentPaidDirect(ctx, sub.ID, models.PaymentMethodMoMo, tx.TransactionReference, tx.AmountUGX)
+		_ = s.forms.CreateSubmissionNotification(ctx, sub.UserID, "payment_success", "Payment successful", fmt.Sprintf("Your mobile money payment of UGX %.0f for %s has been confirmed.", tx.AmountUGX, tmpl.Title), "check-circled")
+	} else if strings.EqualFold(colResp.Status, "Failed") {
+		tx.Status = models.TxStatusFailed
+		_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusFailed, tx.StatusMessage, rawBytes)
+	} else {
+		_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusPending, tx.StatusMessage, rawBytes)
+	}
+
+	return s.txs.GetByID(ctx, tx.ID)
+}
+
+func (s *FormService) CheckSubmissionPaymentStatus(ctx context.Context, submissionID, userID string) (*models.PaymentTransaction, error) {
+	sub, err := s.forms.GetSubmission(ctx, submissionID)
+	if err != nil {
+		return nil, err
+	}
+	if sub.UserID != userID {
+		return nil, ErrNotOwner
+	}
+
+	tx, err := s.txs.GetLatestBySubmissionID(ctx, submissionID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, errors.New("no payment transaction found for this submission")
+		}
+		return nil, err
+	}
+
+	if tx.Status == models.TxStatusPending && tx.Provider == "IOTEC" && tx.ProviderRequestID != nil && *tx.ProviderRequestID != "" {
+		statusResp, err := s.iotec.GetStatus(ctx, *tx.ProviderRequestID, tx.PhoneNumber)
+		if err == nil && statusResp != nil {
+			rawBytes, _ := json.Marshal(statusResp)
+			if strings.EqualFold(statusResp.Status, "Success") {
+				_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusSuccess, statusResp.StatusMessage, rawBytes)
+				_ = s.forms.SetPaymentPaidDirect(ctx, sub.ID, models.PaymentMethodMoMo, tx.TransactionReference, tx.AmountUGX)
+				_ = s.forms.CreateSubmissionNotification(ctx, sub.UserID, "payment_success", "Payment confirmed", fmt.Sprintf("Your mobile money payment for %s was confirmed.", tx.TemplateTitle), "check-circled")
+			} else if strings.EqualFold(statusResp.Status, "Failed") {
+				_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusFailed, statusResp.StatusMessage, rawBytes)
+			}
+		}
+	}
+
+	return s.txs.GetByID(ctx, tx.ID)
+}
+
+func (s *FormService) SyncPendingTransactions(ctx context.Context) (int, error) {
+	pending, err := s.txs.ListPendingForSync(ctx, 30)
+	if err != nil {
+		return 0, err
+	}
+
+	synced := 0
+	for _, tx := range pending {
+		if tx.ProviderRequestID == nil || *tx.ProviderRequestID == "" {
+			continue
+		}
+		statusResp, err := s.iotec.GetStatus(ctx, *tx.ProviderRequestID, tx.PhoneNumber)
+		if err != nil {
+			continue
+		}
+		rawBytes, _ := json.Marshal(statusResp)
+		if strings.EqualFold(statusResp.Status, "Success") {
+			_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusSuccess, statusResp.StatusMessage, rawBytes)
+			if tx.SubmissionID != nil && *tx.SubmissionID != "" {
+				_ = s.forms.SetPaymentPaidDirect(ctx, *tx.SubmissionID, models.PaymentMethodMoMo, tx.TransactionReference, tx.AmountUGX)
+				_ = s.forms.CreateSubmissionNotification(ctx, tx.UserID, "payment_success", "Payment confirmed", fmt.Sprintf("Your payment for transaction %s was confirmed.", tx.TransactionReference), "check-circled")
+			}
+			synced++
+		} else if strings.EqualFold(statusResp.Status, "Failed") {
+			_ = s.txs.UpdateStatus(ctx, tx.ID, models.TxStatusFailed, statusResp.StatusMessage, rawBytes)
+			synced++
+		}
+	}
+	return synced, nil
+}
+
+func (s *FormService) ListTransactions(ctx context.Context, f repository.ListTransactionsFilter, p *models.PaginationParams) ([]*models.PaymentTransaction, int, error) {
+	return s.txs.List(ctx, f, p)
+}
+
+func (s *FormService) GetTransactionKPIs(ctx context.Context, userID string) (*repository.TransactionKPIs, error) {
+	return s.txs.GetKPIs(ctx, userID)
+}
+

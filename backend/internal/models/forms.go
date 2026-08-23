@@ -27,21 +27,22 @@ const (
 )
 
 type FormTemplate struct {
-	ID             string          `json:"id"`
-	DepartmentID   string          `json:"department_id"`
-	DepartmentName string          `json:"department_name,omitempty"`
-	Slug           string          `json:"slug"`
-	Title          string          `json:"title"`
-	Description    string          `json:"description"`
-	Sections       json.RawMessage `json:"sections"`
-	BannerImageURL string          `json:"banner_image_url"`
-	PriceUGX       float64         `json:"price_ugx"`
-	Status         string          `json:"status"`
-	LegacyFormType *string         `json:"legacy_form_type,omitempty"`
-	CreatedBy      *string         `json:"created_by,omitempty"`
-	CreatedAt      time.Time       `json:"created_at"`
-	UpdatedAt      time.Time       `json:"updated_at"`
-	Fields         []*FormField    `json:"fields,omitempty"`
+	ID                    string          `json:"id"`
+	DepartmentID          string          `json:"department_id"`
+	DepartmentName        string          `json:"department_name,omitempty"`
+	Slug                  string          `json:"slug"`
+	Title                 string          `json:"title"`
+	Description           string          `json:"description"`
+	Sections              json.RawMessage `json:"sections"`
+	BannerImageURL        string          `json:"banner_image_url"`
+	PriceUGX              float64         `json:"price_ugx"`
+	AllowedPaymentMethods json.RawMessage `json:"allowed_payment_methods"`
+	Status                string          `json:"status"`
+	LegacyFormType        *string         `json:"legacy_form_type,omitempty"`
+	CreatedBy             *string         `json:"created_by,omitempty"`
+	CreatedAt             time.Time       `json:"created_at"`
+	UpdatedAt             time.Time       `json:"updated_at"`
+	Fields                []*FormField    `json:"fields,omitempty"`
 }
 
 type FormField struct {
@@ -82,6 +83,7 @@ type FormSubmission struct {
 	ApplicantEmail      string          `json:"applicant_email,omitempty"`
 	SubmissionReference string          `json:"submission_reference"`
 	Status              string          `json:"status"`
+	PaymentMethod       string          `json:"payment_method"`
 	PaymentStatus       string          `json:"payment_status"`
 	PaymentReference    string          `json:"payment_reference,omitempty"`
 	PaymentProofURL     string          `json:"payment_proof_url,omitempty"`
@@ -98,4 +100,40 @@ type FormSubmission struct {
 	RejectedAt          *time.Time      `json:"rejected_at,omitempty"`
 	CreatedAt           time.Time       `json:"created_at"`
 	UpdatedAt           time.Time       `json:"updated_at"`
+}
+
+// ── Payment Transactions Ledger ──────────────────────────────────
+
+const (
+	PaymentMethodMoMo           = "MOBILE_MONEY"
+	PaymentMethodOverTheCounter = "OVER_THE_COUNTER"
+
+	TxStatusPending   = "PENDING"
+	TxStatusSuccess   = "SUCCESS"
+	TxStatusFailed    = "FAILED"
+	TxStatusCancelled = "CANCELLED"
+)
+
+type PaymentTransaction struct {
+	ID                   string          `json:"id"`
+	TransactionReference string          `json:"transaction_reference"`
+	SubmissionID         *string         `json:"submission_id,omitempty"`
+	SubmissionReference  string          `json:"submission_reference,omitempty"`
+	TemplateID           *string         `json:"template_id,omitempty"`
+	TemplateTitle        string          `json:"template_title,omitempty"`
+	UserID               string          `json:"user_id"`
+	ApplicantName        string          `json:"applicant_name,omitempty"`
+	ApplicantEmail       string          `json:"applicant_email,omitempty"`
+	PaymentMethod        string          `json:"payment_method"`
+	Provider             string          `json:"provider"`
+	ProviderRequestID    *string         `json:"provider_request_id,omitempty"`
+	PhoneNumber          string          `json:"phone_number,omitempty"`
+	AmountUGX            float64         `json:"amount_ugx"`
+	Currency             string          `json:"currency"`
+	Status               string          `json:"status"`
+	StatusMessage        string          `json:"status_message,omitempty"`
+	RawResponse          json.RawMessage `json:"raw_response,omitempty"`
+	CreatedAt            time.Time       `json:"created_at"`
+	UpdatedAt            time.Time       `json:"updated_at"`
+	CompletedAt          *time.Time      `json:"completed_at,omitempty"`
 }

@@ -183,6 +183,7 @@ func main() {
 			r.With(publicFormRL.Middleware).Post("/newsletter/subscribe", h.CMS.SubscribeNewsletter)
 		})
 		r.With(rl.Middleware).Post("/analytics/collect", h.Analytics.Track)
+		r.Post("/payments/iotec/callback", h.Forms.IoTecWebhookCallback)
 
 		// ── Authenticated routes (geo-blocked: Uganda only, no VPN) ─────
 		r.Group(func(r chi.Router) {
@@ -261,7 +262,7 @@ func main() {
 				r.Get("/{id}/pdf", h.Applications.GeneratePDF)
 			})
 
-			r.Get("/transactions", h.Applications.ListTransactions)
+			r.Get("/transactions", h.Forms.ListUserTransactions)
 			r.Get("/transactions/{id}", h.Applications.GetTransaction)
 
 			// ── Departments (read-only directory) ─────────────────────
@@ -278,6 +279,8 @@ func main() {
 				r.Get("/{id}", h.Forms.PortalGetSubmission)
 				r.Post("/{id}/submit", h.Forms.PortalSubmit)
 				r.Post("/{id}/payment-proof", h.Forms.PortalUploadPaymentProof)
+				r.Post("/{id}/pay/momo", h.Forms.PortalInitiateMoMoPayment)
+				r.Get("/{id}/pay/status", h.Forms.PortalGetSubmissionPaymentStatus)
 			})
 
 			// Generic authenticated file upload (used by the dynamic form
@@ -420,7 +423,8 @@ func main() {
 					r.Post("/{id}/reject-payment", h.Applications.RejectPayment)
 				})
 
-				r.Get("/admin/transactions", h.Applications.ListTransactions)
+				r.Get("/admin/transactions", h.Forms.AdminListTransactions)
+				r.Get("/admin/transactions/kpis", h.Forms.AdminGetTransactionKPIs)
 
 				// ── Admin: dynamic form templates (department-scoped) ──
 				r.Route("/admin/forms", func(r chi.Router) {

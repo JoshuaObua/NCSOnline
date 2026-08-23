@@ -112,39 +112,144 @@
             </div>
 
             <section v-if="isLastStep && form.price_ugx > 0 && paymentRequired" class="payment-section">
-              <h3>Payment proof</h3>
-              <p>Use one proof method: enter the URA PRN for a payment already made, or upload a scanned receipt/proof file.</p>
-              <label>URA PRN (Payment Reference Number)
-                <input
-                  v-model.trim="paymentReference"
-                  :disabled="!!paymentProofURL || uploadingPaymentProof"
-                  placeholder="Enter PRN generated from the URA portal"
-                  @input="clearPaymentProofFile"
-                />
-              </label>
-              <div
-                class="dropify-zone payment-proof-drop"
-                :class="{ filled: !!paymentProofURL, uploading: uploadingPaymentProof, disabled: !!paymentReference }"
-                @dragover.prevent
-                @drop.prevent="dropPaymentProofFile"
-              >
-                <input
-                  ref="paymentProofInput"
-                  class="dropify-input"
-                  type="file"
-                  accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
-                  :disabled="!!paymentReference || uploadingPaymentProof"
-                  @change="uploadPaymentProofFile"
-                />
-                <span class="dropify-icon"><i class="icofont-paperclip"></i></span>
-                <strong>{{ uploadingPaymentProof ? 'Uploading proof...' : (paymentProofURL ? 'Payment proof uploaded' : 'Drop receipt or proof here') }}</strong>
-                <small>PDF, PNG, JPG or JPEG</small>
-                <a v-if="paymentProofURL" :href="mediaUrl(paymentProofURL)" target="_blank" rel="noopener">{{ paymentProofFileName || 'Preview proof' }}</a>
-                <button v-if="paymentProofURL" type="button" class="proof-clear" :disabled="uploadingPaymentProof" @click.stop="clearPaymentProofFile">Remove</button>
+              <div class="payment-header-badge">
+                <div class="badge-icon"><i class="icofont-credit-card"></i></div>
+                <div>
+                  <h3>Application Fee Payment</h3>
+                  <p>A fee of <strong>UGX {{ formatMoney(form.price_ugx) }}</strong> is required for this application.</p>
+                </div>
               </div>
-              <label>Amount paid (UGX)
-                <input v-model.number="paymentAmount" type="number" min="1" />
-              </label>
+
+              <!-- Payment Method Selector (if both or multiple allowed) -->
+              <div v-if="allowsMoMo && allowsCounter" class="method-selector">
+                <label class="method-card" :class="{ active: selectedPaymentMethod === 'MOBILE_MONEY' }">
+                  <input v-model="selectedPaymentMethod" type="radio" value="MOBILE_MONEY" />
+                  <div class="method-details">
+                    <div class="method-title"><i class="icofont-smart-phone"></i> Instant Mobile Money</div>
+                    <small>MTN & Airtel Money with automated instant approval.</small>
+                  </div>
+                  <span class="instant-tag">Instant</span>
+                </label>
+                <label class="method-card" :class="{ active: selectedPaymentMethod === 'OVER_THE_COUNTER' }">
+                  <input v-model="selectedPaymentMethod" type="radio" value="OVER_THE_COUNTER" />
+                  <div class="method-details">
+                    <div class="method-title"><i class="icofont-bank-alt"></i> Bank Deposit / Over the Counter</div>
+                    <small>Upload receipt or enter URA PRN for manual staff check.</small>
+                  </div>
+                </label>
+              </div>
+
+              <!-- Mobile Money Flow -->
+              <div v-if="selectedPaymentMethod === 'MOBILE_MONEY'" class="momo-flow-card">
+                <div class="momo-amount-display">
+                  <span>Amount to Pay</span>
+                  <strong>UGX {{ formatMoney(form.price_ugx) }}</strong>
+                </div>
+
+                <div class="momo-input-group">
+                  <label for="momoPhone">Mobile Money Phone Number (Uganda)
+                    <div class="phone-input-wrapper">
+                      <span class="phone-country-code">+256</span>
+                      <input
+                        id="momoPhone"
+                        v-model="momoPhoneNumber"
+                        type="tel"
+                        maxlength="15"
+                        placeholder="770 000000"
+                        :disabled="momoPolling || momoSuccess"
+                        @input="onMomoPhoneInput"
+                      />
+                      <span v-if="detectedCarrier" class="carrier-badge" :class="detectedCarrier.toLowerCase()">
+                        {{ detectedCarrier }}
+                      </span>
+                    </div>
+                  </label>
+
+                  <!-- Test Numbers Helper for Sandbox/Testing -->
+                  <div class="test-numbers-helper">
+                    <span><i class="icofont-info-circle"></i> Test Phone Numbers:</span>
+                    <button type="button" class="btn-test-num" @click="setTestPhone('0111777771')">0111777771 (Success)</button>
+                    <button type="button" class="btn-test-num" @click="setTestPhone('0111777991')">0111777991 (Fail)</button>
+                  </div>
+
+                  <!-- Action / Status Controls -->
+                  <div v-if="!momoPolling && !momoSuccess" class="momo-action-row">
+                    <button
+                      type="button"
+                      class="btn-momo-pay"
+                      :disabled="!isValidMomoPhone || formSaving"
+                      @click="initiateMoMoPayment"
+                    >
+                      <i class="icofont-paper-plane"></i> Pay UGX {{ formatMoney(form.price_ugx) }} via Mobile Money
+                    </button>
+                  </div>
+
+                  <!-- Polling / USSD Prompt Tracker Banner -->
+                  <div v-if="momoPolling" class="momo-status-tracker">
+                    <div class="pulse-spinner"></div>
+                    <div class="tracker-info">
+                      <h4>USSD Prompt Sent!</h4>
+                      <p>A payment request has been sent to <strong>{{ momoPhoneNumber }}</strong>. Please check your phone and enter your Mobile Money PIN to complete payment.</p>
+                      <span class="tracker-timer">Waiting for confirmation ({{ momoCountdown }}s remaining)...</span>
+                    </div>
+                  </div>
+
+                  <!-- Success Banner -->
+                  <div v-if="momoSuccess" class="momo-success-banner">
+                    <i class="icofont-check-circled"></i>
+                    <div>
+                      <h4>Payment Confirmed!</h4>
+                      <p>Your Mobile Money payment of <strong>UGX {{ formatMoney(form.price_ugx) }}</strong> was received successfully. (Ref: <code>{{ momoTxRef }}</code>)</p>
+                    </div>
+                  </div>
+
+                  <!-- Error Banner -->
+                  <div v-if="momoError" class="momo-error-banner">
+                    <i class="icofont-warning-alt"></i>
+                    <div>
+                      <h4>Payment Failed</h4>
+                      <p>{{ momoError }}</p>
+                      <button type="button" class="btn-retry-momo" @click="retryMoMo">Try Again</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Over the Counter Flow -->
+              <div v-else-if="selectedPaymentMethod === 'OVER_THE_COUNTER'" class="counter-flow-card">
+                <p>Enter the URA PRN for a payment already made, or upload a scanned bank deposit receipt / proof file.</p>
+                <label>URA PRN (Payment Reference Number)
+                  <input
+                    v-model.trim="paymentReference"
+                    :disabled="!!paymentProofURL || uploadingPaymentProof"
+                    placeholder="Enter PRN generated from the URA portal"
+                    @input="clearPaymentProofFile"
+                  />
+                </label>
+                <div
+                  class="dropify-zone payment-proof-drop"
+                  :class="{ filled: !!paymentProofURL, uploading: uploadingPaymentProof, disabled: !!paymentReference }"
+                  @dragover.prevent
+                  @drop.prevent="dropPaymentProofFile"
+                >
+                  <input
+                    ref="paymentProofInput"
+                    class="dropify-input"
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                    :disabled="!!paymentReference || uploadingPaymentProof"
+                    @change="uploadPaymentProofFile"
+                  />
+                  <span class="dropify-icon"><i class="icofont-paperclip"></i></span>
+                  <strong>{{ uploadingPaymentProof ? 'Uploading proof...' : (paymentProofURL ? 'Payment proof uploaded' : 'Drop receipt or proof here') }}</strong>
+                  <small>PDF, PNG, JPG or JPEG</small>
+                  <a v-if="paymentProofURL" :href="mediaUrl(paymentProofURL)" target="_blank" rel="noopener">{{ paymentProofFileName || 'Preview proof' }}</a>
+                  <button v-if="paymentProofURL" type="button" class="proof-clear" :disabled="uploadingPaymentProof" @click.stop="clearPaymentProofFile">Remove</button>
+                </div>
+                <label>Amount paid (UGX)
+                  <input v-model.number="paymentAmount" type="number" min="1" />
+                </label>
+              </div>
             </section>
           </section>
 
@@ -163,13 +268,15 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getCurrentUser } from '@/api/auth.js'
 import { mediaUrl } from '@/api/client.js'
 import * as cms from '@/api/cms.js'
 import {
   portalGetForm,
+  portalGetPaymentStatus,
+  portalInitiateMoMoPayment,
   portalListSubmissions,
   portalSaveDraft,
   portalSubmit,
@@ -198,6 +305,16 @@ const paymentProofFileName = ref('')
 const paymentProofInput = ref(null)
 const uploadingPaymentProof = ref(false)
 
+const selectedPaymentMethod = ref('MOBILE_MONEY')
+const momoPhoneNumber = ref('')
+const momoPolling = ref(false)
+const momoSuccess = ref(false)
+const momoError = ref('')
+const momoTxRef = ref('')
+const momoCountdown = ref(60)
+let pollTimer = null
+let countdownTimer = null
+
 ensureOtikaStyles()
 
 const steps = computed(() => buildSectionSteps(form))
@@ -207,7 +324,34 @@ const firstName = computed(() => profile.first_name || String(profile.email || '
 const initials = computed(() => `${profile.first_name?.[0] || ''}${profile.last_name?.[0] || ''}`.toUpperCase() || 'U')
 const paymentRequired = computed(() => Number(form.price_ugx) > 0 && !['PAID', 'PROOF_UPLOADED'].includes(activeSubmission.value?.payment_status))
 
+const allowedMethods = computed(() => {
+  let raw = form.allowed_payment_methods
+  if (typeof raw === 'string') {
+    try { raw = JSON.parse(raw) } catch { raw = [] }
+  }
+  if (!Array.isArray(raw) || !raw.length) {
+    return ['OVER_THE_COUNTER', 'MOBILE_MONEY']
+  }
+  return raw
+})
+const allowsMoMo = computed(() => allowedMethods.value.includes('MOBILE_MONEY'))
+const allowsCounter = computed(() => allowedMethods.value.includes('OVER_THE_COUNTER'))
+
+const detectedCarrier = computed(() => {
+  const num = momoPhoneNumber.value.replace(/\D/g, '')
+  if (num.startsWith('0111')) return 'Sandbox Test'
+  if (num.startsWith('77') || num.startsWith('78') || num.startsWith('76') || num.startsWith('077') || num.startsWith('078') || num.startsWith('076')) return 'MTN MoMo'
+  if (num.startsWith('70') || num.startsWith('75') || num.startsWith('74') || num.startsWith('070') || num.startsWith('075') || num.startsWith('074')) return 'Airtel Money'
+  return ''
+})
+
+const isValidMomoPhone = computed(() => {
+  const num = momoPhoneNumber.value.replace(/\D/g, '')
+  return num.length >= 9
+})
+
 onMounted(loadWizard)
+onUnmounted(stopTimers)
 
 async function loadWizard() {
   loading.value = true
@@ -219,6 +363,17 @@ async function loadWizard() {
     ])
     Object.assign(profile, unwrap(user))
     Object.assign(form, unwrap(template))
+
+    if (profile.phone) {
+      momoPhoneNumber.value = profile.phone
+    }
+
+    if (allowsMoMo.value) {
+      selectedPaymentMethod.value = 'MOBILE_MONEY'
+    } else if (allowsCounter.value) {
+      selectedPaymentMethod.value = 'OVER_THE_COUNTER'
+    }
+
     initializeAnswers()
     const submissions = asList(await portalListSubmissions({ page: 1, per_page: 200 }))
     const pending = submissions.find(item => item.template_id === form.id && isPendingSubmission(item))
@@ -233,6 +388,9 @@ async function loadWizard() {
     paymentReference.value = draft?.payment_reference || ''
     paymentProofURL.value = draft?.payment_proof_url || ''
     paymentAmount.value = draft?.payment_amount_ugx || form.price_ugx || 0
+    if (draft?.payment_status === 'PAID') {
+      momoSuccess.value = true
+    }
     document.title = `${form.title || 'Application'} - NCS Uganda`
   } catch (error) {
     formError.value = apiError(error, 'Could not load this application form.')
@@ -284,6 +442,93 @@ async function saveDraft(showMessage = true) {
   }
 }
 
+function setTestPhone(num) {
+  momoPhoneNumber.value = num
+  momoError.value = ''
+}
+
+function onMomoPhoneInput() {
+  momoError.value = ''
+}
+
+function retryMoMo() {
+  momoError.value = ''
+  momoPolling.value = false
+  momoSuccess.value = false
+  stopTimers()
+}
+
+function stopTimers() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null }
+}
+
+async function initiateMoMoPayment() {
+  if (!isValidMomoPhone.value) return
+  formError.value = ''
+  momoError.value = ''
+  formSaving.value = true
+  try {
+    if (!activeSubmission.value) {
+      activeSubmission.value = await portalSaveDraft(form.id, { ...formAnswers })
+    }
+    const tx = await portalInitiateMoMoPayment(activeSubmission.value.id, momoPhoneNumber.value)
+    momoTxRef.value = tx.transaction_reference || ''
+
+    if (tx.status === 'SUCCESS') {
+      momoSuccess.value = true
+      momoPolling.value = false
+      activeSubmission.value.payment_status = 'PAID'
+      success.value = 'Mobile money payment confirmed!'
+      return
+    }
+    if (tx.status === 'FAILED') {
+      momoError.value = tx.status_message || 'Mobile money collection failed.'
+      momoPolling.value = false
+      return
+    }
+
+    // Start polling & countdown
+    momoPolling.value = true
+    momoCountdown.value = 60
+    stopTimers()
+
+    countdownTimer = setInterval(() => {
+      if (momoCountdown.value > 0) {
+        momoCountdown.value -= 1
+      } else {
+        stopTimers()
+        momoPolling.value = false
+        momoError.value = 'Payment timed out waiting for phone PIN approval. You can try again.'
+      }
+    }, 1000)
+
+    pollTimer = setInterval(async () => {
+      try {
+        const check = await portalGetPaymentStatus(activeSubmission.value.id)
+        if (check.status === 'SUCCESS') {
+          stopTimers()
+          momoPolling.value = false
+          momoSuccess.value = true
+          activeSubmission.value.payment_status = 'PAID'
+          success.value = 'Payment confirmed! You may now submit your application.'
+        } else if (check.status === 'FAILED') {
+          stopTimers()
+          momoPolling.value = false
+          momoError.value = check.status_message || 'Payment was declined or failed on your mobile phone.'
+        }
+      } catch (err) {
+        console.warn('Poll status error', err)
+      }
+    }, 3000)
+
+  } catch (error) {
+    momoError.value = apiError(error, 'Could not initiate mobile money payment.')
+  } finally {
+    formSaving.value = false
+  }
+}
+
 async function submitApplication() {
   if (!validateAllSteps()) return
   formSaving.value = true
@@ -292,6 +537,9 @@ async function submitApplication() {
     let submission = await portalSaveDraft(form.id, { ...formAnswers })
     activeSubmission.value = submission
     if (Number(form.price_ugx) > 0 && !['PAID', 'PROOF_UPLOADED'].includes(submission.payment_status)) {
+      if (selectedPaymentMethod.value === 'MOBILE_MONEY') {
+        throw new Error('Please complete your Mobile Money payment before submitting.')
+      }
       if (!validPaymentProof()) throw new Error('Enter a URA PRN or upload one payment proof file, then enter the amount paid.')
       await portalUploadPaymentProof(submission.id, {
         payment_reference: paymentReference.value.trim(),
@@ -440,5 +688,79 @@ function titleize(value) { return String(value || '').toLowerCase().replaceAll('
 
 <style scoped>
 .wizard-navbar{position:sticky!important;top:0!important;z-index:1000!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important;min-height:70px!important;padding:12px 28px!important;background:#fff!important;box-shadow:0 4px 25px rgba(0,0,0,.08)!important}.wizard-brand{display:flex!important;align-items:center!important;gap:10px!important;color:#34395e!important;text-decoration:none!important;font-weight:700!important}.wizard-brand img{width:52px!important;height:42px!important;object-fit:contain!important}.wizard-navbar-actions{display:flex!important;align-items:center!important;gap:8px!important}.wizard-icon-button,.wizard-profile{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:38px!important;border:0!important;border-radius:30px!important;background:#f4f6f9!important;color:#34395e!important}.wizard-icon-button{width:38px!important}.wizard-profile{gap:8px!important;padding:4px 12px!important}.wizard-profile span{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;border-radius:50%!important;background:#6777ef!important;color:#fff!important;font-size:11px!important;font-weight:700!important}.wizard-profile b{font-size:12px!important}.wizard-workspace{width:min(1180px,calc(100% - 32px))!important;margin:0 auto!important;padding:28px 0 40px!important}.wizard-header{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:20px!important;margin-bottom:20px!important}.back-link{display:inline-flex!important;align-items:center!important;gap:5px!important;margin-bottom:12px!important;border:0!important;background:transparent!important;color:#6777ef!important;font-size:12px!important;font-weight:700!important}.wizard-header p{margin:0!important;color:#6777ef!important;font-size:11px!important;font-weight:800!important;text-transform:uppercase!important}.wizard-header h1{margin:4px 0!important;color:#34395e!important;font-size:28px!important;font-weight:700!important}.wizard-header span{color:#6c757d!important;font-size:13px!important}.fee-panel{display:grid!important;gap:3px!important;min-width:180px!important;padding:16px 18px!important;border-left:3px solid #ffa426!important;border-radius:3px!important;background:#fff!important;box-shadow:0 4px 25px rgba(0,0,0,.08)!important}.fee-panel small{color:#98a6ad!important;font-size:11px!important;font-weight:800!important;text-transform:uppercase!important}.fee-panel strong{color:#34395e!important;font-size:20px!important}.wizard-success,.wizard-error{margin:0 0 15px!important;padding:12px 14px!important;border-radius:3px!important;background:#e8f7f0!important;color:#47c363!important;box-shadow:0 4px 25px rgba(0,0,0,.05)!important;font-size:12px!important}.wizard-error{background:#fdeaea!important;color:#fc544b!important}.wizard-loading,.empty-step{padding:56px!important;border:1px dashed #e4e6fc!important;border-radius:3px!important;background:#fdfdff!important;text-align:center!important;color:#98a6ad!important}.wizard-layout{display:grid!important;grid-template-columns:300px minmax(0,1fr)!important;gap:20px!important;align-items:start!important}.wizard-steps{position:sticky!important;top:92px!important;display:grid!important;gap:8px!important}.wizard-steps button{display:grid!important;grid-template-columns:34px minmax(0,1fr)!important;gap:11px!important;align-items:center!important;width:100%!important;min-height:64px!important;padding:12px!important;border:0!important;border-radius:3px!important;background:#fff!important;text-align:left!important;box-shadow:0 4px 25px rgba(0,0,0,.07)!important}.wizard-steps button>span{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;border-radius:50%!important;background:#eef2ff!important;color:#6777ef!important;font-size:12px!important;font-weight:800!important}.wizard-steps button.active{box-shadow:0 4px 25px rgba(103,119,239,.22)!important}.wizard-steps button.active>span,.wizard-steps button.complete>span{background:#6777ef!important;color:#fff!important}.wizard-steps strong,.wizard-steps small{display:block!important;min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.wizard-steps strong{color:#34395e!important;font-size:13px!important}.wizard-steps small{color:#98a6ad!important;font-size:11px!important}.wizard-form{display:grid!important;gap:14px!important}.wizard-step-panel{display:grid!important;gap:16px!important;padding:24px!important;border-radius:3px!important;background:#fff!important;box-shadow:0 4px 25px rgba(0,0,0,.1)!important}.step-heading{padding-bottom:14px!important;border-bottom:1px solid #f4f6f9!important}.step-heading small{color:#6777ef!important;font-size:10px!important;font-weight:800!important;text-transform:uppercase!important}.step-heading h2{margin:4px 0!important;color:#34395e!important;font-size:22px!important}.step-heading p{margin:4px 0 0!important;color:#6c757d!important;font-size:13px!important;line-height:1.5!important}.wizard-field{display:grid!important;gap:7px!important}.wizard-field>label,.payment-section label{color:#34395e!important;font-size:12px!important;font-weight:600!important}.wizard-field>label b{color:#fc544b!important}.wizard-field>p{margin:0!important;color:#98a6ad!important;font-size:11px!important}.wizard-field input,.wizard-field textarea,.wizard-field select,.payment-section input{width:100%!important;box-sizing:border-box!important;padding:11px 14px!important;border:1px solid #e4e6fc!important;border-radius:3px!important;background:#fdfdff!important;color:#495057!important;font:inherit!important;outline:none!important}.wizard-field input:focus,.wizard-field textarea:focus,.wizard-field select:focus,.payment-section input:focus{border-color:#6777ef!important;box-shadow:0 2px 6px #acb5f6!important}.choice-list{display:grid!important;gap:8px!important}.choice-list label{display:flex!important;align-items:center!important;gap:8px!important;color:#6c757d!important;font-size:12px!important}.choice-list input{width:auto!important}.file-input{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important}.file-input a{color:#6777ef!important;font-size:12px!important;font-weight:700!important}.payment-section{display:grid!important;gap:11px!important;margin-top:4px!important;padding:16px!important;border:1px solid #ffe2ad!important;border-radius:3px!important;background:#fffaf0!important}.payment-section h3{margin:0!important;color:#34395e!important;font-size:16px!important}.payment-section p{margin:0!important;color:#6c757d!important;font-size:12px!important}.payment-section label{display:grid!important;gap:6px!important}.payment-proof-choice{display:grid!important;grid-template-columns:minmax(0,1fr) auto auto!important;align-items:end!important;gap:8px!important;min-width:0!important}.payment-proof-choice a,.payment-proof-choice span{align-self:center!important;min-width:0!important;overflow-wrap:anywhere!important;color:#6777ef!important;font-size:12px!important;font-weight:700!important}.proof-clear{align-self:center!important;border:0!important;background:transparent!important;color:#fc544b!important;font-size:12px!important;font-weight:700!important}.payment-section input:disabled{background:#eef1f7!important;color:#98a6ad!important}.wizard-actions{display:flex!important;justify-content:space-between!important;gap:12px!important;padding:18px!important;border-radius:3px!important;background:#fff!important;box-shadow:0 4px 25px rgba(0,0,0,.08)!important}.wizard-actions>div{display:flex!important;gap:8px!important;flex-wrap:wrap!important}.primary-command,.secondary-command{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;min-height:40px!important;padding:0 16px!important;border:0!important;border-radius:30px!important;background:#6777ef!important;color:#fff!important;font-size:12px!important;font-weight:600!important;box-shadow:0 2px 6px #acb5f6!important}.secondary-command{background:#f4f6f9!important;color:#34395e!important;box-shadow:none!important}.application-wizard-page button:disabled{cursor:not-allowed!important;opacity:.55!important}:global(.dark) .application-wizard-page{background:#0f172a!important;color:#e5e7eb!important}:global(.dark) .wizard-navbar,:global(.dark) .fee-panel,:global(.dark) .wizard-steps button,:global(.dark) .wizard-step-panel,:global(.dark) .wizard-actions{background:#1f2937!important;color:#e5e7eb!important;border-color:#334155!important}:global(.dark) .wizard-brand,:global(.dark) .wizard-header h1,:global(.dark) .fee-panel strong,:global(.dark) .wizard-steps strong,:global(.dark) .step-heading h2,:global(.dark) .wizard-field>label,:global(.dark) .payment-section h3,:global(.dark) .payment-section label{color:#f8fafc!important}:global(.dark) .wizard-header span,:global(.dark) .step-heading p,:global(.dark) .choice-list label{color:#cbd5e1!important}:global(.dark) .wizard-field input,:global(.dark) .wizard-field textarea,:global(.dark) .wizard-field select,:global(.dark) .payment-section input,:global(.dark) .wizard-icon-button,:global(.dark) .wizard-profile,:global(.dark) .secondary-command{background:#111827!important;color:#f8fafc!important;border-color:#475569!important}:global(.dark) .step-heading{border-color:#334155!important}:global(.dark) .payment-section{background:#111827!important;border-color:#92400e!important}@media(max-width:880px){.wizard-navbar{padding:12px 16px!important}.wizard-workspace{width:calc(100% - 24px)!important;padding-top:20px!important}.wizard-header{align-items:flex-start!important;flex-direction:column!important}.fee-panel{width:100%!important}.wizard-layout{grid-template-columns:1fr!important}.wizard-steps{position:static!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}.wizard-actions{align-items:stretch!important;flex-direction:column!important}.wizard-actions>div{justify-content:space-between!important}.wizard-actions button{flex:1 1 150px!important}.payment-proof-choice{grid-template-columns:1fr!important;align-items:start!important}.proof-clear{justify-self:start!important}}@media(max-width:600px){.wizard-brand span,.wizard-profile b{display:none!important}.wizard-navbar{min-height:62px!important}.wizard-header h1{font-size:22px!important}.wizard-steps{grid-template-columns:1fr!important}.wizard-step-panel{padding:18px!important}.wizard-actions>div{flex-direction:column!important}.wizard-actions button{width:100%!important}}
-.dropify-zone{position:relative!important;display:grid!important;place-items:center!important;gap:6px!important;min-height:142px!important;padding:18px!important;border:1px dashed #c9d0ff!important;border-radius:6px!important;background:#fdfdff!important;text-align:center!important;color:#6c757d!important;overflow:hidden!important}.dropify-zone.filled{border-style:solid!important;background:#f8fbff!important}.dropify-zone.uploading{opacity:.72!important}.dropify-zone.disabled{background:#eef1f7!important;color:#98a6ad!important}.dropify-input{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;padding:0!important;border:0!important;opacity:0!important;cursor:pointer!important}.dropify-input:disabled{cursor:not-allowed!important}.dropify-icon{display:grid!important;place-items:center!important;width:42px!important;height:42px!important;border-radius:50%!important;background:#e8edff!important;color:#6777ef!important;font-size:20px!important}.dropify-zone strong,.dropify-zone small,.dropify-zone a{position:relative!important;z-index:1!important;min-width:0!important;max-width:100%!important;overflow-wrap:anywhere!important}.dropify-zone strong{color:#34395e!important;font-size:13px!important}.dropify-zone small{color:#98a6ad!important;font-size:11px!important}.dropify-zone a{color:#6777ef!important;font-size:12px!important;font-weight:800!important}.dropify-zone .proof-clear{position:relative!important;z-index:2!important;justify-self:center!important}.payment-proof-drop{min-height:150px!important}:global(.dark) .dropify-zone{background:#111827!important;border-color:#475569!important;color:#cbd5e1!important}:global(.dark) .dropify-zone strong{color:#f8fafc!important}:global(.dark) .dropify-icon{background:#1f2937!important}
+.payment-header-badge{display:flex;align-items:center;gap:14px;padding:16px;background:#f0f4ff;border:1px solid #d9e2fc;border-radius:6px;margin-bottom:14px}
+.payment-header-badge .badge-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:#6366f1;color:#fff;font-size:22px;flex-shrink:0}
+.payment-header-badge h3{margin:0;color:#1e293b;font-size:16px;font-weight:700}
+.payment-header-badge p{margin:3px 0 0;color:#64748b;font-size:13px}
+.method-selector{display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:12px;margin-bottom:16px}
+.method-card{position:relative;display:flex;align-items:flex-start;gap:12px;padding:14px;background:#fff;border:2px solid #e2e8f0;border-radius:6px;cursor:pointer;transition:all 0.2s ease}
+.method-card:hover{border-color:#a5b4fc;background:#faf5ff}
+.method-card.active{border-color:#6366f1;background:#f5f3ff;box-shadow:0 2px 8px rgba(99,102,241,0.12)}
+.method-card input[type="radio"]{margin-top:3px;accent-color:#6366f1;cursor:pointer}
+.method-details{display:flex;flex-direction:column;gap:3px}
+.method-title{font-size:13.5px;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:6px}
+.method-details small{color:#64748b;font-size:11.5px;line-height:1.4}
+.instant-tag{position:absolute;top:10px;right:10px;padding:2px 7px;border-radius:12px;background:#e0e7ff;color:#4338ca;font-size:10px;font-weight:800;text-transform:uppercase}
+
+.momo-flow-card{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:20px;display:grid;gap:16px}
+.momo-amount-display{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#f8fafc;border-radius:6px;border-left:4px solid #6366f1}
+.momo-amount-display span{font-size:12px;text-transform:uppercase;color:#64748b;font-weight:700}
+.momo-amount-display strong{font-size:22px;color:#1e293b;font-weight:800}
+
+.momo-input-group{display:grid;gap:12px}
+.phone-input-wrapper{display:flex;align-items:center;position:relative;border:1px solid #cbd5e1;border-radius:4px;background:#fff;overflow:hidden;margin-top:6px}
+.phone-input-wrapper:focus-within{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.15)}
+.phone-country-code{padding:10px 12px;background:#f1f5f9;color:#475569;font-weight:700;font-size:13px;border-right:1px solid #cbd5e1;user-select:none}
+.phone-input-wrapper input{border:0!important;padding:10px 14px!important;box-shadow:none!important;font-size:14px;font-weight:600;color:#1e293b;flex:1}
+.carrier-badge{margin-right:10px;padding:4px 8px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase}
+.carrier-badge.mtn{background:#fef08a;color:#854d0e}
+.carrier-badge.airtel{background:#fee2e2;color:#991b1b}
+.carrier-badge.sandbox{background:#e0e7ff;color:#3730a3}
+
+.test-numbers-helper{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;background:#f8fafc;border-radius:4px;font-size:11.5px;color:#64748b}
+.btn-test-num{border:1px solid #cbd5e1;background:#fff;padding:2px 8px;border-radius:4px;font-size:11px;color:#334155;cursor:pointer;font-family:monospace}
+.btn-test-num:hover{background:#e2e8f0;color:#0f172a}
+
+.btn-momo-pay{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border:0;border-radius:30px;background:linear-gradient(135deg, #4f46e5, #6366f1);color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(79,70,229,0.3);transition:all 0.2s ease}
+.btn-momo-pay:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 16px rgba(79,70,229,0.4)}
+.btn-momo-pay:disabled{opacity:0.5;cursor:not-allowed}
+
+.momo-status-tracker{display:flex;align-items:flex-start;gap:14px;padding:16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px}
+.pulse-spinner{width:24px;height:24px;border:3px solid #93c5fd;border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;flex-shrink:0;margin-top:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tracker-info h4{margin:0;color:#1e40af;font-size:14px;font-weight:700}
+.tracker-info p{margin:4px 0 6px;color:#1e3a8a;font-size:12px;line-height:1.4}
+.tracker-timer{font-size:11px;font-weight:700;color:#3b82f6}
+
+.momo-success-banner{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:6px;color:#065f46}
+.momo-success-banner i{font-size:26px;color:#059669;flex-shrink:0}
+.momo-success-banner h4{margin:0;font-size:14px;font-weight:700}
+.momo-success-banner p{margin:2px 0 0;font-size:12px}
+.momo-success-banner code{background:#d1fae5;padding:2px 6px;border-radius:3px;color:#064e3b;font-weight:700}
+
+.momo-error-banner{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;color:#991b1b}
+.momo-error-banner i{font-size:24px;color:#dc2626;flex-shrink:0;margin-top:2px}
+.momo-error-banner h4{margin:0;font-size:14px;font-weight:700}
+.momo-error-banner p{margin:2px 0 8px;font-size:12px}
+.btn-retry-momo{border:1px solid #ef4444;background:#fff;color:#dc2626;padding:4px 12px;border-radius:4px;font-size:11.5px;font-weight:700;cursor:pointer}
+.btn-retry-momo:hover{background:#fee2e2}
+
+:global(.dark) .payment-header-badge{background:#1e293b;border-color:#334155}
+:global(.dark) .payment-header-badge h3{color:#f8fafc}
+:global(.dark) .payment-header-badge p{color:#cbd5e1}
+:global(.dark) .method-card{background:#0f172a;border-color:#334155}
+:global(.dark) .method-card.active{background:#1e1b4b;border-color:#6366f1}
+:global(.dark) .method-title{color:#f8fafc}
+:global(.dark) .momo-flow-card{background:#0f172a;border-color:#334155}
+:global(.dark) .momo-amount-display{background:#1e293b}
+:global(.dark) .momo-amount-display strong{color:#f8fafc}
+:global(.dark) .phone-input-wrapper{background:#1e293b;border-color:#475569}
+:global(.dark) .phone-country-code{background:#334155;color:#f8fafc;border-color:#475569}
+:global(.dark) .phone-input-wrapper input{background:#1e293b!important;color:#f8fafc!important}
+:global(.dark) .test-numbers-helper{background:#1e293b;color:#cbd5e1}
+:global(.dark) .btn-test-num{background:#334155;color:#f8fafc;border-color:#475569}
+:global(.dark) .momo-status-tracker{background:#172554;border-color:#1e40af}
+:global(.dark) .tracker-info h4{color:#93c5fd}
+:global(.dark) .tracker-info p{color:#bfdbfe}
 </style>
+

@@ -30,6 +30,8 @@ func main() {
 	repo := repos.NSMIS
 	emailer := services.NewEmailService(cfg)
 	backupExecutor := services.NewBackupExecutor(repos.Backups, cfg.DatabaseURL)
+	iotecSvc := services.NewIoTecService()
+	formSvc := services.NewFormService(repos.Forms, repos.Departments, repos.Audit, repos.Transactions, iotecSvc)
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	workerID := "nsmis-" + uuid.NewString()
@@ -42,6 +44,13 @@ func main() {
 			log.Print("NSMIS worker stopped")
 			return
 		case <-ticker.C:
+			// Sync pending ioTec mobile money payments
+			if count, err := formSvc.SyncPendingTransactions(ctx); err != nil {
+				log.Printf("error syncing pending iotec transactions: %v", err)
+			} else if count > 0 {
+				log.Printf("successfully synced %d pending iotec transactions", count)
+			}
+
 			for i := 0; i < 10; i++ {
 				n, claimErr := repos.Notifications.ClaimEmail(ctx)
 				if claimErr == repository.ErrNotFound {

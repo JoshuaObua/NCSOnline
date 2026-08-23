@@ -35,6 +35,7 @@ type Repos struct {
 	Departments   *DepartmentRepo
 	Security      *SecurityRepo
 	Analytics     *AnalyticsRepo
+	Transactions  *TransactionRepo
 }
 
 func New(db *pgxpool.Pool) *Repos {
@@ -55,6 +56,7 @@ func New(db *pgxpool.Pool) *Repos {
 		Departments:   &DepartmentRepo{db: db},
 		Security:      &SecurityRepo{db: db},
 		Analytics:     &AnalyticsRepo{db: db},
+		Transactions:  NewTransactionRepo(db),
 	}
 }
 

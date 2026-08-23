@@ -13,6 +13,10 @@
         <i class="fas fa-inbox" aria-hidden="true"></i>
         Submissions
       </button>
+      <button type="button" :class="{ active: view === 'transactions' }" @click="showTransactions">
+        <i class="fas fa-receipt" aria-hidden="true"></i>
+        Transactions
+      </button>
     </div>
 
     <p v-if="localError" class="builder-alert error">{{ localError }}</p>
@@ -131,6 +135,39 @@
                   </button>
                 </div>
               </fieldset>
+              <div v-if="editor.price_ugx > 0" class="wide payment-methods-control">
+                <span class="field-label"><i class="fas fa-money-check-alt"></i> Allowed Payment Methods</span>
+                <p class="field-help">Select the payment channels applicants are allowed to use when paying the fee.</p>
+                <div class="payment-checkbox-grid">
+                  <label class="checkbox-card" :class="{ active: editor.allowed_payment_methods.includes('OVER_THE_COUNTER') }">
+                    <input
+                      type="checkbox"
+                      value="OVER_THE_COUNTER"
+                      :checked="editor.allowed_payment_methods.includes('OVER_THE_COUNTER')"
+                      @change="togglePaymentMethod('OVER_THE_COUNTER')"
+                    />
+                    <div class="card-content">
+                      <div class="card-title"><i class="fas fa-university"></i> Over the Counter / Bank Deposit</div>
+                      <div class="card-desc">Applicant submits a bank deposit receipt or PRN reference for manual verification by finance officers.</div>
+                    </div>
+                  </label>
+                  <label class="checkbox-card" :class="{ active: editor.allowed_payment_methods.includes('MOBILE_MONEY') }">
+                    <input
+                      type="checkbox"
+                      value="MOBILE_MONEY"
+                      :checked="editor.allowed_payment_methods.includes('MOBILE_MONEY')"
+                      @change="togglePaymentMethod('MOBILE_MONEY')"
+                    />
+                    <div class="card-content">
+                      <div class="card-title"><i class="fas fa-mobile-alt"></i> Mobile Money (ioTec Pay)</div>
+                      <div class="card-desc">Instant USSD payment prompt sent directly to applicant's MTN or Airtel line with automated real-time verification.</div>
+                    </div>
+                  </label>
+                </div>
+                <small v-if="!editor.allowed_payment_methods.length" class="payment-warn">
+                  <i class="fas fa-exclamation-triangle"></i> At least one payment method must be checked for fee-bearing forms.
+                </small>
+              </div>
               <label class="wide">Description
                 <textarea v-model="editor.description" rows="4" placeholder="Explain who should use this form and what it is for."></textarea>
               </label>
@@ -265,7 +302,7 @@
       </div>
     </template>
 
-    <template v-else>
+    <template v-else-if="view === 'submissions'">
       <div class="builder-toolbar">
         <div><h2>Form Submissions</h2><p>Review applications and verify uploaded payment references.</p></div>
         <button type="button" class="secondary-action" @click="loadSubmissions"><i class="fas fa-sync"></i> Refresh</button>
@@ -354,6 +391,150 @@
         </aside>
       </div>
     </template>
+
+    <template v-else-if="view === 'transactions'">
+      <div class="builder-toolbar">
+        <div>
+          <h2>Payment Transactions</h2>
+          <p>Live ledger of Mobile Money collections and Over-the-counter payments.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button type="button" class="secondary-action" @click="exportTransactionsCSV">
+            <i class="fas fa-file-export"></i> Export CSV
+          </button>
+          <button type="button" class="secondary-action" @click="loadTransactions">
+            <i class="fas fa-sync"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Transaction KPIs -->
+      <div class="tx-kpis-grid">
+        <div class="tx-kpi-card success">
+          <div class="tx-kpi-icon"><i class="fas fa-check-circle"></i></div>
+          <div class="tx-kpi-body">
+            <span>Total Collections</span>
+            <strong>UGX {{ formatCurrency(txKPIs.total_amount_ugx || 0) }}</strong>
+            <small>{{ txKPIs.total_success || 0 }} successful payments</small>
+          </div>
+        </div>
+        <div class="tx-kpi-card warning">
+          <div class="tx-kpi-icon"><i class="fas fa-clock"></i></div>
+          <div class="tx-kpi-body">
+            <span>Pending Sync</span>
+            <strong>{{ txKPIs.total_pending || 0 }}</strong>
+            <small>Awaiting PIN / carrier sync</small>
+          </div>
+        </div>
+        <div class="tx-kpi-card danger">
+          <div class="tx-kpi-icon"><i class="fas fa-times-circle"></i></div>
+          <div class="tx-kpi-body">
+            <span>Failed / Cancelled</span>
+            <strong>{{ (txKPIs.total_failed || 0) + (txKPIs.total_cancelled || 0) }}</strong>
+            <small>Declined or expired requests</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters Panel -->
+      <div class="filter-panel tx-filters">
+        <label>Search
+          <input
+            v-model="txFilters.q"
+            type="text"
+            placeholder="Search ref, phone, provider ID..."
+            @input="debounceTxSearch"
+          />
+        </label>
+        <label>Status
+          <select v-model="txFilters.status" @change="resetTxPage">
+            <option value="">All statuses</option>
+            <option value="SUCCESS">Success</option>
+            <option value="PENDING">Pending</option>
+            <option value="FAILED">Failed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </label>
+        <label>Payment Channel
+          <select v-model="txFilters.payment_method" @change="resetTxPage">
+            <option value="">All channels</option>
+            <option value="MOBILE_MONEY">Mobile Money (ioTec)</option>
+            <option value="OVER_THE_COUNTER">Over the Counter</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Transactions Table Panel -->
+      <div class="table-panel">
+        <table>
+          <thead>
+            <tr>
+              <th>Transaction Ref</th>
+              <th>Applicant / Form</th>
+              <th>Method</th>
+              <th>Phone Number</th>
+              <th>Amount (UGX)</th>
+              <th>Status</th>
+              <th>Provider Info</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="tx in transactions" :key="tx.id">
+              <td>
+                <strong class="tx-ref">{{ tx.transaction_reference }}</strong>
+                <small v-if="tx.submission_reference" class="sub-ref">Sub: {{ tx.submission_reference }}</small>
+              </td>
+              <td>
+                <strong>{{ tx.applicant_name || tx.applicant_email || 'Applicant' }}</strong>
+                <small>{{ tx.template_title || 'Form application' }}</small>
+              </td>
+              <td>
+                <span class="method-badge" :class="tx.payment_method.toLowerCase()">
+                  <i :class="tx.payment_method === 'MOBILE_MONEY' ? 'fas fa-mobile-alt' : 'fas fa-university'"></i>
+                  {{ tx.payment_method === 'MOBILE_MONEY' ? 'Mobile Money' : 'Over the Counter' }}
+                </span>
+              </td>
+              <td>
+                <span v-if="tx.phone_number" class="phone-cell">{{ tx.phone_number }}</span>
+                <span v-else class="text-muted">—</span>
+              </td>
+              <td>
+                <strong class="amount-cell">{{ formatCurrency(tx.amount_ugx) }}</strong>
+              </td>
+              <td>
+                <span class="status-badge" :class="txStatusClass(tx.status)">
+                  {{ tx.status }}
+                </span>
+              </td>
+              <td>
+                <div class="provider-cell">
+                  <span v-if="tx.provider_request_id" class="provider-req-id">{{ tx.provider_request_id }}</span>
+                  <small v-if="tx.status_message" class="provider-msg" :title="tx.status_message">{{ tx.status_message }}</small>
+                  <small v-else-if="!tx.provider_request_id" class="text-muted">—</small>
+                </div>
+              </td>
+              <td>
+                <span class="date-cell">{{ formatDate(tx.created_at) }}</span>
+              </td>
+            </tr>
+            <tr v-if="!txLoading && !transactions.length">
+              <td colspan="8" class="empty-state">No payment transactions match these filters.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pagination">
+          <button type="button" :disabled="txPage <= 1" @click="changeTxPage(-1)">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span>Page {{ txPage }} of {{ txTotalPages }}</span>
+          <button type="button" :disabled="txPage >= txTotalPages" @click="changeTxPage(1)">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </template>
   </section>
 </template>
 
@@ -368,8 +549,10 @@ import {
   adminDeleteForm,
   adminGetForm,
   adminGetSubmission,
+  adminGetTransactionKPIs,
   adminListForms,
   adminListSubmissions,
+  adminListTransactions,
   adminReviewSubmission,
   adminUpdateForm,
   adminVerifySubmissionPayment,
@@ -412,6 +595,16 @@ const submissionFilters = reactive({ template_id: '', status: '' })
 const review = reactive({ status: 'UNDER_REVIEW', notes: '' })
 const slugManuallyEdited = ref(false)
 
+const transactions = ref([])
+const txLoading = ref(false)
+const txKPIs = ref({ total_count: 0, total_success: 0, total_pending: 0, total_failed: 0, total_cancelled: 0, total_amount_ugx: 0 })
+const txPage = ref(1)
+const txMeta = ref({})
+const txFilters = reactive({ q: '', status: '', payment_method: '' })
+let searchDebounceTimer = null
+
+const txTotalPages = computed(() => Math.max(1, Math.ceil(Number(txMeta.value.total || 0) / Number(txMeta.value.per_page || 20))))
+
 const blankEditor = () => ({
   id: '',
   slug: '',
@@ -420,11 +613,24 @@ const blankEditor = () => ({
   description: '',
   banner_image_url: '',
   price_ugx: 0,
+  allowed_payment_methods: ['OVER_THE_COUNTER', 'MOBILE_MONEY'],
   status: 'DRAFT',
   sections: [normalizeFormSection({}, 0)],
   fields: [],
 })
 const editor = reactive(blankEditor())
+
+function togglePaymentMethod(method) {
+  if (!Array.isArray(editor.allowed_payment_methods)) {
+    editor.allowed_payment_methods = []
+  }
+  const idx = editor.allowed_payment_methods.indexOf(method)
+  if (idx >= 0) {
+    editor.allowed_payment_methods.splice(idx, 1)
+  } else {
+    editor.allowed_payment_methods.push(method)
+  }
+}
 
 function onTitleInput() {
   if (!editor.id && !slugManuallyEdited.value) {
@@ -541,9 +747,17 @@ async function editTemplate(id) {
     const fields = (template.fields || []).map(normalizeFormField)
     const sections = normalizeFormSections(template.sections || [], fields)
     assignFieldsToSections(fields, sections)
+    let payMethods = template.allowed_payment_methods
+    if (typeof payMethods === 'string') {
+      try { payMethods = JSON.parse(payMethods) } catch { payMethods = [] }
+    }
+    if (!Array.isArray(payMethods) || !payMethods.length) {
+      payMethods = ['OVER_THE_COUNTER', 'MOBILE_MONEY']
+    }
     Object.assign(editor, blankEditor(), template, {
       sections,
       fields,
+      allowed_payment_methods: payMethods,
     })
     slugManuallyEdited.value = !!editor.slug
     syncFieldsToSectionOrder()
@@ -568,8 +782,83 @@ function showTemplates() {
   view.value = 'templates'
 }
 async function showSubmissions() {
+  selectedSubmission.value = null
   view.value = 'submissions'
   await loadSubmissions()
+}
+async function showTransactions() {
+  selectedSubmission.value = null
+  view.value = 'transactions'
+  await Promise.all([loadTransactions(), loadTransactionKPIs()])
+}
+
+async function loadTransactions() {
+  txLoading.value = true
+  clearError()
+  try {
+    const res = await adminListTransactions({
+      page: txPage.value,
+      per_page: 20,
+      q: txFilters.q || undefined,
+      status: txFilters.status || undefined,
+      payment_method: txFilters.payment_method || undefined,
+    })
+    const data = res?.data || res || {}
+    transactions.value = data.items || data.data || []
+    txMeta.value = data.meta || {}
+  } catch (error) {
+    handleError(error)
+  } finally {
+    txLoading.value = false
+  }
+}
+
+async function loadTransactionKPIs() {
+  try {
+    const res = await adminGetTransactionKPIs()
+    txKPIs.value = res || {}
+  } catch (error) {
+    console.warn('Failed to load transaction KPIs', error)
+  }
+}
+
+function exportTransactionsCSV() {
+  const qs = new URLSearchParams({
+    export: 'csv',
+    q: txFilters.q || '',
+    status: txFilters.status || '',
+    payment_method: txFilters.payment_method || '',
+  }).toString()
+  window.open(`/api/v1/admin/transactions?${qs}`, '_blank')
+}
+
+function debounceTxSearch() {
+  clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    txPage.value = 1
+    loadTransactions()
+  }, 400)
+}
+
+function resetTxPage() {
+  txPage.value = 1
+  loadTransactions()
+}
+
+function changeTxPage(delta) {
+  const next = txPage.value + delta
+  if (next >= 1 && next <= txTotalPages.value) {
+    txPage.value = next
+    loadTransactions()
+  }
+}
+
+function txStatusClass(status) {
+  const s = String(status || '').toUpperCase()
+  if (s === 'SUCCESS') return 'success'
+  if (s === 'PENDING') return 'warning'
+  if (['FAILED', 'CANCELLED'].includes(s)) return 'danger'
+  return 'info'
 }
 function newSection(index = editor.sections.length) {
   return normalizeFormSection({
@@ -691,6 +980,9 @@ async function saveTemplate() {
   if (missingLabel >= 0) return handleError(new Error(`Field ${missingLabel + 1} needs a label.`))
   const optionless = payload.fields.findIndex(field => hasOptions(field.field_type) && !field.config.options?.length)
   if (optionless >= 0) return handleError(new Error(`Field ${optionless + 1} needs at least one option.`))
+  if (payload.price_ugx > 0 && (!payload.allowed_payment_methods || !payload.allowed_payment_methods.length)) {
+    return handleError(new Error('Select at least one allowed payment method for fee-bearing forms.'))
+  }
 
   saving.value = true
   try {
@@ -845,5 +1137,58 @@ onMounted(async () => {
 :global(.dark .form-builder) .slug-prefix{background:#1e293b;border-color:#475569;color:#94a3b8}
 :global(.dark .form-builder) .slug-hint code{background:#1e293b;color:#93c5fd}
 
-@media(max-width:1180px){.editor-layout,.submissions-layout.detailed{grid-template-columns:1fr}.preview-panel,.submission-detail{position:static}.preview-panel{max-width:720px}}@media(max-width:700px){.form-grid,.filter-panel,.submission-meta{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.builder-toolbar{align-items:flex-start}.toolbar-actions,.add-field{width:100%}.toolbar-actions>*{flex:1 1 150px}.builder-tabs{overflow:auto}.builder-tabs button{white-space:nowrap}.settings-panel,.submission-detail{padding:18px}.form-grid.compact{padding:14px}.field-card header{align-items:flex-start;flex-wrap:wrap}.field-card header strong{flex-basis:calc(100% - 46px)}.field-actions{width:100%;justify-content:flex-end}}
+.payment-methods-control{margin-top:6px;padding:16px;background:#f8f9ff;border:1px solid #e0e7ff;border-radius:6px}
+.payment-methods-control .field-label{font-size:13px;font-weight:700;color:#3730a3;display:flex;align-items:center;gap:6px}
+.payment-methods-control .field-help{margin:4px 0 12px;font-size:12px;color:#6b7280}
+.payment-checkbox-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:12px}
+.checkbox-card{display:flex;align-items:flex-start;gap:12px;padding:14px;background:#fff;border:2px solid #e2e8f0;border-radius:6px;cursor:pointer;transition:all 0.2s ease}
+.checkbox-card:hover{border-color:#a5b4fc;background:#faf5ff}
+.checkbox-card.active{border-color:#6366f1;background:#f5f3ff;box-shadow:0 2px 8px rgba(99,102,241,0.12)}
+.checkbox-card input[type="checkbox"]{width:18px;height:18px;margin-top:2px;accent-color:#6366f1;cursor:pointer}
+.checkbox-card .card-content{display:flex;flex-direction:column;gap:3px}
+.checkbox-card .card-title{font-size:13px;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:6px}
+.checkbox-card .card-desc{font-size:11.5px;color:#64748b;line-height:1.4}
+.payment-warn{display:block;margin-top:8px;color:#dc2626;font-size:11.5px;font-weight:600}
+
+:global(.dark .form-builder) .payment-methods-control{background:#1e1b4b;border-color:#3730a3}
+:global(.dark .form-builder) .payment-methods-control .field-label{color:#a5b4fc}
+:global(.dark .form-builder) .checkbox-card{background:#0f172a;border-color:#334155}
+:global(.dark .form-builder) .checkbox-card.active{background:#1e1b4b;border-color:#6366f1}
+:global(.dark .form-builder) .checkbox-card .card-title{color:#f8fafc}
+:global(.dark .form-builder) .checkbox-card .card-desc{color:#94a3b8}
+
+.tx-kpis-grid{display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px;margin-bottom:18px}
+.tx-kpi-card{display:flex;align-items:center;gap:14px;padding:18px 20px;background:#fff;border-radius:6px;box-shadow:0 3px 12px rgba(0,0,0,0.05);border-left:4px solid #6777ef}
+.tx-kpi-card.success{border-left-color:#10b981}
+.tx-kpi-card.warning{border-left-color:#f59e0b}
+.tx-kpi-card.danger{border-left-color:#ef4444}
+.tx-kpi-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;background:#f1f5f9;font-size:18px;color:#64748b}
+.tx-kpi-card.success .tx-kpi-icon{background:#ecfdf5;color:#10b981}
+.tx-kpi-card.warning .tx-kpi-icon{background:#fffbeb;color:#f59e0b}
+.tx-kpi-card.danger .tx-kpi-icon{background:#fef2f2;color:#ef4444}
+.tx-kpi-body{display:flex;flex-direction:column;gap:2px}
+.tx-kpi-body span{font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8}
+.tx-kpi-body strong{font-size:18px;color:#1e293b;font-weight:800}
+.tx-kpi-body small{font-size:11px;color:#64748b}
+
+.tx-filters{grid-template-columns:minmax(220px, 1.5fr) repeat(2, minmax(180px, 1fr))}
+.tx-ref{font-family:monospace;color:#4338ca!important;font-size:12px!important}
+.sub-ref{font-family:monospace;color:#94a3b8;font-size:10.5px}
+.method-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;font-size:11px;font-weight:700}
+.method-badge.mobile_money{background:#eff6ff;color:#2563eb}
+.method-badge.over_the_counter{background:#fef3c7;color:#b45309}
+.amount-cell{font-weight:800;color:#0f172a!important;font-size:13px}
+.phone-cell{font-family:monospace;font-weight:600;color:#334155}
+.provider-cell{display:flex;flex-direction:column;gap:2px}
+.provider-req-id{font-family:monospace;font-size:11px;color:#64748b}
+.provider-msg{color:#94a3b8;font-size:10.5px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.date-cell{font-size:11.5px;color:#64748b}
+
+:global(.dark .form-builder) .tx-kpi-card{background:#1f2937;box-shadow:none}
+:global(.dark .form-builder) .tx-kpi-body strong{color:#f8fafc}
+:global(.dark .form-builder) .amount-cell{color:#f8fafc!important}
+:global(.dark .form-builder) .phone-cell{color:#cbd5e1}
+:global(.dark .form-builder) .tx-ref{color:#93c5fd!important}
+
+@media(max-width:1180px){.editor-layout,.submissions-layout.detailed{grid-template-columns:1fr}.preview-panel,.submission-detail{position:static}.preview-panel{max-width:720px}}@media(max-width:700px){.form-grid,.filter-panel,.submission-meta,.tx-filters{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.builder-toolbar{align-items:flex-start}.toolbar-actions,.add-field{width:100%}.toolbar-actions>*{flex:1 1 150px}.builder-tabs{overflow:auto}.builder-tabs button{white-space:nowrap}.settings-panel,.submission-detail{padding:18px}.form-grid.compact{padding:14px}.field-card header{align-items:flex-start;flex-wrap:wrap}.field-card header strong{flex-basis:calc(100% - 46px)}.field-actions{width:100%;justify-content:flex-end}}
 </style>

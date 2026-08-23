@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/atenimedia-llc/ncs-online/backend/internal/models"
 	"github.com/google/uuid"
@@ -132,7 +133,9 @@ func (r *FormRepo) ListTemplates(ctx context.Context, f ListFormTemplatesFilter)
 		conds = append(conds, "t.status = 'OPEN'")
 	}
 	q := `SELECT t.id, t.department_id, COALESCE(r.name,''), t.slug, t.title, t.description,
-	             COALESCE(t.sections, '[]'::jsonb), t.banner_image_url, t.price_ugx, t.status, t.legacy_form_type, t.created_by,
+	             COALESCE(t.sections, '[]'::jsonb), t.banner_image_url, t.price_ugx,
+	             COALESCE(t.allowed_payment_methods, '["OVER_THE_COUNTER","MOBILE_MONEY"]'::jsonb),
+	             t.status, t.legacy_form_type, t.created_by,
 	             t.created_at, t.updated_at
 	      FROM form_templates t
 	      LEFT JOIN roles r ON r.id = t.department_id
@@ -147,8 +150,9 @@ func (r *FormRepo) ListTemplates(ctx context.Context, f ListFormTemplatesFilter)
 	for rows.Next() {
 		t := &models.FormTemplate{}
 		var sections []byte
+		var payMethods []byte
 		if err := rows.Scan(&t.ID, &t.DepartmentID, &t.DepartmentName, &t.Slug, &t.Title, &t.Description,
-			&sections, &t.BannerImageURL, &t.PriceUGX, &t.Status, &t.LegacyFormType, &t.CreatedBy,
+			&sections, &t.BannerImageURL, &t.PriceUGX, &payMethods, &t.Status, &t.LegacyFormType, &t.CreatedBy,
 			&t.CreatedAt, &t.UpdatedAt); err != nil {
 			return nil, err
 		}
@@ -157,6 +161,11 @@ func (r *FormRepo) ListTemplates(ctx context.Context, f ListFormTemplatesFilter)
 		} else {
 			t.Sections = json.RawMessage("[]")
 		}
+		if len(payMethods) > 0 {
+			t.AllowedPaymentMethods = json.RawMessage(payMethods)
+		} else {
+			t.AllowedPaymentMethods = json.RawMessage(`["OVER_THE_COUNTER","MOBILE_MONEY"]`)
+		}
 		out = append(out, t)
 	}
 	return out, rows.Err()
@@ -164,15 +173,18 @@ func (r *FormRepo) ListTemplates(ctx context.Context, f ListFormTemplatesFilter)
 
 func (r *FormRepo) GetTemplate(ctx context.Context, id string, withFields bool) (*models.FormTemplate, error) {
 	const q = `SELECT t.id, t.department_id, COALESCE(r.name,''), t.slug, t.title, t.description,
-	                  COALESCE(t.sections, '[]'::jsonb), t.banner_image_url, t.price_ugx, t.status, t.legacy_form_type, t.created_by,
+	                  COALESCE(t.sections, '[]'::jsonb), t.banner_image_url, t.price_ugx,
+	                  COALESCE(t.allowed_payment_methods, '["OVER_THE_COUNTER","MOBILE_MONEY"]'::jsonb),
+	                  t.status, t.legacy_form_type, t.created_by,
 	                  t.created_at, t.updated_at
 	           FROM form_templates t
 	           LEFT JOIN roles r ON r.id = t.department_id
 	           WHERE t.id = $1`
 	t := &models.FormTemplate{}
 	var sections []byte
+	var payMethods []byte
 	err := r.db.QueryRow(ctx, q, id).Scan(&t.ID, &t.DepartmentID, &t.DepartmentName, &t.Slug, &t.Title, &t.Description,
-		&sections, &t.BannerImageURL, &t.PriceUGX, &t.Status, &t.LegacyFormType, &t.CreatedBy,
+		&sections, &t.BannerImageURL, &t.PriceUGX, &payMethods, &t.Status, &t.LegacyFormType, &t.CreatedBy,
 		&t.CreatedAt, &t.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
@@ -184,6 +196,11 @@ func (r *FormRepo) GetTemplate(ctx context.Context, id string, withFields bool) 
 		t.Sections = json.RawMessage(sections)
 	} else {
 		t.Sections = json.RawMessage("[]")
+	}
+	if len(payMethods) > 0 {
+		t.AllowedPaymentMethods = json.RawMessage(payMethods)
+	} else {
+		t.AllowedPaymentMethods = json.RawMessage(`["OVER_THE_COUNTER","MOBILE_MONEY"]`)
 	}
 	if withFields {
 		fields, err := r.ListFields(ctx, id)
@@ -212,12 +229,16 @@ func (r *FormRepo) CreateTemplate(ctx context.Context, t *models.FormTemplate) e
 	if len(sections) == 0 {
 		sections = json.RawMessage("[]")
 	}
+	payMethods := t.AllowedPaymentMethods
+	if len(payMethods) == 0 {
+		payMethods = json.RawMessage(`["OVER_THE_COUNTER","MOBILE_MONEY"]`)
+	}
 	const q = `INSERT INTO form_templates
-	            (department_id, slug, title, description, sections, banner_image_url, price_ugx, status, created_by)
-	           VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7,$8,$9)
+	            (department_id, slug, title, description, sections, banner_image_url, price_ugx, allowed_payment_methods, status, created_by)
+	           VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7,$8::jsonb,$9,$10)
 	           RETURNING id, created_at, updated_at`
 	return r.db.QueryRow(ctx, q,
-		t.DepartmentID, t.Slug, t.Title, t.Description, string(sections), t.BannerImageURL, t.PriceUGX, t.Status, t.CreatedBy,
+		t.DepartmentID, t.Slug, t.Title, t.Description, string(sections), t.BannerImageURL, t.PriceUGX, string(payMethods), t.Status, t.CreatedBy,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
 }
 
@@ -226,13 +247,17 @@ func (r *FormRepo) UpdateTemplate(ctx context.Context, t *models.FormTemplate) e
 	if len(sections) == 0 {
 		sections = json.RawMessage("[]")
 	}
+	payMethods := t.AllowedPaymentMethods
+	if len(payMethods) == 0 {
+		payMethods = json.RawMessage(`["OVER_THE_COUNTER","MOBILE_MONEY"]`)
+	}
 	const q = `UPDATE form_templates
 	           SET department_id=$2, title=$3, description=$4, sections=$5::jsonb, banner_image_url=$6,
-	               price_ugx=$7, status=$8, slug=$9, updated_at=NOW()
+	               price_ugx=$7, allowed_payment_methods=$8::jsonb, status=$9, slug=$10, updated_at=NOW()
 	           WHERE id=$1
 	           RETURNING updated_at`
 	return r.db.QueryRow(ctx, q,
-		t.ID, t.DepartmentID, t.Title, t.Description, string(sections), t.BannerImageURL, t.PriceUGX, t.Status, t.Slug,
+		t.ID, t.DepartmentID, t.Title, t.Description, string(sections), t.BannerImageURL, t.PriceUGX, string(payMethods), t.Status, t.Slug,
 	).Scan(&t.UpdatedAt)
 }
 
@@ -365,7 +390,7 @@ func (r *FormRepo) ListSubmissions(ctx context.Context, f ListSubmissionsFilter,
 	limitClause := fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)-1, len(args))
 	q := `SELECT s.id, s.template_id, COALESCE(t.title,''), s.department_id, s.user_id,
 	             COALESCE(u.first_name || ' ' || u.last_name,''), COALESCE(u.email,''),
-	             COALESCE(s.submission_reference,''), s.status, s.payment_status,
+	             COALESCE(s.submission_reference,''), s.status, COALESCE(s.payment_method, 'OVER_THE_COUNTER'), s.payment_status,
 	             COALESCE(s.payment_reference,''), COALESCE(s.payment_proof_url,''), s.payment_amount_ugx, s.payment_verified_at,
 	             s.payment_verified_by,
 	             COALESCE(NULLIF(TRIM(COALESCE(pv.first_name,'') || ' ' || COALESCE(pv.last_name,'')), ''), pv.email, ''),
@@ -391,7 +416,7 @@ func (r *FormRepo) ListSubmissions(ctx context.Context, f ListSubmissionsFilter,
 		var answers []byte
 		if err := rows.Scan(&s.ID, &s.TemplateID, &s.TemplateTitle, &s.DepartmentID, &s.UserID,
 			&s.ApplicantName, &s.ApplicantEmail,
-			&s.SubmissionReference, &s.Status, &s.PaymentStatus,
+			&s.SubmissionReference, &s.Status, &s.PaymentMethod, &s.PaymentStatus,
 			&s.PaymentReference, &s.PaymentProofURL, &s.PaymentAmountUGX, &s.PaymentVerifiedAt,
 			&s.PaymentVerifiedBy, &s.PaymentVerifierName,
 			&answers, &s.ReviewerID, &s.ReviewerName, &s.ReviewNotes,
@@ -411,7 +436,7 @@ func (r *FormRepo) ListSubmissions(ctx context.Context, f ListSubmissionsFilter,
 func (r *FormRepo) GetSubmission(ctx context.Context, id string) (*models.FormSubmission, error) {
 	const q = `SELECT s.id, s.template_id, COALESCE(t.title,''), s.department_id, s.user_id,
 	                  COALESCE(u.first_name || ' ' || u.last_name,''), COALESCE(u.email,''),
-	                  COALESCE(s.submission_reference,''), s.status, s.payment_status,
+	                  COALESCE(s.submission_reference,''), s.status, COALESCE(s.payment_method, 'OVER_THE_COUNTER'), s.payment_status,
 	                  COALESCE(s.payment_reference,''), COALESCE(s.payment_proof_url,''), s.payment_amount_ugx, s.payment_verified_at,
 	                  s.payment_verified_by,
 	                  COALESCE(NULLIF(TRIM(COALESCE(pv.first_name,'') || ' ' || COALESCE(pv.last_name,'')), ''), pv.email, ''),
@@ -429,7 +454,7 @@ func (r *FormRepo) GetSubmission(ctx context.Context, id string) (*models.FormSu
 	var answers []byte
 	err := r.db.QueryRow(ctx, q, id).Scan(&s.ID, &s.TemplateID, &s.TemplateTitle, &s.DepartmentID, &s.UserID,
 		&s.ApplicantName, &s.ApplicantEmail,
-		&s.SubmissionReference, &s.Status, &s.PaymentStatus,
+		&s.SubmissionReference, &s.Status, &s.PaymentMethod, &s.PaymentStatus,
 		&s.PaymentReference, &s.PaymentProofURL, &s.PaymentAmountUGX, &s.PaymentVerifiedAt,
 		&s.PaymentVerifiedBy, &s.PaymentVerifierName,
 		&answers, &s.ReviewerID, &s.ReviewerName, &s.ReviewNotes,
@@ -529,10 +554,20 @@ func (r *FormRepo) SetSubmitted(ctx context.Context, id, reference string) error
 func (r *FormRepo) SetPaymentProof(ctx context.Context, id, reference, proofURL string, amount float64) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE form_submissions
-		SET payment_status='PROOF_UPLOADED', payment_reference=$2,
+		SET payment_status='PROOF_UPLOADED', payment_method='OVER_THE_COUNTER', payment_reference=$2,
 		    payment_proof_url=$3, payment_amount_ugx=$4,
 		    payment_verified_by=NULL, payment_verified_at=NULL, updated_at=NOW()
 		WHERE id=$1`, id, reference, proofURL, amount)
+	return err
+}
+
+func (r *FormRepo) SetPaymentPaidDirect(ctx context.Context, id, method, reference string, amount float64) error {
+	now := time.Now()
+	_, err := r.db.Exec(ctx, `
+		UPDATE form_submissions
+		SET payment_status='PAID', payment_method=$2, payment_reference=$3,
+		    payment_amount_ugx=$4, payment_verified_at=$5, updated_at=NOW()
+		WHERE id=$1`, id, method, reference, amount, now)
 	return err
 }
 

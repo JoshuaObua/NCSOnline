@@ -139,6 +139,10 @@ export function buildTemplatePayload(form = {}) {
     }
   })
 
+  const allowedPaymentMethods = Array.isArray(form.allowed_payment_methods) && form.allowed_payment_methods.length
+    ? form.allowed_payment_methods
+    : ['OVER_THE_COUNTER', 'MOBILE_MONEY']
+
   return {
     department_id: form.department_id || '',
     slug: String(form.slug || '').trim(),
@@ -146,6 +150,7 @@ export function buildTemplatePayload(form = {}) {
     description: String(form.description || '').trim(),
     banner_image_url: form.banner_image_url || '',
     price_ugx: Math.max(0, Number(form.price_ugx) || 0),
+    allowed_payment_methods: allowedPaymentMethods,
     status: form.status || 'DRAFT',
     sections,
     fields,
