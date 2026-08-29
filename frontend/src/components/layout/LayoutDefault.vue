@@ -255,6 +255,51 @@
               </li>
             </template>
 
+            <!-- ACCOUNTING & FINANCE DEPARTMENT SPECIFIC WORKSTATION MENU -->
+            <template v-else-if="isAccountantOnly">
+              <li class="menu-header">Financial & Asset Ledgers</li>
+              <li :class="{ active: currentPath === '/fixed-assets' }">
+                <router-link to="/fixed-assets" title="Fixed Assets & IPSAS 17 Register">
+                  <i class="icofont-building-alt"></i>
+                  <span v-if="!sidebarCollapsed">Fixed Assets Register</span>
+                </router-link>
+              </li>
+              <li :class="{ active: currentPath === '/stores/inventory' }">
+                <router-link to="/stores/inventory" title="Stores & Inventory">
+                  <i class="icofont-box"></i>
+                  <span v-if="!sidebarCollapsed">Stores & Inventory</span>
+                </router-link>
+              </li>
+
+              <li class="menu-header">Procurement & Vetting</li>
+              <li :class="{ active: currentPath === '/it/ppda/status' || currentPath === '/it/ppda' }">
+                <router-link to="/it/ppda/status" title="PPDA Form 5 Requisitions">
+                  <i class="icofont-document-folder"></i>
+                  <span v-if="!sidebarCollapsed">PPDA Form 5 Status</span>
+                </router-link>
+              </li>
+              <li :class="{ active: currentPath === '/it/ppda/new' }">
+                <router-link to="/it/ppda/new" title="New PPDA Form 5 Requisition">
+                  <i class="icofont-plus-circle"></i>
+                  <span v-if="!sidebarCollapsed">New PPDA Form 5</span>
+                </router-link>
+              </li>
+
+              <li class="menu-header">Staff Self-Service</li>
+              <li :class="{ active: currentPath === '/reception/leave/apply' }">
+                <router-link to="/reception/leave/apply" title="Apply for Leave">
+                  <i class="icofont-calendar"></i>
+                  <span v-if="!sidebarCollapsed">Apply for Leave</span>
+                </router-link>
+              </li>
+              <li :class="{ active: currentPath === '/reception/leave/status' }">
+                <router-link to="/reception/leave/status" title="Leave Status & History">
+                  <i class="icofont-history"></i>
+                  <span v-if="!sidebarCollapsed">Leave Status & History</span>
+                </router-link>
+              </li>
+            </template>
+
             <!-- GENERAL / EXECUTIVE / DEPARTMENTAL MENUS (HIDDEN FOR RECEPTIONIST ONLY) -->
             <template v-else>
               <!-- EXECUTIVE LEADERSHIP & GOVERNANCE -->
@@ -326,6 +371,12 @@
 
               <!-- OPERATIONS & LOGISTICS -->
               <li class="menu-header">Operations & Front Desk</li>
+              <li :class="{ active: currentPath === '/fixed-assets' }">
+                <router-link to="/fixed-assets" title="Fixed Assets & IPSAS 17 Register">
+                  <i class="icofont-building-alt"></i>
+                  <span v-if="!sidebarCollapsed">Fixed Assets Register</span>
+                </router-link>
+              </li>
               <li :class="{ active: currentPath === '/reception/visitors' }">
                 <router-link to="/reception/visitors" title="Reception & Visitor Clearance">
                   <i class="icofont-id-card"></i>
@@ -544,6 +595,7 @@ const userRole = computed(() => {
   if (roles.includes('legal_counsel')) return 'Legal Counsel'
   if (roles.includes('senior_engineer')) return 'Senior Engineer'
   if (roles.includes('it_officer')) return 'ICT Systems & Database Administrator'
+  if (roles.includes('accountant') || roles.includes('senior_accountant') || roles.includes('finance_department')) return 'Senior Accountant / Head of Finance'
   if (roles.includes('receptionist') || roles.includes('helpdesk')) return 'Front Desk Receptionist'
   const first = roles[0]
   return typeof first === 'string' && first ? first.replace(/_/g, ' ') : 'Staff Member'
@@ -576,6 +628,14 @@ const isEngineeringOfficerOnly = computed(() => {
     roles.includes('plumber')
   const isPrivileged = roles.includes('admin') || roles.includes('super_admin') || roles.includes('general_secretary') || roles.includes('ags_admin') || roles.includes('ags_technical')
   return isEng && !isPrivileged
+})
+
+const isAccountantOnly = computed(() => {
+  const rawRoles = authStore.user?.roles || []
+  const roles = rawRoles.map(r => (typeof r === 'string' ? r : (r?.name || r?.role || ''))).filter(Boolean)
+  const isAcc = roles.includes('accountant') || roles.includes('senior_accountant') || roles.includes('finance_department')
+  const isPrivileged = roles.includes('admin') || roles.includes('super_admin') || roles.includes('general_secretary') || roles.includes('ags_admin') || roles.includes('ags_technical')
+  return isAcc && !isPrivileged
 })
 
 function checkMobile() {

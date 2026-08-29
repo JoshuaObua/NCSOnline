@@ -234,6 +234,242 @@
     </div>
 
     <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- ACCOUNTANT & FINANCIAL CONTROLLER DASHBOARD VIEW                     -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div v-else-if="isAccountant" class="space-y-6">
+      
+      <!-- 1. Hero Welcome Card -->
+      <div class="card bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 border-0 text-white shadow-md rounded-2xl overflow-hidden p-6 sm:p-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="text-xs uppercase tracking-widest text-emerald-300 font-bold mb-1">{{ greeting }}</div>
+            <h2 class="text-2xl font-extrabold">{{ welcomeName }}</h2>
+            <p class="text-slate-300 text-sm mt-1 max-w-xl">
+              Finance & Accounting Directorate — Fixed Asset Register, IPSAS 17 Valuations & Statutory Ledgers.
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Ledger Active (IPSAS 17)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Financial KPI Summary Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Card 1: Total Portfolio FB Cost -->
+        <div class="card card-statistic-4 shadow-sm hover:shadow-md transition">
+          <div class="card-content">
+            <div>
+              <h5>Total FB Cost</h5>
+              <h2 class="font-mono text-lg font-extrabold text-slate-900 dark:text-white">UGX {{ formatUGX(assetSummary.total_fb_cost) }}</h2>
+              <span class="badge badge-success"><i class="icofont-building-alt"></i> {{ assetSummary.total_assets || 297 }} Real Assets</span>
+            </div>
+            <div class="banner-img bg-success-light">
+              <i class="icofont-money-bag"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Adjusted Valuation -->
+        <div class="card card-statistic-4 shadow-sm hover:shadow-md transition">
+          <div class="card-content">
+            <div>
+              <h5>Adjusted Valuation</h5>
+              <h2 class="font-mono text-lg font-extrabold text-blue-600 dark:text-blue-400">UGX {{ formatUGX(assetSummary.total_adjusted_cost) }}</h2>
+              <span class="badge badge-primary"><i class="icofont-chart-growth"></i> Statutory Revalued</span>
+            </div>
+            <div class="banner-img bg-primary-light">
+              <i class="icofont-chart-bar-graph"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Net Book Value (NBV) -->
+        <div class="card card-statistic-4 shadow-sm hover:shadow-md transition">
+          <div class="card-content">
+            <div>
+              <h5>Net Book Value (NBV)</h5>
+              <h2 class="font-mono text-lg font-extrabold text-purple-600 dark:text-purple-400">UGX {{ formatUGX(assetSummary.total_net_book_value) }}</h2>
+              <span class="badge badge-info"><i class="icofont-calculator-alt-2"></i> Less Depreciation</span>
+            </div>
+            <div class="banner-img bg-cyan-light">
+              <i class="icofont-calculator"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Audit Verification Status -->
+        <div class="card card-statistic-4 shadow-sm hover:shadow-md transition">
+          <div class="card-content">
+            <div>
+              <h5>Physical Verification</h5>
+              <h2 class="text-lg font-extrabold text-amber-600 dark:text-amber-400">{{ assetSummary.verified_assets || 0 }} / {{ assetSummary.total_assets || 297 }}</h2>
+              <span class="badge badge-warning"><i class="icofont-check-circled"></i> {{ assetSummary.discrepancy_assets || 0 }} Flagged</span>
+            </div>
+            <div class="banner-img bg-warning-light">
+              <i class="icofont-verification-check"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Accountant Quick Action Navigation Grid -->
+      <div class="card">
+        <div class="card-header flex items-center justify-between">
+          <h4><i class="icofont-navigation-menu text-emerald-600"></i> Fixed Asset & Financial Actions</h4>
+          <router-link to="/fixed-assets" class="btn btn-sm btn-primary">
+            Open Fixed Asset Register <i class="icofont-arrow-right ml-1"></i>
+          </router-link>
+        </div>
+        <div class="card-body">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <router-link
+              to="/fixed-assets"
+              class="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 border border-slate-200 dark:border-slate-700 transition group text-center"
+            >
+              <div class="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                <i class="icofont-building-alt"></i>
+              </div>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600">Asset Register & Add</span>
+            </router-link>
+
+            <router-link
+              to="/stores/inventory"
+              class="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-slate-200 dark:border-slate-700 transition group text-center"
+            >
+              <div class="w-11 h-11 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                <i class="icofont-box"></i>
+              </div>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600">Stores & Inventory</span>
+            </router-link>
+
+            <router-link
+              to="/it/ppda/status"
+              class="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 border border-slate-200 dark:border-slate-700 transition group text-center"
+            >
+              <div class="w-11 h-11 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                <i class="icofont-document-folder"></i>
+              </div>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600">PPDA Form 5 Vetting</span>
+            </router-link>
+
+            <router-link
+              to="/reception/leave/apply"
+              class="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 border border-slate-200 dark:border-slate-700 transition group text-center"
+            >
+              <div class="w-11 h-11 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                <i class="icofont-calendar"></i>
+              </div>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600">Apply for Leave</span>
+            </router-link>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Fixed Assets Ledger & Leave Balance Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left 2 Cols: High-Value Fixed Assets Ledger Preview -->
+        <div class="card lg:col-span-2">
+          <div class="card-header flex items-center justify-between">
+            <h4><i class="icofont-listine-dots text-emerald-600"></i> Baseline Fixed Asset Register (IPSAS 17)</h4>
+            <router-link to="/fixed-assets" class="btn btn-sm btn-outline-primary">
+              View All Assets <i class="icofont-arrow-right ml-1"></i>
+            </router-link>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-striped table-hover mb-0 text-xs">
+                <thead>
+                  <tr>
+                    <th>Asset Code</th>
+                    <th>Tag Number</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th class="text-right">FB Cost (UGX)</th>
+                    <th class="text-right">Adjusted (UGX)</th>
+                    <th class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="a in accountantAssets.slice(0, 6)" :key="a.id">
+                    <td class="font-bold text-emerald-700 font-mono">{{ a.asset_number }}</td>
+                    <td class="font-mono text-slate-700 dark:text-slate-300">{{ a.tag_number }}</td>
+                    <td>
+                      <div class="font-medium text-slate-900 dark:text-white max-w-xs truncate" :title="a.asset_description">{{ a.asset_description }}</div>
+                      <div class="text-[10px] text-slate-400">{{ a.location_building }}</div>
+                    </td>
+                    <td><span class="badge badge-light text-[10px]">{{ a.category_segment3 }}</span></td>
+                    <td class="text-right font-mono font-semibold text-slate-800 dark:text-slate-200">{{ formatUGX(a.fb_cost) }}</td>
+                    <td class="text-right font-mono font-bold text-blue-600 dark:text-blue-400">{{ formatUGX(a.adjusted_cost) }}</td>
+                    <td class="text-center">
+                      <span class="badge" :class="a.verification_status === 'VERIFIED' ? 'badge-success' : 'badge-light'">
+                        {{ a.verification_status || 'UNVERIFIED' }}
+                      </span>
+                    </td>
+                  </tr>
+                  <tr v-if="!accountantAssets.length">
+                    <td colspan="7" class="text-center py-6 text-xs text-slate-400">
+                      Loading fixed asset records...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right 1 Col: Leave & Financial Administration -->
+        <div class="card">
+          <div class="card-header">
+            <h4><i class="icofont-calendar text-emerald-600"></i> Leave & Particulars</h4>
+          </div>
+          <div class="card-body space-y-4">
+            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
+              <div class="text-[11px] font-bold text-slate-400 uppercase">Statutory Annual Leave</div>
+              <div class="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
+                21 Days
+              </div>
+              <div class="text-xs text-emerald-500 font-semibold mt-1">
+                {{ remainingLeaveDays }} Days Available Balance
+              </div>
+            </div>
+
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <span class="text-slate-500">Designation:</span>
+                <span class="font-bold text-slate-900 dark:text-white">Senior Accountant</span>
+              </div>
+              <div class="flex justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <span class="text-slate-500">Department:</span>
+                <span class="font-bold text-slate-900 dark:text-white">Finance & Accounts</span>
+              </div>
+              <div class="flex justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <span class="text-slate-500">Days Utilized:</span>
+                <span class="font-bold text-slate-900 dark:text-white">{{ utilizedLeaveDays }} Days</span>
+              </div>
+              <div class="flex justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
+                <span class="text-slate-500">Latest Leave Status:</span>
+                <span class="badge" :class="statusBadge(latestLeave?.status || 'NONE')">
+                  {{ latestLeave?.status || 'No Active Request' }}
+                </span>
+              </div>
+            </div>
+
+            <router-link to="/reception/leave/apply" class="btn btn-sm btn-primary w-full justify-center">
+              <i class="icofont-plus mr-1"></i> Apply for Leave
+            </router-link>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- B. IT & ENGINEERING WORKSTATION DASHBOARD VIEW                        -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <div v-else-if="isDepartmentalOfficer" class="space-y-6">
@@ -796,6 +1032,26 @@ const leaveApplications = ref([])
 const itRequisitions = ref([])
 const itDashboardStats = ref(null)
 
+// Accountant state
+const accountantAssets = ref([])
+const assetSummary = ref({
+  total_assets: 297,
+  total_fb_cost: 31015914535,
+  total_adjusted_cost: 32175914535,
+  total_accumulated_deprec: 0,
+  total_net_book_value: 32175914535,
+  verified_assets: 0,
+  discrepancy_assets: 0
+})
+
+const isAccountant = computed(() => {
+  const rawRoles = authStore.user?.roles || []
+  const roles = rawRoles.map(r => (typeof r === 'string' ? r : (r?.name || r?.role || ''))).filter(Boolean)
+  const isAcc = roles.includes('accountant') || roles.includes('senior_accountant') || roles.includes('finance_department')
+  const isPrivileged = roles.includes('admin') || roles.includes('super_admin') || roles.includes('general_secretary') || roles.includes('ags_technical') || roles.includes('ags_admin')
+  return isAcc && !isPrivileged
+})
+
 const isReceptionist = computed(() => {
   const rawRoles = authStore.user?.roles || []
   const roles = rawRoles.map(r => (typeof r === 'string' ? r : (r?.name || r?.role || ''))).filter(Boolean)
@@ -949,6 +1205,10 @@ function formatDate(d) {
   }
 }
 
+function formatUGX(val) {
+  return new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(val || 0)
+}
+
 onMounted(async () => {
   if (!authStore.isAuthenticated) {
     return
@@ -963,6 +1223,22 @@ onMounted(async () => {
       ])
       if (visitorsRes.status === 'fulfilled') {
         receptionVisitors.value = visitorsRes.value.data?.data?.visitors || visitorsRes.value.data?.visitors || []
+      }
+      if (leaveRes.status === 'fulfilled') {
+        leaveApplications.value = leaveRes.value.data?.data?.leaves || leaveRes.value.data?.leaves || []
+      }
+    } else if (isAccountant.value) {
+      // Load Accountant Fixed Assets & Leave KPIs
+      const [assetsRes, summaryRes, leaveRes] = await Promise.allSettled([
+        apiClient.get('/api/v1/assets', { params: { limit: 6 } }),
+        apiClient.get('/api/v1/assets/summary'),
+        apiClient.get('/api/v1/reception/leave/status')
+      ])
+      if (assetsRes.status === 'fulfilled') {
+        accountantAssets.value = assetsRes.value.data?.assets || []
+      }
+      if (summaryRes.status === 'fulfilled' && summaryRes.value.data) {
+        assetSummary.value = { ...assetSummary.value, ...summaryRes.value.data }
       }
       if (leaveRes.status === 'fulfilled') {
         leaveApplications.value = leaveRes.value.data?.data?.leaves || leaveRes.value.data?.leaves || []
