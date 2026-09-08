@@ -4,9 +4,9 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
       <div>
         <div class="flex items-center space-x-2 text-sm text-gray-500 mb-1">
-          <span>Finance & Accounting</span>
+          <span>Financial & Assets Ledger</span>
           <span>/</span>
-          <span class="text-emerald-700 font-medium">Fixed Assets Registry</span>
+          <span class="text-emerald-700 font-medium">Fixed Assets Register</span>
         </div>
         <h1 class="text-2xl font-bold text-gray-900 tracking-tight flex flex-wrap items-center gap-2">
           {{ title }}

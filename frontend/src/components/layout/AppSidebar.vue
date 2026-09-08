@@ -86,10 +86,10 @@
         <NavItem :collapsed="!open" :to="'/fleet/transport'" label="Fleet & Logistics" icon="icofont-truck" />
       </div>
 
-      <!-- MANAGEMENT -->
-      <div v-if="canManage" class="section-label">Management & Finance</div>
+      <!-- FINANCIAL & ASSETS LEDGER -->
+      <div v-if="canManage" class="section-label">Financial & Assets Ledger</div>
       <div v-if="canManage" class="px-2 space-y-0.5">
-        <!-- Fixed Assets Dropdown Group -->
+        <!-- Fixed Assets Register Dropdown Group -->
         <div class="space-y-0.5">
           <button
             @click="isFixedAssetsExpanded = !isFixedAssetsExpanded"
@@ -99,11 +99,11 @@
               open ? 'justify-between' : 'md:justify-center',
               'w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group'
             ]"
-            :title="!open ? 'Fixed Assets Registry' : undefined"
+            :title="!open ? 'Fixed Assets Register' : undefined"
           >
             <div class="flex items-center gap-3 min-w-0">
               <i class="icofont-building text-base leading-none flex-shrink-0"></i>
-              <span :class="!open ? 'md:hidden' : ''" class="truncate">Fixed Assets Registry</span>
+              <span :class="!open ? 'md:hidden' : ''" class="truncate">Fixed Assets Register</span>
             </div>
             <i
               :class="[
@@ -113,6 +113,7 @@
               class="text-xs ml-2 flex-shrink-0 transition-transform duration-200 opacity-80 group-hover:opacity-100"
             ></i>
           </button>
+
 
           <div v-show="isFixedAssetsExpanded" :class="!open ? 'md:pl-0' : 'pl-3'" class="space-y-0.5 mt-0.5 border-l-2 border-primary-500/40 ml-2">
             <NavItem :collapsed="!open" :to="'/fixed-assets'" label="Manage Assets" icon="icofont-listine-dots" />
