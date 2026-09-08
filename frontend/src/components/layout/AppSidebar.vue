@@ -87,48 +87,48 @@
       </div>
 
       <!-- FINANCIAL & ASSETS LEDGER -->
-      <div v-if="canManage" class="section-label">Financial & Assets Ledger</div>
-      <div v-if="canManage" class="px-2 space-y-0.5">
-        <!-- Fixed Assets Register Dropdown Group -->
-        <div class="space-y-0.5">
-          <button
-            @click="isFixedAssetsExpanded = !isFixedAssetsExpanded"
-            type="button"
-            :class="[
-              isFixedAssetsRouteActive ? 'bg-primary-600 text-white font-semibold' : 'text-primary-200 hover:bg-primary-600/50 hover:text-white',
-              open ? 'justify-between' : 'md:justify-center',
-              'w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group'
-            ]"
-            :title="!open ? 'Fixed Assets Register' : undefined"
-          >
-            <div class="flex items-center gap-3 min-w-0">
-              <i class="icofont-building text-base leading-none flex-shrink-0"></i>
-              <span :class="!open ? 'md:hidden' : ''" class="truncate">Fixed Assets Register</span>
-            </div>
-            <i
+      <template v-if="canAccessFinance">
+        <div class="section-label">Financial & Assets Ledger</div>
+        <div class="px-2 space-y-0.5">
+          <!-- Fixed Assets Register Dropdown Group -->
+          <div class="space-y-0.5">
+            <button
+              @click="isFixedAssetsExpanded = !isFixedAssetsExpanded"
+              type="button"
               :class="[
-                isFixedAssetsExpanded ? 'icofont-simple-up' : 'icofont-simple-down',
-                !open ? 'md:hidden' : ''
+                isFixedAssetsRouteActive ? 'bg-primary-600 text-white font-semibold' : 'text-primary-200 hover:bg-primary-600/50 hover:text-white',
+                open ? 'justify-between' : 'md:justify-center',
+                'w-full flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group'
               ]"
-              class="text-xs ml-2 flex-shrink-0 transition-transform duration-200 opacity-80 group-hover:opacity-100"
-            ></i>
-          </button>
+              :title="!open ? 'Fixed Assets Register' : undefined"
+            >
+              <div class="flex items-center gap-3 min-w-0">
+                <i class="icofont-building text-base leading-none flex-shrink-0"></i>
+                <span :class="!open ? 'md:hidden' : ''" class="truncate font-semibold">Fixed Assets Register</span>
+              </div>
+              <i
+                :class="[
+                  isFixedAssetsExpanded ? 'icofont-simple-up' : 'icofont-simple-down',
+                  !open ? 'md:hidden' : ''
+                ]"
+                class="text-xs ml-2 flex-shrink-0 transition-transform duration-200 opacity-80 group-hover:opacity-100"
+              ></i>
+            </button>
 
-
-          <div v-show="isFixedAssetsExpanded" :class="!open ? 'md:pl-0' : 'pl-3'" class="space-y-0.5 mt-0.5 border-l-2 border-primary-500/40 ml-2">
-            <NavItem :collapsed="!open" :to="'/fixed-assets'" label="Manage Assets" icon="icofont-listine-dots" />
-            <NavItem :collapsed="!open" :to="'/fixed-assets/value-adjustments'" label="Value Adjustments" icon="icofont-history" />
-            <NavItem :collapsed="!open" :to="'/fixed-assets/pivot-engine'" label="Dynamic Pivot Engine" icon="icofont-chart-histogram" />
+            <div v-show="isFixedAssetsExpanded" :class="!open ? 'md:pl-0' : 'pl-3'" class="space-y-0.5 mt-0.5 border-l-2 border-primary-500/40 ml-2">
+              <NavItem :collapsed="!open" :to="'/fixed-assets'" label="Manage Assets" icon="icofont-listine-dots" />
+              <NavItem :collapsed="!open" :to="'/fixed-assets/value-adjustments'" label="Value Adjustments" icon="icofont-history" />
+              <NavItem :collapsed="!open" :to="'/fixed-assets/pivot-engine'" label="Dynamic Pivot Engine" icon="icofont-chart-histogram" />
+            </div>
           </div>
+
+          <NavItem :collapsed="!open" :to="'/applications'" label="Applications" icon="icofont-files-stack" />
+          <NavItem :collapsed="!open" :to="'/admin/forms'" label="Form Builder" icon="icofont-edit" />
+          <NavItem :collapsed="!open" :to="'/admin/forms/submissions'" label="Form Submissions" icon="icofont-inbox" />
+          <NavItem :collapsed="!open" v-if="isAdminPlus" :to="'/users'" label="Users" icon="icofont-people" />
+          <NavItem :collapsed="!open" v-if="authStore.isSuperAdmin" :to="'/roles'" label="Roles & Permissions" icon="icofont-safety" />
         </div>
-
-        <NavItem :collapsed="!open" :to="'/applications'" label="Applications" icon="icofont-files-stack" />
-        <NavItem :collapsed="!open" :to="'/admin/forms'" label="Form Builder" icon="icofont-edit" />
-        <NavItem :collapsed="!open" :to="'/admin/forms/submissions'" label="Form Submissions" icon="icofont-inbox" />
-        <NavItem :collapsed="!open" v-if="isAdminPlus" :to="'/users'" label="Users" icon="icofont-people" />
-        <NavItem :collapsed="!open" v-if="authStore.isSuperAdmin" :to="'/roles'" label="Roles & Permissions" icon="icofont-safety" />
-      </div>
-
+      </template>
 
       <!-- WEBSITE CONTENT -->
       <template v-if="isContentManager">
@@ -189,15 +189,19 @@ const authStore = useAuthStore()
 const isAdminPlus     = computed(() => authStore.isSuperAdmin || authStore.isAdmin)
 const isContentManager = computed(() => authStore.isSuperAdmin || authStore.isAdmin || authStore.isContentManager)
 const canManage       = computed(() => isAdminPlus.value)
+const canAccessFinance = computed(() => {
+  return isAdminPlus.value || authStore.hasAnyRole('accountant', 'finance_officer', 'general_secretary', 'ags_admin', 'ags_technical', 'finance_department', 'senior_accountant')
+})
 
 const isFixedAssetsRouteActive = computed(() => route.path.startsWith('/fixed-assets'))
-const isFixedAssetsExpanded = ref(route.path.startsWith('/fixed-assets'))
+const isFixedAssetsExpanded = ref(true)
 
 watch(() => route.path, (newPath) => {
   if (newPath.startsWith('/fixed-assets')) {
     isFixedAssetsExpanded.value = true
   }
 })
+
 
 
 const userName = computed(() => {
