@@ -232,10 +232,22 @@
                 <span v-if="!sidebarCollapsed">Leave Application</span>
               </router-link>
             </li>
+            <li :class="{ active: currentPath === '/reception/leave/status' }">
+              <router-link to="/reception/leave/status" title="My Leave Applications & HR Statuses">
+                <i class="icofont-history"></i>
+                <span v-if="!sidebarCollapsed">My Leave Applications</span>
+              </router-link>
+            </li>
             <li :class="{ active: currentPath === '/it/ppda/new' }">
               <router-link to="/it/ppda/new" title="New PPDA Form 5 Application">
                 <i class="icofont-document-folder"></i>
                 <span v-if="!sidebarCollapsed">PPDA Application</span>
+              </router-link>
+            </li>
+            <li :class="{ active: currentPath === '/it/ppda/status' || currentPath === '/it/ppda' }">
+              <router-link to="/it/ppda/status" title="My PPDA Form 5 Requisitions & Statuses">
+                <i class="icofont-files-stack"></i>
+                <span v-if="!sidebarCollapsed">My PPDA Applications</span>
               </router-link>
             </li>
 
@@ -318,6 +330,19 @@
                 </router-link>
               </li>
 
+              <li class="menu-header">Staff Portal & Requisitions</li>
+              <li :class="{ active: currentPath === '/reception/leave/status' }">
+                <router-link to="/reception/leave/status" title="My Leave Applications & HR Statuses">
+                  <i class="icofont-history"></i>
+                  <span v-if="!sidebarCollapsed">My Leave Applications</span>
+                </router-link>
+              </li>
+              <li :class="{ active: currentPath === '/it/ppda/status' || currentPath === '/it/ppda' }">
+                <router-link to="/it/ppda/status" title="My PPDA Form 5 Applications">
+                  <i class="icofont-files-stack"></i>
+                  <span v-if="!sidebarCollapsed">My PPDA Applications</span>
+                </router-link>
+              </li>
             </template>
 
             <!-- GENERAL / EXECUTIVE / DEPARTMENTAL MENUS (HIDDEN FOR RECEPTIONIST ONLY) -->

@@ -109,9 +109,18 @@
                   <span class="badge" :class="leaveStatusBadge(l.status)">
                     {{ formatStatus(l.status) }}
                   </span>
+                  <div v-if="l.approved_at" class="text-[10px] text-slate-400 mt-1">
+                    <i class="icofont-check-circled text-emerald-500"></i> {{ formatDate(l.approved_at) }}
+                  </div>
                 </td>
-                <td class="py-3 px-4 text-[11px] text-slate-500">
-                  {{ l.supervisor_remarks || 'Pending review by HR supervisor' }}
+                <td class="py-3 px-4 text-[11px]">
+                  <div v-if="l.supervisor_remarks" class="p-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300">
+                    <strong class="text-slate-900 dark:text-white d-block mb-0.5"><i class="icofont-speech-comments text-blue-500 mr-1"></i> HR / Supervisor Remark:</strong>
+                    {{ l.supervisor_remarks }}
+                  </div>
+                  <div v-else class="text-slate-400 italic">
+                    <i class="icofont-clock-time mr-1"></i> Awaiting HR supervisor review & response
+                  </div>
                 </td>
               </tr>
               <tr v-if="!leaves.length">
