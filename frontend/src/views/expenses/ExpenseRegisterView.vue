@@ -34,8 +34,8 @@
     <!-- Compact Filter Card -->
     <div class="card mb-4 shadow-sm border-0">
       <div class="card-body p-3 bg-light rounded">
-        <form @submit.prevent="offset=0;load()" class="row g-2 align-items-end">
-          <div class="col-md-3 col-sm-6">
+        <form @submit.prevent="offset=0;load()" class="row g-3 align-items-end">
+          <div class="col-md-3 col-sm-6 mb-2">
             <label class="form-label text-xs font-weight-bold text-uppercase text-muted mb-1">Search</label>
             <div class="input-group input-group-sm">
               <span class="input-group-text bg-white text-muted"><i class="fas fa-search"></i></span>
@@ -64,7 +64,7 @@
             <label class="form-label text-xs font-weight-bold text-uppercase text-muted mb-1">To Date</label>
             <input v-model="filters.to" type="date" class="form-control form-control-sm" />
           </div>
-          <div class="col-md-1 col-sm-12 d-flex gap-1">
+          <div class="col-md-1 col-sm-12 d-flex gap-1 mb-2">
             <button :disabled="loading" class="btn btn-sm btn-primary w-100" title="Apply Filters">
               <i class="fas fa-filter"></i>
             </button>
@@ -104,7 +104,7 @@
           </div>
           <div class="card-body p-3">
             <div class="table-responsive">
-              <div id="save-stage_wrapper" class="dataTables_wrapper container-fluid dt-bootstrap4 no-footer px-0">
+              <div id="save-stage_wrapper" class="dataTables_wrapper container-fluid dt-bootstrap4 no-footer p-3">
                 
                 <!-- Length Selector & Search Row -->
                 <div class="row mb-3 align-items-center">
