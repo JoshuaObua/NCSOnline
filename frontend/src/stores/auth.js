@@ -46,6 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const roleNames = computed(() => (user.value?.roles || []).map(r => typeof r === 'string' ? r : r.name))
   const hasAnyRole = (...names) => names.some(name => roleNames.value.includes(name))
+  const hasRole = (role) => hasAnyRole(role)
   const canUseNSMIS = computed(() => hasAnyRole(
     'super_admin', 'admin', 'ncs_general_secretary', 'general_secretary', 'technical_department',
     'finance_department', 'federation_president', 'federation_general_secretary',
@@ -180,6 +181,7 @@ export const useAuthStore = defineStore('auth', () => {
     isContentManager,
     isApplicant,
     roleNames,
+    hasRole,
     hasAnyRole,
     canUseNSMIS,
     register,

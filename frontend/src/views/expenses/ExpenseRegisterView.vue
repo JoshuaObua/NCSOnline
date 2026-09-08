@@ -351,14 +351,16 @@ let debounceTimer = null
 const currentPage = computed(() => Math.floor(offset.value / limit.value) + 1)
 const totalPages = computed(() => Math.ceil(total.value / limit.value))
 
-const canDelete = computed(() => auth.isAdmin || auth.hasRole('chief_accountant'))
+const canDelete = computed(() => auth.isAdmin || (typeof auth.hasRole === 'function' && auth.hasRole('chief_accountant')))
 
 function canVerify(exp) {
-  return (!exp.status || exp.status === 'RECORDED') && (auth.isAdmin || auth.hasRole('senior_accountant') || auth.hasRole('chief_accountant'))
+  const roleCheck = typeof auth.hasRole === 'function' ? (auth.hasRole('senior_accountant') || auth.hasRole('chief_accountant')) : false
+  return (!exp.status || exp.status === 'RECORDED') && (auth.isAdmin || roleCheck)
 }
 
 function canApprove(exp) {
-  return exp.status === 'VERIFIED' && (auth.isAdmin || auth.hasRole('chief_accountant') || auth.hasRole('finance_department'))
+  const roleCheck = typeof auth.hasRole === 'function' ? (auth.hasRole('chief_accountant') || auth.hasRole('finance_department')) : false
+  return exp.status === 'VERIFIED' && (auth.isAdmin || roleCheck)
 }
 
 function getStatusBadgeClass(st) {
