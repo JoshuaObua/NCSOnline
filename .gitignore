@@ -9,3 +9,4 @@ frontend/dist/
 backend/*.exe
 .env
 backend/.env
+otika-bootstrap-admin-template/

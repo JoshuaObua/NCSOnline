@@ -150,47 +150,17 @@ curl -I http://169.58.210.57:3100/
 
 ---
 
-## 4. Master One-Command Update Script
+## 4. Master & Modular Deployment Scripts
 
-For convenience, you can create a master update script on the VPS at `/opt/update_all.sh`:
+The deployment pipeline is split into individual, production-grade scripts with process locking, automated DB backups, migration runners, UI cache purges, targeted container rebuilds, and health verification:
 
-```bash
-#!/usr/bin/env bash
-set -e
+- `scripts/deployment/update_web.sh` (NCS Website)
+- `scripts/deployment/update_portal.sh` (NCS Portal)
+- `scripts/deployment/update_intranet.sh` (NCS Intranet)
+- `scripts/deployment/update_bot.sh` (NCS Bot)
+- `scripts/deployment/update_all.sh` (Master Orchestrator)
 
-echo "=== [1/4] Updating NCS Website ==="
-cd /opt/ncs-website
-git pull origin website
-docker compose build backend worker frontend
-docker compose up -d --no-deps backend worker frontend
-
-echo "=== [2/4] Updating NCS Portal ==="
-cd /opt/ncs-portal
-git pull origin portal
-docker compose build backend worker frontend
-docker compose up -d --no-deps backend worker frontend
-
-echo "=== [3/4] Updating NCS Intranet ==="
-cd /opt/ncs-intranet
-git pull origin intranet
-docker compose build backend nsmis-worker frontend
-docker compose up -d --no-deps backend nsmis-worker frontend
-
-echo "=== [4/4] Updating NCS Bot ==="
-cd /opt/ncs-bot
-git pull origin ncsbot
-docker compose -f docker-compose.ncsbot.yaml build
-docker compose -f docker-compose.ncsbot.yaml run --rm ncsbot-web bundle exec rails db:migrate
-docker compose -f docker-compose.ncsbot.yaml up -d --no-deps ncsbot-web ncsbot-worker
-
-echo "=== Re-verifying Cluster Health ==="
-curl -k -s -o /dev/null -w 'Website: %{http_code}\n' https://ncsweb.atenimedia.com/healthz
-curl -k -s -o /dev/null -w 'Portal: %{http_code}\n' https://ncsportal.atenimedia.com/healthz
-curl -k -s -o /dev/null -w 'Intranet: %{http_code}\n' https://ncsintranet.atenimedia.com/healthz
-curl -s -o /dev/null -w 'Bot: %{http_code}\n' http://localhost:3100/
-
-echo "=== All updates completed successfully! ==="
-```
+For detailed step-by-step instructions from local git commit/push to VPS SSH execution, refer to [DEPLOYMENT_INSTRUCTIONS.md](file:///home/fidi/Projects/NCS_Intranet/DEPLOYMENT_INSTRUCTIONS.md).
 
 ---
 
