@@ -330,17 +330,11 @@
                 </router-link>
               </li>
 
-              <li class="menu-header">Staff Portal & Requisitions</li>
-              <li :class="{ active: currentPath === '/reception/leave/status' }">
-                <router-link to="/reception/leave/status" title="My Leave Applications & HR Statuses">
-                  <i class="icofont-history"></i>
-                  <span v-if="!sidebarCollapsed">My Leave Applications</span>
-                </router-link>
-              </li>
+              <li class="menu-header">Requisitions & Vetting</li>
               <li :class="{ active: currentPath === '/it/ppda/status' || currentPath === '/it/ppda' }">
-                <router-link to="/it/ppda/status" title="My PPDA Form 5 Applications">
+                <router-link to="/it/ppda/status" title="PPDA Form 5 Requisitions & Approvals">
                   <i class="icofont-files-stack"></i>
-                  <span v-if="!sidebarCollapsed">My PPDA Applications</span>
+                  <span v-if="!sidebarCollapsed">PPDA Applications</span>
                 </router-link>
               </li>
             </template>
