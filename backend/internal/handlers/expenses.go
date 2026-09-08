@@ -37,6 +37,9 @@ func (h *ExpenseHandler) Routes() http.Handler {
 		r.Put("/categories/{id}", h.SaveCategory)
 	})
 	r.Get("/{id}", h.Detail)
+	r.Delete("/{id}", h.Delete)
+	r.Put("/{id}/verify", h.Verify)
+	r.Put("/{id}/approve", h.Approve)
 	r.Get("/{id}/attachment", h.Attachment)
 	return r
 }
@@ -288,3 +291,59 @@ func (h *ExpenseHandler) Attachment(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Write(content)
 }
+
+func (h *ExpenseHandler) Verify(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	uid := currentUserID(r)
+	var name string
+	err := h.db.QueryRow(r.Context(), `SELECT trim(first_name || ' ' || last_name) FROM users WHERE id=$1`, uid).Scan(&name)
+	if err != nil {
+		expenseError(w, 500, "User not found")
+		return
+	}
+	_, err = h.db.Exec(r.Context(), `UPDATE expenses SET status='VERIFIED', verified_by=$1, verified_by_name=$2, verified_at=NOW() WHERE id::text=$3`, uid, name, id)
+	if err != nil {
+		expenseError(w, 500, "Could not verify expense")
+		return
+	}
+	response.JSON(w, 200, map[string]string{"message": "Expense verified successfully", "status": "VERIFIED"})
+}
+
+func (h *ExpenseHandler) Approve(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	uid := currentUserID(r)
+	var name string
+	err := h.db.QueryRow(r.Context(), `SELECT trim(first_name || ' ' || last_name) FROM users WHERE id=$1`, uid).Scan(&name)
+	if err != nil {
+		expenseError(w, 500, "User not found")
+		return
+	}
+	_, err = h.db.Exec(r.Context(), `UPDATE expenses SET status='APPROVED', approved_by=$1, approved_by_name=$2, approved_at=NOW() WHERE id::text=$3`, uid, name, id)
+	if err != nil {
+		expenseError(w, 500, "Could not approve expense")
+		return
+	}
+	response.JSON(w, 200, map[string]string{"message": "Expense approved successfully", "status": "APPROVED"})
+}
+
+func (h *ExpenseHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	tx, err := h.db.Begin(r.Context())
+	if err != nil {
+		expenseError(w, 500, "Could not delete expense")
+		return
+	}
+	defer tx.Rollback(r.Context())
+	_, _ = tx.Exec(r.Context(), `DELETE FROM expense_attachments WHERE expense_id::text=$1`, id)
+	tag, err := tx.Exec(r.Context(), `DELETE FROM expenses WHERE id::text=$1`, id)
+	if err != nil || tag.RowsAffected() == 0 {
+		expenseError(w, 404, "Expense not found or could not be deleted")
+		return
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		expenseError(w, 500, "Could not commit deletion")
+		return
+	}
+	response.JSON(w, 200, map[string]string{"message": "Expense deleted successfully"})
+}
+
