@@ -418,19 +418,6 @@
         </div>
       </div>
 
-            <router-link
-              to="/reception/leave/apply"
-              class="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 border border-slate-200 dark:border-slate-700 transition group text-center"
-            >
-              <div class="w-11 h-11 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                <i class="icofont-calendar"></i>
-              </div>
-              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600">Apply for Leave</span>
-            </router-link>
-          </div>
-        </div>
-      </div>
-
       <!-- 4. Fixed Assets Ledger & Leave Balance Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
