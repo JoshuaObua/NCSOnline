@@ -153,9 +153,6 @@
               <div class="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
                 <div class="text-xs font-extrabold text-slate-900 dark:text-white">{{ userName }}</div>
                 <div class="text-[11px] text-slate-500 truncate mt-0.5">{{ authStore.user?.email }}</div>
-                <span class="inline-block mt-1.5 px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 text-[10px] font-bold">
-                  {{ userRole }}
-                </span>
               </div>
               <div class="py-1">
                 <router-link
@@ -207,7 +204,7 @@
           <div class="sidebar-brand">
             <router-link to="/dashboard">
               <img src="/main-logo.png" alt="NCS Logo" class="header-logo" />
-              <span v-if="!sidebarCollapsed" class="sidebar-brand-text">NCS ONLINE</span>
+              <span v-if="!sidebarCollapsed" class="sidebar-brand-text">NCS</span>
             </router-link>
           </div>
 
@@ -646,10 +643,7 @@
       <!-- ── Otika Master Footer ─────────────────────────────────────── -->
       <footer class="main-footer">
         <div class="footer-left">
-          Copyright &copy; {{ year }} <a href="https://ncs.go.ug" target="_blank" class="text-blue-600 font-bold hover:underline">National Council of Sports</a>. All rights reserved.
-        </div>
-        <div class="footer-right">
-          NCSMS Intranet v1.3.0 · <span class="text-blue-600 font-semibold">National Council of Sports</span>
+          &copy; {{ year }} <a href="https://ncs.go.ug" target="_blank" class="text-blue-600 font-bold hover:underline">National Council of Sports</a>
         </div>
       </footer>
 
