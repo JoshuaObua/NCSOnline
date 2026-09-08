@@ -117,8 +117,9 @@ func (h *FixedAssetHandler) RevalueFixedAsset(w http.ResponseWriter, r *http.Req
 	}
 
 	userID := currentUserID(r)
+	userName := currentUserName(r)
 
-	err := h.repo.RevalueFixedAsset(r.Context(), req.AssetID, req.NewCost, req.Notes, userID)
+	err := h.repo.RevalueFixedAsset(r.Context(), req.AssetID, req.NewCost, req.Notes, userID, userName)
 	if err != nil {
 		fixedAssetError(w, http.StatusInternalServerError, "Failed to revalue asset: "+err.Error())
 		return
@@ -156,11 +157,12 @@ func (h *FixedAssetHandler) VerifyFixedAsset(w http.ResponseWriter, r *http.Requ
 	}
 
 	userID := currentUserID(r)
+	userName := currentUserName(r)
 	if req.Status == "" {
 		req.Status = "VERIFIED"
 	}
 
-	err := h.repo.VerifyFixedAsset(r.Context(), req.AssetID, req.Status, req.Notes, userID)
+	err := h.repo.VerifyFixedAsset(r.Context(), req.AssetID, req.Status, req.Notes, userID, userName)
 	if err != nil {
 		fixedAssetError(w, http.StatusInternalServerError, "Failed to verify asset: "+err.Error())
 		return
@@ -168,6 +170,64 @@ func (h *FixedAssetHandler) VerifyFixedAsset(w http.ResponseWriter, r *http.Requ
 
 	response.JSON(w, http.StatusOK, map[string]string{
 		"message": "Asset verification recorded successfully",
+	})
+}
+
+func (h *FixedAssetHandler) DeleteFixedAsset(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var req models.AssetDeleteRequest
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&req)
+	}
+	if req.AssetID != "" {
+		id = req.AssetID
+	}
+
+	if strings.TrimSpace(id) == "" {
+		fixedAssetError(w, http.StatusBadRequest, "Asset ID is required for deletion")
+		return
+	}
+
+	userID := currentUserID(r)
+	userName := currentUserName(r)
+
+	err := h.repo.DeleteFixedAsset(r.Context(), id, userID, userName, req.Notes)
+	if err != nil {
+		fixedAssetError(w, http.StatusInternalServerError, "Failed to delete asset: "+err.Error())
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]string{
+		"message": "Fixed asset deleted successfully and valuation adjusted",
+	})
+}
+
+func (h *FixedAssetHandler) GetAllTransactionLogs(w http.ResponseWriter, r *http.Request) {
+	txType := r.URL.Query().Get("type")
+	search := r.URL.Query().Get("search")
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit := 50
+	offset := 0
+	if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+		limit = l
+	}
+	if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+		offset = o
+	}
+
+	logs, total, err := h.repo.GetAllTransactionLogs(r.Context(), limit, offset, txType, search)
+	if err != nil {
+		fixedAssetError(w, http.StatusInternalServerError, "Failed to fetch transaction logs: "+err.Error())
+		return
+	}
+
+	response.JSON(w, http.StatusOK, map[string]interface{}{
+		"logs":   logs,
+		"total":  total,
+		"limit":  limit,
+		"offset": offset,
 	})
 }
 
@@ -186,6 +246,19 @@ func currentUserID(r *http.Request) string {
 	}
 	return ""
 }
+
+func currentUserName(r *http.Request) string {
+	if claims, ok := r.Context().Value("user_claims").(map[string]interface{}); ok {
+		if name, ok := claims["name"].(string); ok && name != "" {
+			return name
+		}
+		if email, ok := claims["email"].(string); ok && email != "" {
+			return email
+		}
+	}
+	return ""
+}
+
 
 func applyFixedAssetDefaults(asset *models.FixedAsset) {
 	asset.AssetNumber = strings.TrimSpace(asset.AssetNumber)

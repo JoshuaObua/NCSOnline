@@ -14,10 +14,12 @@ type FixedAssetRepository interface {
 	GetFixedAssetByID(ctx context.Context, id string) (*models.FixedAsset, error)
 	GetFixedAssetSummary(ctx context.Context) (*models.FixedAssetSummary, error)
 	CreateFixedAsset(ctx context.Context, asset *models.FixedAsset) error
-	RevalueFixedAsset(ctx context.Context, assetID string, newCost float64, notes string, userID string) error
+	RevalueFixedAsset(ctx context.Context, assetID string, newCost float64, notes string, userID string, userName string) error
 	RunDepreciation(ctx context.Context, period string, userID string) (int, float64, error)
-	VerifyFixedAsset(ctx context.Context, assetID string, status string, notes string, userID string) error
+	VerifyFixedAsset(ctx context.Context, assetID string, status string, notes string, userID string, userName string) error
+	DeleteFixedAsset(ctx context.Context, id string, userID string, userName string, notes string) error
 	GetTransactionLogs(ctx context.Context, assetID string) ([]models.AssetTransactionLog, error)
+	GetAllTransactionLogs(ctx context.Context, limit, offset int, transactionType, search string) ([]models.AssetTransactionLog, int, error)
 }
 
 type postgresFixedAssetRepository struct {
@@ -209,15 +211,32 @@ func (r *postgresFixedAssetRepository) CreateFixedAsset(ctx context.Context, ass
 	).Scan(&asset.ID)
 }
 
-func (r *postgresFixedAssetRepository) RevalueFixedAsset(ctx context.Context, assetID string, newCost float64, notes string, userID string) error {
+func (r *postgresFixedAssetRepository) resolveUserName(ctx context.Context, userID, providedName string) string {
+	if providedName != "" {
+		return providedName
+	}
+	if userID == "" {
+		return "System User"
+	}
+	var name string
+	err := r.db.QueryRow(ctx, "SELECT COALESCE(NULLIF(TRIM(first_name || ' ' || last_name), ''), email) FROM users WHERE id::text = $1", userID).Scan(&name)
+	if err != nil || name == "" {
+		return "User (" + userID + ")"
+	}
+	return name
+}
+
+func (r *postgresFixedAssetRepository) RevalueFixedAsset(ctx context.Context, assetID string, newCost float64, notes string, userID string, userName string) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
 
+	var assetNumber, assetDesc string
 	var oldCost float64
-	err = tx.QueryRow(ctx, "SELECT adjusted_cost FROM fixed_assets WHERE id::text = $1 OR asset_number = $1", assetID).Scan(&oldCost)
+	var idStr string
+	err = tx.QueryRow(ctx, "SELECT id::text, asset_number, asset_description, adjusted_cost FROM fixed_assets WHERE id::text = $1 OR asset_number = $1", assetID).Scan(&idStr, &assetNumber, &assetDesc, &oldCost)
 	if err != nil {
 		return err
 	}
@@ -230,16 +249,17 @@ func (r *postgresFixedAssetRepository) RevalueFixedAsset(ctx context.Context, as
 		return pgx.ErrNoRows
 	}
 
+	actorName := r.resolveUserName(ctx, userID, userName)
 	var uid *string
 	if userID != "" {
 		uid = &userID
 	}
 
 	logQuery := `
-		INSERT INTO asset_transaction_logs (asset_id, transaction_type, previous_val, new_val, notes, performed_by)
-		SELECT id, 'REVALUATION', $2, $3, $4, $5 FROM fixed_assets WHERE id::text = $1 OR asset_number = $1
+		INSERT INTO asset_transaction_logs (asset_id, asset_number, asset_description, transaction_type, previous_val, new_val, notes, performed_by, performed_by_name)
+		VALUES ($1, $2, $3, 'REVALUATION', $4, $5, $6, $7, $8)
 	`
-	_, err = tx.Exec(ctx, logQuery, assetID, oldCost, newCost, notes, uid)
+	_, err = tx.Exec(ctx, logQuery, idStr, assetNumber, assetDesc, oldCost, newCost, notes, uid, actorName)
 	if err != nil {
 		return err
 	}
@@ -269,7 +289,7 @@ func (r *postgresFixedAssetRepository) RunDepreciation(ctx context.Context, peri
 	return int(tag.RowsAffected()), totalDeprecRun, nil
 }
 
-func (r *postgresFixedAssetRepository) VerifyFixedAsset(ctx context.Context, assetID string, status string, notes string, userID string) error {
+func (r *postgresFixedAssetRepository) VerifyFixedAsset(ctx context.Context, assetID string, status string, notes string, userID string, userName string) error {
 	var uid *string
 	if userID != "" {
 		uid = &userID
@@ -288,20 +308,73 @@ func (r *postgresFixedAssetRepository) VerifyFixedAsset(ctx context.Context, ass
 		return pgx.ErrNoRows
 	}
 
+	actorName := r.resolveUserName(ctx, userID, userName)
 	logQuery := `
-		INSERT INTO asset_transaction_logs (asset_id, transaction_type, notes, performed_by)
-		SELECT id, 'VERIFICATION', $2, $3 FROM fixed_assets WHERE id::text = $1 OR asset_number = $1 OR tag_number = $1
+		INSERT INTO asset_transaction_logs (asset_id, asset_number, asset_description, transaction_type, notes, performed_by, performed_by_name)
+		SELECT id, asset_number, asset_description, 'VERIFICATION', $2, $3, $4 FROM fixed_assets WHERE id::text = $1 OR asset_number = $1 OR tag_number = $1
 	`
-	_, _ = r.db.Exec(ctx, logQuery, assetID, notes, uid)
+	_, _ = r.db.Exec(ctx, logQuery, assetID, notes, uid, actorName)
 	return nil
+}
+
+func (r *postgresFixedAssetRepository) DeleteFixedAsset(ctx context.Context, id string, userID string, userName string, notes string) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var asset models.FixedAsset
+	selectQuery := `
+		SELECT id, asset_number, tag_number, asset_description, adjusted_cost
+		FROM fixed_assets
+		WHERE id::text = $1 OR asset_number = $1 OR tag_number = $1
+	`
+	err = tx.QueryRow(ctx, selectQuery, id).Scan(&asset.ID, &asset.AssetNumber, &asset.TagNumber, &asset.AssetDescription, &asset.AdjustedCost)
+	if err != nil {
+		return fmt.Errorf("fixed asset not found: %w", err)
+	}
+
+	actorName := r.resolveUserName(ctx, userID, userName)
+	var uid *string
+	if userID != "" {
+		uid = &userID
+	}
+
+	logNotes := fmt.Sprintf("Deleted asset: %s (Tag: %s). Deletion Notes: %s", asset.AssetDescription, asset.TagNumber, notes)
+	logQuery := `
+		INSERT INTO asset_transaction_logs (asset_id, asset_number, asset_description, transaction_type, previous_val, new_val, notes, performed_by, performed_by_name)
+		VALUES ($1, $2, $3, 'DELETION', $4, 0, $5, $6, $7)
+	`
+	_, err = tx.Exec(ctx, logQuery, asset.ID, asset.AssetNumber, asset.AssetDescription, asset.AdjustedCost, logNotes, uid, actorName)
+	if err != nil {
+		return fmt.Errorf("failed to record deletion transaction log: %w", err)
+	}
+
+	auditQuery := `
+		INSERT INTO audit_logs (id, user_id, action, resource, resource_id, username, created_at)
+		VALUES (gen_random_uuid(), $1, 'FIXED_ASSET_DELETED', 'fixed_assets', $2, $3, NOW())
+	`
+	_, _ = tx.Exec(ctx, auditQuery, uid, asset.ID, actorName)
+
+	deleteQuery := `DELETE FROM fixed_assets WHERE id = $1`
+	_, err = tx.Exec(ctx, deleteQuery, asset.ID)
+	if err != nil {
+		return fmt.Errorf("failed to delete asset record: %w", err)
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (r *postgresFixedAssetRepository) GetTransactionLogs(ctx context.Context, assetID string) ([]models.AssetTransactionLog, error) {
 	query := `
-		SELECT l.id, l.asset_id, l.transaction_type, COALESCE(l.previous_val, 0), COALESCE(l.new_val, 0), COALESCE(l.notes, ''), l.created_at
+		SELECT l.id, l.asset_id::text, COALESCE(l.asset_number, a.asset_number, ''), COALESCE(l.asset_description, a.asset_description, ''),
+		       l.transaction_type, COALESCE(l.previous_val, 0), COALESCE(l.new_val, 0), COALESCE(l.notes, ''),
+		       l.performed_by, COALESCE(l.performed_by_name, u.first_name || ' ' || u.last_name, u.email, 'System'), l.created_at
 		FROM asset_transaction_logs l
-		JOIN fixed_assets a ON a.id = l.asset_id
-		WHERE a.id::text = $1 OR a.asset_number = $1
+		LEFT JOIN fixed_assets a ON a.id = l.asset_id
+		LEFT JOIN users u ON u.id::text = l.performed_by
+		WHERE (a.id::text = $1 OR a.asset_number = $1 OR l.asset_id::text = $1 OR l.asset_number = $1)
 		ORDER BY l.created_at DESC
 	`
 	rows, err := r.db.Query(ctx, query, assetID)
@@ -313,9 +386,97 @@ func (r *postgresFixedAssetRepository) GetTransactionLogs(ctx context.Context, a
 	var logs []models.AssetTransactionLog
 	for rows.Next() {
 		var l models.AssetTransactionLog
-		if err := rows.Scan(&l.ID, &l.AssetID, &l.TransactionType, &l.PreviousVal, &l.NewVal, &l.Notes, &l.CreatedAt); err == nil {
+		var assetIDStr *string
+		var performedBy *string
+		if err := rows.Scan(
+			&l.ID, &assetIDStr, &l.AssetNumber, &l.AssetDescription,
+			&l.TransactionType, &l.PreviousVal, &l.NewVal, &l.Notes,
+			&performedBy, &l.PerformedByName, &l.CreatedAt,
+		); err == nil {
+			l.AssetID = assetIDStr
+			l.PerformedBy = performedBy
 			logs = append(logs, l)
 		}
 	}
 	return logs, nil
 }
+
+func (r *postgresFixedAssetRepository) GetAllTransactionLogs(ctx context.Context, limit, offset int, transactionType, search string) ([]models.AssetTransactionLog, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	whereClause := "WHERE 1=1"
+	args := []interface{}{}
+	argIdx := 1
+
+	if transactionType != "" {
+		whereClause += fmt.Sprintf(" AND l.transaction_type = $%d", argIdx)
+		args = append(args, transactionType)
+		argIdx++
+	}
+
+	if search != "" {
+		whereClause += fmt.Sprintf(" AND (l.asset_number ILIKE $%d OR l.asset_description ILIKE $%d OR l.notes ILIKE $%d OR l.performed_by_name ILIKE $%d OR a.asset_number ILIKE $%d OR a.asset_description ILIKE $%d)", argIdx, argIdx, argIdx, argIdx, argIdx, argIdx)
+		args = append(args, "%"+search+"%")
+		argIdx++
+	}
+
+	countQuery := fmt.Sprintf(`
+		SELECT COUNT(*)
+		FROM asset_transaction_logs l
+		LEFT JOIN fixed_assets a ON a.id = l.asset_id
+		%s
+	`, whereClause)
+
+	var total int
+	err := r.db.QueryRow(ctx, countQuery, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	query := fmt.Sprintf(`
+		SELECT l.id, l.asset_id::text, COALESCE(l.asset_number, a.asset_number, 'N/A'), COALESCE(l.asset_description, a.asset_description, 'Asset Record'),
+		       l.transaction_type, COALESCE(l.previous_val, 0), COALESCE(l.new_val, 0), COALESCE(l.notes, ''),
+		       l.performed_by, COALESCE(NULLIF(l.performed_by_name, ''), NULLIF(TRIM(u.first_name || ' ' || u.last_name), ''), u.email, 'System'), l.created_at
+		FROM asset_transaction_logs l
+		LEFT JOIN fixed_assets a ON a.id = l.asset_id
+		LEFT JOIN users u ON u.id::text = l.performed_by
+		%s
+		ORDER BY l.created_at DESC
+		LIMIT $%d OFFSET $%d
+	`, whereClause, argIdx, argIdx+1)
+
+	args = append(args, limit, offset)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var logs []models.AssetTransactionLog
+	for rows.Next() {
+		var l models.AssetTransactionLog
+		var assetIDStr *string
+		var performedBy *string
+		if err := rows.Scan(
+			&l.ID, &assetIDStr, &l.AssetNumber, &l.AssetDescription,
+			&l.TransactionType, &l.PreviousVal, &l.NewVal, &l.Notes,
+			&performedBy, &l.PerformedByName, &l.CreatedAt,
+		); err == nil {
+			l.AssetID = assetIDStr
+			l.PerformedBy = performedBy
+			logs = append(logs, l)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return logs, total, nil
+}
+

@@ -261,12 +261,15 @@ func main() {
 			r.Route("/assets", func(r chi.Router) {
 				r.Get("/", h.FixedAssets.ListFixedAssets)
 				r.Get("/summary", h.FixedAssets.GetFixedAssetSummary)
+				r.Get("/logs", h.FixedAssets.GetAllTransactionLogs)
 				r.Get("/{id}", h.FixedAssets.GetFixedAssetByID)
 				r.Post("/", h.FixedAssets.CreateFixedAsset)
 				r.Post("/revalue", h.FixedAssets.RevalueFixedAsset)
 				r.Post("/depreciate", h.FixedAssets.RunDepreciation)
 				r.Post("/verify", h.FixedAssets.VerifyFixedAsset)
+				r.Delete("/{id}", h.FixedAssets.DeleteFixedAsset)
 			})
+
 
 			// ── Admin: dashboard + users + audit ─────────────────────
 			r.Group(func(r chi.Router) {

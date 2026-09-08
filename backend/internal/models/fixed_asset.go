@@ -35,15 +35,18 @@ type FixedAsset struct {
 	UpdatedAt               time.Time `json:"updated_at" db:"updated_at"`
 }
 
-// AssetTransactionLog represents an audited revaluation, depreciation, or transfer event
+// AssetTransactionLog represents an audited revaluation, depreciation, transfer, or deletion event
 type AssetTransactionLog struct {
 	ID              string    `json:"id" db:"id"`
-	AssetID         string    `json:"asset_id" db:"asset_id"`
+	AssetID         *string   `json:"asset_id" db:"asset_id"`
+	AssetNumber     string    `json:"asset_number" db:"asset_number"`
+	AssetDescription string   `json:"asset_description" db:"asset_description"`
 	TransactionType string    `json:"transaction_type" db:"transaction_type"`
 	PreviousVal     float64   `json:"previous_val" db:"previous_val"`
 	NewVal          float64   `json:"new_val" db:"new_val"`
 	Notes           string    `json:"notes" db:"notes"`
 	PerformedBy     *string   `json:"performed_by" db:"performed_by"`
+	PerformedByName string    `json:"performed_by_name" db:"performed_by_name"`
 	ApprovedBy      *string   `json:"approved_by" db:"approved_by"`
 	CreatedAt       time.Time `json:"created_at" db:"created_at"`
 }
@@ -85,3 +88,9 @@ type AssetVerificationRequest struct {
 	Status  string `json:"status"` // VERIFIED, DISCREPANCY, MISSING
 	Notes   string `json:"notes"`
 }
+
+type AssetDeleteRequest struct {
+	AssetID string `json:"asset_id"`
+	Notes   string `json:"notes"`
+}
+

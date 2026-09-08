@@ -64,6 +64,8 @@ const ExpenseDetailView = () => import('@/views/expenses/ExpenseDetailView.vue')
 const ExpenseCategoriesView = () => import('@/views/expenses/ExpenseCategoriesView.vue')
 const FixedAssetActionView = () => import('@/views/FixedAssetActionView.vue')
 const FixedAssetsView = () => import('@/views/FixedAssetsView.vue')
+const FixedAssetValueAdjustmentsView = () => import('@/views/FixedAssetValueAdjustmentsView.vue')
+const FixedAssetPivotEngineView = () => import('@/views/FixedAssetPivotEngineView.vue')
 
 const routes = [
   { path: '/', redirect: to => (localStorage.getItem('ncsms_access_token') ? '/dashboard' : '/login') },
@@ -75,6 +77,8 @@ const routes = [
   { path: '/expenses/categories', name: 'ExpenseCategories', component: ExpenseCategoriesView, meta: { requiresAuth: true, roles: ['super_admin','admin'] } },
   { path: '/expenses/:id', name: 'ExpenseDetail', component: ExpenseDetailView, meta: { requiresAuth: true, roles: expenseRoles } },
   { path: '/fixed-assets', name: 'FixedAssets', component: FixedAssetsView, meta: { requiresAuth: true } },
+  { path: '/fixed-assets/value-adjustments', name: 'FixedAssetValueAdjustments', component: FixedAssetValueAdjustmentsView, meta: { requiresAuth: true } },
+  { path: '/fixed-assets/pivot-engine', name: 'FixedAssetPivotEngine', component: FixedAssetPivotEngineView, meta: { requiresAuth: true } },
   { path: '/fixed-assets/new', name: 'FixedAssetNew', component: FixedAssetActionView, props: { action: 'new' }, meta: { requiresAuth: true } },
   { path: '/fixed-assets/depreciation', name: 'FixedAssetDepreciation', component: FixedAssetActionView, props: { action: 'depreciation' }, meta: { requiresAuth: true } },
   { path: '/fixed-assets/:id/revalue', name: 'FixedAssetRevalue', component: FixedAssetActionView, props: { action: 'revalue' }, meta: { requiresAuth: true } },
@@ -173,7 +177,14 @@ const router = createRouter({
 })
 
 const pageTitles = {
+  FixedAssets: 'Manage Fixed Assets',
+  FixedAssetValueAdjustments: 'Value Adjustments',
+  FixedAssetPivotEngine: 'Dynamic Pivot Engine',
   FixedAssetNew: 'New Fixed Asset',
+  FixedAssetRevalue: 'Asset Revaluation',
+  FixedAssetVerify: 'Asset Verification',
+  FixedAssetDepreciation: 'Monthly Depreciation',
+
   FixedAssetRevalue: 'Asset Revaluation',
   FixedAssetVerify: 'Asset Verification',
   FixedAssetDepreciation: 'Monthly Depreciation',

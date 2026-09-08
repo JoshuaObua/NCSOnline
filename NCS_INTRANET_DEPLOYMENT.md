@@ -1,164 +1,214 @@
-# NCS Intranet Deployment and Modification Instructions
+# Technical Deployment, Rebuild & Migration Guide
 
-Deployment completed: July 11, 2026.
+This guide details how to update, apply migrations, and rebuild each NCS system on VPS `169.58.210.57` without deleting database data, media uploads, or cached Docker layers.
 
-## Live Deployment
+---
 
-- Frontend URL: http://104.219.248.160:9081/
-- Health check: http://104.219.248.160:9081/healthz
-- Seeded admin email: `admin@ncs.go.ug`
-- Seeded admin password: `NCS@Admin2026!`
-- Seeded admin role: `super_admin`
+## 1. Architecture Overview
 
-Rotate the seeded admin password after first login.
-
-## VPS Layout
-
-- NCS Intranet app path: `/opt/ncsintranet`
-- NCS Intranet compose project: `ncsintranet`
-- NCS Intranet env file: `/opt/ncsintranet/.env`
-- NCS Intranet HTTP port: `9081`
-- NCS Intranet HTTPS container port mapping: `9444`
-- NCS Intranet Postgres host port: `5436`
-
-`ncswebsite` is a separate project and must remain separate:
-
-- NCS Website app path: `/opt/ncs-website`
-- NCS Website HTTP port: `9080`
-- NCS Website HTTPS container port mapping: `9443`
-- NCS Website Postgres host port: `5435`
-
-Do not deploy NCS Intranet into `/opt/ncs-website`.
-
-## What Was Done
-
-- Removed only the old FreeRADIUS/daloRADIUS containers to free space.
-- Preserved `ncswebsite`, `aegis`, and `monjaro`.
-- Restored `ncswebsite` from its pre-deploy backup and verified `/healthz`.
-- Deployed this project separately as `ncsintranet` under `/opt/ncsintranet`.
-- Verified NCS Intranet frontend, backend `/healthz`, location service health, and seeded admin login.
-
-## Routine Operations
-
-SSH to the VPS, then use:
-
-```bash
-cd /opt/ncsintranet
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml ps
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml logs -f backend nginx
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml restart
+```
+                                    +--------------------------------------------------+
+                                    |                169.58.210.57 (VPS)               |
+                                    +--------------------------------------------------+
+                                                             |
+                 +-------------------------------------------+-------------------------------------------+
+                 | (Port 80/443 SSL)                                                                     | (Port 3100)
+                 v                                                                                       v
+  +-------------------------------+                                                        +---------------------------+
+  |  Nginx Gateway (Reverse Proxy)|                                                        |          NCS Bot          |
+  +-------------------------------+                                                        |    (Chatwoot / Rails)     |
+    |               |           |                                                          +---------------------------+
+    |               |           +----------------------------------+                                     |
+    v               v                                              v                                     v
++-------------+ +----------------+ +------------------+   +-------------------+              +-----------------------+
+| NCS Website | |   NCS Portal   | |   NCS Intranet   |   | ncswebsite-nginx  |              | ncsbot-web & worker   |
+| (Go + Vue)  | |  (Go + Vue)    | |   (Go + Vue)     |   |   (SSL TLS 1.3)   |              | (Port 3100)           |
++-------------+ +----------------+ +------------------+   +-------------------+              +-----------------------+
 ```
 
-Check portal health:
+---
+
+## 2. Safety Rules for Zero Data Loss
+
+1. **NEVER run `docker compose down -v` or `docker volume rm`**: Volumes contain PostgreSQL databases (`*_postgres_data`), media uploads (`*_uploads_data`), and private documents (`*_private_data`).
+2. **DO NOT overwrite `.env` or `docker-compose.yml`**: They contain VPS production secrets, network attachments, and local port bindings.
+3. **Always take a database dump before applying migrations**:
+   ```bash
+   mkdir -p /var/backups/manual
+   sudo docker compose exec -T postgres sh -lc 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > /var/backups/manual/backup-$(date +%F-%H%M).dump
+   ```
+4. **Use targeted rebuilds**: Build and start only the updated application containers (`backend`, `frontend`, `worker`) without restarting persistent services (`postgres`, `redis`).
+
+---
+
+## 3. Step-by-Step Update & Rebuild Workflows
+
+### A. Updating NCS Website (`ncsweb.atenimedia.com`)
 
 ```bash
-curl -fsS http://127.0.0.1:9081/healthz
-docker exec ncsintranet-location-service-1 curl -fsS http://127.0.0.1:8090/health
+# 1. Navigate to website repository
+cd /opt/ncs-website
+
+# 2. Pull latest code from website branch
+git pull origin website
+
+# 3. Apply any new database migrations (in numeric order)
+# Example: If new migrations 059_*.sql were added:
+for m in backend/migrations/059_*.sql; do
+  [ -f "$m" ] && sudo docker compose exec -T postgres sh -lc 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$m"
+done
+
+# 4. Rebuild application containers
+sudo docker compose build backend worker frontend
+
+# 5. Restart updated services without affecting PostgreSQL or Nginx
+sudo docker compose up -d --no-deps backend worker frontend
+
+# 6. Verify health
+sudo docker compose ps
+curl -s -k https://ncsweb.atenimedia.com/healthz
 ```
 
-Check that the website is still separate and healthy:
+---
+
+### B. Updating NCS Portal (`ncsportal.atenimedia.com`)
 
 ```bash
-curl -fsS http://127.0.0.1:9080/healthz
-docker ps --format '{{.Names}} {{.Status}} {{.Ports}}' | grep -E 'ncsintranet|ncswebsite|aegis|monjaro'
+# 1. Navigate to portal repository
+cd /opt/ncs-portal
+
+# 2. Pull latest code from portal branch
+git pull origin portal
+
+# 3. Apply new migrations
+for m in backend/migrations/066_*.sql backend/migrations/067_*.sql; do
+  [ -f "$m" ] && sudo docker compose exec -T postgres sh -lc 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$m"
+done
+
+# 4. Rebuild application containers
+sudo docker compose build backend worker frontend
+
+# 5. Restart updated services
+sudo docker compose up -d --no-deps backend worker frontend
+
+# 6. Verify health
+sudo docker compose ps
+curl -s -k https://ncsportal.atenimedia.com/healthz
 ```
 
-## Deploy an Update
+---
 
-From the local Windows workspace:
-
-```powershell
-$archive = Join-Path $env:TEMP 'ncsintranet-deploy.tar.gz'
-Remove-Item -LiteralPath $archive -Force -ErrorAction SilentlyContinue
-tar --exclude='.git' --exclude='.agents' --exclude='.claude' --exclude='.codex' --exclude='Credentials.md' --exclude='.env' --exclude='frontend/node_modules' --exclude='frontend/dist' -czf $archive -C 'C:\NCS_Online\NCSIntranet' .
-scp -P <ssh-port> $archive root@server1.eventspix.online:/tmp/ncsintranet-deploy.tar.gz
-```
-
-On the VPS:
+### C. Updating NCS Intranet (`ncsintranet.atenimedia.com`)
 
 ```bash
+# 1. Navigate to intranet repository
+cd /opt/ncs-intranet
+
+# 2. Pull latest code from intranet branch
+git pull origin intranet
+
+# 3. Apply new migrations
+for m in backend/migrations/079_*.sql backend/migrations/080_*.sql; do
+  [ -f "$m" ] && sudo docker compose exec -T postgres sh -lc 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$m"
+done
+
+# 4. Rebuild application containers
+sudo docker compose build backend nsmis-worker frontend
+
+# 5. Restart updated services
+sudo docker compose up -d --no-deps backend nsmis-worker frontend
+
+# 6. Verify health
+sudo docker compose ps
+curl -s -k https://ncsintranet.atenimedia.com/healthz
+```
+
+---
+
+### D. Updating NCS Bot (`http://169.58.210.57:3100`)
+
+```bash
+# 1. Navigate to bot repository
+cd /opt/ncs-bot
+
+# 2. Pull latest code from ncsbot branch
+git pull origin ncsbot
+
+# 3. Rebuild bot image
+sudo docker compose -f docker-compose.ncsbot.yaml build
+
+# 4. Run Rails database migrations
+sudo docker compose -f docker-compose.ncsbot.yaml run --rm ncsbot-web bundle exec rails db:migrate
+
+# 5. Restart bot web and worker services
+sudo docker compose -f docker-compose.ncsbot.yaml up -d --no-deps ncsbot-web ncsbot-worker
+
+# 6. Verify status
+sudo docker compose -f docker-compose.ncsbot.yaml ps
+curl -I http://169.58.210.57:3100/
+```
+
+---
+
+## 4. Master One-Command Update Script
+
+For convenience, you can create a master update script on the VPS at `/opt/update_all.sh`:
+
+```bash
+#!/usr/bin/env bash
 set -e
-stamp=$(date -u +%Y%m%d-%H%M%S)
-mkdir -p /root/ncsintranet-backups
-tar -czf /root/ncsintranet-backups/ncsintranet-src-$stamp.tgz -C /opt ncsintranet
 
-rm -rf /opt/ncsintranet-new
-mkdir -p /opt/ncsintranet-new
-tar -xzf /tmp/ncsintranet-deploy.tar.gz -C /opt/ncsintranet-new
-cp /opt/ncsintranet/.env /opt/ncsintranet-new/.env
+echo "=== [1/4] Updating NCS Website ==="
+cd /opt/ncs-website
+git pull origin website
+docker compose build backend worker frontend
+docker compose up -d --no-deps backend worker frontend
 
-cd /opt/ncsintranet
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml down --remove-orphans
+echo "=== [2/4] Updating NCS Portal ==="
+cd /opt/ncs-portal
+git pull origin portal
+docker compose build backend worker frontend
+docker compose up -d --no-deps backend worker frontend
 
-cd /opt
-mv ncsintranet ncsintranet-prev-$stamp
-mv ncsintranet-new ncsintranet
+echo "=== [3/4] Updating NCS Intranet ==="
+cd /opt/ncs-intranet
+git pull origin intranet
+docker compose build backend nsmis-worker frontend
+docker compose up -d --no-deps backend nsmis-worker frontend
 
-cd /opt/ncsintranet
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml up -d --build
-curl -fsS http://127.0.0.1:9081/healthz
+echo "=== [4/4] Updating NCS Bot ==="
+cd /opt/ncs-bot
+git pull origin ncsbot
+docker compose -f docker-compose.ncsbot.yaml build
+docker compose -f docker-compose.ncsbot.yaml run --rm ncsbot-web bundle exec rails db:migrate
+docker compose -f docker-compose.ncsbot.yaml up -d --no-deps ncsbot-web ncsbot-worker
+
+echo "=== Re-verifying Cluster Health ==="
+curl -k -s -o /dev/null -w 'Website: %{http_code}\n' https://ncsweb.atenimedia.com/healthz
+curl -k -s -o /dev/null -w 'Portal: %{http_code}\n' https://ncsportal.atenimedia.com/healthz
+curl -k -s -o /dev/null -w 'Intranet: %{http_code}\n' https://ncsintranet.atenimedia.com/healthz
+curl -s -o /dev/null -w 'Bot: %{http_code}\n' http://localhost:3100/
+
+echo "=== All updates completed successfully! ==="
 ```
 
-After verification, remove the previous source folder if it is no longer needed:
+---
 
+## 5. SSL Certificate Management
+
+The multi-domain SSL certificate covers:
+- `ncsweb.atenimedia.com`
+- `ncsportal.atenimedia.com`
+- `ncsintranet.atenimedia.com`
+
+To manually test or renew certificates:
 ```bash
-rm -rf /opt/ncsintranet-prev-<timestamp>
+cd /opt/ncs-website
+sudo docker compose run --rm --entrypoint certbot certbot renew
+sudo docker compose exec nginx nginx -s reload
 ```
 
-Do not remove Docker volumes unless you intentionally want to delete portal data.
+---
+*Created: August 20, 2026*
 
-## Roll Back
-
-If an update fails, stop the current portal folder and restore the previous one:
-
-```bash
-cd /opt/ncsintranet
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml down --remove-orphans
-
-cd /opt
-mv ncsintranet ncsintranet-failed-$(date -u +%Y%m%d-%H%M%S)
-mv ncsintranet-prev-<timestamp> ncsintranet
-
-cd /opt/ncsintranet
-docker compose --env-file .env -f docker-compose.yml -f docker-compose.override.yml up -d --build
-curl -fsS http://127.0.0.1:9081/healthz
-```
-
-## Environment Notes
-
-Edit `/opt/ncsintranet/.env` for portal-only configuration, then restart the stack.
-
-Important values:
-
-- `COMPOSE_PROJECT_NAME=ncsintranet`
-- `PUBLIC_APP_URL=http://104.219.248.160:9081`
-- `ALLOWED_ORIGINS=http://104.219.248.160:9081,http://127.0.0.1:9081`
-- `NGINX_HOST_HTTP_PORT=9081`
-- `NGINX_HOST_HTTPS_PORT=9444`
-- `POSTGRES_HOST_PORT=5436`
-- `DATABASE_URL=postgres://ncsintranet_user:<password>@postgres:5432/ncsintranet?sslmode=disable`
-
-Timeout format differs by service:
-
-- Backend Go durations use values like `3s`.
-- Location service numeric values use plain seconds, for example `LOCATION_PROVIDER_TIMEOUT=2` and `LOCATION_GATE_TIMEOUT=2`.
-
-## Domain Option
-
-`monjaro_proxy` owns ports `80` and `443`. To serve NCS Intranet on a domain, add a Caddy reverse proxy rule in the monjaro/Caddy configuration that points the portal domain to:
-
-```text
-127.0.0.1:9081
-```
-
-Keep any existing `ncswebsite` domain block pointed at its own service.
-
-## Frontend/Layout Changes
-
-The deployed source includes the dashboard layout updates from this workspace. For future UI work:
-
-- User dashboard view: `frontend/src/views/UserPortalView.vue`
-- Open forms panel: `frontend/src/components/portal/OpenFormsPanel.vue`
-- Frontend build command: `cd frontend && npm run build`
-
-Rebuild and redeploy the full portal stack after frontend changes so the `ncsintranet-frontend` image gets the new assets.
+s

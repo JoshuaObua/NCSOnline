@@ -1,45 +1,25 @@
 <template>
-  <LayoutDefault title="Fixed Assets & IPSAS 17 Register">
+  <LayoutDefault title="Fixed Assets Registry - Manage Assets">
     <div class="space-y-6">
-      <!-- Top Header & Breadcrumb -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-        <div>
-          <div class="flex items-center space-x-2 text-sm text-gray-500 mb-1">
-            <span>Finance & Accounting</span>
-            <span>/</span>
-            <span class="text-emerald-700 font-medium">Fixed Asset & Inventory Master Register</span>
-          </div>
-          <h1 class="text-2xl font-bold text-gray-900 tracking-tight flex flex-wrap items-center gap-2">
-            Fixed Assets & IPSAS 17 Register
-            <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200">
-              {{ summary.total_assets ?? '—' }} Registered Assets
-            </span>
-          </h1>
-          <p class="text-xs text-gray-500 mt-1">
-            Asset register based on <span class="font-mono text-gray-700 font-semibold">Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx</span> (UGX 31.02B FB_COST baseline).
-          </p>
-        </div>
+      <!-- Shared Header & Sub-Navigation -->
+      <FixedAssetsSubNav
+        title="Manage Fixed Assets"
+        :badge="summary.total_assets ? summary.total_assets + ' Registered Assets' : ''"
+      />
 
-        <div class="flex flex-wrap items-center gap-3">
-          <router-link
-            to="/fixed-assets/depreciation"
-            class="inline-flex items-center px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 text-xs font-semibold transition"
-          >
-            <i class="icofont-clock-time mr-1.5"></i>
-            Run Monthly Depreciation
-          </router-link>
-          <router-link
-            to="/fixed-assets/new"
-            class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-xs font-semibold shadow-sm transition"
-          >
-            <i class="icofont-plus-circle mr-1.5"></i>
-            New Fixed Asset
-          </router-link>
+      <!-- Notice Banner -->
+      <div
+        v-if="notice.message"
+        :class="notice.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'"
+        class="rounded-xl border p-4 text-xs font-semibold flex items-center justify-between shadow-sm transition"
+      >
+        <div class="flex items-center gap-2">
+          <i :class="notice.type === 'error' ? 'icofont-warning text-red-500' : 'icofont-check-circled text-emerald-600'" class="text-lg"></i>
+          <span>{{ notice.message }}</span>
         </div>
-      </div>
-
-      <div v-if="notice.message" :class="notice.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'" class="rounded-xl border p-3 text-xs font-semibold">
-        {{ notice.message }}
+        <button @click="notice.message = ''" class="text-gray-400 hover:text-gray-600">
+          <i class="icofont-close"></i>
+        </button>
       </div>
 
       <!-- Financial KPI Summary Cards -->
@@ -52,7 +32,7 @@
             </div>
             <div class="p-3 bg-emerald-50 rounded-lg text-emerald-600"><i class="icofont-building-alt text-2xl"></i></div>
           </div>
-          <div class="mt-3 text-xs text-gray-500">Plan baseline: UGX 31,015,914,535 across 297 assets</div>
+          <div class="mt-3 text-xs text-gray-500">Plan baseline: UGX 31,015,914,535 baseline</div>
         </div>
 
         <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
@@ -92,41 +72,36 @@
         </div>
       </div>
 
-      <!-- Navigation Tabs -->
-      <div class="border-b border-gray-200 bg-white rounded-t-xl px-4">
-        <nav class="-mb-px flex flex-wrap gap-x-8" aria-label="Tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            @click="activeTab = tab.id"
-            :class="[
-              activeTab === tab.id ? 'border-emerald-600 text-emerald-700 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium',
-              'whitespace-nowrap py-4 px-1 border-b-2 text-sm flex items-center gap-2 transition'
-            ]"
-          >
-            <span>{{ tab.name }}</span>
-            <span v-if="tab.count !== undefined" :class="activeTab === tab.id ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'" class="ml-1 py-0.5 px-2 rounded-full text-xs font-bold">{{ tab.count }}</span>
-          </button>
-        </nav>
-      </div>
-
-      <!-- Tab 1: Asset Register Table -->
-      <div v-if="activeTab === 'register'" class="bg-white rounded-b-xl border border-gray-100 shadow-sm overflow-hidden">
+      <!-- Asset Register Master Table Card -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row items-center justify-between gap-4">
           <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-            <div class="relative w-full md:w-72">
-              <input v-model="searchQuery" @input="debouncedFetchAssets" type="text" placeholder="Search Tag, Code, Name..." aria-label="Search fixed assets" class="asset-search w-full pl-9 pr-4 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+            <div class="relative w-full md:w-80">
+              <input
+                v-model="searchQuery"
+                @input="debouncedFetchAssets"
+                type="text"
+                placeholder="Search Tag, Asset Code, Description..."
+                aria-label="Search fixed assets"
+                class="asset-search w-full pl-9 pr-4 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
               <i class="icofont-search-1 text-gray-400 absolute left-3 top-2.5"></i>
             </div>
 
-            <select aria-label="Filter asset category" v-model="selectedCategory" @change="offset = 0; fetchAssets()" class="text-xs border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white">
+            <select
+              aria-label="Filter asset category"
+              v-model="selectedCategory"
+              @change="offset = 0; fetchAssets()"
+              class="text-xs border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+            >
               <option value="">All Categories</option>
               <option v-for="cat in categoriesList" :key="cat" :value="cat">{{ cat }}</option>
             </select>
           </div>
 
-          <div class="text-xs text-gray-500 font-medium">
-            Showing {{ assets.length }} of {{ totalAssets }} records
+          <div class="text-xs text-gray-500 font-medium flex items-center gap-3">
+            <span>Showing {{ assets.length }} of {{ totalAssets }} records</span>
+            <button @click="searchQuery = ''; selectedCategory = ''; offset = 0; fetchAssets()" class="text-emerald-700 hover:underline">Reset</button>
           </div>
         </div>
 
@@ -151,22 +126,52 @@
                 <td colspan="10" class="py-8 text-center text-gray-400">Loading fixed asset register...</td>
               </tr>
               <tr v-else-if="!assets.length">
-                <td colspan="10" class="py-8 text-center text-gray-400">No fixed assets found.</td>
+                <td colspan="10" class="py-8 text-center text-gray-400">No fixed assets found matching filter criteria.</td>
               </tr>
               <template v-else>
                 <tr v-for="asset in assets" :key="asset.id" class="hover:bg-emerald-50/40 transition">
                   <td class="py-3 px-4 font-mono font-bold text-emerald-800">{{ asset.asset_number }}</td>
-                  <td class="py-3 px-4 font-mono text-gray-700"><span class="bg-gray-100 px-2 py-0.5 rounded border border-gray-200">{{ asset.tag_number }}</span></td>
-                  <td class="py-3 px-4 text-gray-900 font-medium max-w-xs truncate" :title="asset.asset_description">{{ asset.asset_description }}</td>
-                  <td class="py-3 px-4 text-gray-600"><div class="font-semibold text-gray-800">{{ asset.category_segment3 }}</div><div class="text-[10px] text-gray-400">{{ asset.category_segment4 }}</div></td>
+                  <td class="py-3 px-4 font-mono text-gray-700">
+                    <span class="bg-gray-100 px-2 py-0.5 rounded border border-gray-200">{{ asset.tag_number }}</span>
+                  </td>
+                  <td class="py-3 px-4 text-gray-900 font-medium max-w-xs truncate" :title="asset.asset_description">
+                    {{ asset.asset_description }}
+                  </td>
+                  <td class="py-3 px-4 text-gray-600">
+                    <div class="font-semibold text-gray-800">{{ asset.category_segment3 }}</div>
+                    <div class="text-[10px] text-gray-400">{{ asset.category_segment4 }}</div>
+                  </td>
                   <td class="py-3 px-4 text-right font-mono">{{ asset.asset_units }}</td>
                   <td class="py-3 px-4 text-right font-mono text-gray-700">{{ formatUGX(asset.fb_cost) }}</td>
                   <td class="py-3 px-4 text-right font-mono font-semibold text-blue-800">{{ formatUGX(asset.adjusted_cost) }}</td>
                   <td class="py-3 px-4 text-right font-mono font-bold text-purple-900">{{ formatUGX(asset.net_book_value) }}</td>
-                  <td class="py-3 px-4 text-center"><span :class="verificationClass(asset.verification_status)" class="px-2 py-1 rounded-full text-[10px] font-bold">{{ asset.verification_status || 'UNVERIFIED' }}</span></td>
-                  <td class="asset-actions py-3 px-4 text-center space-x-1">
-                    <router-link :to="{ name: 'FixedAssetRevalue', params: { id: asset.id } }" title="Revalue Asset" class="px-2 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-[11px] font-semibold">Adjust</router-link>
-                    <router-link :to="{ name: 'FixedAssetVerify', params: { id: asset.id } }" title="Spot-check verify tag" class="px-2 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded text-[11px] font-semibold">Verify</router-link>
+                  <td class="py-3 px-4 text-center">
+                    <span :class="verificationClass(asset.verification_status)" class="px-2 py-1 rounded-full text-[10px] font-bold">
+                      {{ asset.verification_status || 'UNVERIFIED' }}
+                    </span>
+                  </td>
+                  <td class="asset-actions py-3 px-4 text-center flex items-center justify-center gap-1">
+                    <router-link
+                      :to="{ name: 'FixedAssetRevalue', params: { id: asset.id } }"
+                      title="Revalue / Adjust Asset Cost"
+                      class="px-2 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-[11px] font-semibold transition"
+                    >
+                      Adjust
+                    </router-link>
+                    <router-link
+                      :to="{ name: 'FixedAssetVerify', params: { id: asset.id } }"
+                      title="Verify Tag"
+                      class="px-2 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded text-[11px] font-semibold transition"
+                    >
+                      Verify
+                    </router-link>
+                    <button
+                      @click="openDeleteModal(asset)"
+                      title="Delete Asset & Adjust Portfolio Valuation"
+                      class="px-2 py-1 bg-red-50 text-red-700 hover:bg-red-100 rounded text-[11px] font-semibold transition"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               </template>
@@ -175,61 +180,98 @@
         </div>
       </div>
 
-      <div v-if="activeTab === 'register'" class="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-200 rounded-lg p-4" aria-label="Asset register pagination">
-        <span class="text-sm text-gray-700">{{ totalAssets ? offset + 1 : 0 }}–{{ Math.min(offset + assets.length, totalAssets) }} of {{ totalAssets }} assets</span>
+      <!-- Pagination -->
+      <div class="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl p-4 shadow-sm" aria-label="Asset register pagination">
+        <span class="text-sm text-gray-700">
+          Showing {{ totalAssets ? offset + 1 : 0 }}–{{ Math.min(offset + assets.length, totalAssets) }} of {{ totalAssets }} assets
+        </span>
         <div class="flex gap-3">
-          <button :disabled="loading || offset === 0" @click="offset = Math.max(0, offset - pageSize); fetchAssets()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm font-semibold disabled:opacity-40">Previous page</button>
-          <button :disabled="loading || offset + pageSize >= totalAssets" @click="offset += pageSize; fetchAssets()" class="px-4 py-2 border border-emerald-700 text-emerald-800 rounded-lg text-sm font-semibold disabled:opacity-40">Next page</button>
+          <button
+            :disabled="loading || offset === 0"
+            @click="offset = Math.max(0, offset - pageSize); fetchAssets()"
+            class="px-4 py-2 border border-gray-300 rounded-lg text-xs font-semibold hover:bg-gray-50 disabled:opacity-40"
+          >
+            Previous page
+          </button>
+          <button
+            :disabled="loading || offset + pageSize >= totalAssets"
+            @click="offset += pageSize; fetchAssets()"
+            class="px-4 py-2 border border-emerald-700 text-emerald-800 rounded-lg text-xs font-semibold hover:bg-emerald-50 disabled:opacity-40"
+          >
+            Next page
+          </button>
         </div>
       </div>
 
-      <!-- Tab 2: Revaluations Audit Log -->
-      <div v-if="activeTab === 'adjustments'" class="bg-white rounded-b-xl border border-gray-100 p-6 shadow-sm">
-        <h3 class="text-base font-bold text-gray-900 mb-2">Asset Revaluation & Valuation Adjustment Logs</h3>
-        <p class="text-xs text-gray-500 mb-4">Statutory audit trail capturing all price overrides (`FB_COST` to `ADJUSTED COST`) in compliance with Treasury Instructions 2017 & PFMA 2015.</p>
-        <div class="border border-blue-100 bg-blue-50/50 p-4 rounded-xl mb-4 flex items-start space-x-3">
-          <i class="icofont-info-circle text-blue-600 mt-0.5"></i>
-          <div class="text-xs text-blue-900">
-            <p class="font-bold">Revaluation Rule Notice:</p>
-            <p>Indoor Stadium (`M1007059` / `166BLNG5`) carries FB_COST zero when Excel displays `#############`, while adjusted valuation records <span class="font-mono font-bold">UGX 1,160,000,000.00</span>.</p>
+      <!-- Delete Asset Confirmation Modal -->
+      <div v-if="deletingAsset" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-gray-100 animate-fade-in">
+          <div class="flex items-start justify-between border-b border-gray-100 pb-3">
+            <div class="flex items-center gap-3 text-red-600">
+              <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <i class="icofont-trash text-xl"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-gray-900">Delete Fixed Asset</h3>
+                <p class="text-xs text-gray-500">Action cannot be undone. System portfolio totals will be adjusted.</p>
+              </div>
+            </div>
+            <button @click="deletingAsset = null" class="text-gray-400 hover:text-gray-600">
+              <i class="icofont-close text-lg"></i>
+            </button>
           </div>
-        </div>
-      </div>
 
-      <!-- Tab 3: Dynamic Pivot & Analytics Engine -->
-      <div v-if="activeTab === 'pivot'" class="bg-white rounded-b-xl border border-gray-100 p-6 shadow-sm">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h3 class="text-base font-bold text-gray-900">Dynamic Multi-Dimensional Pivot Engine</h3>
-            <p class="text-xs text-gray-500">Live replacement for Excel worksheet `PIVOT TABLE` cross-tabulating categories, sub-classes, units, and valuation.</p>
+          <!-- Asset Summary Box -->
+          <div class="bg-red-50/60 rounded-xl p-4 border border-red-100 space-y-2 text-xs">
+            <div class="flex justify-between">
+              <span class="font-bold text-gray-700">Asset Number:</span>
+              <span class="font-mono text-gray-900 font-bold">{{ deletingAsset.asset_number }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="font-bold text-gray-700">Tag Number:</span>
+              <span class="font-mono text-gray-900 font-bold">{{ deletingAsset.tag_number }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="font-bold text-gray-700">Description:</span>
+              <span class="text-gray-900 font-medium max-w-xs text-right truncate">{{ deletingAsset.asset_description }}</span>
+            </div>
+            <div class="flex justify-between border-t border-red-200/60 pt-2 text-red-900">
+              <span class="font-bold">Valuation Deduction (Rollback):</span>
+              <span class="font-mono font-extrabold text-sm">UGX {{ formatUGX(deletingAsset.adjusted_cost) }}</span>
+            </div>
           </div>
-        </div>
 
-        <div class="overflow-x-auto border border-gray-200 rounded-xl">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-gray-100 text-gray-700 font-bold uppercase tracking-wider border-b border-gray-200">
-              <tr>
-                <th class="py-3 px-4">Primary Class (`SEGMENT1`)</th>
-                <th class="py-3 px-4">Category (`SEGMENT3`)</th>
-                <th class="py-3 px-4">Detailed Sub-Class (`SEGMENT4`)</th>
-                <th class="py-3 px-4 text-right">Sum of Units</th>
-                <th class="py-3 px-4 text-right">Sum of FB Cost (UGX)</th>
-                <th class="py-3 px-4 text-right">Sum of Adjusted Cost</th>
-                <th class="py-3 px-4 text-right">Sum of NBV</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-for="(item, idx) in summary.category_summaries" :key="idx" class="hover:bg-gray-50">
-                <td class="py-2.5 px-4 font-semibold text-gray-800">{{ item.category_segment1 }}</td>
-                <td class="py-2.5 px-4 font-medium text-emerald-800">{{ item.category_segment3 }}</td>
-                <td class="py-2.5 px-4 text-gray-600">{{ item.category_segment4 }}</td>
-                <td class="py-2.5 px-4 text-right font-mono font-bold">{{ item.asset_units }}</td>
-                <td class="py-2.5 px-4 text-right font-mono">{{ formatUGX(item.total_fb_cost) }}</td>
-                <td class="py-2.5 px-4 text-right font-mono font-bold text-blue-900">{{ formatUGX(item.total_adjusted_cost) }}</td>
-                <td class="py-2.5 px-4 text-right font-mono font-bold text-purple-900">{{ formatUGX(item.total_net_book_value) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <!-- Deletion Reason Field -->
+          <div class="space-y-1">
+            <label class="block text-xs font-bold text-gray-700">
+              Deletion Reason / Notes <span class="text-red-500">*</span>
+            </label>
+            <textarea
+              v-model="deleteNotes"
+              rows="3"
+              placeholder="Provide statutory justification or reference for deleting this record..."
+              class="w-full text-xs p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            ></textarea>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button
+              @click="deletingAsset = null"
+              class="px-4 py-2 rounded-lg border border-gray-300 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              :disabled="deleteSubmitting || !deleteNotes.trim()"
+              @click="confirmDeleteAsset"
+              class="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm transition disabled:opacity-40 flex items-center gap-1.5"
+            >
+              <i v-if="deleteSubmitting" class="icofont-spinner spin"></i>
+              <span>Confirm & Delete Asset</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -240,7 +282,7 @@
 <script>
 import client from '@/api/client'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
-
+import FixedAssetsSubNav from '@/components/fixed_assets/FixedAssetsSubNav.vue'
 
 function apiData(res) {
   return res?.data?.data ?? res?.data ?? {}
@@ -248,7 +290,7 @@ function apiData(res) {
 
 export default {
   name: 'FixedAssetsView',
-  components: { LayoutDefault },
+  components: { LayoutDefault, FixedAssetsSubNav },
   data() {
     return {
       assets: [],
@@ -269,9 +311,11 @@ export default {
         discrepancy_assets: 0,
         category_summaries: [],
       },
-      activeTab: 'register',
       searchQuery: '',
       selectedCategory: '',
+      deletingAsset: null,
+      deleteNotes: '',
+      deleteSubmitting: false,
       categoriesList: [
         'CYCLES',
         'ELECTRICAL MACHINERY',
@@ -286,18 +330,16 @@ export default {
       ],
     }
   },
-  computed: {
-    tabs() {
-      return [
-        { id: 'register', name: 'Asset Register', count: this.totalAssets || this.summary.total_assets },
-        { id: 'adjustments', name: 'Value Adjustments' },
-        { id: 'pivot', name: 'Dynamic Pivot Engine', count: this.summary.category_summaries?.length || 0 },
-      ]
-    },
-  },
   mounted() {
-    const messages = { new: 'Fixed asset created successfully', revalue: 'Asset revaluation saved', verify: 'Asset verification recorded', depreciation: 'Depreciation run completed' }
-    if (messages[this.$route.query.completed]) this.setNotice('success', messages[this.$route.query.completed])
+    const messages = {
+      new: 'Fixed asset created successfully',
+      revalue: 'Asset revaluation saved',
+      verify: 'Asset verification recorded',
+      depreciation: 'Depreciation run completed',
+    }
+    if (messages[this.$route.query.completed]) {
+      this.setNotice('success', messages[this.$route.query.completed])
+    }
     this.fetchAssets()
     this.fetchSummary()
   },
@@ -346,12 +388,35 @@ export default {
         default: return 'bg-gray-100 text-gray-600'
       }
     },
+    openDeleteModal(asset) {
+      this.deletingAsset = asset
+      this.deleteNotes = ''
+    },
+    async confirmDeleteAsset() {
+      if (!this.deletingAsset || !this.deleteNotes.trim()) return
+      this.deleteSubmitting = true
+      try {
+        const assetTag = this.deletingAsset.tag_number || this.deletingAsset.asset_number
+        const assetCost = this.deletingAsset.adjusted_cost
+        await client.delete(`/api/v1/assets/${this.deletingAsset.id}`, {
+          data: { notes: this.deleteNotes.trim() }
+        })
+        this.setNotice('success', `Asset "${assetTag}" deleted successfully. Portfolio valuation adjusted by -UGX ${this.formatUGX(assetCost)}.`)
+        this.deletingAsset = null
+        this.deleteNotes = ''
+        await this.fetchAssets()
+        await this.fetchSummary()
+      } catch (e) {
+        this.setNotice('error', e.response?.data?.error || e.response?.data?.message || 'Failed to delete fixed asset')
+      } finally {
+        this.deleteSubmitting = false
+      }
+    },
     setNotice(type, message) {
       this.notice = { type, message }
       if (this.noticeTimer) clearTimeout(this.noticeTimer)
-      this.noticeTimer = setTimeout(() => { this.notice = { type: '', message: '' } }, 5000)
+      this.noticeTimer = setTimeout(() => { this.notice = { type: '', message: '' } }, 7000)
     },
-
   },
 }
 </script>
@@ -365,13 +430,14 @@ export default {
   right: 0;
   z-index: 1;
   background: #fff;
-  min-width: 8rem;
+  min-width: 10rem;
   box-shadow: -2px 0 4px rgb(0 0 0 / 8%);
 }
-.asset-actions a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 2rem;
+.spin {
+  animation: spin 1s linear infinite;
 }
-
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 </style>
