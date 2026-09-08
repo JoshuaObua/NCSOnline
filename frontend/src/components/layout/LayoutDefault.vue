@@ -602,6 +602,9 @@
               </li>
             </template>
           </ul>
+          <div class="sidebar-theme-control" :class="{ 'is-collapsed': sidebarCollapsed }">
+            <ThemeToggle />
+          </div>
         </aside>
       </div>
 
@@ -660,6 +663,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
+import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
 const props = defineProps({
   title: { type: String, default: '' }

@@ -495,6 +495,11 @@ body { font-family: 'Poppins', sans-serif; min-width: 320px; }
 .otika-app .sidebar-menu .dropdown-menu { background: transparent; padding: 4px 0 8px 36px; list-style: none; display: block; border: 0; box-shadow: none; }
 .otika-app .sidebar-menu .dropdown-menu li a { padding: 7px 16px; font-size: 12.5px; border-left: 2px solid transparent; }
 .otika-app .sidebar-menu .dropdown-menu li.active a { color: #2563eb; font-weight: 600; }
+.otika-app .sidebar-theme-control { flex: none; padding: 10px 14px; border-top: 1px solid #f1f5f9; background: #ffffff; }
+.otika-app .sidebar-theme-control .theme-toggle-btn, .otika-app .sidebar-theme-control .theme-toggle-btn > div { width: 100%; }
+.otika-app .sidebar-theme-control .theme-toggle-btn > div { justify-content: flex-start; border-radius: 3px; }
+.otika-app .sidebar-theme-control.is-collapsed .theme-toggle-btn span { display: none; }
+.otika-app .sidebar-theme-control.is-collapsed .theme-toggle-btn > div { justify-content: center; padding-left: 0; padding-right: 0; }
 
 /* Top Navbar Elements */
 .otika-app .navbar-left, .otika-app .navbar-right { display: flex; align-items: center; min-width: 0; }
@@ -681,6 +686,7 @@ html.dark .otika-app .navbar-bg { background: #6777ef; }
 html.dark .otika-app .main-navbar { background: #6777ef; color: #ffffff; }
 html.dark .otika-app .main-sidebar, html.dark .otika-app #sidebar-wrapper { background: #0f172a; border-right: 1px solid #1e293b; }
 html.dark .otika-app .sidebar-brand { border-bottom: 1px solid #1e293b; }
+html.dark .otika-app .sidebar-theme-control { background: #0f172a; border-top-color: #1e293b; }
 html.dark .otika-app .sidebar-brand-text { color: #60a5fa; }
 html.dark .otika-app .sidebar-user { background: #1e293b; border-color: #334155; }
 html.dark .otika-app .sidebar-user-name { color: #f8fafc; }
