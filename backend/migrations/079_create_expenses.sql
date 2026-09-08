@@ -1,5 +1,5 @@
 BEGIN;
-CREATE TABLE expense_categories (
+CREATE TABLE IF NOT EXISTS expense_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(120) NOT NULL CHECK (length(trim(name)) > 0),
     description VARCHAR(1000) NOT NULL DEFAULT '',
@@ -9,9 +9,9 @@ CREATE TABLE expense_categories (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE UNIQUE INDEX expense_categories_name_unique ON expense_categories (lower(trim(name)));
-CREATE SEQUENCE expense_reference_seq;
-CREATE TABLE expenses (
+CREATE UNIQUE INDEX IF NOT EXISTS expense_categories_name_unique ON expense_categories (lower(trim(name)));
+CREATE SEQUENCE IF NOT EXISTS expense_reference_seq;
+CREATE TABLE IF NOT EXISTS expenses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     reference TEXT NOT NULL UNIQUE DEFAULT ('EXP-' || nextval('expense_reference_seq')::text),
     expense_date DATE NOT NULL,
@@ -30,11 +30,11 @@ CREATE TABLE expenses (
     recorded_by_name TEXT NOT NULL,
     recorded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-CREATE INDEX expenses_date_idx ON expenses (expense_date DESC, recorded_at DESC);
-CREATE INDEX expenses_category_idx ON expenses(category_id);
-CREATE INDEX expenses_department_idx ON expenses(department_id);
+CREATE INDEX IF NOT EXISTS expenses_date_idx ON expenses (expense_date DESC, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS expenses_category_idx ON expenses(category_id);
+CREATE INDEX IF NOT EXISTS expenses_department_idx ON expenses(department_id);
 -- Small supporting receipts are stored atomically with the record, never as public media URLs.
-CREATE TABLE expense_attachments (
+CREATE TABLE IF NOT EXISTS expense_attachments (
     expense_id UUID PRIMARY KEY REFERENCES expenses(id) ON DELETE RESTRICT,
     original_name VARCHAR(255) NOT NULL,
     mime_type TEXT NOT NULL CHECK (mime_type IN ('application/pdf','image/jpeg','image/png','image/webp')),
