@@ -1,8 +1,7 @@
 <template>
   <LayoutDefault title="Fixed Assets Registry - Dynamic Pivot Engine">
     <div class="space-y-6">
-      <!-- Shared Header & Sub-Navigation -->
-      <FixedAssetsSubNav
+      <FixedAssetsPageHeader
         title="Dynamic Multi-Dimensional Pivot Engine"
         :badge="filteredSummaries.length + ' Category Segments'"
       />
@@ -142,7 +141,7 @@
 <script>
 import client from '@/api/client'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
-import FixedAssetsSubNav from '@/components/fixed_assets/FixedAssetsSubNav.vue'
+import FixedAssetsPageHeader from '@/components/fixed_assets/FixedAssetsPageHeader.vue'
 
 function apiData(res) {
   return res?.data?.data ?? res?.data ?? {}
@@ -150,7 +149,7 @@ function apiData(res) {
 
 export default {
   name: 'FixedAssetPivotEngineView',
-  components: { LayoutDefault, FixedAssetsSubNav },
+  components: { LayoutDefault, FixedAssetsPageHeader },
   data() {
     return {
       loading: false,

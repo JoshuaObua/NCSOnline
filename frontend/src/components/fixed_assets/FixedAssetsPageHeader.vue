@@ -37,44 +37,6 @@
       </div>
     </div>
 
-    <!-- Sub-navigation Tabs -->
-    <div class="border-b border-gray-200 bg-white rounded-xl px-4 shadow-sm">
-      <nav class="-mb-px flex flex-wrap gap-x-8" aria-label="Fixed Assets Navigation">
-        <router-link
-          to="/fixed-assets"
-          exact
-          :class="[
-            $route.path === '/fixed-assets' ? 'border-emerald-600 text-emerald-700 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium',
-            'whitespace-nowrap py-3.5 px-1 border-b-2 text-sm flex items-center gap-2 transition'
-          ]"
-        >
-          <i class="icofont-listine-dots text-base"></i>
-          <span>Manage Assets</span>
-        </router-link>
-
-        <router-link
-          to="/fixed-assets/value-adjustments"
-          :class="[
-            $route.path === '/fixed-assets/value-adjustments' ? 'border-emerald-600 text-emerald-700 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium',
-            'whitespace-nowrap py-3.5 px-1 border-b-2 text-sm flex items-center gap-2 transition'
-          ]"
-        >
-          <i class="icofont-history text-base"></i>
-          <span>Value Adjustments</span>
-        </router-link>
-
-        <router-link
-          to="/fixed-assets/pivot-engine"
-          :class="[
-            $route.path === '/fixed-assets/pivot-engine' ? 'border-emerald-600 text-emerald-700 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium',
-            'whitespace-nowrap py-3.5 px-1 border-b-2 text-sm flex items-center gap-2 transition'
-          ]"
-        >
-          <i class="icofont-chart-histogram text-base"></i>
-          <span>Dynamic Pivot Engine</span>
-        </router-link>
-      </nav>
-    </div>
   </div>
 </template>
 

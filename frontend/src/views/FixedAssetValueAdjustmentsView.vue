@@ -1,8 +1,7 @@
 <template>
   <LayoutDefault title="Fixed Assets Registry - Value Adjustments">
     <div class="space-y-6">
-      <!-- Shared Header & Sub-Navigation -->
-      <FixedAssetsSubNav
+      <FixedAssetsPageHeader
         title="Value Adjustments & Revaluation Audit Ledger"
         :badge="totalLogs + ' Transaction Events'"
       />
@@ -202,7 +201,7 @@
 <script>
 import client from '@/api/client'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
-import FixedAssetsSubNav from '@/components/fixed_assets/FixedAssetsSubNav.vue'
+import FixedAssetsPageHeader from '@/components/fixed_assets/FixedAssetsPageHeader.vue'
 
 function apiData(res) {
   return res?.data?.data ?? res?.data ?? {}
@@ -210,7 +209,7 @@ function apiData(res) {
 
 export default {
   name: 'FixedAssetValueAdjustmentsView',
-  components: { LayoutDefault, FixedAssetsSubNav },
+  components: { LayoutDefault, FixedAssetsPageHeader },
   data() {
     return {
       logs: [],
