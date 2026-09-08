@@ -95,8 +95,6 @@
         <div class="main-content">
           <section class="section">
             <div class="section-body">
-              <UniversalDashboardApplications class="mb-4" />
-              
               <!-- Tab 1: Dashboard Overview -->
               <div v-if="activeTab === 'overview'" class="space-y-6">
                 <!-- Welcome Widget -->
@@ -348,7 +346,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { storedPortalUser } from '@/utils/portalAuth.js'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
-import UniversalDashboardApplications from '@/components/layout/UniversalDashboardApplications.vue'
 import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 
 ensureOtikaStyles()

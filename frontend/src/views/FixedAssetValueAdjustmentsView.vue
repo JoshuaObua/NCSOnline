@@ -1,5 +1,5 @@
 <template>
-  <LayoutDefault title="Fixed Assets Registry - Value Adjustments" :hide-universal-apps="true">
+  <LayoutDefault title="Fixed Assets Registry - Value Adjustments">
     <div class="space-y-6">
       <!-- Shared Header & Sub-Navigation -->
       <FixedAssetsSubNav

@@ -613,7 +613,6 @@
 
           <!-- Section Body Default Slot -->
           <div class="section-body">
-            <UniversalDashboardApplications v-if="!hideUniversalApps" class="mb-6" />
             <slot></slot>
           </div>
         </section>
@@ -640,11 +639,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
-import UniversalDashboardApplications from '@/components/layout/UniversalDashboardApplications.vue'
 
 const props = defineProps({
-  title: { type: String, default: '' },
-  hideUniversalApps: { type: Boolean, default: false }
+  title: { type: String, default: '' }
 })
 
 const route = useRoute()

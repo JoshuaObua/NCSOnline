@@ -145,8 +145,6 @@
         <div class="main-content">
           <section class="section">
             <div class="section-body">
-              <UniversalDashboardApplications class="mb-4" />
-
               <!-- Tab 1: Dashboard Overview -->
               <div v-if="activeTab === 'overview'" class="space-y-6">
                 <!-- Welcome/SLA banner -->
@@ -539,7 +537,6 @@ import { useRouter, useRoute } from 'vue-router'
 import { storedPortalUser } from '@/utils/portalAuth.js'
 import { ensureOtikaStyles } from '@/utils/otikaAssets.js'
 import ThemeToggle from '@/components/theme/ThemeToggle.vue'
-import UniversalDashboardApplications from '@/components/layout/UniversalDashboardApplications.vue'
 import LeaveApprovalsPanel from '@/components/portal/LeaveApprovalsPanel.vue'
 import VisitorClearancePanel from '@/components/portal/VisitorClearancePanel.vue'
 import ReportsPanel from '@/components/portal/ReportsPanel.vue'

@@ -10,8 +10,6 @@
         <router-link to="/my-portal" class="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#112b4e]">Switch profile</router-link>
       </div>
 
-      <UniversalDashboardApplications />
-
       <div v-if="loading" class="h-48 rounded-2xl bg-white animate-pulse" />
       <template v-else>
         <div class="grid md:grid-cols-3 gap-4">
@@ -33,7 +31,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import apiClient from '@/api/client.js'
-import UniversalDashboardApplications from '@/components/layout/UniversalDashboardApplications.vue'
 
 const router = useRouter()
 const organisation = ref(null)

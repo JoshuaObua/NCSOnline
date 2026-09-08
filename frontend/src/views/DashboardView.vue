@@ -1,5 +1,5 @@
 <template>
-  <LayoutDefault title="Dashboard Overview" :hide-universal-apps="isAccountant">
+  <LayoutDefault title="Dashboard Overview">
 
     <!-- ──  Section Header ────────────────────────────────────────── -->
     <div class="section-header flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
