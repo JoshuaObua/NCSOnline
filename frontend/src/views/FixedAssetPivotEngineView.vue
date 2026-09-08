@@ -54,7 +54,7 @@
       </div>
 
       <!-- Pivot Engine Table Card -->
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden p-6 space-y-4">
+      <div class="card otika-datatable-card overflow-hidden p-6 space-y-4">
         <div class="flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
             <h3 class="text-base font-bold text-gray-900">Multi-Dimensional Category Matrix</h3>
@@ -68,14 +68,14 @@
                 type="text"
                 placeholder="Filter matrix category..."
                 aria-label="Filter matrix category"
-                class="pivot-search w-full pl-9 pr-4 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                class="pivot-search form-control form-control-sm otika-form-control w-full pl-9 pr-4 text-xs"
               />
               <i class="icofont-search-1 text-gray-400 absolute left-3 top-2.5"></i>
             </div>
 
             <button
               @click="exportCSV"
-              class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center gap-1.5 whitespace-nowrap"
+              class="btn btn-sm btn-icon icon-left btn-success whitespace-nowrap"
             >
               <i class="icofont-file-excel text-sm"></i>
               Export Pivot CSV
@@ -84,7 +84,7 @@
         </div>
 
         <div class="overflow-x-auto border border-gray-200 rounded-xl">
-          <table class="w-full text-left text-xs">
+          <table class="table table-striped table-hover dataTable no-footer w-full text-left text-xs">
             <thead class="bg-gray-100 text-gray-700 font-bold uppercase tracking-wider border-b border-gray-200">
               <tr>
                 <th class="py-3 px-4">Primary Class (`SEGMENT1`)</th>

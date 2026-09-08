@@ -676,6 +676,40 @@ html.dark textarea.form-control:focus {
 .table-striped tbody tr:nth-of-type(odd) { background-color: #fafbfc; }
 .table-hover tbody tr:hover { background-color: #f1f5f9; }
 
+/* Otika DataTables, basic-form controls, icon actions, checkboxes and pagination */
+.otika-datatable-card { border-radius: 3px; border: 0; box-shadow: 0 4px 8px rgba(0,0,0,.03); }
+.otika-datatable-card .card-header { min-height: 70px; border-bottom: 1px solid #f9f9f9; }
+.otika-datatable-card .card-body { padding: 20px 25px; }
+.otika-datatable-toolbar { color: #34395e; font-size: 12px; }
+.otika-form-control, .otika-datatable-card .form-control { height: 31px; border: 1px solid #e4e6fc; border-radius: 3px !important; background: #fdfdff; color: #495057; font-size: 12px; box-shadow: none; }
+.otika-form-control:focus, .otika-datatable-card .form-control:focus { border-color: #95a0f4; background: #fefeff; box-shadow: none; outline: none; }
+.otika-datatable-card .table { color: #34395e; margin-bottom: 0; }
+.otika-datatable-card .table thead th { background: #f9f9f9; color: #34395e; border-bottom: 1px solid #ddd; padding: 10px 15px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+.otika-datatable-card .table tbody td { padding: 10px 15px; vertical-align: middle; border-top: 1px solid #f5f5f5; }
+.otika-datatable-card .table-striped tbody tr:nth-of-type(odd) { background: rgba(0,0,0,.02); }
+.otika-datatable-card .table-hover tbody tr:hover { background: rgba(103,119,239,.06); }
+.btn.btn-icon { width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.btn.btn-icon.icon-left { width: auto; padding: 0 14px; gap: 7px; }
+.btn.btn-icon i { margin: 0; line-height: 1; }
+.otika-action-buttons { display: inline-flex; gap: 4px; white-space: nowrap; }
+.otika-action-buttons .btn { border-radius: 3px !important; }
+.otika-checkbox { display: inline-flex; width: 18px; height: 18px; position: relative; margin: 0; cursor: pointer; }
+.otika-checkbox input { position: absolute; opacity: 0; pointer-events: none; }
+.otika-checkbox span { width: 18px; height: 18px; border: 1px solid #d4d7e5; border-radius: 3px; background: #fff; position: relative; }
+.otika-checkbox input:checked + span { border-color: #6777ef; background: #6777ef; }
+.otika-checkbox input:checked + span::after { content: ''; position: absolute; left: 5px; top: 2px; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.dataTables-footer { border-top: 1px solid #f3f3f3; }
+.pagination { display: flex; padding-left: 0; list-style: none; gap: 3px; }
+.page-link { min-width: 32px; height: 32px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; color: #6777ef; background: #fff; border: 1px solid #ededed; border-radius: 3px; font-size: 12px; }
+.page-item.active .page-link { color: #fff; background: #6777ef; border-color: #6777ef; }
+.page-item.disabled .page-link, .page-link:disabled { color: #adb5bd; background: #fff; pointer-events: none; opacity: .65; }
+.page-link:hover:not(:disabled) { color: #fff; background: #6777ef; border-color: #6777ef; }
+html.dark .otika-datatable-card, html.dark .otika-datatable-card .card-body, html.dark .dataTables-footer { background: #0f172a; }
+html.dark .otika-datatable-card .card-header, html.dark .dataTables-footer { border-color: #1e293b; }
+html.dark .otika-form-control, html.dark .otika-datatable-card .form-control { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+html.dark .otika-datatable-card .table thead th { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+html.dark .otika-checkbox span { background: #1e293b; border-color: #475569; }
+
 /* Otika Master Footer */
 .otika-app .main-footer { margin-left: 260px; padding: 18px 24px; background: #ffffff; border-top: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #64748b; transition: margin-left 0.3s ease; }
 .otika-app .main-wrapper.sidebar-mini .main-footer { margin-left: 70px; }

@@ -69,9 +69,9 @@
       </div>
 
       <!-- Main Log Table Card -->
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div class="card otika-datatable-card overflow-hidden">
         <!-- Controls & Filters -->
-        <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="p-4 border-b border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 otika-datatable-toolbar">
           <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
             <div class="relative w-full md:w-80">
               <input
@@ -80,7 +80,7 @@
                 type="text"
                 placeholder="Search Asset Code, User Name, Notes..."
                 aria-label="Search transaction logs"
-                class="log-search w-full pl-9 pr-4 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                class="log-search form-control form-control-sm otika-form-control w-full pl-9 pr-4 text-xs"
               />
               <i class="icofont-search-1 text-gray-400 absolute left-3 top-2.5"></i>
             </div>
@@ -89,7 +89,7 @@
               aria-label="Filter transaction type"
               v-model="selectedType"
               @change="offset = 0; fetchLogs()"
-              class="text-xs border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
+              class="form-control form-control-sm otika-form-control text-xs bg-white"
             >
               <option value="">All Event Types</option>
               <option value="REVALUATION">Revaluations</option>
@@ -101,13 +101,13 @@
 
           <div class="text-xs text-gray-500 font-medium flex items-center gap-3">
             <span>Showing {{ logs.length }} of {{ totalLogs }} audit records</span>
-            <button @click="searchQuery = ''; selectedType = ''; offset = 0; fetchLogs()" class="text-emerald-700 hover:underline">Reset</button>
+            <button @click="searchQuery = ''; selectedType = ''; offset = 0; fetchLogs()" class="btn btn-sm btn-icon btn-outline-secondary" title="Reset filters" aria-label="Reset filters"><i class="icofont-refresh"></i></button>
           </div>
         </div>
 
         <!-- Table -->
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
+          <table class="table table-striped table-hover dataTable no-footer w-full text-left text-xs">
             <thead class="bg-gray-100/70 text-gray-600 font-semibold uppercase tracking-wider border-b border-gray-200">
               <tr>
                 <th class="py-3 px-4">Date & Time</th>
@@ -172,26 +172,31 @@
       </div>
 
       <!-- Pagination -->
-      <div class="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl p-4 shadow-sm" aria-label="Transaction logs pagination">
+      <div class="dataTables-footer flex flex-wrap items-center justify-between gap-3 bg-white p-4" aria-label="Transaction logs pagination">
         <span class="text-sm text-gray-700">
           Showing {{ totalLogs ? offset + 1 : 0 }}–{{ Math.min(offset + logs.length, totalLogs) }} of {{ totalLogs }} log events
         </span>
-        <div class="flex gap-3">
+        <ul class="pagination pagination-sm mb-0">
+          <li class="page-item previous" :class="{ disabled: loading || offset === 0 }">
           <button
             :disabled="loading || offset === 0"
             @click="offset = Math.max(0, offset - pageSize); fetchLogs()"
-            class="px-4 py-2 border border-gray-300 rounded-lg text-xs font-semibold hover:bg-gray-50 disabled:opacity-40"
+            class="page-link"
           >
-            Previous page
+            Previous
           </button>
+          </li>
+          <li class="page-item active"><span class="page-link">{{ Math.floor(offset / pageSize) + 1 }}</span></li>
+          <li class="page-item next" :class="{ disabled: loading || offset + pageSize >= totalLogs }">
           <button
             :disabled="loading || offset + pageSize >= totalLogs"
             @click="offset += pageSize; fetchLogs()"
-            class="px-4 py-2 border border-emerald-700 text-emerald-800 rounded-lg text-xs font-semibold hover:bg-emerald-50 disabled:opacity-40"
+            class="page-link"
           >
-            Next page
+            Next
           </button>
-        </div>
+          </li>
+        </ul>
       </div>
 
     </div>

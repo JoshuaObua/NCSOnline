@@ -72,19 +72,19 @@
       </div>
 
       <!-- Asset Register Master Table Card (Otika DataTables Format) -->
-      <div class="card">
+      <div class="card otika-datatable-card">
         <div class="card-header flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 px-5">
           <h4 class="text-base font-bold text-gray-900 flex items-center gap-2">
             <i class="icofont-building-alt text-primary"></i> Fixed Asset Master Register (IPSAS 17)
           </h4>
           <div class="card-header-action flex items-center gap-2">
-            <router-link to="/fixed-assets/new" class="btn btn-sm btn-primary flex items-center gap-1">
+            <router-link to="/fixed-assets/new" class="btn btn-sm btn-icon icon-left btn-primary">
               <i class="icofont-plus"></i> Add Asset
             </router-link>
-            <button @click="exportCSV" class="btn btn-sm buttons-csv">
+            <button @click="exportCSV" class="btn btn-sm btn-icon icon-left btn-success">
               <i class="icofont-file-excel mr-1"></i> Export CSV
             </button>
-            <button @click="printTable" class="btn btn-sm buttons-print">
+            <button @click="printTable" class="btn btn-sm btn-icon icon-left btn-secondary">
               <i class="icofont-printer mr-1"></i> Print
             </button>
           </div>
@@ -95,12 +95,12 @@
             <div id="table-1_wrapper" class="dataTables_wrapper dt-bootstrap4 no-footer">
               
               <!-- DataTables Controls Header Row -->
-              <div class="row align-items-center mb-3">
+              <div class="row align-items-center mb-3 otika-datatable-toolbar">
                 <div class="col-sm-12 col-md-6 d-flex align-items-center flex-wrap gap-2 mb-2 mb-md-0">
                   <div class="dataTables_length" id="table-1_length">
                     <label class="d-flex align-items-center gap-1 mb-0 text-xs">
                       Show 
-                      <select v-model="pageSize" @change="offset = 0; fetchAssets()" class="form-control form-control-sm custom-select custom-select-sm w-auto mx-1">
+                      <select v-model="pageSize" @change="offset = 0; fetchAssets()" class="form-control form-control-sm custom-select custom-select-sm otika-form-control w-auto mx-1">
                         <option :value="10">10</option>
                         <option :value="25">25</option>
                         <option :value="50">50</option>
@@ -113,15 +113,15 @@
                   <select
                     v-model="selectedCategory"
                     @change="offset = 0; fetchAssets()"
-                    class="form-control form-control-sm w-auto text-xs"
+                    class="form-control form-control-sm otika-form-control w-auto text-xs"
                     aria-label="Filter category"
                   >
                     <option value="">All Categories</option>
                     <option v-for="cat in categoriesList" :key="cat" :value="cat">{{ cat }}</option>
                   </select>
 
-                  <button @click="searchQuery = ''; selectedCategory = ''; offset = 0; fetchAssets()" class="btn btn-sm btn-outline-secondary py-1 text-xs">
-                    Reset Filters
+                  <button @click="searchQuery = ''; selectedCategory = ''; offset = 0; fetchAssets()" class="btn btn-sm btn-icon btn-outline-secondary" title="Reset filters" aria-label="Reset filters">
+                    <i class="icofont-refresh"></i>
                   </button>
                 </div>
 
@@ -134,7 +134,7 @@
                           type="search"
                           v-model="searchQuery"
                           @input="debouncedFetchAssets"
-                          class="form-control form-control-sm pl-8 pr-3 text-xs rounded-lg"
+                          class="form-control form-control-sm otika-form-control pl-8 pr-3 text-xs"
                           placeholder="Tag, Asset Code, Name..."
                           aria-label="Search assets"
                         />
@@ -149,6 +149,12 @@
               <table class="table table-striped table-hover dataTable no-footer w-100 text-xs" id="table-1">
                 <thead>
                   <tr>
+                    <th class="text-center w-10">
+                      <label class="otika-checkbox" title="Select all visible assets">
+                        <input type="checkbox" :checked="allVisibleSelected" @change="toggleAllVisible" aria-label="Select all visible assets" />
+                        <span></span>
+                      </label>
+                    </th>
                     <th class="text-center w-12">#</th>
                     <th>Asset Code</th>
                     <th>Tag Number</th>
@@ -164,15 +170,21 @@
                 </thead>
                 <tbody>
                   <tr v-if="loading">
-                    <td colspan="11" class="text-center py-8 text-gray-400">
+                    <td colspan="12" class="text-center py-8 text-gray-400">
                       <i class="icofont-spinner-alt-4 animate-spin text-lg mr-2"></i> Loading fixed asset register...
                     </td>
                   </tr>
                   <tr v-else-if="!assets.length">
-                    <td colspan="11" class="text-center py-8 text-gray-400">No fixed assets found matching filter criteria.</td>
+                    <td colspan="12" class="text-center py-8 text-gray-400">No fixed assets found matching filter criteria.</td>
                   </tr>
                   <template v-else>
                     <tr v-for="(asset, idx) in assets" :key="asset.id" class="hover:bg-slate-50 transition">
+                      <td class="text-center">
+                        <label class="otika-checkbox">
+                          <input v-model="selectedAssetIds" type="checkbox" :value="asset.id" :aria-label="`Select ${asset.asset_number}`" />
+                          <span></span>
+                        </label>
+                      </td>
                       <td class="text-center font-bold text-gray-500">{{ offset + idx + 1 }}</td>
                       <td class="font-mono font-bold text-primary">{{ asset.asset_number }}</td>
                       <td>
@@ -195,27 +207,30 @@
                         </span>
                       </td>
                       <td class="text-center">
-                        <div class="btn-group">
+                        <div class="btn-group otika-action-buttons">
                           <router-link
                             :to="{ name: 'FixedAssetRevalue', params: { id: asset.id } }"
                             title="Adjust Asset Cost"
-                            class="btn btn-xs btn-outline-primary py-0.5 px-2 text-[11px]"
+                            class="btn btn-icon btn-sm btn-primary"
+                            aria-label="Adjust asset cost"
                           >
-                            Adjust
+                            <i class="icofont-edit"></i>
                           </router-link>
                           <router-link
                             :to="{ name: 'FixedAssetVerify', params: { id: asset.id } }"
                             title="Verify Tag"
-                            class="btn btn-xs btn-outline-info py-0.5 px-2 text-[11px]"
+                            class="btn btn-icon btn-sm btn-info"
+                            aria-label="Verify asset tag"
                           >
-                            Verify
+                            <i class="icofont-check-circled"></i>
                           </router-link>
                           <button
                             @click="openDeleteModal(asset)"
                             title="Delete Asset"
-                            class="btn btn-xs btn-outline-danger py-0.5 px-2 text-[11px]"
+                            class="btn btn-icon btn-sm btn-danger"
+                            aria-label="Delete asset"
                           >
-                            Delete
+                            <i class="icofont-trash"></i>
                           </button>
                         </div>
                       </td>
@@ -229,6 +244,7 @@
                 <div class="col-sm-12 col-md-5 mb-2 mb-md-0">
                   <div class="dataTables_info" id="table-1_info" role="status" aria-live="polite">
                     Showing {{ totalAssets ? offset + 1 : 0 }} to {{ Math.min(offset + assets.length, totalAssets) }} of {{ totalAssets }} entries
+                    <span v-if="selectedAssetIds.length"> · {{ selectedAssetIds.length }} selected</span>
                   </div>
                 </div>
                 <div class="col-sm-12 col-md-7 d-flex justify-content-md-end">
@@ -375,6 +391,7 @@ export default {
       },
       searchQuery: '',
       selectedCategory: '',
+      selectedAssetIds: [],
       deletingAsset: null,
       deleteNotes: '',
       deleteSubmitting: false,
@@ -391,6 +408,11 @@ export default {
         'RESIDENTIAL BUILDINGS',
       ],
     }
+  },
+  computed: {
+    allVisibleSelected() {
+      return this.assets.length > 0 && this.assets.every(asset => this.selectedAssetIds.includes(asset.id))
+    },
   },
   mounted() {
     const messages = {
@@ -410,6 +432,14 @@ export default {
     if (this.noticeTimer) clearTimeout(this.noticeTimer)
   },
   methods: {
+    toggleAllVisible(event) {
+      const visibleIds = this.assets.map(asset => asset.id)
+      if (event.target.checked) {
+        this.selectedAssetIds = [...new Set([...this.selectedAssetIds, ...visibleIds])]
+      } else {
+        this.selectedAssetIds = this.selectedAssetIds.filter(id => !visibleIds.includes(id))
+      }
+    },
     async fetchAssets() {
       this.loading = true
       try {
