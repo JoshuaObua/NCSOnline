@@ -613,7 +613,7 @@
 
           <!-- Section Body Default Slot -->
           <div class="section-body">
-            <UniversalDashboardApplications class="mb-6" />
+            <UniversalDashboardApplications v-if="!hideUniversalApps" class="mb-6" />
             <slot></slot>
           </div>
         </section>
@@ -643,7 +643,8 @@ import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 import UniversalDashboardApplications from '@/components/layout/UniversalDashboardApplications.vue'
 
 const props = defineProps({
-  title: { type: String, default: '' }
+  title: { type: String, default: '' },
+  hideUniversalApps: { type: Boolean, default: false }
 })
 
 const route = useRoute()

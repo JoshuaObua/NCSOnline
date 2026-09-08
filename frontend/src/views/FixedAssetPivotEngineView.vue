@@ -1,5 +1,5 @@
 <template>
-  <LayoutDefault title="Fixed Assets Registry - Dynamic Pivot Engine">
+  <LayoutDefault title="Fixed Assets Registry - Dynamic Pivot Engine" :hide-universal-apps="true">
     <div class="space-y-6">
       <!-- Shared Header & Sub-Navigation -->
       <FixedAssetsSubNav
