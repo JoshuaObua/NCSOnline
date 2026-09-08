@@ -162,6 +162,9 @@ async function save(){if(saving.value)return;saving.value=true;error.value='';tr
   border-radius: 4px;
   box-shadow: 0 4px 25px rgba(0, 0, 0, .06);
 }
+.expense-otika-form .card-body {
+  padding: 22px 24px 24px;
+}
 .expense-summary-body {
   align-items: center;
   display: flex;
@@ -183,7 +186,7 @@ async function save(){if(saving.value)return;saving.value=true;error.value='';tr
 }
 .expense-form-row {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .expense-form-row-three {
@@ -211,19 +214,30 @@ async function save(){if(saving.value)return;saving.value=true;error.value='';tr
 }
 .expense-otika-form .form-group label {
   color: #34395e;
+  display: block;
   font-size: 12px;
   font-weight: 700;
+  margin-bottom: 7px;
 }
 .expense-otika-form .form-control,
 .expense-otika-form .custom-select {
+  appearance: auto;
+  box-sizing: border-box;
   border-color: #e4e6fc;
   border-radius: 4px;
   color: #495057;
+  display: block;
   font-size: 13px;
-  min-height: 42px;
+  height: 42px;
+  line-height: 1.5;
+  padding: 9px 12px;
+  width: 100%;
 }
 .expense-otika-form textarea.form-control {
+  height: 118px;
+  line-height: 1.5;
   min-height: 108px;
+  resize: vertical;
 }
 .expense-otika-form .form-control:focus,
 .expense-otika-form .custom-select:focus {
@@ -241,15 +255,18 @@ async function save(){if(saving.value)return;saving.value=true;error.value='';tr
   display: inline-flex;
   font-size: 12px;
   font-weight: 800;
-  min-height: 42px;
+  height: 42px;
   padding: 8px 12px;
+  white-space: nowrap;
 }
 .expense-input-group {
   display: flex;
+  height: 42px;
   width: 100%;
 }
 .expense-input-group .form-control {
   border-radius: 0 4px 4px 0;
+  height: 42px;
   min-width: 0;
 }
 .expense-otika-avatar {
@@ -268,13 +285,15 @@ async function save(){if(saving.value)return;saving.value=true;error.value='';tr
   background: #fdfdff;
   border: 2px dashed #cdd3ff;
   border-radius: 4px;
+  box-sizing: border-box;
   color: #6c757d;
   cursor: pointer;
   display: flex;
   justify-content: center;
   margin-bottom: 0;
-  min-height: 190px;
-  padding: 28px;
+  min-height: 150px;
+  padding: 22px;
+  position: relative;
   text-align: center;
   transition: background .2s, border-color .2s, box-shadow .2s;
   width: 100%;
@@ -304,18 +323,20 @@ async function save(){if(saving.value)return;saving.value=true;error.value='';tr
 .expense-dropzone i {
   color: #6777ef;
   display: block;
-  font-size: 44px;
-  margin-bottom: 8px;
+  font-size: 34px;
+  margin-bottom: 6px;
 }
 .expense-dropzone h6 {
   color: #34395e;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
+  overflow-wrap: anywhere;
 }
 .expense-dropzone p {
   color: #6c757d;
   font-size: 12px;
+  line-height: 1.45;
   margin: 0;
 }
 .spin {
