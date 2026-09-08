@@ -19,10 +19,10 @@
 
     <template v-if="!loading && options">
       <div class="card expense-otika-summary">
-        <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
-          <div class="media align-items-center">
+        <div class="card-body expense-summary-body">
+          <div class="expense-summary-user">
             <div class="expense-otika-avatar"><i class="icofont-user-alt-5"></i></div>
-            <div class="media-body ml-3">
+            <div>
               <h6 class="mb-1">Recorded by {{ options.recorded_by_name }}</h6>
               <p class="mb-0 text-muted small">Your name and save time are recorded automatically.</p>
             </div>
@@ -41,12 +41,12 @@
           <h4><i class="icofont-ui-note mr-2"></i>Expense Details</h4>
         </div>
         <fieldset :disabled="saving || !categories.length" class="card-body">
-          <div class="form-row">
-            <div class="form-group col-md-6">
+          <div class="expense-form-row">
+            <div class="form-group expense-form-col">
               <label for="expense-date">Expense Date</label>
               <input id="expense-date" required v-model="form.expense_date" type="date" :max="options.today" class="form-control" />
             </div>
-            <div class="form-group col-md-6">
+            <div class="form-group expense-form-col">
               <label for="expense-category">Expense Category</label>
               <select id="expense-category" aria-label="Expense category" required v-model="form.category_id" class="form-control custom-select">
                 <option value="" disabled>Select a category</option>
@@ -65,24 +65,22 @@
             <textarea id="expense-description" required v-model.trim="form.description" maxlength="5000" rows="4" class="form-control" placeholder="Briefly describe what this expense covers"></textarea>
           </div>
 
-          <div class="form-row">
-            <div class="form-group col-md-4">
+          <div class="expense-form-row expense-form-row-three">
+            <div class="form-group expense-form-col">
               <label for="expense-amount">Amount (UGX)</label>
-              <div class="input-group">
-                <div class="input-group-prepend">
-                  <span class="input-group-text">UGX</span>
-                </div>
+              <div class="expense-input-group">
+                <span class="input-group-text">UGX</span>
                 <input id="expense-amount" required v-model="form.amount" type="number" min="0.01" max="999999999999.99" step="0.01" class="form-control text-right" placeholder="0.00" />
               </div>
             </div>
-            <div class="form-group col-md-4">
+            <div class="form-group expense-form-col">
               <label for="expense-department">Expense Department</label>
               <select id="expense-department" aria-label="Expense department" required v-model="form.department_id" class="form-control custom-select">
                 <option value="" disabled>Select the department charged</option>
                 <option v-for="department in options.departments" :key="department.id" :value="department.id">{{ department.name }}</option>
               </select>
             </div>
-            <div class="form-group col-md-4">
+            <div class="form-group expense-form-col">
               <label for="payment-method">Payment Method</label>
               <select id="payment-method" aria-label="Payment method" required v-model="form.payment_method" class="form-control custom-select">
                 <option v-for="(label,value) in paymentMethods" :key="value" :value="value">{{ label }}</option>
@@ -90,12 +88,12 @@
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group col-md-6">
+          <div class="expense-form-row">
+            <div class="form-group expense-form-col">
               <label for="expense-payee">Payee / Supplier</label>
               <input id="expense-payee" required v-model.trim="form.payee" maxlength="200" class="form-control" placeholder="Supplier or staff member paid" />
             </div>
-            <div class="form-group col-md-6">
+            <div class="form-group expense-form-col">
               <label for="payment-reference">Payment / Receipt Reference</label>
               <input id="payment-reference" v-model.trim="form.payment_reference" maxlength="200" class="form-control" placeholder="Optional receipt or voucher number" />
             </div>
@@ -109,7 +107,7 @@
             @dragleave.prevent="dragOver = false"
             @drop.prevent="dropFile"
           >
-            <input ref="fileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" class="d-none" @change="chooseFile" />
+            <input ref="fileInput" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" class="expense-upload-input" @change="chooseFile" />
             <div class="dz-message">
               <i class="icofont-cloud-upload"></i>
               <h6>{{ uploadTitle }}</h6>
@@ -120,7 +118,7 @@
             </div>
           </label>
 
-          <div class="card-footer px-0 pb-0 d-flex flex-wrap align-items-center justify-content-end gap-2">
+          <div class="card-footer expense-form-actions">
             <router-link to="/expenses" class="btn btn-icon icon-left btn-outline-secondary">
               <i class="icofont-close"></i> Cancel
             </router-link>
@@ -164,11 +162,46 @@ async function save(){if(saving.value)return;saving.value=true;error.value='';tr
   border-radius: 4px;
   box-shadow: 0 4px 25px rgba(0, 0, 0, .06);
 }
+.expense-summary-body {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+}
+.expense-summary-user {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  min-width: 0;
+}
 .expense-otika-form .card-header {
   align-items: center;
   border-bottom: 1px solid #f1f5f9;
   display: flex;
   min-height: 56px;
+}
+.expense-form-row {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.expense-form-row-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.expense-form-col {
+  min-width: 0;
+}
+.expense-form-actions {
+  align-items: center;
+  background: transparent;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+  padding: 18px 0 0;
 }
 .expense-otika-form .card-header h4 {
   color: #34395e;
@@ -198,11 +231,26 @@ async function save(){if(saving.value)return;saving.value=true;error.value='';tr
   box-shadow: 0 0 0 0.2rem rgba(103, 119, 239, .15);
 }
 .expense-otika-form .input-group-text {
+  align-items: center;
   background: #f4f6f9;
   border-color: #e4e6fc;
+  border-radius: 4px 0 0 4px;
+  border-style: solid;
+  border-width: 1px 0 1px 1px;
   color: #6777ef;
+  display: inline-flex;
   font-size: 12px;
   font-weight: 800;
+  min-height: 42px;
+  padding: 8px 12px;
+}
+.expense-input-group {
+  display: flex;
+  width: 100%;
+}
+.expense-input-group .form-control {
+  border-radius: 0 4px 4px 0;
+  min-width: 0;
 }
 .expense-otika-avatar {
   align-items: center;
@@ -230,6 +278,15 @@ async function save(){if(saving.value)return;saving.value=true;error.value='';tr
   text-align: center;
   transition: background .2s, border-color .2s, box-shadow .2s;
   width: 100%;
+}
+.expense-upload-input {
+  height: 1px;
+  left: -9999px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  width: 1px;
 }
 .expense-dropzone:hover,
 .expense-dropzone-active {
@@ -264,6 +321,25 @@ async function save(){if(saving.value)return;saving.value=true;error.value='';tr
 .spin {
   animation: spin 1s linear infinite;
 }
+.btn-outline-secondary {
+  background: #fff;
+  border-color: #e4e6fc;
+  color: #6c757d;
+}
+.btn-outline-secondary:hover {
+  background: #f4f6f9;
+  border-color: #6777ef;
+  color: #6777ef;
+}
+.btn-outline-danger {
+  background: #fff;
+  border-color: #fc544b;
+  color: #fc544b;
+}
+.btn-outline-danger:hover {
+  background: #fc544b;
+  color: #fff;
+}
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -274,6 +350,9 @@ html.dark .expense-otika-form {
   border-color: #1e293b;
 }
 html.dark .expense-otika-form .card-header {
+  border-color: #1e293b;
+}
+html.dark .expense-form-actions {
   border-color: #1e293b;
 }
 html.dark .expense-otika-form .card-header h4,
@@ -290,5 +369,22 @@ html.dark .expense-otika-form .custom-select {
 html.dark .expense-dropzone {
   background: #111827;
   border-color: #334155;
+}
+@media (max-width: 992px) {
+  .expense-form-row,
+  .expense-form-row-three {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 640px) {
+  .expense-summary-body,
+  .expense-summary-user,
+  .expense-form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .expense-form-actions .btn {
+    width: 100%;
+  }
 }
 </style>
