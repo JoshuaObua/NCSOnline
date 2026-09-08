@@ -1,6 +1,25 @@
 <template>
   <LayoutDefault title="Dashboard Overview">
 
+    <!-- ── Otika Section Header ────────────────────────────────────────── -->
+    <div class="section-header flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+      <div>
+        <h1 class="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+          <i class="icofont-dashboard-web text-blue-600"></i> Dashboard Overview
+        </h1>
+        <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+          National Council of Sports — Otika Intranet Command & Operational Hub
+        </div>
+      </div>
+      <div class="section-header-breadcrumb flex items-center gap-2 text-xs font-semibold">
+        <router-link to="/dashboard" class="text-blue-600 hover:underline flex items-center gap-1">
+          <i class="icofont-home"></i> Home
+        </router-link>
+        <span class="text-slate-400">/</span>
+        <span class="text-slate-500 font-bold">Dashboard Overview</span>
+      </div>
+    </div>
+
     <!-- Loading Skeleton -->
     <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div v-for="i in 4" :key="i" class="card card-statistic-4 animate-pulse">
@@ -316,10 +335,38 @@
         </div>
       </div>
 
-      <div class="card mb-6"><div class="card-header"><h4>Expense Management</h4></div><div class="card-body flex flex-wrap gap-3"><router-link to="/expenses/new" class="btn btn-primary">Record Expense</router-link><router-link to="/expenses" class="btn btn-outline-primary">View Expenses</router-link><p class="w-full text-sm text-slate-600 mt-2">Record departmental expenses, supporting receipts and payment details.</p></div></div>
+      <!-- 3. Otika Expense Management Hub Card -->
+      <div class="card card-primary shadow-sm hover:shadow-md transition">
+        <div class="card-header flex items-center justify-between">
+          <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <i class="icofont-money text-emerald-600 text-base"></i> Otika Expense Management & Petty Cash Operations
+          </h4>
+          <span class="badge badge-success flex items-center gap-1">
+            <i class="icofont-check-circled"></i> Active Finance Ledger
+          </span>
+        </div>
+        <div class="card-body p-5">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="space-y-1">
+              <h5 class="text-sm font-bold text-slate-800 dark:text-slate-200">Departmental Expense Vouchers & Receipts</h5>
+              <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xl">
+                Record, review, and track departmental petty cash expenses, supporting receipts, budget allocations, and payment approvals under Statutory Finance Guidelines.
+              </p>
+            </div>
+            <div class="flex items-center gap-3 flex-wrap flex-shrink-0">
+              <router-link to="/expenses/new" class="btn btn-primary btn-sm flex items-center gap-1.5 shadow-sm">
+                <i class="icofont-plus-circle text-xs"></i> Record Expense
+              </router-link>
+              <router-link to="/expenses" class="btn btn-outline-primary btn-sm flex items-center gap-1.5">
+                <i class="icofont-listine-dots text-xs"></i> View Expense Register
+              </router-link>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <!-- 3. Accountant Quick Action Navigation Grid -->
-      <div class="card">
+      <!-- 4. Accountant Quick Action Navigation Grid -->
+      <div class="card shadow-sm hover:shadow-md transition">
         <div class="card-header flex items-center justify-between">
           <h4><i class="icofont-navigation-menu text-emerald-600"></i> Fixed Asset & Financial Actions</h4>
           <router-link to="/fixed-assets" class="btn btn-sm btn-primary">
@@ -339,24 +386,37 @@
             </router-link>
 
             <router-link
-              to="/stores/inventory"
+              to="/fixed-assets/value-adjustments"
               class="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 border border-slate-200 dark:border-slate-700 transition group text-center"
             >
               <div class="w-11 h-11 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                <i class="icofont-box"></i>
+                <i class="icofont-history"></i>
               </div>
-              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600">Stores & Inventory</span>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600">Value Adjustments</span>
             </router-link>
 
             <router-link
-              to="/it/ppda/status"
-              class="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 border border-slate-200 dark:border-slate-700 transition group text-center"
+              to="/fixed-assets/pivot-engine"
+              class="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 border border-slate-200 dark:border-slate-700 transition group text-center"
             >
-              <div class="w-11 h-11 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
-                <i class="icofont-document-folder"></i>
+              <div class="w-11 h-11 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                <i class="icofont-chart-histogram"></i>
               </div>
-              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600">PPDA Form 5 Vetting</span>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-purple-600">Dynamic Pivot Engine</span>
             </router-link>
+
+            <router-link
+              to="/stores/inventory"
+              class="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-900/30 border border-slate-200 dark:border-slate-700 transition group text-center"
+            >
+              <div class="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+                <i class="icofont-box"></i>
+              </div>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-amber-600">Stores & Inventory</span>
+            </router-link>
+          </div>
+        </div>
+      </div>
 
             <router-link
               to="/reception/leave/apply"
@@ -467,6 +527,70 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- 5. Otika Activity & Audit Log Stream Widget -->
+      <div class="card shadow-sm hover:shadow-md transition">
+        <div class="card-header flex items-center justify-between py-3.5 px-5 border-b border-slate-100 dark:border-slate-800">
+          <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <i class="icofont-history text-emerald-600"></i> Otika Real-Time Activity & Fixed Asset Audit Stream
+          </h4>
+          <span class="badge badge-success flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Live Audit Active
+          </span>
+        </div>
+        <div class="card-body p-5">
+          <div class="space-y-3">
+            <div class="flex items-start gap-3.5 text-xs p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+              <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 flex items-center justify-center flex-shrink-0 font-bold text-base">
+                <i class="icofont-building-alt"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-bold text-slate-900 dark:text-white">Fixed Asset IPSAS 17 Valuation Adjusted</span>
+                  <span class="badge badge-light text-[10px]">Just Now</span>
+                </div>
+                <p class="text-slate-600 dark:text-slate-400 mt-1">
+                  Revalued Asset Item <span class="font-mono font-bold text-emerald-600">#NCS-FA-0042</span> (Mandela National Stadium Grounds) under IPSAS 17 statutory guidelines.
+                </p>
+                <div class="flex items-center gap-3 mt-2 text-[11px] text-slate-400">
+                  <span><i class="icofont-user"></i> Modified by: <strong>accountant@ncs.go.ug</strong></span>
+                  <span><i class="icofont-check-circled text-emerald-500"></i> Valuation Logged</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-3.5 text-xs p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+              <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0 font-bold text-base">
+                <i class="icofont-box"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-bold text-slate-900 dark:text-white">Stores Inventory Reorder Threshold Cleared</span>
+                  <span class="badge badge-light text-[10px]">24 mins ago</span>
+                </div>
+                <p class="text-slate-600 dark:text-slate-400 mt-1">
+                  Quarterly stock verification completed for Sports Equipment & Office Materials inventory ledger.
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-3.5 text-xs p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+              <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-900/50 flex items-center justify-center flex-shrink-0 font-bold text-base">
+                <i class="icofont-money"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-bold text-slate-900 dark:text-white">Petty Cash Expense Voucher Approved</span>
+                  <span class="badge badge-light text-[10px]">1 hr ago</span>
+                </div>
+                <p class="text-slate-600 dark:text-slate-400 mt-1">
+                  Departmental voucher cleared for Finance & Accounting operations under statutory vote head.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
