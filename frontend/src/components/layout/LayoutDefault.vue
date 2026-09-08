@@ -203,7 +203,7 @@
           <div class="sidebar-brand">
             <router-link to="/dashboard">
               <img src="/main-logo.png" alt="NCS Logo" class="header-logo" />
-             
+              
             </router-link>
           </div>
 
