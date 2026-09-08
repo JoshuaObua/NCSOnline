@@ -29,23 +29,33 @@
             <i class="icofont-refresh text-lg"></i>
           </button>
 
+          <!-- Fullscreen Toggle Button -->
+          <button
+            type="button"
+            class="cms-top-icon hidden sm:inline-flex"
+            @click="toggleFullscreen"
+            title="Toggle Fullscreen"
+          >
+            <i class="icofont-full-screen text-lg"></i>
+          </button>
+
           <!-- Otika Search Element -->
           <div class="search-element hidden md:flex">
             <input
               type="text"
               v-model="searchQuery"
               class="form-control"
-              placeholder="Search registry, athletes, files..."
+              placeholder="Search assets, requisition, files..."
               @keyup.enter="handleSearch"
             />
-            <button type="button" class="btn" @click="handleSearch">
+            <button type="button" class="btn bg-blue-600 hover:bg-blue-700 text-white" @click="handleSearch">
               <i class="icofont-search-1"></i>
             </button>
           </div>
         </div>
 
         <!-- Right Side: Theme, Notifications, Profile -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2.5">
           <!-- Dark Mode / Theme Toggle -->
           <ThemeToggle class="cms-top-icon" />
 
@@ -67,20 +77,29 @@
               class="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 z-50 animate-fadeIn"
             >
               <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Notifications</span>
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">System Notifications</span>
                 <span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold">3 New</span>
               </div>
               <div class="max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                 <div class="px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors">
-                  <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">Form 5 Vetting Requisition</div>
+                  <div class="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                    <span>Form 5 Vetting Requisition</span>
+                    <span class="text-[10px] text-slate-400">10m ago</span>
+                  </div>
                   <div class="text-[11px] text-slate-500 mt-0.5">Procurement submitted PPDA Form 5 for approval</div>
                 </div>
                 <div class="px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors">
-                  <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">Lugogo Arena Booking</div>
+                  <div class="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                    <span>Lugogo Arena Inspection</span>
+                    <span class="text-[10px] text-slate-400">1h ago</span>
+                  </div>
                   <div class="text-[11px] text-slate-500 mt-0.5">UAF requested match readiness inspection</div>
                 </div>
                 <div class="px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors">
-                  <div class="text-xs font-semibold text-slate-800 dark:text-slate-200">Asset Valuation Sign-Off</div>
+                  <div class="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                    <span>Fixed Asset Valuation Logged</span>
+                    <span class="text-[10px] text-slate-400">2h ago</span>
+                  </div>
                   <div class="text-[11px] text-slate-500 mt-0.5">Finance Department updated fixed asset ledger</div>
                 </div>
               </div>
@@ -91,15 +110,15 @@
           <div class="relative">
             <button
               type="button"
-              class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
               @click="profileOpen = !profileOpen; notificationsOpen = false"
             >
-              <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center border border-blue-400">
+              <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center border border-blue-400 shadow-sm">
                 {{ userInitials }}
               </div>
               <div class="hidden sm:block text-left">
                 <span class="block text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">{{ userName }}</span>
-                <span class="block text-[10px] text-slate-400 font-medium leading-tight">{{ userRole }}</span>
+                <span class="block text-[10px] text-blue-600 dark:text-blue-400 font-semibold leading-tight">{{ userRole }}</span>
               </div>
               <i class="icofont-thin-down text-xs text-slate-400"></i>
             </button>
@@ -107,30 +126,42 @@
             <!-- Profile Menu Dropdown -->
             <div
               v-if="profileOpen"
-              class="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-1.5 z-50 animate-fadeIn"
+              class="absolute right-0 mt-2 w-60 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 z-50 animate-fadeIn"
             >
-              <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-800">
-                <div class="text-xs font-bold text-slate-800 dark:text-slate-200">{{ userName }}</div>
-                <div class="text-[11px] text-slate-500 truncate">{{ authStore.user?.email }}</div>
+              <div class="px-4 py-2.5 border-b border-slate-100 dark:border-slate-800">
+                <div class="text-xs font-extrabold text-slate-900 dark:text-white">{{ userName }}</div>
+                <div class="text-[11px] text-slate-500 truncate mt-0.5">{{ authStore.user?.email }}</div>
+                <span class="inline-block mt-1.5 px-2 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 text-[10px] font-bold">
+                  {{ userRole }}
+                </span>
               </div>
-              <router-link
-                to="/profile"
-                class="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                @click="profileOpen = false"
-              >
-                <i class="icofont-user text-sm text-blue-600"></i> My Profile
-              </router-link>
-              <router-link
-                to="/me/security"
-                class="flex items-center gap-2 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                @click="profileOpen = false"
-              >
-                <i class="icofont-lock text-sm text-amber-600"></i> Security Settings
-              </router-link>
+              <div class="py-1">
+                <router-link
+                  to="/profile"
+                  class="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
+                  @click="profileOpen = false"
+                >
+                  <i class="icofont-user text-sm text-blue-600"></i> My Account Profile
+                </router-link>
+                <router-link
+                  to="/me/security"
+                  class="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
+                  @click="profileOpen = false"
+                >
+                  <i class="icofont-lock text-sm text-amber-600"></i> Security & Password
+                </router-link>
+                <router-link
+                  to="/audit-logs"
+                  class="flex items-center gap-2.5 px-4 py-2 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors font-medium"
+                  @click="profileOpen = false"
+                >
+                  <i class="icofont-history text-sm text-emerald-600"></i> Audit Activity Logs
+                </router-link>
+              </div>
               <div class="border-t border-slate-100 dark:border-slate-800 my-1"></div>
               <button
                 type="button"
-                class="w-full flex items-center gap-2 px-4 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-left font-semibold"
+                class="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors text-left font-bold"
                 @click="handleLogout"
               >
                 <i class="icofont-logout text-sm text-red-600"></i> Sign Out
@@ -720,6 +751,14 @@ function toggleSidebar() {
   sidebarCollapsed.value = !sidebarCollapsed.value
   if (!isMobile.value) {
     localStorage.setItem('ncs_sidebar_collapsed', sidebarCollapsed.value ? '1' : '0')
+  }
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {})
+  } else {
+    document.exitFullscreen().catch(() => {})
   }
 }
 

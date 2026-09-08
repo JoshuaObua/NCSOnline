@@ -418,72 +418,110 @@
         </div>
       </div>
 
-      <!-- 4. Fixed Assets Ledger & Leave Balance Grid -->
+      <!-- 4. Fixed Assets Master Ledger & Leave Entitlement Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- Left 2 Cols: High-Value Fixed Assets Ledger Preview -->
-        <div class="card lg:col-span-2">
-          <div class="card-header flex items-center justify-between">
-            <h4><i class="icofont-listine-dots text-emerald-600"></i> Baseline Fixed Asset Register (IPSAS 17)</h4>
-            <router-link to="/fixed-assets" class="btn btn-sm btn-outline-primary">
-              View All Assets <i class="icofont-arrow-right ml-1"></i>
-            </router-link>
+        <!-- Left 2 Cols: High-Value Fixed Assets Master Register -->
+        <div class="card lg:col-span-2 shadow-sm hover:shadow-md transition">
+          <div class="card-header flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 px-5">
+            <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="icofont-building-alt text-emerald-600"></i> Fixed Asset Master Register (IPSAS 17)
+            </h4>
+            <div class="card-header-action flex items-center gap-2">
+              <router-link to="/fixed-assets/new" class="btn btn-xs btn-primary flex items-center gap-1">
+                <i class="icofont-plus"></i> Add Asset
+              </router-link>
+              <router-link to="/fixed-assets" class="btn btn-xs btn-outline-primary flex items-center gap-1">
+                Full Register <i class="icofont-arrow-right"></i>
+              </router-link>
+            </div>
           </div>
+          
           <div class="card-body p-0">
             <div class="table-responsive">
               <table class="table table-striped table-hover mb-0 text-xs">
                 <thead>
-                  <tr>
-                    <th>Asset Code</th>
-                    <th>Tag Number</th>
-                    <th>Description</th>
-                    <th>Category</th>
-                    <th class="text-right">FB Cost (UGX)</th>
-                    <th class="text-right">Adjusted (UGX)</th>
-                    <th class="text-center">Status</th>
+                  <tr class="bg-slate-50 dark:bg-slate-800/60">
+                    <th class="py-3 px-4">Asset Code</th>
+                    <th class="py-3 px-4">Tag Number</th>
+                    <th class="py-3 px-4">Description & Location</th>
+                    <th class="py-3 px-4">Category</th>
+                    <th class="py-3 px-4 text-right">FB Cost (UGX)</th>
+                    <th class="py-3 px-4 text-right">Adjusted (UGX)</th>
+                    <th class="py-3 px-4 text-center">Status</th>
+                    <th class="py-3 px-4 text-center">Action</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr v-for="a in accountantAssets.slice(0, 6)" :key="a.id">
-                    <td class="font-bold text-emerald-700 font-mono">{{ a.asset_number }}</td>
-                    <td class="font-mono text-slate-700 dark:text-slate-300">{{ a.tag_number }}</td>
-                    <td>
-                      <div class="font-medium text-slate-900 dark:text-white max-w-xs truncate" :title="a.asset_description">{{ a.asset_description }}</div>
-                      <div class="text-[10px] text-slate-400">{{ a.location_building }}</div>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tr v-for="a in accountantAssets.slice(0, 6)" :key="a.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                    <td class="font-bold text-emerald-600 font-mono py-3 px-4">{{ a.asset_number }}</td>
+                    <td class="font-mono text-slate-700 dark:text-slate-300 py-3 px-4">{{ a.tag_number }}</td>
+                    <td class="py-3 px-4">
+                      <div class="font-bold text-slate-900 dark:text-white max-w-xs truncate" :title="a.asset_description">{{ a.asset_description }}</div>
+                      <div class="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                        <i class="icofont-location-pin text-red-400"></i> {{ a.location_building || 'NCS Secretariat' }}
+                      </div>
                     </td>
-                    <td><span class="badge badge-light text-[10px]">{{ a.category_segment3 }}</span></td>
-                    <td class="text-right font-mono font-semibold text-slate-800 dark:text-slate-200">{{ formatUGX(a.fb_cost) }}</td>
-                    <td class="text-right font-mono font-bold text-blue-600 dark:text-blue-400">{{ formatUGX(a.adjusted_cost) }}</td>
-                    <td class="text-center">
+                    <td class="py-3 px-4">
+                      <span class="badge badge-light text-[10px] font-semibold">{{ a.category_segment3 || 'Fixed Assets' }}</span>
+                    </td>
+                    <td class="text-right font-mono font-semibold text-slate-800 dark:text-slate-200 py-3 px-4">{{ formatUGX(a.fb_cost) }}</td>
+                    <td class="text-right font-mono font-bold text-blue-600 dark:text-blue-400 py-3 px-4">{{ formatUGX(a.adjusted_cost) }}</td>
+                    <td class="text-center py-3 px-4">
                       <span class="badge" :class="a.verification_status === 'VERIFIED' ? 'badge-success' : 'badge-light'">
+                        <i :class="a.verification_status === 'VERIFIED' ? 'icofont-check-circled' : 'icofont-clock-time'"></i>
                         {{ a.verification_status || 'UNVERIFIED' }}
                       </span>
                     </td>
+                    <td class="text-center py-3 px-4">
+                      <router-link
+                        to="/fixed-assets/value-adjustments"
+                        class="btn btn-xs btn-outline-primary inline-flex items-center gap-1"
+                        title="Adjust asset valuation"
+                      >
+                        <i class="icofont-edit text-[10px]"></i> Adjust
+                      </router-link>
+                    </td>
                   </tr>
                   <tr v-if="!accountantAssets.length">
-                    <td colspan="7" class="text-center py-6 text-xs text-slate-400">
-                      Loading fixed asset records...
+                    <td colspan="8" class="text-center py-8 text-xs text-slate-400">
+                      <i class="icofont-spinner-alt-4 animate-spin text-lg block mb-1"></i>
+                      Loading fixed asset ledger records...
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
+
+          <div class="card-footer py-3 px-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+            <span>Showing <strong>{{ Math.min(6, accountantAssets.length) }}</strong> of <strong>{{ assetSummary.total_assets || 297 }}</strong> baseline fixed assets</span>
+            <router-link to="/fixed-assets/pivot-engine" class="text-blue-600 hover:underline font-semibold flex items-center gap-1">
+              <i class="icofont-chart-histogram"></i> Launch Pivot Engine Analytics
+            </router-link>
+          </div>
         </div>
 
-        <!-- Right 1 Col: Leave & Financial Administration -->
-        <div class="card">
-          <div class="card-header">
-            <h4><i class="icofont-calendar text-emerald-600"></i> Leave & Particulars</h4>
+        <!-- Right 1 Col: Leave Entitlement & Statutory Particulars -->
+        <div class="card shadow-sm hover:shadow-md transition">
+          <div class="card-header flex items-center justify-between py-3.5 px-5 border-b border-slate-100 dark:border-slate-800">
+            <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="icofont-calendar text-emerald-600"></i> Leave & Particulars
+            </h4>
+            <span class="badge badge-info text-[10px] font-bold">2026/2027 Cycle</span>
           </div>
-          <div class="card-body space-y-4">
+          <div class="card-body p-5 space-y-4">
             <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-center">
-              <div class="text-[11px] font-bold text-slate-400 uppercase">Statutory Annual Leave</div>
+              <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Statutory Annual Leave</div>
               <div class="text-2xl font-extrabold text-slate-900 dark:text-white mt-1">
                 21 Days
               </div>
-              <div class="text-xs text-emerald-500 font-semibold mt-1">
+              <div class="text-xs text-emerald-500 font-bold mt-1">
                 {{ remainingLeaveDays }} Days Available Balance
+              </div>
+              <!-- Leave Utilization Progress Bar -->
+              <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full mt-3 overflow-hidden">
+                <div class="bg-emerald-500 h-full rounded-full transition-all duration-300" :style="{ width: ((remainingLeaveDays / 21) * 100) + '%' }"></div>
               </div>
             </div>
 
@@ -501,15 +539,15 @@
                 <span class="font-bold text-slate-900 dark:text-white">{{ utilizedLeaveDays }} Days</span>
               </div>
               <div class="flex justify-between p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800">
-                <span class="text-slate-500">Latest Leave Status:</span>
+                <span class="text-slate-500">Latest Request:</span>
                 <span class="badge" :class="statusBadge(latestLeave?.status || 'NONE')">
                   {{ latestLeave?.status || 'No Active Request' }}
                 </span>
               </div>
             </div>
 
-            <router-link to="/reception/leave/apply" class="btn btn-sm btn-primary w-full justify-center">
-              <i class="icofont-plus mr-1"></i> Apply for Leave
+            <router-link to="/reception/leave/apply" class="btn btn-sm btn-primary w-full justify-center shadow-sm flex items-center gap-1">
+              <i class="icofont-plus"></i> Apply for Leave
             </router-link>
           </div>
         </div>
