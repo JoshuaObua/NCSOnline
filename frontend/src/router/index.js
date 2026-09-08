@@ -57,6 +57,7 @@ const ReceptionistReportsView = () => import('@/views/reception/ReceptionistRepo
 const ITPPDAInitiateView = () => import('@/views/it/ITPPDAInitiateView.vue')
 const ITPPDAListView = () => import('@/views/it/ITPPDAListView.vue')
 
+const FixedAssetActionView = () => import('@/views/FixedAssetActionView.vue')
 const FixedAssetsView = () => import('@/views/FixedAssetsView.vue')
 
 const routes = [
@@ -65,6 +66,10 @@ const routes = [
   { path: '/register', name: 'Register', component: RegisterView, meta: { requiresAuth: false } },
 
   { path: '/fixed-assets', name: 'FixedAssets', component: FixedAssetsView, meta: { requiresAuth: true } },
+  { path: '/fixed-assets/new', name: 'FixedAssetNew', component: FixedAssetActionView, props: { action: 'new' }, meta: { requiresAuth: true } },
+  { path: '/fixed-assets/depreciation', name: 'FixedAssetDepreciation', component: FixedAssetActionView, props: { action: 'depreciation' }, meta: { requiresAuth: true } },
+  { path: '/fixed-assets/:id/revalue', name: 'FixedAssetRevalue', component: FixedAssetActionView, props: { action: 'revalue' }, meta: { requiresAuth: true } },
+  { path: '/fixed-assets/:id/verify', name: 'FixedAssetVerify', component: FixedAssetActionView, props: { action: 'verify' }, meta: { requiresAuth: true } },
   { path: '/my-portal', name: 'ApplicantPortal', component: ApplicantPortalView, meta: { requiresAuth: true } },
   { path: '/my-portal/applications/new', name: 'NewOrganisationApplication', component: ApplicantLicensePortalView, meta: { requiresAuth: true } },
   { path: '/my-portal/forms/:slug', name: 'DynamicForm', component: DynamicPortalFormView, meta: { requiresAuth: true } },
@@ -159,6 +164,10 @@ const router = createRouter({
 })
 
 const pageTitles = {
+  FixedAssetNew: 'New Fixed Asset',
+  FixedAssetRevalue: 'Asset Revaluation',
+  FixedAssetVerify: 'Asset Verification',
+  FixedAssetDepreciation: 'Monthly Depreciation',
   Login: 'Login',
   Register: 'Register',
   Dashboard: 'Dashboard',

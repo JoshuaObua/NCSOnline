@@ -1,5 +1,7 @@
 # NCS Accountant & Accounting Department Dashboard Implementation Plan
 
+> **Verification update — 2026-09-08:** Baseline data parity was verified locally, but full workflow replacement is **not complete**. Earlier completion claims below are superseded by the [verification findings and acceptance blockers](../verification/asset-register-2026-09-08/BUG_REPORT.md). FB cost and adjusted valuation are distinct; the source hash-cell exception remains unresolved.
+
 > **Target File:** `/home/fidi/Projects/NCS_Intranet/Docs/plans/accountant-dashboard-plan.md`  
 > **Role:** Chief Accountant / Senior Accountant / Asset Accountant  
 > **Department:** Finance & Accounts Department - National Council of Sports (NCS)  

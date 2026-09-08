@@ -4,6 +4,27 @@ All notable technical and architectural changes to the NCS Online & Intranet Pla
 
 ---
 
+## [Unreleased] - 2026-09-08
+
+### Changed
+- Replaced all four fixed-asset dialogs with independent pages: new asset, revaluation, physical verification and monthly depreciation.
+- Added deep-link asset loading, inline persistent errors, required fields, decimal currency inputs and duplicate-submit protection. Successful saves return to the refreshed register.
+- Integrated upstream accountant navigation and linked its new-asset tile directly to the standalone page. Fixed the upstream Command Center newline literal that blocked the frontend build.
+- Added [page workflow verification and screenshots](Docs/verification/asset-pages-2026-09-08/README.md).
+
+### Fixed
+- Added Fixed Asset Register navigation to the active shared dashboard layout for accounting, audit, GS and administrator roles.
+- Added bounded register pagination and filter/search offset reset so all 297 baseline assets can be browsed.
+- Removed hardcoded live portfolio/count fallbacks and the unverified complete-replacement claim.
+- Pinned row actions, corrected search spacing, added search/category accessible labels, allowed header wrapping and cleared the notice timer on unmount.
+- Preserved the existing API response-envelope fix in `FixedAssetsView.vue`.
+
+### Verification
+- Reconciled 297 workbook/seed/local PostgreSQL records; documented the unresolved hash FB-cost cell and stale cached workbook pivot.
+- Frontend build, existing Go tests, fixture browser checks and authenticated local accountant read-only checks passed. Added desktop/mobile screenshot evidence.
+- All observed local container IDs and asset-data export hashes remained unchanged. No container rebuild, data migration or VPS deployment was performed.
+- **Complete replacement acceptance remains failed:** missing workflows and critical authorization/depreciation/approval gaps are recorded in [the bug report](Docs/verification/asset-register-2026-09-08/BUG_REPORT.md). Remote verification is blocked by connectivity/SSH details.
+
 ## [1.3.0] - 2026-08-14
 
 ### Added

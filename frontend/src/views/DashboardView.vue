@@ -327,13 +327,13 @@
         <div class="card-body">
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <router-link
-              to="/fixed-assets"
+              to="/fixed-assets/new"
               class="flex flex-col items-center gap-2 p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 border border-slate-200 dark:border-slate-700 transition group text-center"
             >
               <div class="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
                 <i class="icofont-building-alt"></i>
               </div>
-              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600">Asset Register & Add</span>
+              <span class="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-600">New Fixed Asset</span>
             </router-link>
 
             <router-link

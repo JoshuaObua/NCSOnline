@@ -258,7 +258,7 @@
             <!-- ACCOUNTING & FINANCE DEPARTMENT SPECIFIC WORKSTATION MENU -->
             <template v-else-if="isAccountantOnly">
               <li class="menu-header">Financial & Asset Ledgers</li>
-              <li :class="{ active: currentPath === '/fixed-assets' }">
+              <li :class="{ active: currentPath.startsWith('/fixed-assets') }">
                 <router-link to="/fixed-assets" title="Fixed Assets & IPSAS 17 Register">
                   <i class="icofont-building-alt"></i>
                   <span v-if="!sidebarCollapsed">Fixed Assets Register</span>
@@ -371,7 +371,7 @@
 
               <!-- OPERATIONS & LOGISTICS -->
               <li class="menu-header">Operations & Front Desk</li>
-              <li :class="{ active: currentPath === '/fixed-assets' }">
+              <li :class="{ active: currentPath.startsWith('/fixed-assets') }">
                 <router-link to="/fixed-assets" title="Fixed Assets & IPSAS 17 Register">
                   <i class="icofont-building-alt"></i>
                   <span v-if="!sidebarCollapsed">Fixed Assets Register</span>

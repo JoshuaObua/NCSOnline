@@ -1,5 +1,7 @@
 # NCS Fixed Asset Tracking, Inventory Management & Dual-Dashboard Master Architecture Plan
 
+> **Verification update — 2026-09-08:** Baseline data parity was verified locally, but full workflow replacement is **not complete**. Earlier completion claims below are superseded by the [verification findings and acceptance blockers](../verification/asset-register-2026-09-08/BUG_REPORT.md). FB cost and adjusted valuation are distinct; the source hash-cell exception remains unresolved.
+
 > **Target Document:** `/home/fidi/Projects/NCS_Intranet/Docs/plans/fixed-assets-and-dashboards-plan.md`  
 > **Source Baseline Data:** `/home/fidi/Projects/NCS_Intranet/Docs/FIXED ASSET REGISTER ADJUSTMENTS.xlsx`  
 > **Target Roles:** Accounting Department, Auditing Department, General Secretary (GS / Accounting Officer)  
