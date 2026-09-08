@@ -1,6 +1,6 @@
 # Expense module verification — 8 September 2026
 
-Implemented in the working tree. This feature has **not been deployed to the VPS**. Existing containers were not rebuilt or restarted for this work. Database integration tests create and remove an isolated schema in local PostgreSQL; they do not write to the application's expense, user, department or asset tables.
+Deployed to the VPS on 8 September 2026; see the [production deployment report](../expenses-vps-2026-09-08/README.md). The local implementation checks below did not rebuild or restart containers. Database integration tests create and remove an isolated schema in local PostgreSQL; they do not write to the application's expense, user, department or asset tables.
 
 ## Delivered workflow
 

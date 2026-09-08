@@ -12,4 +12,4 @@
 | Selectors had ambiguous accessible names | Added explicit category, department and payment-method names | Browser form completion |
 | Rapid detail navigation could show an earlier response | Ignore stale detail responses | Source review; build |
 
-No unresolved expense defect was observed in the completed checks. Browser tests use fixtures; production expense behavior remains unverified until deployment. Existing fixed-asset findings in the separate asset-register bug report are outside this feature and remain applicable.
+No unresolved expense defect was observed in the completed checks. Browser tests use fixtures; production read-only verification is documented in the [deployment report](../expenses-vps-2026-09-08/README.md); expense writes were tested against isolated PostgreSQL. Existing fixed-asset findings in the separate asset-register bug report are outside this feature and remain applicable.
