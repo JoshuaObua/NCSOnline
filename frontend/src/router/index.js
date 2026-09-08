@@ -1,3 +1,4 @@
+import { expenseRoles } from '@/api/expenses'
 import { createRouter, createWebHistory } from 'vue-router'
 
 const LoginView = () => import('@/views/LoginView.vue')
@@ -57,6 +58,10 @@ const ReceptionistReportsView = () => import('@/views/reception/ReceptionistRepo
 const ITPPDAInitiateView = () => import('@/views/it/ITPPDAInitiateView.vue')
 const ITPPDAListView = () => import('@/views/it/ITPPDAListView.vue')
 
+const ExpenseRegisterView = () => import('@/views/expenses/ExpenseRegisterView.vue')
+const ExpenseEntryView = () => import('@/views/expenses/ExpenseEntryView.vue')
+const ExpenseDetailView = () => import('@/views/expenses/ExpenseDetailView.vue')
+const ExpenseCategoriesView = () => import('@/views/expenses/ExpenseCategoriesView.vue')
 const FixedAssetActionView = () => import('@/views/FixedAssetActionView.vue')
 const FixedAssetsView = () => import('@/views/FixedAssetsView.vue')
 
@@ -65,6 +70,10 @@ const routes = [
   { path: '/login', name: 'Login', component: LoginView, meta: { requiresAuth: false } },
   { path: '/register', name: 'Register', component: RegisterView, meta: { requiresAuth: false } },
 
+  { path: '/expenses', name: 'Expenses', component: ExpenseRegisterView, meta: { requiresAuth: true, roles: expenseRoles } },
+  { path: '/expenses/new', name: 'ExpenseEntry', component: ExpenseEntryView, meta: { requiresAuth: true, roles: expenseRoles } },
+  { path: '/expenses/categories', name: 'ExpenseCategories', component: ExpenseCategoriesView, meta: { requiresAuth: true, roles: ['super_admin','admin'] } },
+  { path: '/expenses/:id', name: 'ExpenseDetail', component: ExpenseDetailView, meta: { requiresAuth: true, roles: expenseRoles } },
   { path: '/fixed-assets', name: 'FixedAssets', component: FixedAssetsView, meta: { requiresAuth: true } },
   { path: '/fixed-assets/new', name: 'FixedAssetNew', component: FixedAssetActionView, props: { action: 'new' }, meta: { requiresAuth: true } },
   { path: '/fixed-assets/depreciation', name: 'FixedAssetDepreciation', component: FixedAssetActionView, props: { action: 'depreciation' }, meta: { requiresAuth: true } },
@@ -168,6 +177,10 @@ const pageTitles = {
   FixedAssetRevalue: 'Asset Revaluation',
   FixedAssetVerify: 'Asset Verification',
   FixedAssetDepreciation: 'Monthly Depreciation',
+  Expenses: 'Expenses',
+  ExpenseEntry: 'Record Expense',
+  ExpenseDetail: 'Expense Details',
+  ExpenseCategories: 'Expense Categories',
   Login: 'Login',
   Register: 'Register',
   Dashboard: 'Dashboard',

@@ -255,6 +255,8 @@ func main() {
 				})
 			})
 
+			r.Mount("/expenses", h.Expenses.Routes())
+
 			// ── Fixed Assets & Inventory Master Management ───────────
 			r.Route("/assets", func(r chi.Router) {
 				r.Get("/", h.FixedAssets.ListFixedAssets)

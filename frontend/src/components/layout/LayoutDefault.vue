@@ -180,6 +180,13 @@
               </router-link>
             </li>
 
+            <template v-if="canUseExpenses">
+              <li class="menu-header">Expense Management</li>
+              <li :class="{ active: currentPath === '/expenses' || (currentPath.startsWith('/expenses/') && !['/expenses/new','/expenses/categories'].includes(currentPath)) }"><router-link to="/expenses" title="Expense Register"><i class="icofont-money"></i><span v-if="!sidebarCollapsed">Expenses</span></router-link></li>
+              <li :class="{ active: currentPath === '/expenses/new' }"><router-link to="/expenses/new" title="Record Expense"><i class="icofont-plus-circle"></i><span v-if="!sidebarCollapsed">Record Expense</span></router-link></li>
+              <li v-if="authStore.isAdmin" :class="{ active: currentPath === '/expenses/categories' }"><router-link to="/expenses/categories" title="Expense Categories"><i class="icofont-list"></i><span v-if="!sidebarCollapsed">Expense Categories</span></router-link></li>
+            </template>
+
             <!-- UNIVERSAL APPLICATION MODULES: visible across all dashboards -->
             <li class="menu-header">Universal Applications</li>
             <li :class="{ active: currentPath === '/reception/leave/apply' }">
@@ -538,6 +545,7 @@
 </template>
 
 <script setup>
+import { expenseRoles } from '@/api/expenses'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
@@ -629,6 +637,8 @@ const isEngineeringOfficerOnly = computed(() => {
   const isPrivileged = roles.includes('admin') || roles.includes('super_admin') || roles.includes('general_secretary') || roles.includes('ags_admin') || roles.includes('ags_technical')
   return isEng && !isPrivileged
 })
+
+const canUseExpenses = computed(() => (authStore.user?.roles || []).some(role => expenseRoles.includes(typeof role === 'string' ? role : role?.name || role?.role)))
 
 const isAccountantOnly = computed(() => {
   const rawRoles = authStore.user?.roles || []

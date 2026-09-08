@@ -6,6 +6,12 @@ All notable technical and architectural changes to the NCS Online & Intranet Pla
 
 ## [Unreleased] - 2026-09-08
 
+### Added — Expenses
+- Added independent expense register, entry, detail and administrator category pages, linked from every accounting-role dashboard.
+- Record date, category, title/reason, UGX amount, payee, payment method/reference and department; the server records the authenticated officer's ID, full name and save time.
+- Added administrator-only category creation, renaming and deactivation, historical name snapshots, private receipt uploads/downloads and atomic persistence in migration 079.
+- Added PostgreSQL integration tests, browser workflow/access checks and [verification screenshots and change report](Docs/verification/expenses-2026-09-08/README.md). Expense changes are local and not yet deployed.
+
 ### Changed
 - Replaced all four fixed-asset dialogs with independent pages: new asset, revaluation, physical verification and monthly depreciation.
 - Added deep-link asset loading, inline persistent errors, required fields, decimal currency inputs and duplicate-submit protection. Successful saves return to the refreshed register.

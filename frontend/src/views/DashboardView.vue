@@ -316,6 +316,8 @@
         </div>
       </div>
 
+      <div class="card mb-6"><div class="card-header"><h4>Expense Management</h4></div><div class="card-body flex flex-wrap gap-3"><router-link to="/expenses/new" class="btn btn-primary">Record Expense</router-link><router-link to="/expenses" class="btn btn-outline-primary">View Expenses</router-link><p class="w-full text-sm text-slate-600 mt-2">Record departmental expenses, supporting receipts and payment details.</p></div></div>
+
       <!-- 3. Accountant Quick Action Navigation Grid -->
       <div class="card">
         <div class="card-header flex items-center justify-between">
@@ -1047,7 +1049,7 @@ const assetSummary = ref({
 const isAccountant = computed(() => {
   const rawRoles = authStore.user?.roles || []
   const roles = rawRoles.map(r => (typeof r === 'string' ? r : (r?.name || r?.role || ''))).filter(Boolean)
-  const isAcc = roles.includes('accountant') || roles.includes('senior_accountant') || roles.includes('finance_department')
+  const isAcc = ['accountant', 'senior_accountant', 'chief_accountant', 'asset_accountant', 'finance_department'].some(role => roles.includes(role))
   const isPrivileged = roles.includes('admin') || roles.includes('super_admin') || roles.includes('general_secretary') || roles.includes('ags_technical') || roles.includes('ags_admin')
   return isAcc && !isPrivileged
 })

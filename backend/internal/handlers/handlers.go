@@ -37,6 +37,7 @@ type Handlers struct {
 	Fleet         *FleetHandler
 	Reception     *ReceptionHandler
 	ITOfficer     *ITOfficerHandler
+	Expenses      *ExpenseHandler
 	FixedAssets   *FixedAssetHandler
 }
 
@@ -86,6 +87,7 @@ func New(db *pgxpool.Pool, cfg *config.Config) (*Handlers, *repository.Repos) {
 		Fleet:         NewFleetHandler(db),
 		Reception:     NewReceptionHandler(db),
 		ITOfficer:     NewITOfficerHandler(db),
+		Expenses:      NewExpenseHandler(db),
 		FixedAssets:   NewFixedAssetHandler(repos.FixedAssets),
 	}, repos
 }
