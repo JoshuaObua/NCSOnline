@@ -208,17 +208,6 @@
             </router-link>
           </div>
 
-          <!-- Sidebar User Card -->
-          <div v-if="!sidebarCollapsed" class="sidebar-user">
-            <div class="w-9 h-9 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
-              {{ userInitials }}
-            </div>
-            <div class="sidebar-user-info">
-              <span class="sidebar-user-name" :title="userName">{{ userName }}</span>
-              <span class="sidebar-user-role" :title="userRole">{{ userRole }}</span>
-            </div>
-          </div>
-
           <!-- Sidebar Menu Links -->
           <ul class="sidebar-menu">
             <!-- MAIN COMMAND -->
@@ -261,18 +250,6 @@
                   <span v-if="!sidebarCollapsed">Visitor Clearance</span>
                 </router-link>
               </li>
-              <li :class="{ active: currentPath === '/reception/leave/apply' }">
-                <router-link to="/reception/leave/apply" title="Apply for Leave">
-                  <i class="icofont-calendar"></i>
-                  <span v-if="!sidebarCollapsed">Apply for Leave</span>
-                </router-link>
-              </li>
-              <li :class="{ active: currentPath === '/reception/leave/status' }">
-                <router-link to="/reception/leave/status" title="Leave Status & History">
-                  <i class="icofont-history"></i>
-                  <span v-if="!sidebarCollapsed">Leave Status & History</span>
-                </router-link>
-              </li>
               <li :class="{ active: currentPath === '/reception/reports' }">
                 <router-link to="/reception/reports" title="Application & Desk Reports">
                   <i class="icofont-chart-bar-graph"></i>
@@ -294,20 +271,6 @@
                 <router-link to="/it/ppda/new" title="New PPDA Form 5 Requisition">
                   <i class="icofont-plus-circle"></i>
                   <span v-if="!sidebarCollapsed">New PPDA Form 5</span>
-                </router-link>
-              </li>
-
-              <li class="menu-header">Staff Self-Service</li>
-              <li :class="{ active: currentPath === '/reception/leave/apply' }">
-                <router-link to="/reception/leave/apply" title="Apply for Leave">
-                  <i class="icofont-calendar"></i>
-                  <span v-if="!sidebarCollapsed">Apply for Leave</span>
-                </router-link>
-              </li>
-              <li :class="{ active: currentPath === '/reception/leave/status' }">
-                <router-link to="/reception/leave/status" title="Leave Status & History">
-                  <i class="icofont-history"></i>
-                  <span v-if="!sidebarCollapsed">Leave Status & History</span>
                 </router-link>
               </li>
             </template>
@@ -357,33 +320,6 @@
                 </router-link>
               </li>
 
-              <li class="menu-header">Procurement & Vetting</li>
-              <li :class="{ active: currentPath === '/it/ppda/status' || currentPath === '/it/ppda' }">
-                <router-link to="/it/ppda/status" title="PPDA Form 5 Requisitions">
-                  <i class="icofont-document-folder"></i>
-                  <span v-if="!sidebarCollapsed">PPDA Form 5 Status</span>
-                </router-link>
-              </li>
-              <li :class="{ active: currentPath === '/it/ppda/new' }">
-                <router-link to="/it/ppda/new" title="New PPDA Form 5 Requisition">
-                  <i class="icofont-plus-circle"></i>
-                  <span v-if="!sidebarCollapsed">New PPDA Form 5</span>
-                </router-link>
-              </li>
-
-              <li class="menu-header">Staff Self-Service</li>
-              <li :class="{ active: currentPath === '/reception/leave/apply' }">
-                <router-link to="/reception/leave/apply" title="Apply for Leave">
-                  <i class="icofont-calendar"></i>
-                  <span v-if="!sidebarCollapsed">Apply for Leave</span>
-                </router-link>
-              </li>
-              <li :class="{ active: currentPath === '/reception/leave/status' }">
-                <router-link to="/reception/leave/status" title="Leave Status & History">
-                  <i class="icofont-history"></i>
-                  <span v-if="!sidebarCollapsed">Leave Status & History</span>
-                </router-link>
-              </li>
             </template>
 
             <!-- GENERAL / EXECUTIVE / DEPARTMENTAL MENUS (HIDDEN FOR RECEPTIONIST ONLY) -->

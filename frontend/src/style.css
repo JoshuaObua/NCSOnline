@@ -466,13 +466,6 @@ body { font-family: 'Poppins', sans-serif; min-width: 320px; }
 .otika-app .header-logo { max-height: 44px; width: auto; object-fit: contain; }
 .otika-app .sidebar-brand-text { font-size: 16px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.02em; }
 
-/* User Badge in Sidebar */
-.otika-app .sidebar-user { display: flex; align-items: center; gap: 12px; margin: 12px 14px 8px; padding: 10px 12px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; transition: all 0.2s; }
-.otika-app .sidebar-user img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #2563eb; }
-.otika-app .sidebar-user-info { min-width: 0; flex: 1; }
-.otika-app .sidebar-user-name { font-size: 13px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
-.otika-app .sidebar-user-role { font-size: 11px; color: #64748b; font-weight: 500; display: block; }
-
 /* Sidebar Menu Navigation */
 .otika-app .sidebar-menu { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; padding: 10px 0 30px; list-style: none; margin: 0; }
 .otika-app .sidebar-menu::-webkit-scrollbar { width: 5px; }
@@ -722,9 +715,6 @@ html.dark .otika-app .main-sidebar, html.dark .otika-app #sidebar-wrapper { back
 html.dark .otika-app .sidebar-brand { border-bottom: 1px solid #1e293b; }
 html.dark .otika-app .sidebar-theme-control { background: #0f172a; border-top-color: #1e293b; }
 html.dark .otika-app .sidebar-brand-text { color: #60a5fa; }
-html.dark .otika-app .sidebar-user { background: #1e293b; border-color: #334155; }
-html.dark .otika-app .sidebar-user-name { color: #f8fafc; }
-html.dark .otika-app .sidebar-user-role { color: #94a3b8; }
 html.dark .otika-app .sidebar-menu .menu-header { color: #64748b; }
 html.dark .otika-app .sidebar-menu li a,
 html.dark .otika-app .sidebar-menu li button { color: #94a3b8; }
