@@ -72,134 +72,197 @@
         </div>
       </div>
 
-      <!-- Asset Register Master Table Card -->
-      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-            <div class="relative w-full md:w-80">
-              <input
-                v-model="searchQuery"
-                @input="debouncedFetchAssets"
-                type="text"
-                placeholder="Search Tag, Asset Code, Description..."
-                aria-label="Search fixed assets"
-                class="asset-search w-full pl-9 pr-4 py-2 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              />
-              <i class="icofont-search-1 text-gray-400 absolute left-3 top-2.5"></i>
+      <!-- Asset Register Master Table Card (Otika DataTables Format) -->
+      <div class="card">
+        <div class="card-header flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 px-5">
+          <h4 class="text-base font-bold text-gray-900 flex items-center gap-2">
+            <i class="icofont-building-alt text-primary"></i> Fixed Asset Master Register (IPSAS 17)
+          </h4>
+          <div class="card-header-action flex items-center gap-2">
+            <router-link to="/fixed-assets/new" class="btn btn-sm btn-primary flex items-center gap-1">
+              <i class="icofont-plus"></i> Add Asset
+            </router-link>
+            <button @click="exportCSV" class="btn btn-sm buttons-csv">
+              <i class="icofont-file-excel mr-1"></i> Export CSV
+            </button>
+            <button @click="printTable" class="btn btn-sm buttons-print">
+              <i class="icofont-printer mr-1"></i> Print
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="table-responsive">
+            <div id="table-1_wrapper" class="dataTables_wrapper dt-bootstrap4 no-footer">
+              
+              <!-- DataTables Controls Header Row -->
+              <div class="row align-items-center mb-3">
+                <div class="col-sm-12 col-md-6 d-flex align-items-center flex-wrap gap-2 mb-2 mb-md-0">
+                  <div class="dataTables_length" id="table-1_length">
+                    <label class="d-flex align-items-center gap-1 mb-0 text-xs">
+                      Show 
+                      <select v-model="pageSize" @change="offset = 0; fetchAssets()" class="form-control form-control-sm custom-select custom-select-sm w-auto mx-1">
+                        <option :value="10">10</option>
+                        <option :value="25">25</option>
+                        <option :value="50">50</option>
+                        <option :value="100">100</option>
+                      </select> 
+                      entries
+                    </label>
+                  </div>
+
+                  <select
+                    v-model="selectedCategory"
+                    @change="offset = 0; fetchAssets()"
+                    class="form-control form-control-sm w-auto text-xs"
+                    aria-label="Filter category"
+                  >
+                    <option value="">All Categories</option>
+                    <option v-for="cat in categoriesList" :key="cat" :value="cat">{{ cat }}</option>
+                  </select>
+
+                  <button @click="searchQuery = ''; selectedCategory = ''; offset = 0; fetchAssets()" class="btn btn-sm btn-outline-secondary py-1 text-xs">
+                    Reset Filters
+                  </button>
+                </div>
+
+                <div class="col-sm-12 col-md-6 d-flex justify-content-md-end">
+                  <div id="table-1_filter" class="dataTables_filter text-md-right w-100 w-md-auto">
+                    <label class="d-flex align-items-center justify-content-md-end gap-2 mb-0 text-xs font-semibold">
+                      Search:
+                      <div class="relative w-full sm:w-64">
+                        <input
+                          type="search"
+                          v-model="searchQuery"
+                          @input="debouncedFetchAssets"
+                          class="form-control form-control-sm pl-8 pr-3 text-xs rounded-lg"
+                          placeholder="Tag, Asset Code, Name..."
+                          aria-label="Search assets"
+                        />
+                        <i class="icofont-search-1 text-gray-400 absolute left-2.5 top-2.5"></i>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Main Data Table -->
+              <table class="table table-striped table-hover dataTable no-footer w-100 text-xs" id="table-1">
+                <thead>
+                  <tr>
+                    <th class="text-center w-12">#</th>
+                    <th>Asset Code</th>
+                    <th>Tag Number</th>
+                    <th>Asset Description</th>
+                    <th>Class / Subcategory</th>
+                    <th class="text-right">Units</th>
+                    <th class="text-right">FB Cost (UGX)</th>
+                    <th class="text-right">Adjusted Valuation</th>
+                    <th class="text-right">Net Book Value</th>
+                    <th class="text-center">Verification</th>
+                    <th class="text-center w-28">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="loading">
+                    <td colspan="11" class="text-center py-8 text-gray-400">
+                      <i class="icofont-spinner-alt-4 animate-spin text-lg mr-2"></i> Loading fixed asset register...
+                    </td>
+                  </tr>
+                  <tr v-else-if="!assets.length">
+                    <td colspan="11" class="text-center py-8 text-gray-400">No fixed assets found matching filter criteria.</td>
+                  </tr>
+                  <template v-else>
+                    <tr v-for="(asset, idx) in assets" :key="asset.id" class="hover:bg-slate-50 transition">
+                      <td class="text-center font-bold text-gray-500">{{ offset + idx + 1 }}</td>
+                      <td class="font-mono font-bold text-primary">{{ asset.asset_number }}</td>
+                      <td>
+                        <span class="badge badge-light font-mono">{{ asset.tag_number }}</span>
+                      </td>
+                      <td class="font-medium max-w-xs truncate" :title="asset.asset_description">
+                        {{ asset.asset_description }}
+                      </td>
+                      <td>
+                        <div class="font-semibold text-gray-800">{{ asset.category_segment3 }}</div>
+                        <div class="text-[10px] text-gray-400">{{ asset.category_segment4 }}</div>
+                      </td>
+                      <td class="text-right font-mono">{{ asset.asset_units }}</td>
+                      <td class="text-right font-mono text-gray-700">{{ formatUGX(asset.fb_cost) }}</td>
+                      <td class="text-right font-mono font-semibold text-primary">{{ formatUGX(asset.adjusted_cost) }}</td>
+                      <td class="text-right font-mono font-bold text-purple-900">{{ formatUGX(asset.net_book_value) }}</td>
+                      <td class="text-center">
+                        <span :class="verificationBadgeClass(asset.verification_status)" class="badge badge-shadow">
+                          {{ asset.verification_status || 'UNVERIFIED' }}
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <div class="btn-group">
+                          <router-link
+                            :to="{ name: 'FixedAssetRevalue', params: { id: asset.id } }"
+                            title="Adjust Asset Cost"
+                            class="btn btn-xs btn-outline-primary py-0.5 px-2 text-[11px]"
+                          >
+                            Adjust
+                          </router-link>
+                          <router-link
+                            :to="{ name: 'FixedAssetVerify', params: { id: asset.id } }"
+                            title="Verify Tag"
+                            class="btn btn-xs btn-outline-info py-0.5 px-2 text-[11px]"
+                          >
+                            Verify
+                          </router-link>
+                          <button
+                            @click="openDeleteModal(asset)"
+                            title="Delete Asset"
+                            class="btn btn-xs btn-outline-danger py-0.5 px-2 text-[11px]"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+
+              <!-- DataTables Bottom Controls Footer Row -->
+              <div class="row align-items-center mt-3 pt-3 border-t border-gray-100">
+                <div class="col-sm-12 col-md-5 mb-2 mb-md-0">
+                  <div class="dataTables_info" id="table-1_info" role="status" aria-live="polite">
+                    Showing {{ totalAssets ? offset + 1 : 0 }} to {{ Math.min(offset + assets.length, totalAssets) }} of {{ totalAssets }} entries
+                  </div>
+                </div>
+                <div class="col-sm-12 col-md-7 d-flex justify-content-md-end">
+                  <div class="dataTables_paginate paging_simple_numbers" id="table-1_paginate">
+                    <ul class="pagination pagination-sm mb-0">
+                      <li class="paginate_button page-item previous" :class="{ disabled: loading || offset === 0 }">
+                        <button
+                          :disabled="loading || offset === 0"
+                          @click="offset = Math.max(0, offset - pageSize); fetchAssets()"
+                          class="page-link"
+                        >
+                          Previous
+                        </button>
+                      </li>
+                      <li class="paginate_button page-item active">
+                        <span class="page-link">{{ Math.floor(offset / pageSize) + 1 }}</span>
+                      </li>
+                      <li class="paginate_button page-item next" :class="{ disabled: loading || offset + pageSize >= totalAssets }">
+                        <button
+                          :disabled="loading || offset + pageSize >= totalAssets"
+                          @click="offset += pageSize; fetchAssets()"
+                          class="page-link"
+                        >
+                          Next
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
             </div>
-
-            <select
-              aria-label="Filter asset category"
-              v-model="selectedCategory"
-              @change="offset = 0; fetchAssets()"
-              class="text-xs border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white"
-            >
-              <option value="">All Categories</option>
-              <option v-for="cat in categoriesList" :key="cat" :value="cat">{{ cat }}</option>
-            </select>
           </div>
-
-          <div class="text-xs text-gray-500 font-medium flex items-center gap-3">
-            <span>Showing {{ assets.length }} of {{ totalAssets }} records</span>
-            <button @click="searchQuery = ''; selectedCategory = ''; offset = 0; fetchAssets()" class="text-emerald-700 hover:underline">Reset</button>
-          </div>
-        </div>
-
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-gray-100/70 text-gray-600 font-semibold uppercase tracking-wider border-b border-gray-200">
-              <tr>
-                <th class="py-3 px-4">Asset Code</th>
-                <th class="py-3 px-4">Tag Number</th>
-                <th class="py-3 px-4">Asset Description</th>
-                <th class="py-3 px-4">Class / Subcategory</th>
-                <th class="py-3 px-4 text-right">Units</th>
-                <th class="py-3 px-4 text-right">FB Cost (UGX)</th>
-                <th class="py-3 px-4 text-right">Adjusted Valuation</th>
-                <th class="py-3 px-4 text-right">Net Book Value</th>
-                <th class="py-3 px-4 text-center">Verification</th>
-                <th class="asset-actions py-3 px-4 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-if="loading">
-                <td colspan="10" class="py-8 text-center text-gray-400">Loading fixed asset register...</td>
-              </tr>
-              <tr v-else-if="!assets.length">
-                <td colspan="10" class="py-8 text-center text-gray-400">No fixed assets found matching filter criteria.</td>
-              </tr>
-              <template v-else>
-                <tr v-for="asset in assets" :key="asset.id" class="hover:bg-emerald-50/40 transition">
-                  <td class="py-3 px-4 font-mono font-bold text-emerald-800">{{ asset.asset_number }}</td>
-                  <td class="py-3 px-4 font-mono text-gray-700">
-                    <span class="bg-gray-100 px-2 py-0.5 rounded border border-gray-200">{{ asset.tag_number }}</span>
-                  </td>
-                  <td class="py-3 px-4 text-gray-900 font-medium max-w-xs truncate" :title="asset.asset_description">
-                    {{ asset.asset_description }}
-                  </td>
-                  <td class="py-3 px-4 text-gray-600">
-                    <div class="font-semibold text-gray-800">{{ asset.category_segment3 }}</div>
-                    <div class="text-[10px] text-gray-400">{{ asset.category_segment4 }}</div>
-                  </td>
-                  <td class="py-3 px-4 text-right font-mono">{{ asset.asset_units }}</td>
-                  <td class="py-3 px-4 text-right font-mono text-gray-700">{{ formatUGX(asset.fb_cost) }}</td>
-                  <td class="py-3 px-4 text-right font-mono font-semibold text-blue-800">{{ formatUGX(asset.adjusted_cost) }}</td>
-                  <td class="py-3 px-4 text-right font-mono font-bold text-purple-900">{{ formatUGX(asset.net_book_value) }}</td>
-                  <td class="py-3 px-4 text-center">
-                    <span :class="verificationClass(asset.verification_status)" class="px-2 py-1 rounded-full text-[10px] font-bold">
-                      {{ asset.verification_status || 'UNVERIFIED' }}
-                    </span>
-                  </td>
-                  <td class="asset-actions py-3 px-4 text-center flex items-center justify-center gap-1">
-                    <router-link
-                      :to="{ name: 'FixedAssetRevalue', params: { id: asset.id } }"
-                      title="Revalue / Adjust Asset Cost"
-                      class="px-2 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-[11px] font-semibold transition"
-                    >
-                      Adjust
-                    </router-link>
-                    <router-link
-                      :to="{ name: 'FixedAssetVerify', params: { id: asset.id } }"
-                      title="Verify Tag"
-                      class="px-2 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded text-[11px] font-semibold transition"
-                    >
-                      Verify
-                    </router-link>
-                    <button
-                      @click="openDeleteModal(asset)"
-                      title="Delete Asset & Adjust Portfolio Valuation"
-                      class="px-2 py-1 bg-red-50 text-red-700 hover:bg-red-100 rounded text-[11px] font-semibold transition"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Pagination -->
-      <div class="flex flex-wrap items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl p-4 shadow-sm" aria-label="Asset register pagination">
-        <span class="text-sm text-gray-700">
-          Showing {{ totalAssets ? offset + 1 : 0 }}–{{ Math.min(offset + assets.length, totalAssets) }} of {{ totalAssets }} assets
-        </span>
-        <div class="flex gap-3">
-          <button
-            :disabled="loading || offset === 0"
-            @click="offset = Math.max(0, offset - pageSize); fetchAssets()"
-            class="px-4 py-2 border border-gray-300 rounded-lg text-xs font-semibold hover:bg-gray-50 disabled:opacity-40"
-          >
-            Previous page
-          </button>
-          <button
-            :disabled="loading || offset + pageSize >= totalAssets"
-            @click="offset += pageSize; fetchAssets()"
-            class="px-4 py-2 border border-emerald-700 text-emerald-800 rounded-lg text-xs font-semibold hover:bg-emerald-50 disabled:opacity-40"
-          >
-            Next page
-          </button>
         </div>
       </div>
 
@@ -387,6 +450,40 @@ export default {
         case 'MISSING': return 'bg-orange-100 text-orange-700'
         default: return 'bg-gray-100 text-gray-600'
       }
+    },
+    verificationBadgeClass(status) {
+      switch ((status || '').toUpperCase()) {
+        case 'VERIFIED': return 'badge-success'
+        case 'DISCREPANCY': return 'badge-danger'
+        case 'MISSING': return 'badge-warning'
+        default: return 'badge-light'
+      }
+    },
+    exportCSV() {
+      if (!this.assets || !this.assets.length) return
+      const headers = ['Asset Code', 'Tag Number', 'Description', 'Category', 'Units', 'FB Cost', 'Adjusted Valuation', 'Net Book Value', 'Verification']
+      const rows = this.assets.map(a => [
+        `"${a.asset_number || ''}"`,
+        `"${a.tag_number || ''}"`,
+        `"${(a.asset_description || '').replace(/"/g, '""')}"`,
+        `"${a.category_segment3 || ''}"`,
+        a.asset_units || 1,
+        a.fb_cost || 0,
+        a.adjusted_cost || 0,
+        a.net_book_value || 0,
+        `"${a.verification_status || 'UNVERIFIED'}"`
+      ])
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
+      const encodedUri = encodeURI(csvContent)
+      const link = document.createElement('a')
+      link.setAttribute('href', encodedUri)
+      link.setAttribute('download', `Fixed_Assets_Register_${new Date().toISOString().slice(0,10)}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    },
+    printTable() {
+      window.print()
     },
     openDeleteModal(asset) {
       this.deletingAsset = asset

@@ -1,14 +1,14 @@
 <template>
   <LayoutDefault title="Dashboard Overview">
 
-    <!-- ── Otika Section Header ────────────────────────────────────────── -->
+    <!-- ──  Section Header ────────────────────────────────────────── -->
     <div class="section-header flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
       <div>
         <h1 class="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
           <i class="icofont-dashboard-web text-blue-600"></i> Dashboard Overview
         </h1>
         <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-          National Council of Sports — Otika Intranet Command & Operational Hub
+          National Council of Sports —  Intranet Command & Operational Hub
         </div>
       </div>
       <div class="section-header-breadcrumb flex items-center gap-2 text-xs font-semibold">
@@ -335,11 +335,11 @@
         </div>
       </div>
 
-      <!-- 3. Otika Expense Management Hub Card -->
+      <!-- 3.  Expense Management Hub Card -->
       <div class="card card-primary shadow-sm hover:shadow-md transition">
         <div class="card-header flex items-center justify-between">
           <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <i class="icofont-money text-emerald-600 text-base"></i> Otika Expense Management & Petty Cash Operations
+            <i class="icofont-money text-emerald-600 text-base"></i>  Expense Management & Petty Cash Operations
           </h4>
           <span class="badge badge-success flex items-center gap-1">
             <i class="icofont-check-circled"></i> Active Finance Ledger
@@ -421,7 +421,7 @@
       <!-- 4. Fixed Assets Master Ledger & Leave Entitlement Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        <!-- Left 2 Cols: High-Value Fixed Assets Master Register -->
+        <!-- Left 2 Cols: High-Value Fixed Assets Master Register (Otika DataTables Format) -->
         <div class="card lg:col-span-2 shadow-sm hover:shadow-md transition">
           <div class="card-header flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 px-5">
             <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -439,58 +439,64 @@
           
           <div class="card-body p-0">
             <div class="table-responsive">
-              <table class="table table-striped table-hover mb-0 text-xs">
-                <thead>
-                  <tr class="bg-slate-50 dark:bg-slate-800/60">
-                    <th class="py-3 px-4">Asset Code</th>
-                    <th class="py-3 px-4">Tag Number</th>
-                    <th class="py-3 px-4">Description & Location</th>
-                    <th class="py-3 px-4">Category</th>
-                    <th class="py-3 px-4 text-right">FB Cost (UGX)</th>
-                    <th class="py-3 px-4 text-right">Adjusted (UGX)</th>
-                    <th class="py-3 px-4 text-center">Status</th>
-                    <th class="py-3 px-4 text-center">Action</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                  <tr v-for="a in accountantAssets.slice(0, 6)" :key="a.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                    <td class="font-bold text-emerald-600 font-mono py-3 px-4">{{ a.asset_number }}</td>
-                    <td class="font-mono text-slate-700 dark:text-slate-300 py-3 px-4">{{ a.tag_number }}</td>
-                    <td class="py-3 px-4">
-                      <div class="font-bold text-slate-900 dark:text-white max-w-xs truncate" :title="a.asset_description">{{ a.asset_description }}</div>
-                      <div class="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
-                        <i class="icofont-location-pin text-red-400"></i> {{ a.location_building || 'NCS Secretariat' }}
-                      </div>
-                    </td>
-                    <td class="py-3 px-4">
-                      <span class="badge badge-light text-[10px] font-semibold">{{ a.category_segment3 || 'Fixed Assets' }}</span>
-                    </td>
-                    <td class="text-right font-mono font-semibold text-slate-800 dark:text-slate-200 py-3 px-4">{{ formatUGX(a.fb_cost) }}</td>
-                    <td class="text-right font-mono font-bold text-blue-600 dark:text-blue-400 py-3 px-4">{{ formatUGX(a.adjusted_cost) }}</td>
-                    <td class="text-center py-3 px-4">
-                      <span class="badge" :class="a.verification_status === 'VERIFIED' ? 'badge-success' : 'badge-light'">
-                        <i :class="a.verification_status === 'VERIFIED' ? 'icofont-check-circled' : 'icofont-clock-time'"></i>
-                        {{ a.verification_status || 'UNVERIFIED' }}
-                      </span>
-                    </td>
-                    <td class="text-center py-3 px-4">
-                      <router-link
-                        to="/fixed-assets/value-adjustments"
-                        class="btn btn-xs btn-outline-primary inline-flex items-center gap-1"
-                        title="Adjust asset valuation"
-                      >
-                        <i class="icofont-edit text-[10px]"></i> Adjust
-                      </router-link>
-                    </td>
-                  </tr>
-                  <tr v-if="!accountantAssets.length">
-                    <td colspan="8" class="text-center py-8 text-xs text-slate-400">
-                      <i class="icofont-spinner-alt-4 animate-spin text-lg block mb-1"></i>
-                      Loading fixed asset ledger records...
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="dataTables_wrapper dt-bootstrap4 no-footer">
+                <table class="table table-striped table-hover dataTable no-footer mb-0 text-xs">
+                  <thead>
+                    <tr>
+                      <th class="text-center w-10">#</th>
+                      <th>Asset Code</th>
+                      <th>Tag Number</th>
+                      <th>Description & Location</th>
+                      <th>Category</th>
+                      <th class="text-right">FB Cost (UGX)</th>
+                      <th class="text-right">Adjusted Valuation</th>
+                      <th class="text-center">Verification</th>
+                      <th class="text-center w-24">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(a, idx) in accountantAssets.slice(0, 6)" :key="a.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td class="text-center font-semibold text-slate-400">{{ idx + 1 }}</td>
+                      <td class="font-bold text-primary font-mono py-3 px-4">{{ a.asset_number }}</td>
+                      <td class="py-3 px-4 font-mono">
+                        <span class="badge badge-light font-mono">{{ a.tag_number }}</span>
+                      </td>
+                      <td class="py-3 px-4">
+                        <div class="font-bold text-slate-900 dark:text-white max-w-xs truncate" :title="a.asset_description">{{ a.asset_description }}</div>
+                        <div class="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                          <i class="icofont-location-pin text-red-400"></i> {{ a.location_building || 'NCS Secretariat' }}
+                        </div>
+                      </td>
+                      <td class="py-3 px-4">
+                        <span class="badge badge-light text-[10px] font-semibold">{{ a.category_segment3 || 'Fixed Assets' }}</span>
+                      </td>
+                      <td class="text-right font-mono font-semibold text-slate-800 dark:text-slate-200 py-3 px-4">{{ formatUGX(a.fb_cost) }}</td>
+                      <td class="text-right font-mono font-bold text-primary py-3 px-4">{{ formatUGX(a.adjusted_cost) }}</td>
+                      <td class="text-center py-3 px-4">
+                        <span class="badge badge-shadow" :class="a.verification_status === 'VERIFIED' ? 'badge-success' : 'badge-warning'">
+                          <i :class="a.verification_status === 'VERIFIED' ? 'icofont-check-circled' : 'icofont-clock-time'"></i>
+                          {{ a.verification_status || 'UNVERIFIED' }}
+                        </span>
+                      </td>
+                      <td class="text-center py-3 px-4">
+                        <router-link
+                          to="/fixed-assets/value-adjustments"
+                          class="btn btn-xs btn-outline-primary inline-flex items-center gap-1"
+                          title="Adjust asset valuation"
+                        >
+                          <i class="icofont-edit text-[10px]"></i> Adjust
+                        </router-link>
+                      </td>
+                    </tr>
+                    <tr v-if="!accountantAssets.length">
+                      <td colspan="9" class="text-center py-8 text-xs text-slate-400">
+                        <i class="icofont-spinner-alt-4 animate-spin text-lg block mb-1"></i>
+                        Loading fixed asset ledger records...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -554,11 +560,11 @@
 
       </div>
 
-      <!-- 5. Otika Activity & Audit Log Stream Widget -->
+      <!-- 5.  Activity & Audit Log Stream Widget -->
       <div class="card shadow-sm hover:shadow-md transition">
         <div class="card-header flex items-center justify-between py-3.5 px-5 border-b border-slate-100 dark:border-slate-800">
           <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <i class="icofont-history text-emerald-600"></i> Otika Real-Time Activity & Fixed Asset Audit Stream
+            <i class="icofont-history text-emerald-600"></i>  Real-Time Activity & Fixed Asset Audit Stream
           </h4>
           <span class="badge badge-success flex items-center gap-1">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Live Audit Active
@@ -854,7 +860,7 @@
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <div v-else class="space-y-6">
 
-      <!-- ── 1. Otika Hero Welcome Card ──────────────────────────────── -->
+      <!-- ── 1.  Hero Welcome Card ──────────────────────────────── -->
       <div class="card bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 border-0 text-white shadow-md rounded-2xl overflow-hidden p-6 sm:p-8">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -873,7 +879,7 @@
         </div>
       </div>
 
-      <!-- ── 2. Otika 4-Statistic KPI Cards ──────────────────────────── -->
+      <!-- ── 2.  4-Statistic KPI Cards ──────────────────────────── -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="card card-statistic-4 shadow-sm hover:shadow-md transition">
           <div class="card-content">
