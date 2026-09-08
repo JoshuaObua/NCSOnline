@@ -218,7 +218,8 @@
 
             <template v-if="canUseExpenses">
               <li class="menu-header">Expense Management</li>
-              <li :class="{ active: currentPath === '/expenses' || (currentPath.startsWith('/expenses/') && !['/expenses/new','/expenses/categories'].includes(currentPath)) }"><router-link to="/expenses" title="Expense Register"><i class="icofont-money"></i><span v-if="!sidebarCollapsed">Expenses</span></router-link></li>
+              <li :class="{ active: currentPath === '/expenses' }"><router-link to="/expenses" title="Expense Register"><i class="icofont-money"></i><span v-if="!sidebarCollapsed">Expense Register</span></router-link></li>
+              <li :class="{ active: currentPath === '/expenses/reports' }"><router-link to="/expenses/reports" title="Expense Reports"><i class="icofont-chart-histogram"></i><span v-if="!sidebarCollapsed">Expense Reports</span></router-link></li>
               <li :class="{ active: currentPath === '/expenses/new' }"><router-link to="/expenses/new" title="Record Expense"><i class="icofont-plus-circle"></i><span v-if="!sidebarCollapsed">Record Expense</span></router-link></li>
               <li v-if="authStore.isAdmin" :class="{ active: currentPath === '/expenses/categories' }"><router-link to="/expenses/categories" title="Expense Categories"><i class="icofont-list"></i><span v-if="!sidebarCollapsed">Expense Categories</span></router-link></li>
             </template>

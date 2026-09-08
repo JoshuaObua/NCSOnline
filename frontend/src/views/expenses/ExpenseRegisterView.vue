@@ -2,6 +2,9 @@
   <ExpensePage title="Expenses Register" description="Comprehensive expense tracking, verification, approval, and management workspace.">
     <template #actions>
       <div class="d-flex flex-wrap align-items-center gap-2">
+        <router-link to="/expenses/reports" class="btn btn-sm btn-outline-info" title="Dedicated Expense Reports Page">
+          <i class="fas fa-chart-line mr-1"></i> Reports
+        </router-link>
         <button @click="exportExcel" class="btn btn-sm btn-outline-success" title="Export to Excel">
           <i class="fas fa-file-excel mr-1"></i> Export Excel
         </button>

@@ -59,6 +59,7 @@ const ITPPDAInitiateView = () => import('@/views/it/ITPPDAInitiateView.vue')
 const ITPPDAListView = () => import('@/views/it/ITPPDAListView.vue')
 
 const ExpenseRegisterView = () => import('@/views/expenses/ExpenseRegisterView.vue')
+const ExpenseReportView = () => import('@/views/expenses/ExpenseReportView.vue')
 const ExpenseEntryView = () => import('@/views/expenses/ExpenseEntryView.vue')
 const ExpenseDetailView = () => import('@/views/expenses/ExpenseDetailView.vue')
 const ExpenseCategoriesView = () => import('@/views/expenses/ExpenseCategoriesView.vue')
@@ -73,6 +74,7 @@ const routes = [
   { path: '/register', name: 'Register', component: RegisterView, meta: { requiresAuth: false } },
 
   { path: '/expenses', name: 'Expenses', component: ExpenseRegisterView, meta: { requiresAuth: true, roles: expenseRoles } },
+  { path: '/expenses/reports', name: 'ExpenseReport', component: ExpenseReportView, meta: { requiresAuth: true, roles: expenseRoles } },
   { path: '/expenses/new', name: 'ExpenseEntry', component: ExpenseEntryView, meta: { requiresAuth: true, roles: expenseRoles } },
   { path: '/expenses/categories', name: 'ExpenseCategories', component: ExpenseCategoriesView, meta: { requiresAuth: true, roles: ['super_admin','admin'] } },
   { path: '/expenses/:id', name: 'ExpenseDetail', component: ExpenseDetailView, meta: { requiresAuth: true, roles: expenseRoles } },
