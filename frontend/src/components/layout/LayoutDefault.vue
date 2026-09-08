@@ -265,11 +265,40 @@
             <!-- ACCOUNTING & FINANCE DEPARTMENT SPECIFIC WORKSTATION MENU -->
             <template v-else-if="isAccountantOnly">
               <li class="menu-header">Financial & Asset Ledgers</li>
-              <li :class="{ active: currentPath.startsWith('/fixed-assets') }">
-                <router-link to="/fixed-assets" title="Fixed Assets & IPSAS 17 Register">
-                  <i class="icofont-building-alt"></i>
-                  <span v-if="!sidebarCollapsed">Fixed Assets Register</span>
-                </router-link>
+              <!-- Fixed Assets Register Dropdown -->
+              <li :class="{ active: currentPath.startsWith('/fixed-assets'), dropdown: true }">
+                <a href="javascript:void(0)"
+                   class="nav-link has-dropdown flex items-center justify-between"
+                   title="Fixed Assets Register"
+                   @click.prevent="fixedAssetsOpen = !fixedAssetsOpen">
+                  <div class="flex items-center gap-3">
+                    <i class="icofont-building-alt"></i>
+                    <span v-if="!sidebarCollapsed">Fixed Assets Register</span>
+                  </div>
+                  <i v-if="!sidebarCollapsed"
+                     :class="fixedAssetsOpen ? 'icofont-rounded-up' : 'icofont-rounded-down'"
+                     class="text-xs transition-transform duration-200"></i>
+                </a>
+                <ul class="dropdown-menu pl-4 space-y-1 mt-1" :style="{ display: fixedAssetsOpen ? 'block' : 'none' }">
+                  <li :class="{ active: currentPath === '/fixed-assets' }">
+                    <router-link to="/fixed-assets" class="nav-link flex items-center gap-2 py-1.5 px-3 text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                      <i class="icofont-listine-dots text-xs"></i>
+                      <span v-if="!sidebarCollapsed">Manage Assets</span>
+                    </router-link>
+                  </li>
+                  <li :class="{ active: currentPath === '/fixed-assets/value-adjustments' }">
+                    <router-link to="/fixed-assets/value-adjustments" class="nav-link flex items-center gap-2 py-1.5 px-3 text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                      <i class="icofont-history text-xs"></i>
+                      <span v-if="!sidebarCollapsed">Value Adjustments</span>
+                    </router-link>
+                  </li>
+                  <li :class="{ active: currentPath === '/fixed-assets/pivot-engine' }">
+                    <router-link to="/fixed-assets/pivot-engine" class="nav-link flex items-center gap-2 py-1.5 px-3 text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                      <i class="icofont-chart-histogram text-xs"></i>
+                      <span v-if="!sidebarCollapsed">Dynamic Pivot Engine</span>
+                    </router-link>
+                  </li>
+                </ul>
               </li>
               <li :class="{ active: currentPath === '/stores/inventory' }">
                 <router-link to="/stores/inventory" title="Stores & Inventory">
@@ -378,11 +407,40 @@
 
               <!-- OPERATIONS & LOGISTICS -->
               <li class="menu-header">Operations & Front Desk</li>
-              <li :class="{ active: currentPath.startsWith('/fixed-assets') }">
-                <router-link to="/fixed-assets" title="Fixed Assets & IPSAS 17 Register">
-                  <i class="icofont-building-alt"></i>
-                  <span v-if="!sidebarCollapsed">Fixed Assets Register</span>
-                </router-link>
+              <!-- Fixed Assets Register Dropdown -->
+              <li :class="{ active: currentPath.startsWith('/fixed-assets'), dropdown: true }">
+                <a href="javascript:void(0)"
+                   class="nav-link has-dropdown flex items-center justify-between"
+                   title="Fixed Assets Register"
+                   @click.prevent="fixedAssetsOpen = !fixedAssetsOpen">
+                  <div class="flex items-center gap-3">
+                    <i class="icofont-building-alt"></i>
+                    <span v-if="!sidebarCollapsed">Fixed Assets Register</span>
+                  </div>
+                  <i v-if="!sidebarCollapsed"
+                     :class="fixedAssetsOpen ? 'icofont-rounded-up' : 'icofont-rounded-down'"
+                     class="text-xs transition-transform duration-200"></i>
+                </a>
+                <ul class="dropdown-menu pl-4 space-y-1 mt-1" :style="{ display: fixedAssetsOpen ? 'block' : 'none' }">
+                  <li :class="{ active: currentPath === '/fixed-assets' }">
+                    <router-link to="/fixed-assets" class="nav-link flex items-center gap-2 py-1.5 px-3 text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                      <i class="icofont-listine-dots text-xs"></i>
+                      <span v-if="!sidebarCollapsed">Manage Assets</span>
+                    </router-link>
+                  </li>
+                  <li :class="{ active: currentPath === '/fixed-assets/value-adjustments' }">
+                    <router-link to="/fixed-assets/value-adjustments" class="nav-link flex items-center gap-2 py-1.5 px-3 text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                      <i class="icofont-history text-xs"></i>
+                      <span v-if="!sidebarCollapsed">Value Adjustments</span>
+                    </router-link>
+                  </li>
+                  <li :class="{ active: currentPath === '/fixed-assets/pivot-engine' }">
+                    <router-link to="/fixed-assets/pivot-engine" class="nav-link flex items-center gap-2 py-1.5 px-3 text-xs rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                      <i class="icofont-chart-histogram text-xs"></i>
+                      <span v-if="!sidebarCollapsed">Dynamic Pivot Engine</span>
+                    </router-link>
+                  </li>
+                </ul>
               </li>
               <li :class="{ active: currentPath === '/reception/visitors' }">
                 <router-link to="/reception/visitors" title="Reception & Visitor Clearance">
@@ -575,6 +633,7 @@ const notificationsOpen = ref(false)
 const reportsDropdownOpen = ref(false)
 const searchQuery = ref('')
 const isMobile = ref(false)
+const fixedAssetsOpen = ref(true)
 
 const userName = computed(() => {
   if (authStore.user?.first_name || authStore.user?.last_name) {
