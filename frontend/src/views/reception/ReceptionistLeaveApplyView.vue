@@ -2,67 +2,6 @@
   <LayoutDefault title="Apply for Leave">
     <div class="space-y-6 pb-12 w-full">
       
-      <!-- Top Action Bar -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm transition-colors duration-200 w-full">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 text-xs font-bold uppercase tracking-wider">
-              <i class="icofont-calendar text-xs"></i> Statutory Staff Entitlement
-            </span>
-          </div>
-          <h2 class="text-xl font-bold text-slate-900 dark:text-white mt-1">Apply for Leave</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Official National Council of Sports statutory leave application and duty handover clearance form.
-          </p>
-        </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-          <router-link to="/reception/leave/status" class="btn btn-sm btn-light flex items-center gap-1.5">
-            <i class="icofont-history"></i> View Leave Status & History
-          </router-link>
-        </div>
-      </div>
-
-      <!-- Quick Entitlement Balance Badges -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
-        <div class="card card-statistic-4 shadow-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mb-0">
-          <div class="card-content">
-            <div>
-              <h5>Annual Entitlement</h5>
-              <h2>21 Days</h2>
-              <span class="badge badge-primary"><i class="icofont-calendar"></i> Statutory Baseline</span>
-            </div>
-            <div class="banner-img bg-primary-light">
-              <i class="icofont-calendar"></i>
-            </div>
-          </div>
-        </div>
-
-        <div class="card card-statistic-4 shadow-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mb-0">
-          <div class="card-content">
-            <div>
-              <h5>Days Utilized</h5>
-              <h2>{{ utilizedDays }} Days</h2>
-              <span class="badge badge-success"><i class="icofont-check-circled"></i> Approved Leaves</span>
-            </div>
-            <div class="banner-img bg-success-light">
-              <i class="icofont-ui-clock"></i>
-            </div>
-          </div>
-        </div>
-
-        <div class="card card-statistic-4 shadow-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mb-0">
-          <div class="card-content">
-            <div>
-              <h5>Available Balance</h5>
-              <h2>{{ Math.max(0, 21 - utilizedDays) }} Days</h2>
-              <span class="badge badge-info"><i class="icofont-badge"></i> Remaining Annual</span>
-            </div>
-            <div class="banner-img bg-cyan-light">
-              <i class="icofont-sun-alt"></i>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- Main Full-Width Application Form Card -->
       <div class="card shadow-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 w-full mb-0">
