@@ -8,7 +8,7 @@
       <!-- ── Top Navbar ──────────────────────────────────────────────── -->
       <nav class="main-navbar sticky">
         <!-- Left Side: Toggles & Search -->
-        <div class="flex items-center gap-3">
+        <div class="navbar-left">
           <!-- Sidebar Toggle Button -->
           <button
             type="button"
@@ -16,65 +16,87 @@
             @click="toggleSidebar"
             :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
           >
-            <i class="icofont-navigation-menu text-lg"></i>
-          </button>
-
-          <!-- Refresh Button -->
-          <button
-            type="button"
-            class="cms-top-icon"
-            @click="refreshPage"
-            title="Refresh View"
-          >
-            <i class="icofont-refresh text-lg"></i>
+            <svg class="feather" viewBox="0 0 24 24" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
 
           <!-- Fullscreen Toggle Button -->
           <button
             type="button"
-            class="cms-top-icon hidden sm:inline-flex"
+            class="cms-top-icon fullscreen-btn"
             @click="toggleFullscreen"
             title="Toggle Fullscreen"
           >
-            <i class="icofont-full-screen text-lg"></i>
+            <svg class="feather" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </button>
 
           <!-- Otika Search Element -->
-          <div class="search-element hidden md:flex">
+          <form class="search-element" @submit.prevent="handleSearch">
             <input
               type="text"
               v-model="searchQuery"
               class="form-control"
-              placeholder="Search assets, requisition, files..."
+              placeholder="Search"
               @keyup.enter="handleSearch"
             />
-            <button type="button" class="btn bg-blue-600 hover:bg-blue-700 text-white" @click="handleSearch">
-              <i class="icofont-search-1"></i>
+            <button type="submit" class="btn" title="Search">
+              <svg class="feather" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </button>
-          </div>
+          </form>
         </div>
 
-        <!-- Right Side: Theme, Notifications, Profile -->
-        <div class="flex items-center gap-2.5">
-          <!-- Dark Mode / Theme Toggle -->
-          <ThemeToggle class="cms-top-icon" />
+        <!-- Right Side: Messages, Notifications, Profile -->
+        <div class="navbar-right">
+          <div class="relative">
+            <button
+              type="button"
+              class="cms-top-icon message-toggle"
+              @click="messagesOpen = !messagesOpen; notificationsOpen = false; profileOpen = false"
+              title="Messages"
+              aria-label="Messages"
+            >
+              <svg class="feather" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              <span class="headerBadge1">6</span>
+            </button>
+            <div v-if="messagesOpen" class="otika-dropdown dropdown-list absolute right-0 mt-2 w-80 z-50 animate-fadeIn">
+              <div class="dropdown-header">
+                <span>Messages</span>
+                <button type="button" @click="messagesOpen = false">Mark All As Read</button>
+              </div>
+              <div class="dropdown-list-content">
+                <router-link to="/reception/leave/status" class="dropdown-message" @click="messagesOpen = false">
+                  <span class="dropdown-avatar bg-blue-500">HR</span>
+                  <span><strong>Human Resources</strong><small>Leave application updates</small><em>2 Min Ago</em></span>
+                </router-link>
+                <router-link to="/it/ppda/status" class="dropdown-message" @click="messagesOpen = false">
+                  <span class="dropdown-avatar bg-emerald-500">PP</span>
+                  <span><strong>Procurement Desk</strong><small>PPDA Form 5 status updates</small><em>5 Min Ago</em></span>
+                </router-link>
+                <router-link to="/me/activities" class="dropdown-message" @click="messagesOpen = false">
+                  <span class="dropdown-avatar bg-amber-500">NC</span>
+                  <span><strong>NCS Intranet</strong><small>Review your recent activity</small><em>12 Min Ago</em></span>
+                </router-link>
+              </div>
+              <router-link to="/me/activities" class="dropdown-footer" @click="messagesOpen = false">
+                View All <i class="icofont-rounded-right"></i>
+              </router-link>
+            </div>
+          </div>
 
           <!-- Notifications Bell -->
           <div class="relative">
             <button
               type="button"
               class="cms-top-icon"
-              @click="notificationsOpen = !notificationsOpen; profileOpen = false"
+              @click="notificationsOpen = !notificationsOpen; messagesOpen = false; profileOpen = false"
               title="Notifications"
             >
-              <i class="icofont-notification text-lg"></i>
-              <span class="headerBadge1">3</span>
+              <svg class="feather bell" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             </button>
 
             <!-- Notifications Dropdown -->
             <div
               v-if="notificationsOpen"
-              class="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 py-2 z-50 animate-fadeIn"
+              class="otika-dropdown absolute right-0 mt-2 w-80 z-50 animate-fadeIn"
             >
               <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">System Notifications</span>
@@ -110,8 +132,8 @@
           <div class="relative">
             <button
               type="button"
-              class="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
-              @click="profileOpen = !profileOpen; notificationsOpen = false"
+              class="nav-link-user"
+              @click="profileOpen = !profileOpen; notificationsOpen = false; messagesOpen = false"
             >
               <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center border border-blue-400 shadow-sm">
                 {{ userInitials }}
@@ -638,7 +660,6 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth.js'
 import { useBreadcrumbStore } from '@/stores/breadcrumb.js'
-import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
 const props = defineProps({
   title: { type: String, default: '' }
@@ -659,6 +680,7 @@ const crumbs = computed(() => breadcrumbStore.crumbs)
 const sidebarCollapsed = ref(false)
 const profileOpen = ref(false)
 const notificationsOpen = ref(false)
+const messagesOpen = ref(false)
 const reportsDropdownOpen = ref(false)
 const searchQuery = ref('')
 const isMobile = ref(false)
@@ -760,10 +782,6 @@ function toggleFullscreen() {
   }
 }
 
-function refreshPage() {
-  window.location.reload()
-}
-
 function handleSearch() {
   if (!searchQuery.value.trim()) return
   router.push({ path: '/nsmis/data/athletes', query: { q: searchQuery.value } })
@@ -782,6 +800,7 @@ function handleDocumentClick(e) {
   if (!e.target.closest('.main-navbar')) {
     profileOpen.value = false
     notificationsOpen.value = false
+    messagesOpen.value = false
   }
 }
 
