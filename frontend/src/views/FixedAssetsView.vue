@@ -1,11 +1,6 @@
 <template>
   <LayoutDefault title="Fixed Assets Registry - Manage Assets">
     <div class="space-y-6">
-      <FixedAssetsPageHeader
-        title="Manage Fixed Assets"
-        :badge="summary.total_assets ? summary.total_assets + ' Registered Assets' : ''"
-      />
-
       <!-- Notice Banner -->
       <div
         v-if="notice.message"
@@ -75,7 +70,7 @@
       <div class="card otika-datatable-card">
         <div class="card-header flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 px-5">
           <h4 class="text-base font-bold text-gray-900 flex items-center gap-2">
-            <i class="icofont-building-alt text-primary"></i> Fixed Asset Master Register (IPSAS 17)
+            <i class="icofont-building-alt text-primary"></i> Fixed Asset Master Register
           </h4>
           <div class="card-header-action flex items-center gap-2">
             <router-link to="/fixed-assets/new" class="btn btn-sm btn-icon icon-left btn-primary">
@@ -360,7 +355,6 @@
 <script>
 import client from '@/api/client'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
-import FixedAssetsPageHeader from '@/components/fixed_assets/FixedAssetsPageHeader.vue'
 
 function apiData(res) {
   return res?.data?.data ?? res?.data ?? {}
@@ -368,7 +362,7 @@ function apiData(res) {
 
 export default {
   name: 'FixedAssetsView',
-  components: { LayoutDefault, FixedAssetsPageHeader },
+  components: { LayoutDefault },
   data() {
     return {
       assets: [],

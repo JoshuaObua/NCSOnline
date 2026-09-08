@@ -140,7 +140,6 @@
               </div>
               <div class="hidden sm:block text-left">
                 <span class="block text-xs font-bold text-slate-800 dark:text-slate-200 leading-tight">{{ userName }}</span>
-                <span class="block text-[10px] text-blue-600 dark:text-blue-400 font-semibold leading-tight">{{ userRole }}</span>
               </div>
               <i class="icofont-thin-down text-xs text-slate-400"></i>
             </button>
@@ -204,18 +203,16 @@
           <div class="sidebar-brand">
             <router-link to="/dashboard">
               <img src="/main-logo.png" alt="NCS Logo" class="header-logo" />
-              <span v-if="!sidebarCollapsed" class="sidebar-brand-text">NCS</span>
+             
             </router-link>
           </div>
 
           <!-- Sidebar Menu Links -->
           <ul class="sidebar-menu">
-            <!-- MAIN COMMAND -->
-            <li class="menu-header">Main Command</li>
             <li :class="{ active: currentPath === '/dashboard' }">
               <router-link to="/dashboard" title="Dashboard">
                 <i class="icofont-dashboard-web"></i>
-                <span v-if="!sidebarCollapsed">Dashboard Overview</span>
+                <span v-if="!sidebarCollapsed">Dashboard</span>
               </router-link>
             </li>
 
@@ -631,26 +628,6 @@ const userInitials = computed(() => {
   const f = authStore.user?.first_name?.[0] || ''
   const l = authStore.user?.last_name?.[0] || ''
   return (f + l).toUpperCase() || 'NC'
-})
-
-const userRole = computed(() => {
-  const rawRoles = authStore.user?.roles || []
-  const roles = rawRoles.map(r => (typeof r === 'string' ? r : (r?.name || r?.role || ''))).filter(Boolean)
-  if (roles.includes('super_admin')) return 'Super Admin'
-  if (roles.includes('general_secretary')) return 'General Secretary (CEO)'
-  if (roles.includes('ags_technical')) return 'AGS Technical'
-  if (roles.includes('ags_admin')) return 'AGS Administration'
-  if (roles.includes('stores_officer')) return 'Stores Officer'
-  if (roles.includes('facilities_manager')) return 'Facilities Manager'
-  if (roles.includes('transport_officer')) return 'Transport Officer'
-  if (roles.includes('medical_officer')) return 'Medical Officer'
-  if (roles.includes('legal_counsel')) return 'Legal Counsel'
-  if (roles.includes('senior_engineer')) return 'Senior Engineer'
-  if (roles.includes('it_officer')) return 'ICT Systems & Database Administrator'
-  if (roles.includes('accountant') || roles.includes('senior_accountant') || roles.includes('finance_department')) return 'Senior Accountant / Head of Finance'
-  if (roles.includes('receptionist') || roles.includes('helpdesk')) return 'Front Desk Receptionist'
-  const first = roles[0]
-  return typeof first === 'string' && first ? first.replace(/_/g, ' ') : 'Staff Member'
 })
 
 const isReceptionistOnly = computed(() => {

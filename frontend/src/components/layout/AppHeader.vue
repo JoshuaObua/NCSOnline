@@ -98,7 +98,6 @@
             </div>
             <div class="hidden sm:block text-left">
               <div class="text-sm font-medium text-gray-700 leading-tight">{{ userName }}</div>
-              <div class="text-xs text-gray-400 leading-tight truncate max-w-[120px]">{{ userRole }}</div>
             </div>
             <svg class="w-4 h-4 text-gray-400 hidden sm:block" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
@@ -269,13 +268,6 @@ const userInitials = computed(() => {
   if (u.first_name) return u.first_name[0].toUpperCase()
   if (u.email) return u.email[0].toUpperCase()
   return 'U'
-})
-const userRole = computed(() => {
-  const u = authStore.user
-  if (!u || !u.roles?.length) return ''
-  const role = u.roles[0]
-  const name = typeof role === 'string' ? role : role.name
-  return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 })
 </script>
 

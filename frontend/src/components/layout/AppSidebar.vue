@@ -188,32 +188,6 @@ watch(() => route.path, (newPath) => {
   }
 })
 
-
-
-const userName = computed(() => {
-  const u = authStore.user
-  if (!u) return 'User'
-  if (u.first_name || u.last_name) return `${u.first_name || ''} ${u.last_name || ''}`.trim()
-  return u.email || 'User'
-})
-
-const userInitials = computed(() => {
-  const u = authStore.user
-  if (!u) return 'U'
-  if (u.first_name && u.last_name) return `${u.first_name[0]}${u.last_name[0]}`.toUpperCase()
-  if (u.first_name) return u.first_name[0].toUpperCase()
-  if (u.email) return u.email[0].toUpperCase()
-  return 'U'
-})
-
-const userRole = computed(() => {
-  const u = authStore.user
-  if (!u || !u.roles || u.roles.length === 0) return 'User'
-  const role = u.roles[0]
-  const name = typeof role === 'string' ? role : role.name
-  return name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-})
-
 async function handleLogout() {
   await authStore.logout()
   router.push('/login')

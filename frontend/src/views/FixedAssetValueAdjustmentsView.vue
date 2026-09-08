@@ -1,11 +1,6 @@
 <template>
   <LayoutDefault title="Fixed Assets Registry - Value Adjustments">
     <div class="space-y-6">
-      <FixedAssetsPageHeader
-        title="Value Adjustments & Revaluation Audit Ledger"
-        :badge="totalLogs + ' Transaction Events'"
-      />
-
       <!-- Notice Banner -->
       <div
         v-if="notice.message"
@@ -206,7 +201,6 @@
 <script>
 import client from '@/api/client'
 import LayoutDefault from '@/components/layout/LayoutDefault.vue'
-import FixedAssetsPageHeader from '@/components/fixed_assets/FixedAssetsPageHeader.vue'
 
 function apiData(res) {
   return res?.data?.data ?? res?.data ?? {}
@@ -214,7 +208,7 @@ function apiData(res) {
 
 export default {
   name: 'FixedAssetValueAdjustmentsView',
-  components: { LayoutDefault, FixedAssetsPageHeader },
+  components: { LayoutDefault },
   data() {
     return {
       logs: [],

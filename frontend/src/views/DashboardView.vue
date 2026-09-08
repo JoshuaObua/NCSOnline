@@ -425,7 +425,7 @@
         <div class="card lg:col-span-2 shadow-sm hover:shadow-md transition">
           <div class="card-header flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3.5 px-5">
             <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <i class="icofont-building-alt text-emerald-600"></i> Fixed Asset Master Register (IPSAS 17)
+              <i class="icofont-building-alt text-emerald-600"></i> Fixed Asset Master Register
             </h4>
             <div class="card-header-action flex items-center gap-2">
               <router-link to="/fixed-assets/new" class="btn btn-xs btn-primary flex items-center gap-1">
