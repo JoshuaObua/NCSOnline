@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# NCS Intranet Deployment & Update Script
-# Target Service: ncsintranet.atenimedia.com
-# Directory: /opt/ncs-intranet | Branch: intranet
+# NCS Website Deployment & Update Script
+# Target Service: ncsweb.atenimedia.com
+# Directory: /opt/ncs-website | Branch: website
 # ==============================================================================
 
 set -euo pipefail
 
 # --- Configuration & Constants ---
-APP_NAME="NCS Intranet"
-APP_DIR="/opt/ncs-intranet"
-GIT_BRANCH="intranet"
-LOCK_FILE="/tmp/update_intranet.lock"
+APP_NAME="NCS Website"
+APP_DIR="/opt/ncs-website"
+GIT_BRANCH="website"
+LOCK_FILE="/tmp/update_web.lock"
 BACKUP_DIR="/var/backups/manual"
-HEALTH_URL="https://ncsintranet.atenimedia.com/healthz"
+HEALTH_URL="https://ncsweb.atenimedia.com/healthz"
 
 # --- Styling & Colors ---
 RED='\033[0;31m'
@@ -63,7 +63,7 @@ fi
 # --- Step 1: Pre-Deployment Database Dump ---
 log_info "[1/6] Executing automated database backup..."
 mkdir -p "${BACKUP_DIR}"
-BACKUP_FILE="${BACKUP_DIR}/backup-ncsintranet-$(date +%Y%m%d_%H%M%S).dump"
+BACKUP_FILE="${BACKUP_DIR}/backup-ncsweb-$(date +%Y%m%d_%H%M%S).dump"
 
 if ${DOCKER_COMPOSE} ps postgres 2>/dev/null | grep -q "Up"; then
     if ${DOCKER_COMPOSE} exec -T postgres sh -lc 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "${BACKUP_FILE}"; then
@@ -85,21 +85,13 @@ log_success "Git pull completed successfully."
 # --- Step 3: Run Database Migrations ---
 log_info "[3/6] Applying pending database migrations..."
 if [ -d "backend/migrations" ]; then
-    # Ensure migration tracking table exists
-    ${DOCKER_COMPOSE} exec -T postgres sh -lc 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "CREATE TABLE IF NOT EXISTS schema_migrations (filename VARCHAR(255) PRIMARY KEY, executed_at TIMESTAMPTZ DEFAULT NOW());"' >/dev/null 2>&1 || true
-
     for migration_file in backend/migrations/*.sql; do
         if [ -f "${migration_file}" ]; then
-            filename=$(basename "${migration_file}")
-            ALREADY_RUN=$(${DOCKER_COMPOSE} exec -T postgres sh -lc "psql -tA -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"SELECT count(*) FROM schema_migrations WHERE filename='${filename}';\"" 2>/dev/null | tr -d '\r\n' || echo "0")
-            if [ "${ALREADY_RUN}" = "0" ]; then
-                log_info "Executing migration: ${migration_file}"
-                ${DOCKER_COMPOSE} exec -T postgres sh -lc 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "${migration_file}" || {
-                    log_error "Migration ${migration_file} failed!"
-                    exit 1
-                }
-                ${DOCKER_COMPOSE} exec -T postgres sh -lc "psql -v ON_ERROR_STOP=1 -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -c \"INSERT INTO schema_migrations (filename) VALUES ('${filename}') ON CONFLICT DO NOTHING;\"" >/dev/null 2>&1 || true
-            fi
+            log_info "Executing migration: ${migration_file}"
+            ${DOCKER_COMPOSE} exec -T postgres sh -lc 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "${migration_file}" || {
+                log_error "Migration ${migration_file} failed!"
+                exit 1
+            }
         fi
     done
     log_success "Database migrations executed successfully."
@@ -108,11 +100,11 @@ else
 fi
 
 # --- Step 4: Container Build & Targeted Restart ---
-log_info "[4/6] Rebuilding application containers (backend, nsmis-worker, frontend)..."
-${DOCKER_COMPOSE} build backend nsmis-worker frontend
+log_info "[4/6] Rebuilding application containers (backend, worker, frontend)..."
+${DOCKER_COMPOSE} build backend worker frontend
 
 log_info "Restarting application containers smoothly without stopping postgres..."
-${DOCKER_COMPOSE} up -d --no-deps backend nsmis-worker frontend
+${DOCKER_COMPOSE} up -d --no-deps backend worker frontend
 log_success "Containers built and started."
 
 # --- Step 5: UI & Application Cache Purge ---

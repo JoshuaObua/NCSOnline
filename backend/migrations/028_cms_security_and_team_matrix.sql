@@ -13,9 +13,7 @@
 BEGIN;
 
 -- ── 10-tier institutional departments ─────────────────────────────
--- Wipe the old NCS seed and replace with the institutional matrix.
-DELETE FROM departments;
-
+-- Ensure institutional matrix departments exist without breaking foreign key references.
 INSERT INTO departments (id, name, code, description) VALUES
     ('dept_administration',
         'Administration',
@@ -56,7 +54,11 @@ INSERT INTO departments (id, name, code, description) VALUES
     ('dept_support_services',
         'Support Services',
         'SUPPORT_SERVICES',
-        'Provides security, transport, office maintenance, and general support services.');
+        'Provides security, transport, office maintenance, and general support services.')
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    code = EXCLUDED.code,
+    description = EXCLUDED.description;
 
 -- ── Team members → department FK ─────────────────────────────────
 ALTER TABLE cms_team_members
