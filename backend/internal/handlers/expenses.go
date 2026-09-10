@@ -37,6 +37,7 @@ func (h *ExpenseHandler) Routes() http.Handler {
 		r.Put("/categories/{id}", h.SaveCategory)
 	})
 	r.Get("/{id}", h.Detail)
+	r.Put("/{id}", h.Update)
 	r.Delete("/{id}", h.Delete)
 	r.Put("/{id}/verify", h.Verify)
 	r.Put("/{id}/approve", h.Approve)
@@ -245,8 +246,8 @@ func (h *ExpenseHandler) List(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	where := ` WHERE ($1='' OR e.category_id::text=$1) AND ($2='' OR e.department_id=$2) AND ($3='' OR e.expense_date>=NULLIF($3,'')::date) AND ($4='' OR e.expense_date<=NULLIF($4,'')::date) AND ($5='' OR e.title ILIKE '%'||$5||'%' OR e.reference ILIKE '%'||$5||'%' OR e.recorded_by_name ILIKE '%'||$5||'%' OR e.payee ILIKE '%'||$5||'%')`
-	args := []interface{}{q.Get("category_id"), q.Get("department_id"), from, to, q.Get("search")}
+	where := ` WHERE ($1='' OR e.category_id::text=$1) AND ($2='' OR e.department_id=$2) AND ($3='' OR e.expense_date>=NULLIF($3,'')::date) AND ($4='' OR e.expense_date<=NULLIF($4,'')::date) AND ($5='' OR e.title ILIKE '%'||$5||'%' OR e.reference ILIKE '%'||$5||'%' OR e.recorded_by_name ILIKE '%'||$5||'%' OR e.payee ILIKE '%'||$5||'%') AND ($6='' OR e.status=$6)`
+	args := []interface{}{q.Get("category_id"), q.Get("department_id"), from, to, q.Get("search"), q.Get("status")}
 	var total int
 	var amount string
 	err := h.db.QueryRow(r.Context(), `SELECT count(*),COALESCE(sum(e.amount),0)::text FROM expenses e`+where, args...).Scan(&total, &amount)
@@ -259,6 +260,40 @@ func (h *ExpenseHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.JSON(w, 200, map[string]interface{}{"expenses": result, "total": total, "total_amount": amount, "limit": limit, "offset": offset})
+}
+
+func (h *ExpenseHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var req struct {
+		ExpenseDate      string `json:"expense_date"`
+		CategoryID       string `json:"category_id"`
+		Title            string `json:"title"`
+		Description      string `json:"description"`
+		Amount           string `json:"amount"`
+		Payee            string `json:"payee"`
+		PaymentMethod    string `json:"payment_method"`
+		PaymentReference string `json:"payment_reference"`
+		DepartmentID     string `json:"department_id"`
+	}
+	if json.NewDecoder(io.LimitReader(r.Body, 16384)).Decode(&req) != nil {
+		expenseError(w, 400, "Invalid expense")
+		return
+	}
+	if !validExpenseDate(req.ExpenseDate) || req.ExpenseDate > expenseToday() || strings.TrimSpace(req.Title) == "" || len(req.Title) > 200 || strings.TrimSpace(req.Description) == "" || len(req.Description) > 5000 || !validExpenseAmount(req.Amount) || strings.TrimSpace(req.Payee) == "" || len(req.Payee) > 200 || len(req.PaymentReference) > 200 || !map[string]bool{"CASH": true, "BANK_TRANSFER": true, "MOBILE_MONEY": true, "CARD": true, "OTHER": true}[req.PaymentMethod] {
+		expenseError(w, 400, "Enter valid expense details")
+		return
+	}
+	var result json.RawMessage
+	err := h.db.QueryRow(r.Context(), `UPDATE expenses e SET expense_date=$1,category_id=$2,category_name=(SELECT name FROM expense_categories WHERE id=$2 AND is_active),title=$3,description=$4,amount=$5,payee=$6,payment_method=$7,payment_reference=$8,department_id=$9,department_name=(SELECT name FROM departments WHERE id=$9 AND is_active) WHERE e.id::text=$10 AND e.recorded_by=$11 AND e.status IN ('RECORDED','PENDING') AND EXISTS (SELECT 1 FROM expense_categories WHERE id=$2 AND is_active) AND EXISTS (SELECT 1 FROM departments WHERE id=$9 AND is_active) RETURNING row_to_json(e)`, req.ExpenseDate, req.CategoryID, strings.TrimSpace(req.Title), strings.TrimSpace(req.Description), req.Amount, strings.TrimSpace(req.Payee), req.PaymentMethod, strings.TrimSpace(req.PaymentReference), req.DepartmentID, id, currentUserID(r)).Scan(&result)
+	if errors.Is(err, pgx.ErrNoRows) {
+		expenseError(w, 403, "You can only edit your own recorded or pending expenses")
+		return
+	}
+	if err != nil {
+		expenseError(w, 500, "Could not update expense")
+		return
+	}
+	response.JSON(w, 200, result)
 }
 func (h *ExpenseHandler) Detail(w http.ResponseWriter, r *http.Request) {
 	var result json.RawMessage
@@ -346,4 +381,3 @@ func (h *ExpenseHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 	response.JSON(w, 200, map[string]string{"message": "Expense deleted successfully"})
 }
-

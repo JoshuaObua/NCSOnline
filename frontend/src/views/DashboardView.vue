@@ -1,25 +1,6 @@
 <template>
   <LayoutDefault title="Dashboard Overview">
 
-    <!-- ──  Section Header ────────────────────────────────────────── -->
-    <div class="section-header flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-      <div>
-        <h1 class="text-xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-          <i class="icofont-dashboard-web text-blue-600"></i> Dashboard Overview
-        </h1>
-        <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-          National Council of Sports —  Intranet Command & Operational Hub
-        </div>
-      </div>
-      <div class="section-header-breadcrumb flex items-center gap-2 text-xs font-semibold">
-        <router-link to="/dashboard" class="text-blue-600 hover:underline flex items-center gap-1">
-          <i class="icofont-home"></i> Home
-        </router-link>
-        <span class="text-slate-400">/</span>
-        <span class="text-slate-500 font-bold">Dashboard Overview</span>
-      </div>
-    </div>
-
     <!-- Loading Skeleton -->
     <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div v-for="i in 4" :key="i" class="card card-statistic-4 animate-pulse">
@@ -33,18 +14,18 @@
     <div v-else-if="isReceptionist" class="space-y-6">
       
       <!-- 1. Hero Welcome Card -->
-      <div class="card bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 border-0 text-white shadow-md rounded-2xl overflow-hidden p-6 sm:p-8">
+      <div class="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-2xl overflow-hidden p-6 sm:p-8">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div class="text-xs uppercase tracking-widest text-blue-300 font-bold mb-1">{{ greeting }}</div>
-            <h2 class="text-2xl font-extrabold">{{ welcomeName }}</h2>
-            <p class="text-slate-300 text-sm mt-1 max-w-xl">
+            <div class="text-xs uppercase tracking-widest text-blue-600 dark:text-blue-400 font-bold mb-1">Helo,</div>
+            <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white">{{ welcomeName }}</h2>
+            <p class="text-slate-600 dark:text-slate-400 text-sm mt-1 max-w-xl">
               Front Desk & Visitor Clearance Operations — National Council of Sports.
             </p>
           </div>
           <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-700">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               Front Desk Active
             </span>
           </div>
@@ -258,21 +239,16 @@
     <div v-else-if="isAccountant" class="space-y-6">
       
       <!-- 1. Hero Welcome Card -->
-      <div class="card bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 border-0 text-white shadow-md rounded-2xl overflow-hidden p-6 sm:p-8">
+      <div class="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-2xl overflow-hidden p-6 sm:p-8">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div class="text-xs uppercase tracking-widest text-emerald-300 font-bold mb-1">{{ greeting }}</div>
-            <h2 class="text-2xl font-extrabold">{{ welcomeName }}</h2>
-            <p class="text-slate-300 text-sm mt-1 max-w-xl">
-              Finance & Accounting Directorate — Fixed Asset Register, IPSAS 17 Valuations & Statutory Ledgers.
+            <div class="text-xs uppercase tracking-widest text-emerald-700 dark:text-emerald-400 font-bold mb-1">Hello,</div>
+            <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white">{{ welcomeName }}</h2>
+            <p class="text-slate-600 dark:text-slate-400 text-sm mt-1 max-w-xl">
+              Finance & Accounting Directorate 
             </p>
           </div>
-          <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              Ledger Active (IPSAS 17)
-            </span>
-          </div>
+          
         </div>
       </div>
 
@@ -632,18 +608,18 @@
     <div v-else-if="isDepartmentalOfficer" class="space-y-6">
       
       <!-- 1. Hero Welcome Card -->
-      <div class="card bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 border-0 text-white shadow-md rounded-2xl overflow-hidden p-6 sm:p-8">
+      <div class="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-2xl overflow-hidden p-6 sm:p-8">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div class="text-xs uppercase tracking-widest text-blue-300 font-bold mb-1">{{ greeting }}</div>
-            <h2 class="text-2xl font-extrabold">{{ welcomeName }}</h2>
-            <p class="text-slate-300 text-sm mt-1 max-w-xl">
+            <div class="text-xs uppercase tracking-widest text-blue-600 dark:text-blue-400 font-bold mb-1">{{ greeting }}</div>
+            <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white">{{ welcomeName }}</h2>
+            <p class="text-slate-600 dark:text-slate-400 text-sm mt-1 max-w-xl">
               {{ departmentalWorkstationTitle }}
             </p>
           </div>
           <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-700">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               {{ departmentalBadgeText }}
             </span>
           </div>
@@ -861,18 +837,18 @@
     <div v-else class="space-y-6">
 
       <!-- ── 1.  Hero Welcome Card ──────────────────────────────── -->
-      <div class="card bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 border-0 text-white shadow-md rounded-2xl overflow-hidden p-6 sm:p-8">
+      <div class="card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-2xl overflow-hidden p-6 sm:p-8">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div class="text-xs uppercase tracking-widest text-blue-300 font-bold mb-1">{{ greeting }}</div>
-            <h2 class="text-2xl font-extrabold">{{ welcomeName }}!</h2>
-            <p class="text-slate-300 text-sm mt-1 max-w-xl">
+            <div class="text-xs uppercase tracking-widest text-blue-600 dark:text-blue-400 font-bold mb-1">{{ greeting }}</div>
+            <h2 class="text-2xl font-extrabold text-slate-900 dark:text-white">{{ welcomeName }}!</h2>
+            <p class="text-slate-600 dark:text-slate-400 text-sm mt-1 max-w-xl">
               Welcome to the National Council of Sports (NCS) Intranet Command Portal.
             </p>
           </div>
           <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold border border-emerald-200 dark:border-emerald-700">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               All Systems Operational
             </span>
           </div>

@@ -76,6 +76,7 @@ const routes = [
   { path: '/expenses', name: 'Expenses', component: ExpenseRegisterView, meta: { requiresAuth: true, roles: expenseRoles } },
   { path: '/expenses/reports', name: 'ExpenseReport', component: ExpenseReportView, meta: { requiresAuth: true, roles: expenseRoles } },
   { path: '/expenses/new', name: 'ExpenseEntry', component: ExpenseEntryView, meta: { requiresAuth: true, roles: expenseRoles } },
+  { path: '/expenses/:id/edit', name: 'ExpenseEdit', component: ExpenseEntryView, meta: { requiresAuth: true, roles: expenseRoles } },
   { path: '/expenses/categories', name: 'ExpenseCategories', component: ExpenseCategoriesView, meta: { requiresAuth: true, roles: ['super_admin','admin'] } },
   { path: '/expenses/:id', name: 'ExpenseDetail', component: ExpenseDetailView, meta: { requiresAuth: true, roles: expenseRoles } },
   { path: '/fixed-assets', name: 'FixedAssets', component: FixedAssetsView, meta: { requiresAuth: true } },
@@ -118,7 +119,7 @@ const routes = [
   { path: '/it/ppda/status', name: 'ITPPDAList', component: ITPPDAListView, meta: { requiresAuth: true } },
 
   // Departmental Routes
-  { path: '/stores/inventory', name: 'StoresInventory', component: StoresInventoryDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'stores_officer', 'general_secretary', 'ags_admin'] } },
+  { path: '/stores/inventory', name: 'StoresInventory', component: StoresInventoryDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'stores_officer', 'general_secretary', 'ags_admin', 'accountant', 'senior_accountant', 'finance_department'] } },
   { path: '/facilities/venues', name: 'FacilitiesManagement', component: FacilitiesManagementDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'facilities_manager', 'general_secretary', 'ags_technical', 'ags_admin'] } },
   { path: '/legal/compliance', name: 'LegalCompliance', component: LegalComplianceDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'legal_counsel', 'general_secretary'] } },
   { path: '/medical/sports-science', name: 'SportsMedical', component: SportsMedicalDashboardView, meta: { requiresAuth: true, roles: ['super_admin', 'admin', 'medical_officer', 'physiotherapist', 'general_secretary', 'ags_technical'] } },

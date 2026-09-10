@@ -39,48 +39,60 @@
       <div class="card-body p-3 bg-light">
         <form id="report-filter-form" @submit.prevent="offset=0;load()">
           <div class="row">
-            <div class="col-md-3 col-sm-6 mb-3">
-              <label class="font-weight-bold text-xs text-uppercase text-muted mb-1">Search Keywords</label>
-              <div class="input-group input-group-sm">
-                <div class="input-group-prepend">
-                  <span class="input-group-text bg-white border-right-0"><i class="fas fa-search text-muted"></i></span>
+            <div class="col-md-3 col-sm-6">
+              <div class="form-group mb-0">
+                <label class="font-weight-bold text-xs text-uppercase text-muted">Search Keywords</label>
+                <div class="input-group input-group-sm">
+                  <div class="input-group-prepend"><span class="input-group-text bg-white border-right-0"><i class="fas fa-search text-muted"></i></span></div>
+                  <input v-model="filters.search" class="form-control border-left-0" placeholder="Title, reference, payee..." />
                 </div>
-                <input v-model="filters.search" class="form-control form-control-sm border-left-0" placeholder="Title, reference, payee..." />
               </div>
             </div>
-            <div class="col-md-3 col-sm-6 mb-3">
-              <label class="font-weight-bold text-xs text-uppercase text-muted mb-1">Category</label>
-              <select aria-label="Category" v-model="filters.category_id" class="form-control form-control-sm">
-                <option value="">All Categories</option>
-                <option v-for="c in categories" :value="c.id" :key="c.id">{{ c.name }}</option>
-              </select>
+            <div class="col-md-3 col-sm-6">
+              <div class="form-group mb-0">
+                <label class="font-weight-bold text-xs text-uppercase text-muted">Category</label>
+                <select aria-label="Category" v-model="filters.category_id" class="form-control form-control-sm">
+                  <option value="">All Categories</option>
+                  <option v-for="c in categories" :value="c.id" :key="c.id">{{ c.name }}</option>
+                </select>
+              </div>
             </div>
-            <div class="col-md-3 col-sm-6 mb-3">
-              <label class="font-weight-bold text-xs text-uppercase text-muted mb-1">Department</label>
-              <select aria-label="Department" v-model="filters.department_id" class="form-control form-control-sm">
-                <option value="">All Departments</option>
-                <option v-for="d in departments" :value="d.id" :key="d.id">{{ d.name }}</option>
-              </select>
+            <div class="col-md-3 col-sm-6">
+              <div class="form-group mb-0">
+                <label class="font-weight-bold text-xs text-uppercase text-muted">Department</label>
+                <select aria-label="Department" v-model="filters.department_id" class="form-control form-control-sm">
+                  <option value="">All Departments</option>
+                  <option v-for="d in departments" :value="d.id" :key="d.id">{{ d.name }}</option>
+                </select>
+              </div>
             </div>
-            <div class="col-md-3 col-sm-6 mb-3">
-              <label class="font-weight-bold text-xs text-uppercase text-muted mb-1">Approval Status</label>
-              <select aria-label="Approval Status" v-model="filters.status" class="form-control form-control-sm">
-                <option value="">All Statuses</option>
-                <option value="RECORDED">RECORDED</option>
-                <option value="VERIFIED">VERIFIED</option>
-                <option value="APPROVED">APPROVED</option>
-                <option value="REJECTED">REJECTED</option>
-              </select>
+            <div class="col-md-3 col-sm-6">
+              <div class="form-group mb-0">
+                <label class="font-weight-bold text-xs text-uppercase text-muted">Approval Status</label>
+                <select aria-label="Approval Status" v-model="filters.status" class="form-control form-control-sm">
+                  <option value="">All Statuses</option>
+                  <option value="RECORDED">RECORDED</option>
+                  <option value="VERIFIED">VERIFIED</option>
+                  <option value="APPROVED">APPROVED</option>
+                  <option value="PENDING">PENDING</option>
+                  <option value="DISBURSED">DISBURSED</option>
+                  <option value="REJECTED">REJECTED</option>
+                </select>
+              </div>
             </div>
-            <div class="col-md-4 col-sm-6 mb-2">
-              <label class="font-weight-bold text-xs text-uppercase text-muted mb-1">From Date</label>
-              <input v-model="filters.from" type="date" class="form-control form-control-sm" />
+            <div class="col-md-4 col-sm-6">
+              <div class="form-group mb-0">
+                <label class="font-weight-bold text-xs text-uppercase text-muted">From Date</label>
+                <input v-model="filters.from" type="date" class="form-control form-control-sm" />
+              </div>
             </div>
-            <div class="col-md-4 col-sm-6 mb-2">
-              <label class="font-weight-bold text-xs text-uppercase text-muted mb-1">To Date</label>
-              <input v-model="filters.to" type="date" class="form-control form-control-sm" />
+            <div class="col-md-4 col-sm-6">
+              <div class="form-group mb-0">
+                <label class="font-weight-bold text-xs text-uppercase text-muted">To Date</label>
+                <input v-model="filters.to" type="date" class="form-control form-control-sm" />
+              </div>
             </div>
-            <div class="col-md-4 col-sm-12 mb-2 d-flex align-items-end">
+            <div class="col-md-4 col-sm-12 d-flex align-items-end">
               <div class="btn-group btn-group-sm w-100">
                 <button type="submit" :disabled="loading" class="btn btn-primary font-weight-bold">
                   <i class="fas fa-chart-line mr-1"></i> Apply Filters
@@ -206,10 +218,10 @@
               <thead>
                 <tr role="row">
                   <th style="width: 4%;" class="text-center align-middle">#</th>
-                  <th style="width: 14%;" class="align-middle sorting" @click="sortBy('reference')">Reference / Date</th>
-                  <th style="width: 22%;" class="align-middle sorting" @click="sortBy('title')">Title / Category</th>
-                  <th style="width: 14%;" class="text-right align-middle sorting" @click="sortBy('amount')">Amount (UGX)</th>
-                  <th style="width: 14%;" class="align-middle sorting" @click="sortBy('department_name')">Department</th>
+                  <th style="width: 14%; cursor: pointer;" class="align-middle" @click="sortBy('reference')">Reference / Date</th>
+                  <th style="width: 22%; cursor: pointer;" class="align-middle" @click="sortBy('title')">Title / Category</th>
+                  <th style="width: 14%; cursor: pointer;" class="text-right align-middle" @click="sortBy('amount')">Amount (UGX)</th>
+                  <th style="width: 14%; cursor: pointer;" class="align-middle" @click="sortBy('department_name')">Department</th>
                   <th style="width: 10%;" class="text-center align-middle">Status</th>
                   <th style="width: 12%;" class="align-middle">Recorded By</th>
                   <th style="width: 5%;" class="text-center align-middle">Receipt</th>
@@ -264,7 +276,7 @@
                       <span v-else class="badge badge-light text-muted border">None</span>
                     </td>
                     <td class="text-center align-middle">
-                      <router-link :to="'/expenses/'+expense.id" class="btn btn-outline-primary btn-action" title="View Detail">
+                      <router-link :to="'/expenses/'+expense.id" class="btn btn-icon btn-outline-primary" title="View Detail">
                         <i class="fas fa-eye"></i>
                       </router-link>
                     </td>
@@ -417,6 +429,10 @@ function getStatusBadgeClass(st) {
       return 'badge badge-info text-white'
     case 'APPROVED':
       return 'badge badge-success'
+    case 'PENDING':
+      return 'badge badge-secondary'
+    case 'DISBURSED':
+      return 'badge badge-primary'
     case 'REJECTED':
       return 'badge badge-danger'
     default:

@@ -70,6 +70,20 @@ func TestExpensesIntegration(t *testing.T) {
 	if _, err = pool.Exec(ctx, string(migration)); err != nil {
 		t.Fatal(err)
 	}
+	statusMigration, err := os.ReadFile("../../migrations/081_add_expense_status_and_actions.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = pool.Exec(ctx, string(statusMigration)); err != nil {
+		t.Fatal(err)
+	}
+	statusExpansion, err := os.ReadFile("../../migrations/082_expand_expense_statuses.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = pool.Exec(ctx, string(statusExpansion)); err != nil {
+		t.Fatal(err)
+	}
 	router := NewExpenseHandler(pool).Routes()
 	request := func(method, path, role, contentType string, body io.Reader, status int) *httptest.ResponseRecorder {
 		t.Helper()

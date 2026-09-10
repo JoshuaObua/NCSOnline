@@ -26,31 +26,31 @@
         </div>
 
         <!-- Quick stats row -->
-        <div class="grid grid-cols-3 divide-x divide-gray-100 border-t border-gray-100">
+        <div class="grid grid-cols-3 divide-x divide-gray-100 dark:divide-slate-800 border-t border-gray-100 dark:border-slate-800">
           <div class="px-5 py-4 text-center">
-            <div class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Last Login</div>
-            <div class="text-sm font-medium text-gray-700">{{ formatDate(user?.last_login_at) }}</div>
+            <div class="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-0.5">Last Login</div>
+            <div class="text-sm font-medium text-gray-700 dark:text-slate-300">{{ formatDate(user?.last_login_at) }}</div>
           </div>
           <div class="px-5 py-4 text-center">
-            <div class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">PIN Status</div>
-            <div class="text-sm font-medium" :class="hasPin ? 'text-green-600' : 'text-yellow-600'">
+            <div class="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-0.5">PIN Status</div>
+            <div class="text-sm font-medium" :class="hasPin ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'">
               {{ hasPin ? 'PIN Set' : 'No PIN' }}
             </div>
           </div>
           <div class="px-5 py-4 text-center">
-            <div class="text-xs text-gray-400 uppercase tracking-wide mb-0.5">User ID</div>
-            <div class="text-xs font-mono text-gray-500">{{ (user?.id || user?.user_id)?.substring(0,12) }}…</div>
+            <div class="text-xs text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-0.5">User ID</div>
+            <div class="text-xs font-mono text-gray-500 dark:text-slate-400">{{ (user?.id || user?.user_id)?.substring(0,12) }}…</div>
           </div>
         </div>
       </div>
 
       <!-- Tabs -->
-      <div class="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1">
+      <div class="flex items-center gap-1 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl p-1">
         <button
           v-for="tab in tabs"
           :key="tab.id"
           @click="activeTab = tab.id"
-          :class="activeTab === tab.id ? 'bg-primary-700 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'"
+          :class="activeTab === tab.id ? 'bg-primary-700 text-white shadow-sm' : 'text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800'"
           class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"
         >
           <i :class="[tab.icon, 'text-base leading-none']"></i>
@@ -61,25 +61,25 @@
       <!-- Tab: Account -->
       <div v-if="activeTab === 'account'" class="admin-card">
         <div class="admin-card-header">
-          <span class="text-sm font-semibold text-gray-800">Account Information</span>
+          <span class="text-sm font-semibold text-gray-800 dark:text-slate-200">Account Information</span>
         </div>
         <div class="admin-card-body">
           <dl class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <dt class="form-label">Email Address</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ user?.email || 'N/A' }}</dd>
+              <dd class="text-sm font-medium text-gray-900 dark:text-slate-100">{{ user?.email || 'N/A' }}</dd>
             </div>
             <div>
               <dt class="form-label">Phone Number</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ user?.phone || 'Not provided' }}</dd>
+              <dd class="text-sm font-medium text-gray-900 dark:text-slate-100">{{ user?.phone || 'Not provided' }}</dd>
             </div>
             <div>
               <dt class="form-label">First Name</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ user?.first_name || 'N/A' }}</dd>
+              <dd class="text-sm font-medium text-gray-900 dark:text-slate-100">{{ user?.first_name || 'N/A' }}</dd>
             </div>
             <div>
               <dt class="form-label">Last Name</dt>
-              <dd class="text-sm font-medium text-gray-900">{{ user?.last_name || 'N/A' }}</dd>
+              <dd class="text-sm font-medium text-gray-900 dark:text-slate-100">{{ user?.last_name || 'N/A' }}</dd>
             </div>
             <div>
               <dt class="form-label">Roles</dt>
@@ -107,8 +107,8 @@
         <div class="admin-card">
           <div class="admin-card-header">
             <div>
-              <p class="text-sm font-semibold text-gray-800">Screen Lock PIN</p>
-              <p class="text-xs text-gray-500 mt-0.5">Set or change your 4–6 digit PIN used to unlock the app after inactivity.</p>
+              <p class="text-sm font-semibold text-gray-800 dark:text-slate-200">Screen Lock PIN</p>
+              <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Set or change your 4–6 digit PIN used to unlock the app after inactivity.</p>
             </div>
             <span :class="hasPin ? 'badge-green' : 'badge-yellow'">
               <i :class="hasPin ? 'icofont-check' : 'icofont-warning'" class="text-xs mr-1"></i>
@@ -116,12 +116,12 @@
             </span>
           </div>
           <div class="admin-card-body">
-            <div v-if="pinSuccess" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">{{ pinSuccess }}</div>
-            <div v-if="pinError" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{{ pinError }}</div>
+            <div v-if="pinSuccess" class="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-400">{{ pinSuccess }}</div>
+            <div v-if="pinError" class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">{{ pinError }}</div>
 
             <div class="flex gap-2 mb-5">
-              <button @click="pinMode = 'set'" :disabled="hasPin" :class="[pinMode === 'set' && !hasPin ? 'bg-primary-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200', hasPin ? 'opacity-40 cursor-not-allowed' : '']" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">Set PIN</button>
-              <button @click="pinMode = 'change'" :disabled="!hasPin" :class="[pinMode === 'change' && hasPin ? 'bg-primary-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200', !hasPin ? 'opacity-40 cursor-not-allowed' : '']" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">Change PIN</button>
+              <button @click="pinMode = 'set'" :disabled="hasPin" :class="[pinMode === 'set' && !hasPin ? 'bg-primary-700 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700', hasPin ? 'opacity-40 cursor-not-allowed' : '']" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">Set PIN</button>
+              <button @click="pinMode = 'change'" :disabled="!hasPin" :class="[pinMode === 'change' && hasPin ? 'bg-primary-700 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 hover:bg-gray-200 dark:hover:bg-slate-700', !hasPin ? 'opacity-40 cursor-not-allowed' : '']" class="px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">Change PIN</button>
             </div>
 
             <form @submit.prevent="handlePin" class="space-y-4 max-w-sm">
@@ -149,22 +149,22 @@
         <div class="admin-card">
           <div class="admin-card-header">
             <div>
-              <p class="text-sm font-semibold text-gray-800">Change Password</p>
-              <p class="text-xs text-gray-500 mt-0.5">Update your account password. Minimum 8 characters.</p>
+              <p class="text-sm font-semibold text-gray-800 dark:text-slate-200">Change Password</p>
+              <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Update your account password. Minimum 8 characters.</p>
             </div>
           </div>
           <div class="admin-card-body">
-            <div v-if="passwordSuccess" class="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 flex items-center gap-2">
-              <i class="icofont-check-circled text-green-600"></i> Password changed successfully!
+            <div v-if="passwordSuccess" class="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-400 flex items-center gap-2">
+              <i class="icofont-check-circled text-green-600 dark:text-green-400"></i> Password changed successfully!
             </div>
-            <div v-if="passwordError" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{{ passwordError }}</div>
+            <div v-if="passwordError" class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">{{ passwordError }}</div>
 
             <form @submit.prevent="changePassword" class="space-y-4 max-w-sm">
               <div>
                 <label class="form-label">Current Password</label>
                 <div class="relative">
                   <input v-model="passwordForm.current_password" :type="showCurrent ? 'text' : 'password'" required class="form-input pr-10" />
-                  <button type="button" @click="showCurrent = !showCurrent" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                  <button type="button" @click="showCurrent = !showCurrent" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300">
                     <i :class="showCurrent ? 'icofont-eye-blocked' : 'icofont-eye'" class="text-base leading-none"></i>
                   </button>
                 </div>
@@ -173,7 +173,7 @@
                 <label class="form-label">New Password</label>
                 <div class="relative">
                   <input v-model="passwordForm.new_password" :type="showNew ? 'text' : 'password'" required minlength="8" class="form-input pr-10" />
-                  <button type="button" @click="showNew = !showNew" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600">
+                  <button type="button" @click="showNew = !showNew" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:text-slate-500 dark:hover:text-slate-300">
                     <i :class="showNew ? 'icofont-eye-blocked' : 'icofont-eye'" class="text-base leading-none"></i>
                   </button>
                 </div>

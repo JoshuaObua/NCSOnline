@@ -1,108 +1,163 @@
 <template>
   <LayoutDefault title="Security Settings">
-    <div class="p-6 max-w-4xl mx-auto space-y-6">
+    <div class="max-w-4xl mx-auto space-y-6">
       <!-- Toast -->
       <Transition name="toast">
-        <div v-if="toast.msg" :class="toast.ok ? 'bg-gray-900' : 'bg-red-600'" class="fixed top-5 right-5 z-[100] px-4 py-3 text-white text-sm rounded-xl shadow-xl">{{ toast.msg }}</div>
+        <div v-if="toast.msg" :class="toast.ok ? 'bg-gray-900 dark:bg-slate-700' : 'bg-red-600'" class="fixed top-5 right-5 z-[100] px-4 py-3 text-white text-sm rounded-xl shadow-xl">{{ toast.msg }}</div>
       </Transition>
 
-      <header>
-        <h2 class="text-2xl font-semibold text-gray-900">Security Settings</h2>
-        <p class="text-xs text-gray-500 mt-1">Rotate credentials, restrict access by IP, and enable two-factor authentication for your account.</p>
-      </header>
-
       <!-- ═════ Password ═════ -->
-      <section class="bg-white border border-gray-200 rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Password</h3>
-        <form @submit.prevent="onChangePassword" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input v-model="pw.current" type="password" placeholder="Current password" class="input"/>
-          <input v-model="pw.next" type="password" placeholder="New password" class="input"/>
-          <input v-model="pw.confirm" type="password" placeholder="Confirm new password" class="input"/>
-          <button type="submit" :disabled="busy.pw" class="md:col-span-3 justify-self-start btn-primary">{{ busy.pw ? 'Updating…' : 'Update password' }}</button>
-        </form>
-      </section>
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200 uppercase tracking-wider">Password</h3>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Rotate your account login password. Minimum 8 characters required.</p>
+          </div>
+        </div>
+        <div class="admin-card-body">
+          <form @submit.prevent="onChangePassword" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label class="form-label">Current Password</label>
+              <input v-model="pw.current" type="password" placeholder="Current password" class="form-input"/>
+            </div>
+            <div>
+              <label class="form-label">New Password</label>
+              <input v-model="pw.next" type="password" placeholder="New password (min 8 chars)" class="form-input"/>
+            </div>
+            <div>
+              <label class="form-label">Confirm New Password</label>
+              <input v-model="pw.confirm" type="password" placeholder="Confirm new password" class="form-input"/>
+            </div>
+            <div class="md:col-span-3">
+              <button type="submit" :disabled="busy.pw" class="btn-primary disabled:opacity-60">
+                <i class="fas fa-key mr-1.5"></i>{{ busy.pw ? 'Updating…' : 'Update Password' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
 
       <!-- ═════ PIN ═════ -->
-      <section class="bg-white border border-gray-200 rounded-xl p-5">
-        <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">Security PIN</h3>
-        <p class="text-xs text-gray-500 mb-3">A short PIN is required when unlocking sensitive screens.</p>
-        <form @submit.prevent="onChangePin" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <input v-if="!isFirstPin" v-model="pin.current" type="password" placeholder="Current PIN" maxlength="6" class="input"/>
-          <input v-model="pin.next" type="password" :placeholder="isFirstPin ? 'Choose a PIN' : 'New PIN'" maxlength="6" class="input"/>
-          <input v-model="pin.confirm" type="password" placeholder="Confirm PIN" maxlength="6" class="input"/>
-          <button type="submit" :disabled="busy.pin" class="md:col-span-3 justify-self-start btn-primary">{{ busy.pin ? 'Saving…' : (isFirstPin ? 'Set PIN' : 'Update PIN') }}</button>
-        </form>
-      </section>
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200 uppercase tracking-wider">Security PIN</h3>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">A short PIN is required when unlocking sensitive screens after inactivity.</p>
+          </div>
+          <span :class="isFirstPin ? 'badge-yellow' : 'badge-green'">
+            <i :class="isFirstPin ? 'icofont-warning' : 'icofont-check'" class="text-xs mr-1"></i>
+            {{ isFirstPin ? 'Not Set' : 'PIN Active' }}
+          </span>
+        </div>
+        <div class="admin-card-body">
+          <form @submit.prevent="onChangePin" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div v-if="!isFirstPin">
+              <label class="form-label">Current PIN</label>
+              <input v-model="pin.current" type="password" placeholder="Current PIN" maxlength="6" class="form-input"/>
+            </div>
+            <div>
+              <label class="form-label">{{ isFirstPin ? 'Choose a PIN' : 'New PIN' }}</label>
+              <input v-model="pin.next" type="password" :placeholder="isFirstPin ? '4–6 digit PIN' : 'New PIN'" maxlength="6" class="form-input"/>
+            </div>
+            <div>
+              <label class="form-label">Confirm PIN</label>
+              <input v-model="pin.confirm" type="password" placeholder="Confirm PIN" maxlength="6" class="form-input"/>
+            </div>
+            <div class="md:col-span-3">
+              <button type="submit" :disabled="busy.pin" class="btn-primary disabled:opacity-60">
+                <i class="fas fa-lock mr-1.5"></i>{{ busy.pin ? 'Saving…' : (isFirstPin ? 'Set PIN' : 'Update PIN') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
 
       <!-- ═════ IP Allowlist ═════ -->
-      <section class="bg-white border border-gray-200 rounded-xl p-5">
-        <div class="flex items-start justify-between mb-3">
+      <div class="admin-card">
+        <div class="admin-card-header">
           <div>
-            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">IP Allowlist</h3>
-            <p class="text-xs text-gray-500 mt-1">When at least one address is listed, requests from any other IP will be blocked with 403 Forbidden.</p>
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200 uppercase tracking-wider">IP Allowlist</h3>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">When entries exist, requests from any unlisted IP are blocked with 403 Forbidden.</p>
           </div>
-          <span v-if="ipList.length" class="text-[10px] uppercase tracking-wider font-bold bg-red-100 text-red-700 px-2 py-1 rounded-full">Active</span>
-          <span v-else class="text-[10px] uppercase tracking-wider font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded-full">No restriction</span>
+          <span v-if="ipList.length" class="badge-red"><i class="icofont-shield-alt text-xs mr-1"></i>Active</span>
+          <span v-else class="badge-gray">No restriction</span>
         </div>
+        <div class="admin-card-body space-y-4">
+          <form @submit.prevent="onAddIp" class="grid grid-cols-1 md:grid-cols-12 gap-2">
+            <div class="md:col-span-5">
+              <label class="form-label">IP Address or CIDR</label>
+              <input v-model="newIp.value" placeholder="41.74.32.5 or 192.168.0.0/24" class="form-input font-mono"/>
+            </div>
+            <div class="md:col-span-5">
+              <label class="form-label">Label</label>
+              <input v-model="newIp.label" placeholder="e.g. Home, Office VPN" class="form-input"/>
+            </div>
+            <div class="md:col-span-2 flex items-end">
+              <button type="submit" :disabled="busy.ip" class="btn-primary disabled:opacity-60 w-full">
+                {{ busy.ip ? 'Adding…' : 'Add Entry' }}
+              </button>
+            </div>
+          </form>
 
-        <form @submit.prevent="onAddIp" class="grid grid-cols-1 md:grid-cols-12 gap-2 mb-4">
-          <input v-model="newIp.value" placeholder="41.74.32.5 or 192.168.0.0/24"
-            class="md:col-span-5 input font-mono"/>
-          <input v-model="newIp.label" placeholder="Label (e.g. Home, Office VPN)"
-            class="md:col-span-5 input"/>
-          <button type="submit" :disabled="busy.ip" class="md:col-span-2 btn-primary">{{ busy.ip ? 'Adding…' : 'Add' }}</button>
-        </form>
-
-        <ul v-if="ipList.length" class="divide-y divide-gray-100">
-          <li v-for="entry in ipList" :key="entry.id" class="flex items-center gap-3 py-2">
-            <code class="font-mono text-sm text-gray-800 bg-gray-50 px-2 py-1 rounded">{{ entry.ip_or_cidr }}</code>
-            <span class="text-xs text-gray-500">{{ entry.label || '—' }}</span>
-            <span class="ml-auto text-xs text-gray-400">{{ formatDate(entry.created_at) }}</span>
-            <button @click="removeIp(entry.id)" class="text-gray-400 hover:text-red-600 text-lg leading-none" title="Remove">×</button>
-          </li>
-        </ul>
-        <p v-else class="text-xs text-gray-400 italic">No entries — your account accepts logins from any IP.</p>
-      </section>
+          <ul v-if="ipList.length" class="divide-y divide-gray-100 dark:divide-slate-800 border border-gray-100 dark:border-slate-800 rounded-lg overflow-hidden">
+            <li v-for="entry in ipList" :key="entry.id" class="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-900">
+              <code class="font-mono text-sm text-gray-800 dark:text-slate-200 bg-gray-50 dark:bg-slate-800 px-2 py-1 rounded border border-gray-200 dark:border-slate-700">{{ entry.ip_or_cidr }}</code>
+              <span class="text-xs text-gray-500 dark:text-slate-400">{{ entry.label || '—' }}</span>
+              <span class="ml-auto text-xs text-gray-400 dark:text-slate-500">{{ formatDate(entry.created_at) }}</span>
+              <button @click="removeIp(entry.id)" class="text-gray-400 hover:text-red-600 dark:hover:text-red-400 text-lg leading-none transition-colors" title="Remove">×</button>
+            </li>
+          </ul>
+          <p v-else class="text-xs text-gray-400 dark:text-slate-500 italic">No entries — account accepts logins from any IP address.</p>
+        </div>
+      </div>
 
       <!-- ═════ 2FA ═════ -->
-      <section class="bg-white border border-gray-200 rounded-xl p-5">
-        <div class="flex items-start justify-between mb-3">
+      <div class="admin-card">
+        <div class="admin-card-header">
           <div>
-            <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Two-Factor Authentication</h3>
-            <p class="text-xs text-gray-500 mt-1">Use an authenticator app (Google Authenticator, 1Password, Authy) to generate one-time codes.</p>
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-200 uppercase tracking-wider">Two-Factor Authentication</h3>
+            <p class="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Use Google Authenticator, 1Password, or Authy to generate one-time codes.</p>
           </div>
-          <span v-if="twofa.enabled" class="text-[10px] uppercase tracking-wider font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">Enabled</span>
-          <span v-else class="text-[10px] uppercase tracking-wider font-bold bg-gray-100 text-gray-600 px-2 py-1 rounded-full">Disabled</span>
+          <span v-if="twofa.enabled" class="badge-green"><i class="icofont-check text-xs mr-1"></i>Enabled</span>
+          <span v-else class="badge-gray">Disabled</span>
         </div>
-
-        <div v-if="twofa.enabled" class="space-y-3">
-          <p class="text-sm text-gray-700">Two-factor authentication is active for your account.</p>
-          <button @click="onDisable2FA" :disabled="busy.twofa" class="btn-danger">{{ busy.twofa ? 'Disabling…' : 'Disable 2FA' }}</button>
-        </div>
-
-        <div v-else-if="!enrollment">
-          <button @click="onEnroll" :disabled="busy.twofa" class="btn-primary">{{ busy.twofa ? 'Generating…' : 'Set up 2FA' }}</button>
-        </div>
-
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div class="text-center">
-            <img :src="qrSrc(enrollment.otpauth_url)" alt="Scan to add NCS account" class="mx-auto rounded-lg border border-gray-200 bg-white p-2"/>
-            <p class="text-[10px] text-gray-400 mt-1">Scan with your authenticator app</p>
+        <div class="admin-card-body">
+          <div v-if="twofa.enabled" class="space-y-3">
+            <p class="text-sm text-gray-700 dark:text-slate-300">Two-factor authentication is active for your account.</p>
+            <button @click="onDisable2FA" :disabled="busy.twofa" class="btn-primary disabled:opacity-60 bg-red-600 hover:bg-red-700">
+              <i class="icofont-lock mr-1.5"></i>{{ busy.twofa ? 'Disabling…' : 'Disable 2FA' }}
+            </button>
           </div>
-          <div class="space-y-3">
-            <div>
-              <label class="block text-[11px] uppercase tracking-wider text-gray-400 mb-1">Or enter this secret manually</label>
-              <code class="block font-mono text-sm bg-gray-50 border border-gray-200 rounded px-3 py-2 break-all">{{ enrollment.secret }}</code>
+
+          <div v-else-if="!enrollment">
+            <button @click="onEnroll" :disabled="busy.twofa" class="btn-primary disabled:opacity-60">
+              <i class="icofont-qr-code mr-1.5"></i>{{ busy.twofa ? 'Generating…' : 'Set up 2FA' }}
+            </button>
+          </div>
+
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="text-center">
+              <img :src="qrSrc(enrollment.otpauth_url)" alt="Scan to add NCS account" class="mx-auto rounded-lg border border-gray-200 dark:border-slate-700 bg-white p-2"/>
+              <p class="text-xs text-gray-400 dark:text-slate-500 mt-2">Scan with your authenticator app</p>
             </div>
-            <form @submit.prevent="onVerify2FA" class="space-y-2">
-              <label class="block text-[11px] uppercase tracking-wider text-gray-400">Enter the 6-digit code from your app</label>
-              <input v-model="verifyCode" maxlength="6" inputmode="numeric" placeholder="123456"
-                class="input font-mono text-center tracking-widest"/>
-              <button type="submit" :disabled="busy.twofa" class="btn-primary w-full">{{ busy.twofa ? 'Verifying…' : 'Enable 2FA' }}</button>
-            </form>
+            <div class="space-y-4">
+              <div>
+                <label class="form-label">Or enter this secret manually</label>
+                <code class="block font-mono text-sm bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-800 dark:text-slate-200 rounded-lg px-3 py-2.5 break-all">{{ enrollment.secret }}</code>
+              </div>
+              <form @submit.prevent="onVerify2FA" class="space-y-3">
+                <div>
+                  <label class="form-label">6-digit code from your app</label>
+                  <input v-model="verifyCode" maxlength="6" inputmode="numeric" placeholder="123456" class="form-input font-mono text-center tracking-widest"/>
+                </div>
+                <button type="submit" :disabled="busy.twofa" class="btn-primary disabled:opacity-60 w-full justify-center flex">
+                  {{ busy.twofa ? 'Verifying…' : 'Enable 2FA' }}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
     </div>
   </LayoutDefault>
 </template>
@@ -239,9 +294,6 @@ onMounted(load)
 </script>
 
 <style scoped>
-.input { @apply w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-white; }
-.btn-primary { @apply text-sm font-medium px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white rounded-lg; }
-.btn-danger { @apply text-sm font-medium px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white rounded-lg; }
 .toast-enter-from, .toast-leave-to { opacity: 0; transform: translateY(-8px); }
 .toast-enter-active, .toast-leave-active { transition: all .25s ease; }
 </style>

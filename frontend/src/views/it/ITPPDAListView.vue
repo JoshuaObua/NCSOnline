@@ -2,29 +2,6 @@
   <LayoutDefault title="PPDA Form 5 Requisitions">
     <div class="space-y-6 pb-12 w-full">
       
-      <!-- Top Action Bar -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm transition-colors duration-200 w-full">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 text-xs font-bold uppercase tracking-wider">
-              <i class="icofont-document-folder text-xs"></i> Statutory Procurement Pipeline
-            </span>
-          </div>
-          <h2 class="text-xl font-bold text-slate-900 dark:text-white mt-1">PPDA Form 5 Requisitions & Multi-Stage Approvals</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            End-to-end statutory user department procurement vetting workflow: HOD Endorsement → AGS Technical Recommendation → Finance Vote Clearance → General Secretary Authorization.
-          </p>
-        </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-          <button @click="fetchRequisitions" class="btn btn-sm btn-light flex items-center gap-1.5" :disabled="loading">
-            <i class="icofont-refresh" :class="{ 'animate-spin': loading }"></i> Refresh
-          </button>
-          <router-link to="/it/ppda/new" class="btn btn-sm btn-primary flex items-center gap-1.5 shadow-sm">
-            <i class="icofont-plus"></i> New PPDA Form 5
-          </router-link>
-        </div>
-      </div>
-
       <!-- Procurement KPI Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         <div class="card card-statistic-4 shadow-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mb-0">

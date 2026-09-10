@@ -1,5 +1,5 @@
 <template>
-  <ExpensePage title="Record Expense" description="Record an expense and attach its supporting receipt.">
+  <ExpensePage :title="editing ? 'Edit Expense' : 'Record Expense'" :description="editing ? 'Update your own recorded expense while it is still pending.' : 'Record an expense and attach its supporting receipt.'">
     <template #actions>
       <router-link to="/expenses" class="btn btn-sm btn-icon icon-left btn-outline-secondary">
         <i class="icofont-rounded-left"></i> Back to Expenses
@@ -135,19 +135,20 @@
 </template>
 <script setup>
 import {computed,ref,onMounted} from 'vue'
-import {useRouter} from 'vue-router'
+import {useRouter,useRoute} from 'vue-router'
 import ExpensePage from '@/components/expenses/ExpensePage.vue'
 import client from '@/api/client'
 import {expenseData,expenseError,paymentMethods} from '@/api/expenses'
-const router=useRouter(),options=ref(null),categories=ref([]),error=ref(''),loading=ref(true),saving=ref(false),file=ref(null),dragOver=ref(false),fileInput=ref(null)
+const router=useRouter(),route=useRoute(),options=ref(null),categories=ref([]),error=ref(''),loading=ref(true),saving=ref(false),file=ref(null),dragOver=ref(false),fileInput=ref(null)
+const editing=ref(Boolean(route.params.id))
 const form=ref({expense_date:'',category_id:'',title:'',description:'',amount:'',payee:'',payment_method:'CASH',payment_reference:'',department_id:''})
 const uploadTitle=computed(()=>file.value?file.value.name:'Drop files here to upload')
-onMounted(async()=>{try{const [o,c]=await Promise.all([client.get('/api/v1/expenses/options'),client.get('/api/v1/expenses/categories')]);options.value=expenseData(o);categories.value=(expenseData(c)||[]).filter(c=>c.is_active);form.value.expense_date=options.value.today}catch(e){error.value=expenseError(e)}finally{loading.value=false}})
+onMounted(async()=>{try{const requests=[client.get('/api/v1/expenses/options'),client.get('/api/v1/expenses/categories')];if(editing.value)requests.push(client.get('/api/v1/expenses/'+encodeURIComponent(route.params.id)));const [o,c,e]=await Promise.all(requests);options.value=expenseData(o);categories.value=(expenseData(c)||[]).filter(c=>c.is_active);if(editing.value){const current=expenseData(e);form.value={expense_date:current.expense_date,category_id:current.category_id,title:current.title,description:current.description,amount:current.amount,payee:current.payee,payment_method:current.payment_method,payment_reference:current.payment_reference,department_id:current.department_id}}else form.value.expense_date=options.value.today}catch(e){error.value=expenseError(e)}finally{loading.value=false}})
 function setFile(selected){error.value='';dragOver.value=false;if(selected&&(selected.size>5*1024*1024||!['application/pdf','image/jpeg','image/png','image/webp'].includes(selected.type))){error.value='Choose a PDF, JPEG, PNG or WebP receipt up to 5 MB.';if(fileInput.value)fileInput.value.value='';file.value=null;return}file.value=selected||null}
 function chooseFile(event){setFile(event.target.files[0])}
 function dropFile(event){setFile(event.dataTransfer?.files?.[0])}
 function clearFile(){file.value=null;if(fileInput.value)fileInput.value.value=''}
-async function save(){if(saving.value)return;saving.value=true;error.value='';try{const data=new FormData();for(const [key,value] of Object.entries(form.value))data.append(key,value);if(file.value)data.append('file',file.value);const res=await client.post('/api/v1/expenses',data,{headers:{'Content-Type':'multipart/form-data'}});await router.push({name:'ExpenseDetail',params:{id:expenseData(res).id},query:{saved:'1'}})}catch(e){error.value=expenseError(e)}finally{saving.value=false}}
+async function save(){if(saving.value)return;saving.value=true;error.value='';try{let res;if(editing.value)res=await client.put('/api/v1/expenses/'+encodeURIComponent(route.params.id),form.value);else{const data=new FormData();for(const [key,value] of Object.entries(form.value))data.append(key,value);if(file.value)data.append('file',file.value);res=await client.post('/api/v1/expenses',data,{headers:{'Content-Type':'multipart/form-data'}})}await router.push({name:'ExpenseDetail',params:{id:editing.value?route.params.id:expenseData(res).id},query:editing.value?{updated:'1'}:{saved:'1'}})}catch(e){error.value=expenseError(e)}finally{saving.value=false}}
 </script>
 <style scoped>
 .expense-otika-alert {

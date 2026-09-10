@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE expenses DROP CONSTRAINT IF EXISTS expenses_status_check;
+ALTER TABLE expenses ADD CONSTRAINT expenses_status_check CHECK (status IN ('RECORDED','PENDING','VERIFIED','APPROVED','DISBURSED','REJECTED'));
+
+COMMIT;

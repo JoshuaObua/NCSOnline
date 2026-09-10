@@ -1,6 +1,9 @@
 <template>
   <ExpensePage :title="expense ? expense.reference : 'Expense Details'">
-    <template #actions><router-link to="/expenses" class="expense-button expense-secondary">Back to Expenses</router-link></template>
+    <template #actions>
+      <router-link v-if="canEdit" :to="`/expenses/${expense.id}/edit`" class="expense-button expense-secondary">Edit Expense</router-link>
+      <router-link to="/expenses" class="expense-button expense-secondary">Back to Expenses</router-link>
+    </template>
     <p v-if="route.query.saved && expense" role="status" class="expense-success">Expense recorded successfully.</p>
     <p v-if="loading" role="status">Loading expense…</p><p v-if="error" role="alert" class="expense-error">{{ error }}</p>
     <template v-if="expense">
@@ -11,12 +14,14 @@
   </ExpensePage>
 </template>
 <script setup>
-import {ref,watch} from 'vue'
+import {ref,watch,computed} from 'vue'
 import {useRoute} from 'vue-router'
+import {useAuthStore} from '@/stores/auth'
 import ExpensePage from '@/components/expenses/ExpensePage.vue'
 import client from '@/api/client'
 import {expenseData,expenseError,expenseMoney,paymentMethods} from '@/api/expenses'
-const route=useRoute(),expense=ref(null),loading=ref(false),downloading=ref(false),error=ref('')
+const route=useRoute(),auth=useAuthStore(),expense=ref(null),loading=ref(false),downloading=ref(false),error=ref('')
+const canEdit = computed(() => { const uid = auth.user?.id || auth.user?.user_id; return Boolean(uid && expense.value && String(expense.value.recorded_by) === String(uid) && ['RECORDED','PENDING'].includes(expense.value.status || 'RECORDED')) })
 let loadVersion = 0
 watch(()=>route.params.id,async id=>{const version=++loadVersion;loading.value=true;expense.value=null;error.value='';try{const data=expenseData(await client.get('/api/v1/expenses/'+encodeURIComponent(id)));if(version===loadVersion)expense.value=data}catch(e){if(version===loadVersion)error.value=expenseError(e)}finally{if(version===loadVersion)loading.value=false}},{immediate:true})
 async function download(){downloading.value=true;try{const res=await client.get('/api/v1/expenses/'+expense.value.id+'/attachment',{responseType:'blob'});const url=URL.createObjectURL(res.data),a=document.createElement('a');a.href=url;a.download=expense.value.attachment.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){error.value='Could not download the receipt. Please try again.'}finally{downloading.value=false}}

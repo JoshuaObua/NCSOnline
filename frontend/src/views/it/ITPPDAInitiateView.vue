@@ -2,26 +2,6 @@
   <LayoutDefault title="PPDA Form 5 Requisition">
     <div class="space-y-6 pb-12 w-full">
       
-      <!-- Top Action Bar -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm transition-colors duration-200 w-full">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 text-xs font-bold uppercase tracking-wider">
-              <i class="icofont-document-folder text-xs"></i> Public Procurement (PPDA Act 2003 / 2023)
-            </span>
-          </div>
-          <h2 class="text-xl font-bold text-slate-900 dark:text-white mt-1">PPDA Form 5: Request for Approval of Procurement</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Official statutory user department procurement requisition dossier for goods, services, consultancy, and works across National Council of Sports directorates.
-          </p>
-        </div>
-        <div class="flex items-center gap-2 flex-shrink-0">
-          <router-link to="/it/ppda/status" class="btn btn-sm btn-light flex items-center gap-1.5">
-            <i class="icofont-history"></i> View Requisitions & Statuses
-          </router-link>
-        </div>
-      </div>
-
       <!-- Main Full-Width Form Card -->
       <div class="card shadow-sm border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 w-full mb-0">
         <div class="card-header border-b border-slate-100 dark:border-slate-800 py-3.5 px-6 flex items-center justify-between">

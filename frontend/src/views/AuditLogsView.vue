@@ -4,22 +4,22 @@
 
       <!-- Stats bar -->
       <div class="flex flex-wrap items-center gap-3">
-        <span class="flex items-center gap-1.5 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-xs font-medium">
+        <span class="flex items-center gap-1.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg px-3 py-2 text-xs font-medium">
           <span class="w-2 h-2 rounded-full bg-red-500"></span>
           {{ stats.critical }} Critical
         </span>
-        <span class="flex items-center gap-1.5 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-lg px-3 py-2 text-xs font-medium">
+        <span class="flex items-center gap-1.5 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-400 rounded-lg px-3 py-2 text-xs font-medium">
           <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
           {{ stats.warnings }} Warnings
         </span>
-        <span class="flex items-center gap-1.5 bg-orange-50 border border-orange-200 text-orange-700 rounded-lg px-3 py-2 text-xs font-medium">
+        <span class="flex items-center gap-1.5 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400 rounded-lg px-3 py-2 text-xs font-medium">
           <span class="w-2 h-2 rounded-full bg-orange-500"></span>
           {{ stats.vpn }} VPN/Proxy
         </span>
       </div>
 
       <!-- Error alert -->
-      <div v-if="error" class="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+      <div v-if="error" class="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
         {{ error }}
       </div>
 
@@ -28,7 +28,7 @@
 
         <!-- Card header: search + filters -->
         <div class="admin-card-header flex-wrap gap-2">
-          <h2 class="text-sm font-semibold text-gray-800">Security Audit Logs</h2>
+          <h2 class="text-sm font-semibold text-gray-800 dark:text-slate-200">Security Audit Logs</h2>
           <div class="flex flex-wrap items-center gap-2">
             <!-- Search -->
             <div class="relative">
@@ -42,17 +42,17 @@
                 @input="debouncedSearch"
                 type="text"
                 placeholder="Search logs…"
-                class="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-700 w-48"
+                class="pl-8 pr-3 py-1.5 text-xs border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-primary-700 w-48"
               />
             </div>
-            <select v-model="filterSeverity" @change="applyFilters" class="py-1.5 px-3 text-xs border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-700">
+            <select v-model="filterSeverity" @change="applyFilters" class="py-1.5 px-3 text-xs border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-700">
               <option value="">All Severities</option>
               <option value="CRITICAL">Critical</option>
               <option value="WARNING">Warning</option>
               <option value="ERROR">Error</option>
               <option value="INFO">Info</option>
             </select>
-            <select v-model="filterThreat" @change="applyFilters" class="py-1.5 px-3 text-xs border border-gray-200 rounded-lg bg-gray-50 focus:outline-none focus:ring-1 focus:ring-primary-700">
+            <select v-model="filterThreat" @change="applyFilters" class="py-1.5 px-3 text-xs border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary-700">
               <option value="">All Threats</option>
               <option value="high">High (≥70)</option>
               <option value="medium">Medium (≥40)</option>
@@ -72,7 +72,7 @@
         <div v-else class="overflow-x-auto">
           <table class="w-full">
             <thead>
-              <tr class="border-b border-gray-100">
+              <tr class="border-b border-gray-100 dark:border-slate-800">
                 <th class="table-th w-24">Severity</th>
                 <th class="table-th">Event</th>
                 <th class="table-th">Status</th>
@@ -83,11 +83,11 @@
                 <th class="table-th">Time</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-50">
+            <tbody class="divide-y divide-gray-50 dark:divide-slate-800">
               <tr v-if="filtered.length === 0">
                 <td colspan="8" class="py-16 text-center">
-                  <div class="flex flex-col items-center gap-2 text-gray-400">
-                    <i class="icofont-history text-5xl text-gray-200"></i>
+                  <div class="flex flex-col items-center gap-2 text-gray-400 dark:text-slate-500">
+                    <i class="icofont-history text-5xl text-gray-200 dark:text-slate-700"></i>
                     <p class="text-sm">No audit logs found</p>
                   </div>
                 </td>
@@ -96,7 +96,7 @@
                 v-for="log in filtered"
                 :key="log.id"
                 @click="openDetail(log)"
-                class="hover:bg-gray-50 transition-colors cursor-pointer"
+                class="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
                 :class="rowHighlight(log)"
               >
                 <td class="table-td">
@@ -106,41 +106,41 @@
                   </span>
                 </td>
                 <td class="table-td">
-                  <div class="text-sm font-medium text-gray-800">{{ log.event_type || log.resource || '—' }}</div>
-                  <div class="text-xs text-gray-400 font-mono mt-0.5 truncate max-w-48">{{ log.method }} {{ truncatePath(log.endpoint) }}</div>
+                  <div class="text-sm font-medium text-gray-800 dark:text-slate-200">{{ log.event_type || log.resource || '—' }}</div>
+                  <div class="text-xs text-gray-400 dark:text-slate-500 font-mono mt-0.5 truncate max-w-48">{{ log.method }} {{ truncatePath(log.endpoint) }}</div>
                 </td>
                 <td class="table-td">
                   <span :class="statusBadge(log.event_status)" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium">
                     {{ log.event_status || '—' }}
                   </span>
-                  <div class="text-xs text-gray-400 mt-0.5">{{ log.response_code ?? '—' }} · {{ log.response_time_ms ?? 0 }}ms</div>
+                  <div class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{ log.response_code ?? '—' }} · {{ log.response_time_ms ?? 0 }}ms</div>
                 </td>
                 <td class="table-td">
-                  <div class="text-sm font-medium" :class="log.user_id ? 'text-gray-700' : 'text-gray-500'">{{ displayName(log) }}</div>
-                  <div v-if="log.user_id && log.username" class="text-xs text-gray-400 mt-0.5 truncate max-w-48">{{ log.username }}</div>
-                  <div class="text-xs text-gray-400 font-mono mt-0.5">{{ log.ip_address || '—' }}</div>
+                  <div class="text-sm font-medium" :class="log.user_id ? 'text-gray-700 dark:text-slate-300' : 'text-gray-500 dark:text-slate-400'">{{ displayName(log) }}</div>
+                  <div v-if="log.user_id && log.username" class="text-xs text-gray-400 dark:text-slate-500 mt-0.5 truncate max-w-48">{{ log.username }}</div>
+                  <div class="text-xs text-gray-400 dark:text-slate-500 font-mono mt-0.5">{{ log.ip_address || '—' }}</div>
                 </td>
                 <td class="table-td">
                   <div class="flex items-center gap-1.5">
-                    <span class="text-sm text-gray-700">{{ log.geo_country || '—' }}</span>
-                    <span v-if="log.vpn_detected" class="text-xs bg-red-100 text-red-700 font-semibold px-1.5 py-0.5 rounded">VPN</span>
+                    <span class="text-sm text-gray-700 dark:text-slate-300">{{ log.geo_country || '—' }}</span>
+                    <span v-if="log.vpn_detected" class="text-xs bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 font-semibold px-1.5 py-0.5 rounded">VPN</span>
                   </div>
-                  <div class="text-xs text-gray-400 mt-0.5">{{ log.geo_city || '' }}</div>
+                  <div class="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{{ log.geo_city || '' }}</div>
                 </td>
                 <td class="table-td">
-                  <div class="text-sm text-gray-700">{{ log.client_type || '—' }}</div>
-                  <div class="text-xs text-gray-400 mt-0.5 truncate max-w-36">{{ log.browser }}{{ log.os_name ? ' / ' + log.os_name : '' }}</div>
+                  <div class="text-sm text-gray-700 dark:text-slate-300">{{ log.client_type || '—' }}</div>
+                  <div class="text-xs text-gray-400 dark:text-slate-500 mt-0.5 truncate max-w-36">{{ log.browser }}{{ log.os_name ? ' / ' + log.os_name : '' }}</div>
                 </td>
                 <td class="table-td">
                   <div class="flex items-center gap-1">
-                    <div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden w-12">
+                    <div class="flex-1 h-1.5 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden w-12">
                       <div class="h-full rounded-full transition-all" :class="threatBarColor(log.threat_score)" :style="{ width: log.threat_score + '%' }"></div>
                     </div>
                     <span class="text-xs font-mono" :class="threatTextColor(log.threat_score)">{{ log.threat_score }}</span>
                   </div>
-                  <span v-if="log.anomaly_detected" class="text-xs text-orange-600 font-medium">Anomaly</span>
+                  <span v-if="log.anomaly_detected" class="text-xs text-orange-600 dark:text-orange-400 font-medium">Anomaly</span>
                 </td>
-                <td class="table-td text-gray-500 whitespace-nowrap">{{ formatDateTime(log.created_at) }}</td>
+                <td class="table-td text-gray-500 dark:text-slate-400 whitespace-nowrap">{{ formatDateTime(log.created_at) }}</td>
               </tr>
             </tbody>
           </table>
@@ -148,13 +148,13 @@
 
         <!-- Pagination -->
         <div v-if="meta && meta.total > 0" class="admin-card-footer flex items-center justify-between">
-          <p class="text-xs text-gray-500">
-            Showing <span class="font-medium text-gray-700">{{ (meta.page - 1) * meta.per_page + 1 }}–{{ Math.min(meta.page * meta.per_page, meta.total) }}</span> of <span class="font-medium text-gray-700">{{ meta.total }}</span> entries
+          <p class="text-xs text-gray-500 dark:text-slate-400">
+            Showing <span class="font-medium text-gray-700 dark:text-slate-300">{{ (meta.page - 1) * meta.per_page + 1 }}–{{ Math.min(meta.page * meta.per_page, meta.total) }}</span> of <span class="font-medium text-gray-700 dark:text-slate-300">{{ meta.total }}</span> entries
           </p>
           <div class="flex items-center gap-1.5">
-            <button @click="prevPage" :disabled="meta.page <= 1" class="px-3 py-1 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">← Prev</button>
-            <span class="text-xs text-gray-500 px-2 font-medium">{{ meta.page }}</span>
-            <button @click="nextPage" :disabled="meta.page * meta.per_page >= meta.total" class="px-3 py-1 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Next →</button>
+            <button @click="prevPage" :disabled="meta.page <= 1" class="px-3 py-1 text-xs font-medium border border-gray-200 dark:border-slate-700 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">← Prev</button>
+            <span class="text-xs text-gray-500 dark:text-slate-400 px-2 font-medium">{{ meta.page }}</span>
+            <button @click="nextPage" :disabled="meta.page * meta.per_page >= meta.total" class="px-3 py-1 text-xs font-medium border border-gray-200 dark:border-slate-700 rounded-lg text-gray-600 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Next →</button>
           </div>
         </div>
       </div>
@@ -164,14 +164,14 @@
     <Teleport to="body">
       <div v-if="detailLog" class="fixed inset-0 z-50 flex justify-end" @click.self="detailLog = null">
         <div class="fixed inset-0 bg-black/30 backdrop-blur-sm" @click="detailLog = null"></div>
-        <div class="relative bg-white w-full max-w-xl h-full overflow-y-auto shadow-2xl z-10">
+        <div class="audit-detail-drawer relative bg-white dark:bg-slate-900 w-full max-w-xl h-full overflow-y-auto shadow-2xl z-10">
           <!-- Header -->
-          <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div class="sticky top-0 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between">
             <div>
-              <h3 class="font-semibold text-gray-900">Log Entry Detail</h3>
-              <p class="text-xs text-gray-500 font-mono mt-0.5">{{ detailLog.id }}</p>
+              <h3 class="font-semibold text-gray-900 dark:text-slate-100">Log Entry Detail</h3>
+              <p class="text-xs text-gray-500 dark:text-slate-400 font-mono mt-0.5">{{ detailLog.id }}</p>
             </div>
-            <button @click="detailLog = null" class="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700">
+            <button @click="detailLog = null" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-400 hover:text-gray-700 dark:hover:text-slate-200">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -193,12 +193,12 @@
             </div>
 
             <!-- Threat score bar -->
-            <div class="bg-gray-50 rounded-xl p-4">
+              <div class="bg-gray-50 dark:bg-slate-800/60 rounded-xl p-4">
               <div class="flex items-center justify-between mb-2">
-                <span class="text-sm font-medium text-gray-700">Threat Score</span>
+                <span class="text-sm font-medium text-gray-700 dark:text-slate-300">Threat Score</span>
                 <span class="text-lg font-bold" :class="threatTextColor(detailLog.threat_score)">{{ detailLog.threat_score }} / 100</span>
               </div>
-              <div class="h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div class="h-3 bg-gray-200 dark:bg-slate-700 rounded-full overflow-hidden">
                 <div class="h-full rounded-full transition-all" :class="threatBarColor(detailLog.threat_score)" :style="{ width: detailLog.threat_score + '%' }"></div>
               </div>
             </div>

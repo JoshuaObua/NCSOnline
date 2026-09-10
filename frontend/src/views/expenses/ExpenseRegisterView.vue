@@ -2,15 +2,6 @@
   <ExpensePage title="Expenses Register" description="Comprehensive expense tracking, verification, approval, and management workspace.">
     <template #actions>
       <div class="d-flex flex-wrap align-items-center gap-2">
-        <router-link to="/expenses/reports" class="btn btn-sm btn-outline-info" title="Dedicated Expense Reports Page">
-          <i class="fas fa-chart-line mr-1"></i> Reports
-        </router-link>
-        <button @click="exportExcel" class="btn btn-sm btn-outline-success" title="Export to Excel">
-          <i class="fas fa-file-excel mr-1"></i> Export Excel
-        </button>
-        <button @click="exportPDF" class="btn btn-sm btn-outline-danger" title="Export / Print PDF">
-          <i class="fas fa-file-pdf mr-1"></i> Export PDF
-        </button>
         <router-link v-if="auth.isAdmin" to="/expenses/categories" class="btn btn-sm btn-outline-primary">
           <i class="fas fa-tags mr-1"></i> Categories
         </router-link>
@@ -272,6 +263,10 @@
                                   <i class="fas fa-eye"></i>
                                 </router-link>
 
+                                <router-link v-if="canEdit(expense)" :to="'/expenses/'+expense.id+'/edit'" class="btn btn-outline-secondary btn-action" title="Edit your expense">
+                                  <i class="fas fa-edit"></i>
+                                </router-link>
+
                                 <!-- Delete Action -->
                                 <button 
                                   v-if="canDelete" 
@@ -395,6 +390,10 @@ const currentPage = computed(() => Math.floor(offset.value / limit.value) + 1)
 const totalPages = computed(() => Math.ceil(total.value / limit.value))
 
 const canDelete = computed(() => auth.isAdmin || (typeof auth.hasRole === 'function' && auth.hasRole('chief_accountant')))
+function canEdit(exp) {
+  const currentID = auth.user?.id || auth.user?.user_id
+  return Boolean(currentID && String(exp.recorded_by) === String(currentID) && ['RECORDED', 'PENDING'].includes(exp.status || 'RECORDED'))
+}
 
 function canVerify(exp) {
   const roleCheck = typeof auth.hasRole === 'function' ? (auth.hasRole('senior_accountant') || auth.hasRole('chief_accountant')) : false
@@ -412,6 +411,10 @@ function getStatusBadgeClass(st) {
       return 'badge badge-info text-white'
     case 'APPROVED':
       return 'badge badge-success'
+    case 'DISBURSED':
+      return 'badge badge-primary'
+    case 'PENDING':
+      return 'badge badge-secondary'
     case 'REJECTED':
       return 'badge badge-danger'
     default:
